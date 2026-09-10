@@ -75,9 +75,13 @@ Project documentation.
 ```text
 docs/
 ├── architecture/
+|   └── directory-structure.md
 ├── planning/
+│   ├── roadmap.md
+│   └── product-definition.md
 ├── reference/
 └── usage/
+
 ```
 
 - `architecture/` — Application architecture and directory structure

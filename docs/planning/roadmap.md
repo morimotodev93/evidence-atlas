@@ -47,9 +47,9 @@ The public deployment is primarily a curated, read-only demo. Users who want to 
 
 **Goal:** Define what evidence-atlas is before implementing the application.
 
-- [ ] Define product concept
-- [ ] Define target users
-- [ ] Define primary use cases
+- [x] Define product concept
+- [x] Define target users
+- [x] Define primary use cases
 - [ ] Define Demo experience
 - [ ] Define core user flows
 - [ ] Define terminology
