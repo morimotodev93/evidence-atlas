@@ -1,0 +1,43 @@
+{
+  "name": "evidence-atlas",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "eslint",
+    "test": "vitest",
+    "test:e2e": "playwright test"
+  },
+  "dependencies": {
+    "@prisma/client": "^8",
+    "@prisma/adapter-pg": "^8",
+    "ai": "^6",
+    "clsx": "^2",
+    "lucide-react": "^0",
+    "next": "16.3.4",
+    "pg": "^8",
+    "react": "19.2.8",
+    "react-dom": "19.2.8",
+    "react-hook-form": "^7",
+    "tailwind-merge": "^3",
+    "zod": "^4"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1",
+    "@tailwindcss/postcss": "^4",
+    "@types/node": "^20",
+    "@types/pg": "^8",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "babel-plugin-react-compiler": "1.0.0",
+    "eslint": "^9",
+    "eslint-config-next": "16.3.4",
+    "prisma": "^8",
+    "tailwindcss": "^4",
+    "typescript": "^5",
+    "vitest": "^3"
+  },
+  "packageManager": "pnpm@12.3.4"
+}

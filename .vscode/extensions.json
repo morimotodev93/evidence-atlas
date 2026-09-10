@@ -1,0 +1,11 @@
+{
+  "recommendations": [
+    "esbenp.prettier-vscode",
+    "dbaeumer.vscode-eslint",
+    "bradlc.vscode-tailwindcss",
+    "eamodio.gitlens",
+    "usernamehw.errorlens",
+    "streetsidesoftware.code-spell-checker",
+    "pkief.material-icon-theme"
+  ]
+}
