@@ -1,5 +1,6 @@
 {
   "name": "evidence-atlas",
+  "type": "module",
   "version": "0.1.0",
   "private": true,
   "scripts": {
@@ -8,13 +9,14 @@
     "start": "next start",
     "lint": "eslint",
     "test": "vitest",
-    "test:e2e": "playwright test"
+    "test:e2e": "playwright test",
+    "contract:emit": "prisma contract emit"
   },
   "dependencies": {
-    "@prisma/client": "^8",
-    "@prisma/adapter-pg": "^8",
+    "@prisma/orm-postgres": "8.0.0-rc.9",
     "ai": "^6",
     "clsx": "^2",
+    "dotenv": "^17.4.2",
     "lucide-react": "^0",
     "next": "16.3.4",
     "pg": "^8",
@@ -26,6 +28,7 @@
   },
   "devDependencies": {
     "@playwright/test": "^1",
+    "@prisma/cli-engine": "0.2.3",
     "@tailwindcss/postcss": "^4",
     "@types/node": "^20",
     "@types/pg": "^8",
@@ -34,7 +37,7 @@
     "babel-plugin-react-compiler": "1.0.0",
     "eslint": "^9",
     "eslint-config-next": "16.3.4",
-    "prisma": "^8",
+    "prisma": "8.0.0-rc.13",
     "tailwindcss": "^4",
     "typescript": "^7",
     "vitest": "^3"

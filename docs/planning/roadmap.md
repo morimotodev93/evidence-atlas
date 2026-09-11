@@ -73,6 +73,7 @@ Workspace
 Research
 Source
 Finding
+Conclusion
 Comment
 Tag
 Conversation
@@ -82,8 +83,8 @@ Embedding
 
 Tasks:
 
-- [ ] Define entity responsibilities
-- [ ] Define entity relationships
+- [x] Define entity responsibilities
+- [x] Define entity relationships
 - [ ] Design Prisma schema
 - [ ] Configure PostgreSQL
 - [ ] Configure Prisma

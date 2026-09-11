@@ -43,3 +43,6 @@ next-env.d.ts
 
 # memo
 /memo
+node_modules/
+dist/
+.env
