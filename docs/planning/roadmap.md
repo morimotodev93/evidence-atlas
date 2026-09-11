@@ -45,17 +45,17 @@ The public deployment is primarily a curated, read-only demo. Users who want to 
 
 ### Phase 1 — Product Definition
 
-**Goal:** Define what evidence-atlas is before implementing the application.
+**Goal:** Define the core product direction before implementing the application.
 
 - [x] Define product concept
 - [x] Define target users
 - [x] Define primary use cases
-- [ ] Define Demo experience
-- [ ] Define core user flows
-- [ ] Define terminology
-- [ ] Define MVP scope
-- [ ] Identify features explicitly outside the MVP
-- [ ] Document major architectural decisions
+- [x] Define Demo experience
+- [x] Define core user flows
+- [x] Define terminology
+- [x] Define MVP scope
+- [x] Identify features explicitly outside the MVP
+- [x] Document major architectural decisions
 
 ---
 

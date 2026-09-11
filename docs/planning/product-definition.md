@@ -1,11 +1,11 @@
 # Product Definition
 
-> **Status:** Draft
+> **Status:** Approved
 > **Last Updated:** 2026-09-10
 
-This document defines the current product concept, target users, primary use cases, user flows, terminology, Demo experience, MVP scope, and major product decisions for **evidence-atlas**.
+This document defines the approved product concept, target users, and primary use cases for **Evidence Atlas**.
 
-The document is intentionally provisional and will be revised as the product requirements become clearer.
+These sections represent the current product foundation and should be treated as the baseline for subsequent product, data model, UX, and architecture decisions.
 
 ---
 
@@ -21,13 +21,13 @@ It is designed for small development and product teams whose members need to inv
 
 The product does not require contributors to work on the same research simultaneously or coordinate directly during the research process.
 
-Instead, individual research efforts can accumulate within a shared workspace and be connected, reviewed, and integrated over time.
+Instead, individual research efforts accumulate within a shared workspace and can be reviewed, connected, compared, and integrated over time.
 
-The product treats research as accumulated team knowledge rather than a temporary collection of browser tabs, notes, or chat conversations.
+Evidence Atlas treats research as accumulated team knowledge rather than a temporary collection of browser tabs, notes, or chat conversations.
 
 ### 1.2 Core Value
 
-Evidence Atlas aims to help teams:
+Evidence Atlas helps teams:
 
 - Collect research sources in a structured way
 - Keep findings traceable to their sources
@@ -61,23 +61,51 @@ Conclusion
 
 Each level represents a different stage of organizing research knowledge.
 
-The intended AI-assisted knowledge flow is:
+The intended role of AI is to work across the accumulated knowledge within a workspace:
 
 ```text
 Workspace
     ↓
 Knowledge
     ↓
-Embedding
+AI-assisted Retrieval
     ↓
-Vector Search
+AI Analysis / Synthesis
     ↓
-AI
-    ↓
-Answer
+Answer or Insight
 ```
 
-AI is therefore treated as a layer that works with accumulated research knowledge rather than as the primary place where research is created.
+AI is therefore treated as an assisting layer over accumulated research knowledge rather than as the primary place where research is created.
+
+### 1.4 Collaboration Model
+
+Evidence Atlas is designed around **asynchronous knowledge accumulation** rather than simultaneous collaboration.
+
+The intended model is:
+
+```text
+Independent Research
+        ↓
+Individual Contributions
+        ↓
+Shared Workspace
+        ↓
+AI-assisted Organization
+        ↓
+Review / Decision
+        ↓
+Shared Knowledge
+        ↓
+Reusable Results
+```
+
+Team members may investigate different questions independently and at different times.
+
+Their research can subsequently become part of a shared body of knowledge that other contributors can discover, evaluate, extend, challenge, or reuse.
+
+Collaboration therefore does not necessarily mean working together at the same time.
+
+Evidence Atlas focuses on connecting the results of individual knowledge work while reducing direct coordination when it is not necessary.
 
 ---
 
@@ -89,13 +117,15 @@ The primary target users are:
 
 **Small development and product teams that need to accumulate, organize, and reuse research knowledge.**
 
+These teams may investigate technical, product, or development-related questions as part of their normal work.
+
 Evidence Atlas does not assume that team members need to conduct research simultaneously or communicate directly while conducting research.
 
 Individual members may independently investigate different questions, collect sources, record findings, and form conclusions.
 
 Their individual research can then accumulate within a shared workspace, where it can be reviewed, connected, compared, and reused by other members.
 
-The product aims to reduce unnecessary manual coordination and knowledge management required to turn independent research efforts into shared, reusable knowledge.
+The product aims to reduce the manual coordination and knowledge-management effort required to turn independent research efforts into shared, reusable knowledge.
 
 The intended collaboration model is therefore:
 
@@ -115,9 +145,7 @@ Shared Knowledge
 Reusable Results
 ```
 
-Collaboration does not necessarily mean working together at the same time.
-
-Instead, Evidence Atlas focuses on connecting the results of individual knowledge work and minimizing direct coordination when it is not necessary.
+The product is particularly suited to small teams where research knowledge is valuable beyond the person who originally conducted the research.
 
 ### 2.2 Secondary Users
 
@@ -132,7 +160,7 @@ Potential secondary users include:
 
 The individual developer use case is considered a potential extension of the core concept rather than the primary target.
 
-The secondary audience may be refined after the primary use cases are defined.
+The secondary audience may be refined as product requirements and usage patterns become clearer.
 
 ### 2.3 User Characteristics
 
@@ -143,18 +171,42 @@ The target user is expected to:
 - Need to compare or evaluate evidence
 - Perform research repeatedly over time
 - Benefit from preserving previous findings and conclusions
-- Contribute knowledge asynchronously rather than requiring simultaneous collaboration
+- Contribute knowledge asynchronously
 - Reuse research conducted by other members
-- Prefer reducing unnecessary coordination and manual documentation
+- Benefit from reducing unnecessary coordination and manual documentation
 - Have enough technical familiarity to understand structured research concepts
 
 The product does not assume that every team member will contribute equally or consistently.
 
-Instead, the system should provide value even when individual contributions vary in quantity, quality, and timing.
+Individual contributions may vary in quantity, quality, and timing. The system should nevertheless provide value by making accumulated research discoverable and reusable.
+
+### 2.4 Product Positioning
 
 Evidence Atlas is not intended to be a general-purpose note-taking application.
 
 Its primary purpose is to transform individual research efforts into structured, reusable knowledge that can benefit a wider group.
+
+The distinction is:
+
+```text
+General Note-taking
+    ↓
+Store information for later reference
+
+Evidence Atlas
+    ↓
+Research
+    ↓
+Structure evidence and findings
+    ↓
+Preserve reasoning and conclusions
+    ↓
+Accumulate shared knowledge
+    ↓
+Reuse and connect research over time
+```
+
+---
 
 ## 3. Primary Use Cases
 
@@ -167,9 +219,9 @@ The core workflow is:
 ```text
 Create Research / Define Research Question
         ↓
-AI: Surface potentially related research (broad matching)
+AI: Surface Potentially Related Research
         ↓
-User decides:
+User Decides:
   - Review and reuse / extend existing research
   - Review existing research and still proceed independently
   - Ignore and proceed independently
@@ -187,6 +239,10 @@ AI surfaces potentially related research as contextual information rather than a
 
 The user remains free to reuse, extend, challenge, or independently reproduce existing research.
 
+The purpose of this use case is not to prevent repeated research, but to make previous work visible before or during a new investigation.
+
+---
+
 ### UC-02 — Collect and Organize Sources
 
 A user collects relevant external sources and associates them with a research topic.
@@ -196,18 +252,20 @@ The core workflow is:
 ```text
 Open Research
         ↓
-Add Source (URL or reference)
+Add Source
         ↓
-Capture essential metadata
+Capture Essential Metadata
         ↓
-Optionally add notes or context
+Optionally Add Notes or Context
         ↓
-Associate Source with the Research
+Associate Source with Research
 ```
 
-Sources remain independently identifiable so that any later Finding can be clearly traced back to its origin.
+A source represents an identifiable origin of information used during research.
 
-The system prioritizes reliable traceability over exhaustive source management features.
+Sources remain independently identifiable so that later findings can be traced back to their origins.
+
+The system prioritizes reliable traceability over exhaustive source-management functionality.
 
 ---
 
@@ -220,18 +278,30 @@ The core workflow is:
 ```text
 Select Source
         ↓
-Extract relevant insight or evidence
+Extract Relevant Insight or Evidence
         ↓
-Record Finding (linked to the Source)
+Record Finding
         ↓
-Optionally add context, tags, or supporting notes
+Link Finding to Source
         ↓
-Associate Finding with the Research
+Optionally Add Context or Supporting Notes
+        ↓
+Associate Finding with Research
 ```
 
-A Finding represents what was learned from the research, not a copy of the entire source.
+A Finding represents what was learned from the research, rather than a copy of the entire source.
 
-Clear separation between Source and Finding is maintained to support later comparison, conflict detection, and AI retrieval.
+The distinction between Source and Finding is maintained so that research can later be compared, reviewed, and retrieved by AI.
+
+The expected relationship is:
+
+```text
+Source
+    ↓
+Information extracted from source
+    ↓
+Finding
+```
 
 ---
 
@@ -244,20 +314,20 @@ The core workflow is:
 ```text
 Select Finding(s) or Research
         ↓
-Add interpretation, question, or counterpoint
+Add Interpretation, Question, or Counterpoint
         ↓
-Respond to existing discussion points
+Respond to Existing Discussion Points
         ↓
-Highlight agreement, disagreement, or open questions
+Identify Agreement, Disagreement, or Open Questions
         ↓
-Preserve the discussion thread
+Preserve the Discussion
 ```
 
-Discussion is intended to capture reasoning that would otherwise be lost in temporary chat or meetings.
+Discussion is intended to capture reasoning that would otherwise be lost in temporary chat messages or meetings.
 
 It remains asynchronous by default and does not require real-time collaboration.
 
-Direct human-to-human discussion should primarily be used when asynchronous research and AI-assisted analysis cannot efficiently resolve an issue.
+Direct human-to-human discussion should primarily be used when existing evidence, AI-assisted analysis, and asynchronous review cannot efficiently resolve an issue.
 
 ---
 
@@ -270,26 +340,44 @@ The core workflow is:
 ```text
 Review Findings and Discussions
         ↓
-Synthesize the outcome
+Synthesize the Outcome
         ↓
-Record Conclusion (linked to supporting Findings)
+Record Conclusion
         ↓
-Optionally note remaining uncertainties or limitations
+Link Conclusion to Supporting Findings
         ↓
-Mark the Conclusion as the current outcome of the Research
+Optionally Record Remaining Uncertainties or Limitations
+        ↓
+Preserve the Conclusion as the Current Research Outcome
 ```
 
-Conclusions preserve the result of the research so the knowledge can be reused later.
+Conclusions preserve the result of the research so that the resulting knowledge can be reused later.
 
-A Conclusion should remain traceable to the Findings (and ultimately the Sources) that support it.
+A Conclusion should remain traceable to the Findings that support it and, ultimately, to the Sources from which those Findings originated.
+
+The product should preserve not only what was concluded, but also the evidence and reasoning that led to that conclusion.
+
+---
 
 ### UC-06 — Reuse Accumulated Knowledge
 
-Users can find and reuse knowledge from previous research instead of repeatedly investigating the same questions.
+Users can find and reuse knowledge from previous research instead of repeatedly investigating the same questions from the beginning.
 
 Previously accumulated findings and conclusions should remain discoverable and usable as context for new research.
 
-The purpose is not to prevent repeated research, but to make existing knowledge available so users can decide whether to reuse, extend, challenge, or independently reproduce it.
+The purpose is not to prevent repeated research.
+
+Instead, Evidence Atlas allows users to decide whether existing knowledge should be:
+
+- Reused
+- Extended
+- Challenged
+- Independently reproduced
+- Ignored
+
+This allows previous research to remain useful without treating it as automatically correct or authoritative.
+
+---
 
 ### UC-07 — Explore Knowledge with AI
 
@@ -297,15 +385,37 @@ Users can ask questions about accumulated workspace knowledge and use AI to expl
 
 AI should retrieve relevant sources, findings, discussions, and conclusions from the workspace and help synthesize them into useful answers.
 
-Answers should remain grounded in the knowledge accumulated within the workspace, with relevant evidence traceable back to its original sources.
+The intended interaction is:
 
-The intended technical direction is retrieval-augmented generation (RAG).
+```text
+User Question
+        ↓
+Workspace Knowledge
+        ↓
+Relevant Research / Evidence Retrieval
+        ↓
+AI Analysis and Synthesis
+        ↓
+Answer
+        ↓
+Trace Back to Supporting Knowledge
+```
+
+Answers should remain grounded in knowledge accumulated within the workspace.
+
+Relevant evidence should be traceable back through the research structure to its original sources.
+
+The intended technical direction is retrieval-augmented generation (RAG), although the exact implementation is outside the scope of this approved product definition.
+
+---
 
 ### UC-08 — Review Conflicts and Unresolved Issues
 
 AI analyzes accumulated research to identify potentially conflicting findings, conclusions, and unresolved issues.
 
 Potential issues are surfaced for human review rather than being automatically resolved.
+
+The core workflow is:
 
 ```text
 Research
@@ -316,16 +426,83 @@ AI-assisted Analysis
     ↓
 Potential Conflict / Unresolved Issue
     ↓
-Review Queue
-    ↓
 Human Review
     ↓
 Decision / Further Research
 ```
 
-The review process should remain asynchronous by default.
+The review process remains asynchronous by default.
 
 When an issue cannot be efficiently resolved through existing evidence, AI-assisted analysis, or asynchronous review, contributors may communicate directly to resolve the remaining uncertainty.
+
+The purpose of this use case is to help teams discover uncertainty and disagreement that may otherwise remain hidden within accumulated research.
+
+---
+
+## 3.1 Relationship Between the Primary Use Cases
+
+The use cases form a continuous research-to-knowledge cycle:
+
+```text
+UC-01
+Investigate a Research Question
+        ↓
+UC-02
+Collect and Organize Sources
+        ↓
+UC-03
+Record Findings
+        ↓
+UC-04
+Discuss Evidence
+        ↓
+UC-05
+Preserve Conclusions
+        ↓
+UC-06
+Reuse Accumulated Knowledge
+        ↓
+UC-07
+Explore Knowledge with AI
+        ↓
+UC-08
+Review Conflicts / Unresolved Issues
+        ↓
+Further Research
+        └──────────────→ UC-01
+```
+
+This cycle represents the central product concept:
+
+> **Research should not end when a question is answered. Its evidence, reasoning, and conclusions should become reusable knowledge that can support future research and decisions.**
+
+---
+
+## 3.2 Core Product Boundary
+
+The primary use cases establish the following boundary for Evidence Atlas:
+
+```text
+Evidence Atlas is primarily about:
+
+Research
+    ↓
+Evidence
+    ↓
+Findings
+    ↓
+Reasoning
+    ↓
+Conclusions
+    ↓
+Reusable Knowledge
+```
+
+AI supports this process by helping users discover, connect, compare, and synthesize accumulated knowledge.
+
+AI does not replace the underlying research process or become an authoritative source of truth.
+
+The product therefore treats **traceable evidence and accumulated knowledge as the foundation**, with AI serving as an assisting layer over that foundation.
 
 ## 4. Core User Flows
 
@@ -369,25 +546,35 @@ Review Sources / Findings / Conclusions
 Reuse Knowledge
 ```
 
-### 4.3 AI-Assisted Flow
+### 4.3 AI-Assisted Knowledge Flow
 
-The intended AI-assisted experience is:
+AI assists users in discovering, analyzing, and synthesizing knowledge accumulated within the workspace.
+
+The core workflow is:
 
 ```text
-User Question
-    ↓
+Research / User Question
+        ↓
 Workspace Knowledge
-    ↓
-Retrieve Relevant Information
-    ↓
-AI Synthesis
-    ↓
-Answer
-    ↓
+        ↓
+AI-assisted Retrieval and Analysis
+        ↓
+Relevant Research / Evidence
+        ↓
+AI-assisted Synthesis
+        ↓
+Answer / Insight / Potential Issue
+        ↓
 Trace Back to Supporting Knowledge
+        ↓
+User Review / Decision
 ```
 
-The exact interaction model and citation behavior remain to be defined.
+AI may help surface relevant research, connect related evidence, compare findings, identify potential conflicts, and synthesize accumulated knowledge into useful answers or insights.
+
+AI-generated results should remain grounded in the knowledge accumulated within the workspace and traceable to the supporting research and sources.
+
+AI assists the research and knowledge-management process but does not replace human review or decision-making.
 
 ---
 
@@ -433,6 +620,14 @@ This distinction is important for traceability and future AI retrieval.
 ---
 
 ## 6. Demo Experience
+
+The public demo site is a curated, read-only portfolio experience.
+
+Visitors can explore a prepared Demo Workspace, review its accumulated research knowledge, and interact with AI-assisted knowledge exploration.
+
+The underlying demo data is immutable. Visitors cannot create, edit, or delete persistent research data.
+
+The demo is intended to communicate the product concept and demonstrate its core workflow rather than operate as a publicly available SaaS.
 
 ### 6.1 Purpose
 
@@ -502,7 +697,7 @@ The current candidate MVP includes:
 - Basic AI-assisted knowledge exploration
 - Curated read-only Demo experience
 
-The exact MVP boundary will be finalized after the core user flows and data model are reviewed.
+The exact MVP boundary will be finalized after the data model and implementation requirements are reviewed.
 
 ### 7.3 MVP Principle
 
@@ -555,9 +750,9 @@ They are intentionally excluded from the initial product scope unless later requ
 
 Evidence Atlas uses:
 
-- Next.js
-- React
-- TypeScript
+- Next.js 16
+- React 19
+- TypeScript 7+
 - Next.js App Router
 
 The application structure follows the App Router model.
@@ -616,7 +811,9 @@ The exact chunking, embedding, retrieval, ranking, and citation strategies remai
 
 The public deployment will be conceptually separated from the full authenticated SaaS application.
 
-The public Demo is intended to provide a safe, curated demonstration rather than unrestricted access to the application's write operations or AI resources.
+The public Demo is a curated, read-only experience intended to demonstrate the product safely.
+
+Visitors may explore the prepared knowledge and interact with AI-assisted features, but they cannot create, edit, or delete persistent demo data.
 
 ### 9.7 Incremental Architecture
 
