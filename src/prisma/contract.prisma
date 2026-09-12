@@ -1,129 +1,271 @@
 // use prisma-next
 
-model User {
-  id        String   @id @default(cuid())
-  email     String   @unique
-  username  String?
-  name      String?
+// ============================================================
+// User & Organization
+// ============================================================
 
-  createdAt TimestamptzString @default(now())
-  updatedAt temporal.updatedAtString()
+model User {
+  id       String  @id @default(cuid(2))
+  email    String  @unique
+  username String?
+  name     String?
+
+  memberships         Membership[]
+  workspaceMemberships WorkspaceMembership[]
+  researches          Research[]
+  comments            Comment[]
 }
 
+model Organization {
+  id   String @id @default(cuid(2))
+  name String
+
+  memberships Membership[]
+  workspaces  Workspace[]
+}
+
+enum OrganizationRole {
+  ADMIN
+  MEMBER
+}
+
+model Membership {
+  userId         String
+  organizationId String
+  role           OrganizationRole
+
+  user         User         @relation(fields: [userId], references: [id])
+  organization Organization @relation(fields: [organizationId], references: [id])
+
+  @@id([userId, organizationId])
+}
+
+
+// ============================================================
+// Workspace
+// ============================================================
+
 model Workspace {
-  id             String   @id @default(cuid())
+  id             String @id @default(cuid(2))
   organizationId String
 
-  name           String
-  description    String?
+  name        String
+  description String?
 
-  createdAt      ...
-  updatedAt      ...
+  createdAt DateTime @default(now())
+  updatedAt DateTime
 
-  organization   Organization @relation(...)
-  memberships    WorkspaceMembership[]
-  researches     Research[]
+  organization Organization @relation(
+    fields: [organizationId],
+    references: [id]
+  )
+
+  memberships WorkspaceMembership[]
+  researches  Research[]
+  tags        Tag[]
+}
+
+enum WorkspaceRole {
+  ADMIN
+  MEMBER
+}
+
+model WorkspaceMembership {
+  userId      String
+  workspaceId String
+  role        WorkspaceRole
+
+  user      User      @relation(fields: [userId], references: [id])
+  workspace Workspace @relation(fields: [workspaceId], references: [id])
+
+  @@id([userId, workspaceId])
+}
+
+
+// ============================================================
+// Research
+// ============================================================
+
+enum ResearchStatus {
+  IN_PROGRESS
+  COMPLETED
+  ARCHIVED
 }
 
 model Research {
-  id          String         @id @default(cuid())
-  workspaceId String
-  createdById String
+  id            String @id @default(cuid(2))
+  workspaceId   String
+  createdById   String
 
   title       String
   description String?
   status      ResearchStatus @default(IN_PROGRESS)
   conclusion  String?
 
-  createdAt   DateTime       @default(now())
-  updatedAt   DateTime       @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime
 
-  // relations...
+  workspace Workspace @relation(
+    fields: [workspaceId],
+    references: [id]
+  )
+
+  createdBy User @relation(
+    fields: [createdById],
+    references: [id]
+  )
+
+  sources  Source[]
+  findings Finding[]
+  comments Comment[]
+  tags     ResearchTag[]
 }
+
+
+// ============================================================
+// Source
+// ============================================================
 
 model Source {
-  id        String   @id @default(cuid())
-
+  id         String @id @default(cuid(2))
   researchId String
-  title      String
-  url        String
+
+  title String
+  url   String
 
   createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  updatedAt DateTime
 
-  research  Research        @relation(fields: [researchId], references: [id])
-  findings  FindingSource[]
+  research Research @relation(
+    fields: [researchId],
+    references: [id]
+  )
+
+  findings FindingSource[]
 }
+
+
+// ============================================================
+// Finding
+// ============================================================
 
 enum FindingDisplayStyle {
   TEXT
-
 }
 
 model Finding {
-  id            String              @id @default(cuid())
+  id           String @id @default(cuid(2))
+  researchId   String
 
-  researchId    String
-  content       String
-  data          Json?
-  displayStyle  FindingDisplayStyle @default(TEXT)
+  content      String
+  data         Json?
+  displayStyle FindingDisplayStyle @default(TEXT)
 
-  createdAt     DateTime            @default(now())
-  updatedAt     DateTime            @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime
 
-  research      Research            @relation(fields: [researchId], references: [id])
-  sources       FindingSource[]
+  research Research @relation(
+    fields: [researchId],
+    references: [id]
+  )
+
+  sources FindingSource[]
 }
 
 model FindingSource {
   findingId String
   sourceId  String
 
-  finding Finding @relation(fields: [findingId], references: [id])
-  source  Source  @relation(fields: [sourceId], references: [id])
+  finding Finding @relation(
+    fields: [findingId],
+    references: [id]
+  )
+
+  source Source @relation(
+    fields: [sourceId],
+    references: [id]
+  )
 
   @@id([findingId, sourceId])
 }
 
-model Comment {
-  id         String   @id @default(cuid())
 
+// ============================================================
+// Comment
+// ============================================================
+
+model Comment {
+  id         String @id @default(cuid(2))
   researchId String
   userId     String
-  content    String
 
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
-
-  research   Research @relation(fields: [researchId], references: [id])
-  user       User     @relation(fields: [userId], references: [id])
-}
-
-model Tag {
-  id        String   @id @default(cuid())
-  name      String   @unique
+  content String
 
   createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  updatedAt DateTime
+
+  research Research @relation(
+    fields: [researchId],
+    references: [id]
+  )
+
+  user User @relation(
+    fields: [userId],
+    references: [id]
+  )
+}
+
+
+// ============================================================
+// Tag
+// ============================================================
+
+model Tag {
+  id          String @id @default(cuid(2))
+  workspaceId String
+
+  name String
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime
+
+  workspace  Workspace     @relation(
+    fields: [workspaceId],
+    references: [id]
+  )
 
   researches ResearchTag[]
+
+  @@unique([workspaceId, name])
 }
 
 model ResearchTag {
   researchId String
   tagId      String
 
-  research   Research @relation(fields: [researchId], references: [id])
-  tag        Tag      @relation(fields: [tagId], references: [id])
+  research Research @relation(
+    fields: [researchId],
+    references: [id]
+  )
+
+  tag Tag @relation(
+    fields: [tagId],
+    references: [id]
+  )
 
   @@id([researchId, tagId])
 }
 
-model Conversation {
-  id        String    @id @default(cuid())
 
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
+// ============================================================
+// Conversation
+// ============================================================
+
+model Conversation {
+  id String @id @default(cuid(2))
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime
 
   messages Message[]
 }
@@ -134,13 +276,16 @@ enum MessageAuthorType {
 }
 
 model Message {
-  id             String            @id @default(cuid())
+  id             String @id @default(cuid(2))
   conversationId String
 
-  authorType     MessageAuthorType
-  content        String
+  authorType MessageAuthorType
+  content    String
 
-  createdAt      DateTime          @default(now())
+  createdAt DateTime @default(now())
 
-  conversation   Conversation      @relation(fields: [conversationId], references: [id])
+  conversation Conversation @relation(
+    fields: [conversationId],
+    references: [id]
+  )
 }

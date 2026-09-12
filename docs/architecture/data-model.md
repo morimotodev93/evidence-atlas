@@ -45,7 +45,11 @@ A discussion or clarification attached to a Research.
 
 ### Tag
 
-Classification metadata used to organize and discover Research.
+A Tag is a classification label used to organize Research within a Workspace.
+
+Tags belong to a Workspace and are unique within that Workspace.
+
+A Research can have multiple Tags, and a Tag can be attached to multiple Research items.
 
 ### Conversation
 
@@ -122,7 +126,7 @@ Represents a response, clarification, or discussion related to existing research
 
 ### Tag
 
-Represents a classification label used to organize and discover research-related data.
+Classification label for organizing Research within a Workspace.
 
 - Supports categorization and discovery across research-related entities.
 
@@ -297,14 +301,22 @@ Research
 
 Tags are attached to Research and provide classification and discovery support.
 
-- A Tag helps organize and categorize Research.
-- Tags can be used for filtering and discovering related Research.
-- Tags are not attached directly to Sources, Findings, or Conclusions.
-- The exact ownership and scope of Tags are finalized during schema design.
+- Workspace → Tag: A Workspace can contain multiple Tags.
+- Research ↔ Tag: Research and Tag have a many-to-many relationship through ResearchTag.
+- A Tag can only be used by Research items within its Workspace.
 
 ```text
-Research
-  └── Tag
+Workspace
+   │
+   ├── Research
+   │
+   └── Tag
+         ▲
+         │
+    ResearchTag
+         │
+         ▼
+      Research
 ```
 
 ### Conversation and Message
@@ -438,6 +450,14 @@ Organization
 
 A User's participation in a Workspace is represented independently through WorkspaceMembership.
 
+### Workspace Scope
+
+Research belongs directly to a Workspace.
+
+Research-related entities such as Source, Finding, and Comment belong to the Workspace through Research.
+
+Tag belongs directly to a Workspace.
+
 ### Roles and Ownership
 
 Roles define permissions within their respective boundaries.
@@ -477,7 +497,7 @@ The initial schema focuses on the core research workflow and the relationships e
 
 ### 7.1 Core Entities
 
-The initial schema includes the following entities:
+The conceptual data model includes the following entities. The initial database schema implements the entities required by the current MVP.
 
 - `User`
 - `Organization`
@@ -600,11 +620,11 @@ Comments are not used as independent personal notes and are not attached directl
 
 ### 7.9 Tag
 
-`Tag` provides classification and discovery support for Research.
+Tag belongs to a Workspace.
 
-Tags are attached to Research through a many-to-many relationship.
+Tag names are unique within a Workspace.
 
-Tags are not directly attached to Sources, Findings, or Conclusions.
+Research and Tag have a many-to-many relationship through ResearchTag.
 
 ### 7.10 Conversation and Message
 
@@ -715,6 +735,12 @@ The initial database schema is intentionally small and should evolve with the pr
 Changes to the schema should be driven by established requirements rather than speculative future use cases.
 
 Migration history should be maintained through Prisma migrations so that database changes remain reproducible and reviewable.
+
+### 8.7 Tag Scope
+
+Tags are scoped to Workspace rather than globally.
+
+This allows different Workspaces to use the same Tag name independently while preventing duplicate Tag names within the same Workspace.
 
 ## 9. Status
 
