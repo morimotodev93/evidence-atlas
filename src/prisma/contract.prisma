@@ -1,21 +1,146 @@
 // use prisma-next
 
 model User {
-  id        Int      @id @default(autoincrement())
+  id        String   @id @default(cuid())
   email     String   @unique
   username  String?
   name      String?
-  posts     Post[]
+
   createdAt TimestamptzString @default(now())
   updatedAt temporal.updatedAtString()
 }
 
-model Post {
-  id        Int      @id @default(autoincrement())
-  title     String
-  content   String?
-  author    User     @relation(fields: [authorId], references: [id])
-  authorId  Int
-  createdAt TimestamptzString @default(now())
-  updatedAt temporal.updatedAtString()
+model Workspace {
+  id             String   @id @default(cuid())
+  organizationId String
+
+  name           String
+  description    String?
+
+  createdAt      ...
+  updatedAt      ...
+
+  organization   Organization @relation(...)
+  memberships    WorkspaceMembership[]
+  researches     Research[]
+}
+
+model Research {
+  id          String         @id @default(cuid())
+  workspaceId String
+  createdById String
+
+  title       String
+  description String?
+  status      ResearchStatus @default(IN_PROGRESS)
+  conclusion  String?
+
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+
+  // relations...
+}
+
+model Source {
+  id        String   @id @default(cuid())
+
+  researchId String
+  title      String
+  url        String
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  research  Research        @relation(fields: [researchId], references: [id])
+  findings  FindingSource[]
+}
+
+enum FindingDisplayStyle {
+  TEXT
+
+}
+
+model Finding {
+  id            String              @id @default(cuid())
+
+  researchId    String
+  content       String
+  data          Json?
+  displayStyle  FindingDisplayStyle @default(TEXT)
+
+  createdAt     DateTime            @default(now())
+  updatedAt     DateTime            @updatedAt
+
+  research      Research            @relation(fields: [researchId], references: [id])
+  sources       FindingSource[]
+}
+
+model FindingSource {
+  findingId String
+  sourceId  String
+
+  finding Finding @relation(fields: [findingId], references: [id])
+  source  Source  @relation(fields: [sourceId], references: [id])
+
+  @@id([findingId, sourceId])
+}
+
+model Comment {
+  id         String   @id @default(cuid())
+
+  researchId String
+  userId     String
+  content    String
+
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  research   Research @relation(fields: [researchId], references: [id])
+  user       User     @relation(fields: [userId], references: [id])
+}
+
+model Tag {
+  id        String   @id @default(cuid())
+  name      String   @unique
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  researches ResearchTag[]
+}
+
+model ResearchTag {
+  researchId String
+  tagId      String
+
+  research   Research @relation(fields: [researchId], references: [id])
+  tag        Tag      @relation(fields: [tagId], references: [id])
+
+  @@id([researchId, tagId])
+}
+
+model Conversation {
+  id        String    @id @default(cuid())
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  messages Message[]
+}
+
+enum MessageAuthorType {
+  USER
+  AI
+}
+
+model Message {
+  id             String            @id @default(cuid())
+  conversationId String
+
+  authorType     MessageAuthorType
+  content        String
+
+  createdAt      DateTime          @default(now())
+
+  conversation   Conversation      @relation(fields: [conversationId], references: [id])
 }
