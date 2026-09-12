@@ -746,8 +746,15 @@ This allows different Workspaces to use the same Tag name independently while pr
 
 This document defines the current data model and database design for the Evidence Atlas MVP.
 
-The core entities, responsibilities, relationships, and initial schema design have been established.
+The core entities, responsibilities, relationships, ownership boundaries, and initial Prisma schema design have been established.
 
-The Prisma schema can now be implemented and validated against these decisions.
+The Prisma schema has been implemented and the initial PostgreSQL database has been initialized from the Prisma contract.
+
+The initial migration has been created and verified to be up to date with the database.
+
+The remaining database work includes:
+
+- Creating seed data.
+- Verifying database operations through the application or database access layer.
 
 Details that are not yet required by the MVP, such as advanced AI/RAG storage, detailed indexing strategies, and future extensions, remain intentionally deferred.

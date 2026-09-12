@@ -83,12 +83,10 @@ Embedding
 
 Tasks:
 
-[x] Define entity responsibilities
-[x] Define entity relationships
-[x] Design Prisma schema ← 設計は完了、実装がこれから
-[x] Configure PostgreSQL ← 「設定方針」ではなく実DB構築はまだ
-[x] Configure Prisma ← Prisma 8 初期セットアップ完了
-[ ] Create initial migration
+[x] Design Prisma schema
+[x] Configure PostgreSQL
+[x] Configure Prisma
+[x] Create initial migration
 [ ] Create seed data
 [ ] Verify database operations
 [x] Document the data model
