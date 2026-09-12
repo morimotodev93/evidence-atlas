@@ -637,4 +637,91 @@ The initial Prisma schema follows these principles:
 
 ## 8. Database Considerations
 
+The database design prioritizes clear ownership, traceable relationships, and a small schema that can evolve as requirements become clearer.
+
+### 8.1 Data Boundaries
+
+Data ownership follows the application hierarchy:
+
+```text
+Organization
+    └── Workspace
+          └── Research
+                ├── Source
+                ├── Finding
+                ├── Comment
+                └── Tag
+```
+
+Organization and Workspace provide shared boundaries for research-related data.
+
+Roles and permissions are represented separately through membership entities and do not determine data ownership.
+
+### 8.2 Relationship Design
+
+Relationships that have their own domain meaning are represented explicitly.
+
+Examples include:
+
+- `Membership` for User–Organization membership
+- `WorkspaceMembership` for User–Workspace membership
+- `FindingSource` for Finding–Source relationships
+- `ResearchTag` for Research–Tag relationships
+
+This keeps relationships explicit and avoids embedding relationship-specific behavior into unrelated entities.
+
+### 8.3 Traceability
+
+Findings should remain traceable to their supporting Sources.
+
+A Finding can reference multiple Sources, while a Source can support multiple Findings.
+
+This relationship is represented through `FindingSource`.
+
+Traceability is a core database requirement because evidence should remain connected to its original source.
+
+### 8.4 Optional and Lifecycle Data
+
+The schema should distinguish between lifecycle state and optional content.
+
+For example, Research has an explicit status:
+
+```text
+IN_PROGRESS
+COMPLETED
+ARCHIVED
+```
+
+while `conclusion` remains optional.
+
+This allows research to exist and accumulate Findings before a final conclusion is available.
+
+### 8.5 Avoid Premature Structure
+
+The database should not be expanded solely for possible future features.
+
+Fields and entities should be introduced when their domain purpose is clear.
+
+In particular:
+
+- Conclusion remains part of Research unless independent lifecycle or metadata becomes necessary.
+- Finding data is kept flexible while its presentation requirements are explored.
+- AI/RAG-specific storage details are deferred until their requirements are defined.
+
+### 8.6 Evolution
+
+The initial database schema is intentionally small and should evolve with the product.
+
+Changes to the schema should be driven by established requirements rather than speculative future use cases.
+
+Migration history should be maintained through Prisma migrations so that database changes remain reproducible and reviewable.
+
 ## 9. Status
+
+This document defines the current data model and database design for the Evidence Atlas MVP.
+
+The core entities, responsibilities, relationships, and initial schema design have been established.
+
+The Prisma schema can now be implemented and validated against these decisions.
+
+Details that are not yet required by the MVP, such as advanced AI/RAG storage, detailed indexing strategies, and future extensions, remain intentionally deferred.
