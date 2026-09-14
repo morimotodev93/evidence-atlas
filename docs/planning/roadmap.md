@@ -57,6 +57,8 @@ The public deployment is primarily a curated, read-only demo. Users who want to 
 - [x] Identify features explicitly outside the MVP
 - [x] Document major architectural decisions
 
+**Status: Complete**
+
 ---
 
 ### Phase 2 — Data Architecture
@@ -87,8 +89,8 @@ Tasks:
 [x] Configure PostgreSQL
 [x] Configure Prisma
 [x] Create initial migration
-[ ] Create seed data
-[ ] Verify database operations
+[x] Create seed data
+[x] Verify database operations
 [x] Document the data model
 
 The initial model should prioritize the research workflow:
@@ -101,6 +103,8 @@ Workspace
        ├── Discussion
        └── Conclusion
 ```
+
+**Status: Complete**
 
 ---
 
