@@ -112,15 +112,15 @@ Workspace
 
 **Goal:** Establish a reusable UI system before building feature screens.
 
-- [ ] Define design tokens
-- [ ] Configure shadcn/ui
+- [x] Define design tokens
+- [x] Configure shadcn/ui
 - [x] Establish typography
 - [x] Establish spacing
-- [ ] Establish layout primitives
-- [ ] Establish common UI components
-- [ ] Establish form components
-- [ ] Establish feedback states
-- [ ] Define responsive behavior
+- [x] Establish layout primitives
+- [x] Establish common UI components
+- [x] Establish form components
+- [x] Establish feedback states
+- [x] Define responsive behavior
 - [x] Define light/dark theme strategy
 
 ---
