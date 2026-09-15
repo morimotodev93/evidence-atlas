@@ -114,14 +114,14 @@ Workspace
 
 - [ ] Define design tokens
 - [ ] Configure shadcn/ui
-- [ ] Establish typography
-- [ ] Establish spacing
+- [x] Establish typography
+- [x] Establish spacing
 - [ ] Establish layout primitives
 - [ ] Establish common UI components
 - [ ] Establish form components
 - [ ] Establish feedback states
 - [ ] Define responsive behavior
-- [ ] Define light/dark theme strategy
+- [x] Define light/dark theme strategy
 
 ---
 
