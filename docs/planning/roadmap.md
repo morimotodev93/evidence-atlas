@@ -129,20 +129,38 @@ Workspace
 
 **Goal:** Implement the core research management experience.
 
+#### 4.1 Workspace & Research Navigation
+
 - [ ] Workspace overview
 - [ ] Research list
 - [ ] Research detail
+
+#### 4.2 Research Management
+
 - [ ] Create Research
 - [ ] Update Research
+
+#### 4.3 Evidence Management
+
 - [ ] Source management
 - [ ] Finding management
+
+#### 4.4 Research Discussion
+
 - [ ] Comments / discussion
+
+#### 4.5 Research Organization
+
 - [ ] Tags
+
+#### 4.6 Research Discovery
+
 - [ ] Search
 - [ ] Filtering
 - [ ] Basic sorting
 
-The initial experience should make the research process understandable without AI.
+**Principle:** The initial experience should make the research
+process understandable without AI.
 
 ---
 
