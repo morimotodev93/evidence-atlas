@@ -131,9 +131,9 @@ Workspace
 
 #### 4.1 Workspace & Research Navigation
 
-- [ ] Workspace overview
-- [ ] Research list
-- [ ] Research detail
+- [x] Workspace overview
+- [x] Research list
+- [x] Research detail
 
 #### 4.2 Research Management
 

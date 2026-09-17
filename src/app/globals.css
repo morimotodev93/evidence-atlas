@@ -44,7 +44,6 @@
   --color-ring: var(--ring);
 
   --font-sans: var(--font-sans);
-  --font-mono: var(--font-geist-mono);
   --font-heading: var(--font-sans);
 
   --color-sidebar-ring: var(--sidebar-ring);
@@ -195,4 +194,9 @@
   html {
     @apply font-sans;
   }
+}
+
+@theme {
+  --font-sans: var(--font-ibm-plex-sans), ui-sans-serif, system-ui, sans-serif;
+  --font-ibm-plex-sans: var(--font-ibm-plex-sans);
 }
