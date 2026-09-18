@@ -24,6 +24,7 @@ export default async function Research() {
             Research
           </h1>
         </header>
+
         {/* Research List */}
         <section aria-label="Research list">
           {researches.length === 0 ? (
@@ -34,14 +35,14 @@ export default async function Research() {
               </p>
             </div>
           ) : (
-            <div className="divide-y rounded-lg border bg-card">
+            <div className="space-y-3">
               {researches.map((research) => (
                 <Link
                   key={research.id}
                   href={`/research/${research.id}`}
-                  className="p-4  sm:p-5"
+                  className="block rounded-lg border bg-card p-4 transition-colors hover:bg-accent/50 sm:p-5"
                 >
-                  <div className="flex items-start justify-between px-4 gap-4">
+                  <div className="flex items-start justify-between gap-4">
                     <div className="min-w-0">
                       <h2 className="truncate font-medium">{research.title}</h2>
                       {research.description && (
@@ -50,6 +51,7 @@ export default async function Research() {
                         </p>
                       )}
                     </div>
+
                     <span className="shrink-0 text-xs text-muted-foreground">
                       {formatDate(research.createdAt)}
                     </span>
