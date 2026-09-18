@@ -53,7 +53,7 @@ model Workspace {
   description String?
 
   createdAt DateTime @default(now())
-  updatedAt DateTime
+  updatedAt temporal.updatedAt()
 
   organization Organization @relation(
     fields: [organizationId],
@@ -103,7 +103,7 @@ model Research {
   conclusion  String?
 
   createdAt DateTime @default(now())
-  updatedAt DateTime
+  updatedAt temporal.updatedAt()
 
   workspace Workspace @relation(
     fields: [workspaceId],
@@ -134,7 +134,7 @@ model Source {
   url   String
 
   createdAt DateTime @default(now())
-  updatedAt DateTime
+  updatedAt temporal.updatedAt()
 
   research Research @relation(
     fields: [researchId],
@@ -162,7 +162,7 @@ model Finding {
   displayStyle FindingDisplayStyle @default(TEXT)
 
   createdAt DateTime @default(now())
-  updatedAt DateTime
+  updatedAt temporal.updatedAt()
 
   research Research @relation(
     fields: [researchId],
@@ -202,7 +202,7 @@ model Comment {
   content String
 
   createdAt DateTime @default(now())
-  updatedAt DateTime
+  updatedAt temporal.updatedAt()
 
   research Research @relation(
     fields: [researchId],
@@ -227,7 +227,7 @@ model Tag {
   name String
 
   createdAt DateTime @default(now())
-  updatedAt DateTime
+  updatedAt temporal.updatedAt()
 
   workspace  Workspace     @relation(
     fields: [workspaceId],
@@ -265,7 +265,7 @@ model Conversation {
   id String @id @default(cuid(2))
 
   createdAt DateTime @default(now())
-  updatedAt DateTime
+  updatedAt temporal.updatedAt()
 
   messages Message[]
 }

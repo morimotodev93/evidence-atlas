@@ -180,6 +180,7 @@
             "relations": {
               "research": {
                 "cardinality": "N:1",
+                "nullable": false,
                 "on": {
                   "localFields": [
                     "researchId"
@@ -195,6 +196,7 @@
               },
               "user": {
                 "cardinality": "N:1",
+                "nullable": false,
                 "on": {
                   "localFields": [
                     "userId"
@@ -352,6 +354,7 @@
             "relations": {
               "research": {
                 "cardinality": "N:1",
+                "nullable": false,
                 "on": {
                   "localFields": [
                     "researchId"
@@ -429,6 +432,7 @@
             "relations": {
               "finding": {
                 "cardinality": "N:1",
+                "nullable": false,
                 "on": {
                   "localFields": [
                     "findingId"
@@ -444,6 +448,7 @@
               },
               "source": {
                 "cardinality": "N:1",
+                "nullable": false,
                 "on": {
                   "localFields": [
                     "sourceId"
@@ -504,6 +509,7 @@
             "relations": {
               "organization": {
                 "cardinality": "N:1",
+                "nullable": false,
                 "on": {
                   "localFields": [
                     "organizationId"
@@ -519,6 +525,7 @@
               },
               "user": {
                 "cardinality": "N:1",
+                "nullable": false,
                 "on": {
                   "localFields": [
                     "userId"
@@ -596,6 +603,7 @@
             "relations": {
               "conversation": {
                 "cardinality": "N:1",
+                "nullable": false,
                 "on": {
                   "localFields": [
                     "conversationId"
@@ -784,6 +792,7 @@
               },
               "createdBy": {
                 "cardinality": "N:1",
+                "nullable": false,
                 "on": {
                   "localFields": [
                     "createdById"
@@ -844,6 +853,7 @@
               },
               "workspace": {
                 "cardinality": "N:1",
+                "nullable": false,
                 "on": {
                   "localFields": [
                     "workspaceId"
@@ -912,6 +922,7 @@
             "relations": {
               "research": {
                 "cardinality": "N:1",
+                "nullable": false,
                 "on": {
                   "localFields": [
                     "researchId"
@@ -927,6 +938,7 @@
               },
               "tag": {
                 "cardinality": "N:1",
+                "nullable": false,
                 "on": {
                   "localFields": [
                     "tagId"
@@ -1017,6 +1029,7 @@
               },
               "research": {
                 "cardinality": "N:1",
+                "nullable": false,
                 "on": {
                   "localFields": [
                     "researchId"
@@ -1112,6 +1125,7 @@
               },
               "workspace": {
                 "cardinality": "N:1",
+                "nullable": false,
                 "on": {
                   "localFields": [
                     "workspaceId"
@@ -1323,6 +1337,7 @@
               },
               "organization": {
                 "cardinality": "N:1",
+                "nullable": false,
                 "on": {
                   "localFields": [
                     "organizationId"
@@ -1425,6 +1440,7 @@
             "relations": {
               "user": {
                 "cardinality": "N:1",
+                "nullable": false,
                 "on": {
                   "localFields": [
                     "userId"
@@ -1440,6 +1456,7 @@
               },
               "workspace": {
                 "cardinality": "N:1",
+                "nullable": false,
                 "on": {
                   "localFields": [
                     "workspaceId"
@@ -2560,7 +2577,7 @@
     "storageHash": "a10fc05cdaeb21d5b248c7292265b86644feb0b022c243aa30e1ea67abeeb7bb"
   },
   "execution": {
-    "executionHash": "97df61f5f90f26066db7549faa460933b38dfa5faac8ed23026737d88ccb7bfc",
+    "executionHash": "7cbe49cf75771236b3ffd5510fac23f366ee445489dbfbbcf0e675245a7b94bc",
     "mutations": {
       "defaults": [
         {
@@ -2570,6 +2587,21 @@
           },
           "ref": {
             "column": "id",
+            "namespace": "public",
+            "table": "comment"
+          }
+        },
+        {
+          "onCreate": {
+            "id": "instantNow",
+            "kind": "generator"
+          },
+          "onUpdate": {
+            "id": "instantNow",
+            "kind": "generator"
+          },
+          "ref": {
+            "column": "updatedAt",
             "namespace": "public",
             "table": "comment"
           }
@@ -2587,11 +2619,41 @@
         },
         {
           "onCreate": {
+            "id": "instantNow",
+            "kind": "generator"
+          },
+          "onUpdate": {
+            "id": "instantNow",
+            "kind": "generator"
+          },
+          "ref": {
+            "column": "updatedAt",
+            "namespace": "public",
+            "table": "conversation"
+          }
+        },
+        {
+          "onCreate": {
             "id": "cuid2",
             "kind": "generator"
           },
           "ref": {
             "column": "id",
+            "namespace": "public",
+            "table": "finding"
+          }
+        },
+        {
+          "onCreate": {
+            "id": "instantNow",
+            "kind": "generator"
+          },
+          "onUpdate": {
+            "id": "instantNow",
+            "kind": "generator"
+          },
+          "ref": {
+            "column": "updatedAt",
             "namespace": "public",
             "table": "finding"
           }
@@ -2631,6 +2693,21 @@
         },
         {
           "onCreate": {
+            "id": "instantNow",
+            "kind": "generator"
+          },
+          "onUpdate": {
+            "id": "instantNow",
+            "kind": "generator"
+          },
+          "ref": {
+            "column": "updatedAt",
+            "namespace": "public",
+            "table": "research"
+          }
+        },
+        {
+          "onCreate": {
             "id": "cuid2",
             "kind": "generator"
           },
@@ -2642,11 +2719,41 @@
         },
         {
           "onCreate": {
+            "id": "instantNow",
+            "kind": "generator"
+          },
+          "onUpdate": {
+            "id": "instantNow",
+            "kind": "generator"
+          },
+          "ref": {
+            "column": "updatedAt",
+            "namespace": "public",
+            "table": "source"
+          }
+        },
+        {
+          "onCreate": {
             "id": "cuid2",
             "kind": "generator"
           },
           "ref": {
             "column": "id",
+            "namespace": "public",
+            "table": "tag"
+          }
+        },
+        {
+          "onCreate": {
+            "id": "instantNow",
+            "kind": "generator"
+          },
+          "onUpdate": {
+            "id": "instantNow",
+            "kind": "generator"
+          },
+          "ref": {
+            "column": "updatedAt",
             "namespace": "public",
             "table": "tag"
           }
@@ -2669,6 +2776,21 @@
           },
           "ref": {
             "column": "id",
+            "namespace": "public",
+            "table": "workspace"
+          }
+        },
+        {
+          "onCreate": {
+            "id": "instantNow",
+            "kind": "generator"
+          },
+          "onUpdate": {
+            "id": "instantNow",
+            "kind": "generator"
+          },
+          "ref": {
+            "column": "updatedAt",
             "namespace": "public",
             "table": "workspace"
           }
