@@ -1,11 +1,20 @@
 import { z } from "zod";
 
-export const createResearchSchema = z.object({
-  title: z.string().trim().min(1, "Title is required."),
-  description: z.string().trim().nullable(),
+export const researchSchema = z.object({
+  title: z
+    .string()
+    .trim()
+    .min(1, "Title is required.")
+    .max(200, "Title must be 200 characters or less."),
+
+  description: z
+    .string()
+    .trim()
+    .max(2000, "Description must be 2000 characters or less.")
+    .nullable(),
 });
 
-export type CreateResearchInput = z.infer<typeof createResearchSchema>;
+export type ResearchInput = z.infer<typeof researchSchema>;
 
 export type ResearchListItem = {
   id: string;

@@ -5,7 +5,7 @@ import { redirect } from "next/navigation";
 import { db } from "@/prisma/db";
 import { researchSchema } from "@/types/research";
 
-export async function createResearch(formData: FormData) {
+export async function updateResearch(id: string, formData: FormData) {
   const result = researchSchema.safeParse({
     title: String(formData.get("title") ?? ""),
     description: String(formData.get("description") ?? "").trim() || null,
@@ -17,23 +17,16 @@ export async function createResearch(formData: FormData) {
     );
   }
 
-  const workspace = await db.orm.public.Workspace.first();
-  const user = await db.orm.public.User.first();
-
-  if (!workspace) {
-    throw new Error("No workspace is available.");
-  }
-
-  if (!user) {
-    throw new Error("No user is available.");
-  }
-
-  const research = await db.orm.public.Research.create({
-    workspaceId: workspace.id,
-    createdById: user.id,
+  const research = await db.orm.public.Research.where({
+    id,
+  }).update({
     title: result.data.title,
     description: result.data.description,
   });
+
+  if (!research) {
+    throw new Error("Research not found.");
+  }
 
   redirect(`/research/${research.id}`);
 }

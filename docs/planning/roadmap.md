@@ -137,8 +137,8 @@ Workspace
 
 #### 4.2 Research Management
 
-- [ ] Create Research
-- [ ] Update Research
+- [x] Create Research
+- [x] Update Research
 
 #### 4.3 Evidence Management
 

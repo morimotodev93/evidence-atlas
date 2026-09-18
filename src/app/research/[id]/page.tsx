@@ -13,33 +13,24 @@ export default async function ResearchDetailPage({
   params,
 }: ResearchDetailPageProps) {
   const { id } = await params;
-  // Research
+
   const research = await db.orm.public.Research.where({ id }).first();
-  // Null check
+
   if (!research) {
     notFound();
   }
 
-  // Sources
-  const sources = await db.orm.public.Source.where({ researchId: id }).all();
-  // Null check
-  if (!sources) {
-    notFound();
-  }
+  const sources = await db.orm.public.Source.where({
+    researchId: research.id,
+  }).all();
 
-  // Findings
-  const findings = await db.orm.public.Finding.where({ researchId: id }).all();
-  //  Null check
-  if (!findings) {
-    notFound();
-  }
+  const findings = await db.orm.public.Finding.where({
+    researchId: research.id,
+  }).all();
 
-  // Comments
-  const comments = await db.orm.public.Comment.where({ researchId: id }).all();
-  //  Null check
-  if (!comments) {
-    notFound();
-  }
+  const comments = await db.orm.public.Comment.where({
+    researchId: research.id,
+  }).all();
 
   return (
     <>
@@ -64,15 +55,28 @@ export default async function ResearchDetailPage({
 
         {/* Research Header */}
         <header className="border-b pb-6">
-          <p className="text-sm text-muted-foreground">Research</p>
+          <div className="flex items-start justify-between gap-4">
+            <div className="min-w-0">
+              <p className="text-sm text-muted-foreground">Research</p>
 
-          <h1 className="mt-2 text-2xl font-semibold tracking-tight sm:text-3xl">
-            {research.title}
-          </h1>
+              <h1 className="mt-2 text-2xl font-semibold tracking-tight sm:text-3xl">
+                {research.title}
+              </h1>
+            </div>
 
-          <p className="mt-3 max-w-3xl text-sm leading-6 text-muted-foreground sm:text-base">
-            {research.description}
-          </p>
+            <Link
+              href={`/research/${research.id}/edit`}
+              className="shrink-0 rounded-md border px-3 py-2 text-sm font-medium outline-none hover:bg-muted/50 focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+            >
+              Edit
+            </Link>
+          </div>
+
+          {research.description && (
+            <p className="mt-3 max-w-3xl text-sm leading-6 text-muted-foreground sm:text-base">
+              {research.description}
+            </p>
+          )}
 
           <div className="mt-4 flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground">
             <span>Created {formatDate(research.createdAt)}</span>
@@ -99,10 +103,12 @@ export default async function ResearchDetailPage({
                 External sources used in this research.
               </p>
             </div>
+
             <span className="text-xs text-muted-foreground">
               {sources.length} sources
             </span>
           </div>
+
           <div className="mt-4 space-y-3">
             {sources.length === 0 ? (
               <div className="rounded-lg border border-dashed p-6 text-center">
@@ -118,9 +124,11 @@ export default async function ResearchDetailPage({
                   className="block rounded-lg border bg-card p-4 hover:bg-muted/50"
                 >
                   <h3 className="font-medium">{source.title}</h3>
+
                   <p className="mt-1 text-sm text-muted-foreground">
                     {source.url}
                   </p>
+
                   <p className="mt-2 text-xs text-muted-foreground">
                     Updated {formatDate(source.updatedAt)}
                   </p>
@@ -223,7 +231,9 @@ export default async function ResearchDetailPage({
         </section>
 
         {/* Development note */}
-        <p className="mt-4 text-xs text-muted-foreground">Research ID: {id}</p>
+        <p className="mt-4 text-xs text-muted-foreground">
+          Research ID: {research.id}
+        </p>
       </main>
     </>
   );
