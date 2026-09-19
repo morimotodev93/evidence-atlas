@@ -142,8 +142,8 @@ Workspace
 
 #### 4.3 Evidence Management
 
-- [ ] Source management
-- [ ] Finding management
+- [x] Source management
+- [x] Finding management
 
 #### 4.4 Research Discussion
 

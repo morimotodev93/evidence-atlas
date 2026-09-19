@@ -2,8 +2,11 @@ import { formatDate } from "@/lib/date";
 import { db } from "@/prisma/db";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { AddFindingDialog } from "./_components/add-finding-dialog";
 import { AddSourceDialog } from "./_components/add-source-dialog";
+import { DeleteFindingDialog } from "./_components/delete-finding-dialog";
 import { DeleteSourceDialog } from "./_components/delete-source-dialog";
+import { EditFindingDialog } from "./_components/edit-finding-dialog";
 import { EditSourceDialog } from "./_components/edit-source-dialog";
 
 type ResearchDetailPageProps = {
@@ -169,9 +172,13 @@ export default async function ResearchDetailPage({
               </p>
             </div>
 
-            <span className="text-xs text-muted-foreground">
-              {findings.length} findings
-            </span>
+            <div className="flex items-center gap-3">
+              <span className="text-xs text-muted-foreground">
+                {findings.length} findings
+              </span>
+
+              <AddFindingDialog researchId={id} />
+            </div>
           </div>
 
           <div className="mt-4 space-y-3">
@@ -194,9 +201,18 @@ export default async function ResearchDetailPage({
                       {finding.displayStyle}
                     </span>
 
-                    <span className="text-xs text-muted-foreground">
-                      Updated {formatDate(finding.updatedAt)}
-                    </span>
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs text-muted-foreground">
+                        Updated {formatDate(finding.updatedAt)}
+                      </span>
+
+                      <EditFindingDialog
+                        findingId={finding.id}
+                        content={finding.content}
+                      />
+
+                      <DeleteFindingDialog findingId={finding.id} />
+                    </div>
                   </div>
                 </article>
               ))
