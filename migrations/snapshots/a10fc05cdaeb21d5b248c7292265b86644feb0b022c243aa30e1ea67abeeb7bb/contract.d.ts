@@ -22,6 +22,7 @@ import type {
 
 import type {
   ContractWithTypeMaps,
+  RelationKeys,
   TypeMaps as TypeMapsType,
 } from '@prisma/orm-postgres/family-contract/types';
 import type {
@@ -35,7 +36,7 @@ import type {
 export type StorageHash =
   StorageHashBase<'a10fc05cdaeb21d5b248c7292265b86644feb0b022c243aa30e1ea67abeeb7bb'>;
 export type ExecutionHash =
-  ExecutionHashBase<'97df61f5f90f26066db7549faa460933b38dfa5faac8ed23026737d88ccb7bfc'>;
+  ExecutionHashBase<'7cbe49cf75771236b3ffd5510fac23f366ee445489dbfbbcf0e675245a7b94bc'>;
 export type ProfileHash =
   ProfileHashBase<'3916f444a8a17ad749191acf9e08dad97d1a327b88c2f1d45d12f240296aa8b2'>;
 
@@ -619,6 +620,169 @@ export type StorageColumnInputTypes = {
     };
   };
 };
+
+export namespace Models {
+  export type public_User = {
+    id: CodecTypes['pg/text@1']['output'];
+    email: CodecTypes['pg/text@1']['output'];
+    username: CodecTypes['pg/text@1']['output'] | null;
+    name: CodecTypes['pg/text@1']['output'] | null;
+    comments: public_Comment[];
+    memberships: public_Membership[];
+    researches: public_Research[];
+    workspaceMemberships: public_WorkspaceMembership[];
+    readonly [RelationKeys]?: 'comments' | 'memberships' | 'researches' | 'workspaceMemberships';
+  };
+  export type public_Organization = {
+    id: CodecTypes['pg/text@1']['output'];
+    name: CodecTypes['pg/text@1']['output'];
+    memberships: public_Membership[];
+    workspaces: public_Workspace[];
+    readonly [RelationKeys]?: 'memberships' | 'workspaces';
+  };
+  export type public_Membership = {
+    userId: CodecTypes['pg/text@1']['output'];
+    organizationId: CodecTypes['pg/text@1']['output'];
+    role: 'ADMIN' | 'MEMBER';
+    organization: public_Organization;
+    user: public_User;
+    readonly [RelationKeys]?: 'organization' | 'user';
+  };
+  export type public_Workspace = {
+    id: CodecTypes['pg/text@1']['output'];
+    organizationId: CodecTypes['pg/text@1']['output'];
+    name: CodecTypes['pg/text@1']['output'];
+    description: CodecTypes['pg/text@1']['output'] | null;
+    createdAt: CodecTypes['pg/timestamptz-temporal@1']['output'];
+    updatedAt: CodecTypes['pg/timestamptz-temporal@1']['output'];
+    memberships: public_WorkspaceMembership[];
+    organization: public_Organization;
+    researches: public_Research[];
+    tags: public_Tag[];
+    readonly [RelationKeys]?: 'memberships' | 'organization' | 'researches' | 'tags';
+  };
+  export type public_WorkspaceMembership = {
+    userId: CodecTypes['pg/text@1']['output'];
+    workspaceId: CodecTypes['pg/text@1']['output'];
+    role: 'ADMIN' | 'MEMBER';
+    user: public_User;
+    workspace: public_Workspace;
+    readonly [RelationKeys]?: 'user' | 'workspace';
+  };
+  export type public_Research = {
+    id: CodecTypes['pg/text@1']['output'];
+    workspaceId: CodecTypes['pg/text@1']['output'];
+    createdById: CodecTypes['pg/text@1']['output'];
+    title: CodecTypes['pg/text@1']['output'];
+    description: CodecTypes['pg/text@1']['output'] | null;
+    status: 'IN_PROGRESS' | 'COMPLETED' | 'ARCHIVED';
+    conclusion: CodecTypes['pg/text@1']['output'] | null;
+    createdAt: CodecTypes['pg/timestamptz-temporal@1']['output'];
+    updatedAt: CodecTypes['pg/timestamptz-temporal@1']['output'];
+    comments: public_Comment[];
+    createdBy: public_User;
+    findings: public_Finding[];
+    sources: public_Source[];
+    tags: public_ResearchTag[];
+    workspace: public_Workspace;
+    readonly [RelationKeys]?:
+      'comments' | 'createdBy' | 'findings' | 'sources' | 'tags' | 'workspace';
+  };
+  export type public_Source = {
+    id: CodecTypes['pg/text@1']['output'];
+    researchId: CodecTypes['pg/text@1']['output'];
+    title: CodecTypes['pg/text@1']['output'];
+    url: CodecTypes['pg/text@1']['output'];
+    createdAt: CodecTypes['pg/timestamptz-temporal@1']['output'];
+    updatedAt: CodecTypes['pg/timestamptz-temporal@1']['output'];
+    findings: public_FindingSource[];
+    research: public_Research;
+    readonly [RelationKeys]?: 'findings' | 'research';
+  };
+  export type public_Finding = {
+    id: CodecTypes['pg/text@1']['output'];
+    researchId: CodecTypes['pg/text@1']['output'];
+    content: CodecTypes['pg/text@1']['output'];
+    data: CodecTypes['pg/json@1']['output'] | null;
+    displayStyle: 'TEXT';
+    createdAt: CodecTypes['pg/timestamptz-temporal@1']['output'];
+    updatedAt: CodecTypes['pg/timestamptz-temporal@1']['output'];
+    research: public_Research;
+    sources: public_FindingSource[];
+    readonly [RelationKeys]?: 'research' | 'sources';
+  };
+  export type public_FindingSource = {
+    findingId: CodecTypes['pg/text@1']['output'];
+    sourceId: CodecTypes['pg/text@1']['output'];
+    finding: public_Finding;
+    source: public_Source;
+    readonly [RelationKeys]?: 'finding' | 'source';
+  };
+  export type public_Comment = {
+    id: CodecTypes['pg/text@1']['output'];
+    researchId: CodecTypes['pg/text@1']['output'];
+    userId: CodecTypes['pg/text@1']['output'];
+    content: CodecTypes['pg/text@1']['output'];
+    createdAt: CodecTypes['pg/timestamptz-temporal@1']['output'];
+    updatedAt: CodecTypes['pg/timestamptz-temporal@1']['output'];
+    research: public_Research;
+    user: public_User;
+    readonly [RelationKeys]?: 'research' | 'user';
+  };
+  export type public_Tag = {
+    id: CodecTypes['pg/text@1']['output'];
+    workspaceId: CodecTypes['pg/text@1']['output'];
+    name: CodecTypes['pg/text@1']['output'];
+    createdAt: CodecTypes['pg/timestamptz-temporal@1']['output'];
+    updatedAt: CodecTypes['pg/timestamptz-temporal@1']['output'];
+    researches: public_ResearchTag[];
+    workspace: public_Workspace;
+    readonly [RelationKeys]?: 'researches' | 'workspace';
+  };
+  export type public_ResearchTag = {
+    researchId: CodecTypes['pg/text@1']['output'];
+    tagId: CodecTypes['pg/text@1']['output'];
+    research: public_Research;
+    tag: public_Tag;
+    readonly [RelationKeys]?: 'research' | 'tag';
+  };
+  export type public_Conversation = {
+    id: CodecTypes['pg/text@1']['output'];
+    createdAt: CodecTypes['pg/timestamptz-temporal@1']['output'];
+    updatedAt: CodecTypes['pg/timestamptz-temporal@1']['output'];
+    messages: public_Message[];
+    readonly [RelationKeys]?: 'messages';
+  };
+  export type public_Message = {
+    id: CodecTypes['pg/text@1']['output'];
+    conversationId: CodecTypes['pg/text@1']['output'];
+    authorType: 'USER' | 'AI';
+    content: CodecTypes['pg/text@1']['output'];
+    createdAt: CodecTypes['pg/timestamptz-temporal@1']['output'];
+    conversation: public_Conversation;
+    readonly [RelationKeys]?: 'conversation';
+  };
+}
+
+export declare const models: {
+  public: {
+    User: Models.public_User;
+    Organization: Models.public_Organization;
+    Membership: Models.public_Membership;
+    Workspace: Models.public_Workspace;
+    WorkspaceMembership: Models.public_WorkspaceMembership;
+    Research: Models.public_Research;
+    Source: Models.public_Source;
+    Finding: Models.public_Finding;
+    FindingSource: Models.public_FindingSource;
+    Comment: Models.public_Comment;
+    Tag: Models.public_Tag;
+    ResearchTag: Models.public_ResearchTag;
+    Conversation: Models.public_Conversation;
+    Message: Models.public_Message;
+  };
+};
+
 export type TypeMaps = TypeMapsType<
   CodecTypes,
   QueryOperationTypes,
@@ -1518,6 +1682,7 @@ type ContractBase = Omit<
                   readonly model: 'Research';
                 };
                 readonly cardinality: 'N:1';
+                readonly nullable: false;
                 readonly on: {
                   readonly localFields: readonly ['researchId'];
                   readonly targetFields: readonly ['id'];
@@ -1526,6 +1691,7 @@ type ContractBase = Omit<
               readonly user: {
                 readonly to: { readonly namespace: 'public' & NamespaceId; readonly model: 'User' };
                 readonly cardinality: 'N:1';
+                readonly nullable: false;
                 readonly on: {
                   readonly localFields: readonly ['userId'];
                   readonly targetFields: readonly ['id'];
@@ -1633,6 +1799,7 @@ type ContractBase = Omit<
                   readonly model: 'Research';
                 };
                 readonly cardinality: 'N:1';
+                readonly nullable: false;
                 readonly on: {
                   readonly localFields: readonly ['researchId'];
                   readonly targetFields: readonly ['id'];
@@ -1682,6 +1849,7 @@ type ContractBase = Omit<
                   readonly model: 'Finding';
                 };
                 readonly cardinality: 'N:1';
+                readonly nullable: false;
                 readonly on: {
                   readonly localFields: readonly ['findingId'];
                   readonly targetFields: readonly ['id'];
@@ -1693,6 +1861,7 @@ type ContractBase = Omit<
                   readonly model: 'Source';
                 };
                 readonly cardinality: 'N:1';
+                readonly nullable: false;
                 readonly on: {
                   readonly localFields: readonly ['sourceId'];
                   readonly targetFields: readonly ['id'];
@@ -1730,6 +1899,7 @@ type ContractBase = Omit<
                   readonly model: 'Organization';
                 };
                 readonly cardinality: 'N:1';
+                readonly nullable: false;
                 readonly on: {
                   readonly localFields: readonly ['organizationId'];
                   readonly targetFields: readonly ['id'];
@@ -1738,6 +1908,7 @@ type ContractBase = Omit<
               readonly user: {
                 readonly to: { readonly namespace: 'public' & NamespaceId; readonly model: 'User' };
                 readonly cardinality: 'N:1';
+                readonly nullable: false;
                 readonly on: {
                   readonly localFields: readonly ['userId'];
                   readonly targetFields: readonly ['id'];
@@ -1787,6 +1958,7 @@ type ContractBase = Omit<
                   readonly model: 'Conversation';
                 };
                 readonly cardinality: 'N:1';
+                readonly nullable: false;
                 readonly on: {
                   readonly localFields: readonly ['conversationId'];
                   readonly targetFields: readonly ['id'];
@@ -1909,6 +2081,7 @@ type ContractBase = Omit<
               readonly createdBy: {
                 readonly to: { readonly namespace: 'public' & NamespaceId; readonly model: 'User' };
                 readonly cardinality: 'N:1';
+                readonly nullable: false;
                 readonly on: {
                   readonly localFields: readonly ['createdById'];
                   readonly targetFields: readonly ['id'];
@@ -1953,6 +2126,7 @@ type ContractBase = Omit<
                   readonly model: 'Workspace';
                 };
                 readonly cardinality: 'N:1';
+                readonly nullable: false;
                 readonly on: {
                   readonly localFields: readonly ['workspaceId'];
                   readonly targetFields: readonly ['id'];
@@ -1993,6 +2167,7 @@ type ContractBase = Omit<
                   readonly model: 'Research';
                 };
                 readonly cardinality: 'N:1';
+                readonly nullable: false;
                 readonly on: {
                   readonly localFields: readonly ['researchId'];
                   readonly targetFields: readonly ['id'];
@@ -2001,6 +2176,7 @@ type ContractBase = Omit<
               readonly tag: {
                 readonly to: { readonly namespace: 'public' & NamespaceId; readonly model: 'Tag' };
                 readonly cardinality: 'N:1';
+                readonly nullable: false;
                 readonly on: {
                   readonly localFields: readonly ['tagId'];
                   readonly targetFields: readonly ['id'];
@@ -2067,6 +2243,7 @@ type ContractBase = Omit<
                   readonly model: 'Research';
                 };
                 readonly cardinality: 'N:1';
+                readonly nullable: false;
                 readonly on: {
                   readonly localFields: readonly ['researchId'];
                   readonly targetFields: readonly ['id'];
@@ -2133,6 +2310,7 @@ type ContractBase = Omit<
                   readonly model: 'Workspace';
                 };
                 readonly cardinality: 'N:1';
+                readonly nullable: false;
                 readonly on: {
                   readonly localFields: readonly ['workspaceId'];
                   readonly targetFields: readonly ['id'];
@@ -2278,6 +2456,7 @@ type ContractBase = Omit<
                   readonly model: 'Organization';
                 };
                 readonly cardinality: 'N:1';
+                readonly nullable: false;
                 readonly on: {
                   readonly localFields: readonly ['organizationId'];
                   readonly targetFields: readonly ['id'];
@@ -2335,6 +2514,7 @@ type ContractBase = Omit<
               readonly user: {
                 readonly to: { readonly namespace: 'public' & NamespaceId; readonly model: 'User' };
                 readonly cardinality: 'N:1';
+                readonly nullable: false;
                 readonly on: {
                   readonly localFields: readonly ['userId'];
                   readonly targetFields: readonly ['id'];
@@ -2346,6 +2526,7 @@ type ContractBase = Omit<
                   readonly model: 'Workspace';
                 };
                 readonly cardinality: 'N:1';
+                readonly nullable: false;
                 readonly on: {
                   readonly localFields: readonly ['workspaceId'];
                   readonly targetFields: readonly ['id'];
@@ -2435,6 +2616,15 @@ type ContractBase = Omit<
         {
           readonly ref: {
             readonly namespace: 'public';
+            readonly table: 'comment';
+            readonly column: 'updatedAt';
+          };
+          readonly onCreate: { readonly kind: 'generator'; readonly id: 'instantNow' };
+          readonly onUpdate: { readonly kind: 'generator'; readonly id: 'instantNow' };
+        },
+        {
+          readonly ref: {
+            readonly namespace: 'public';
             readonly table: 'conversation';
             readonly column: 'id';
           };
@@ -2443,10 +2633,28 @@ type ContractBase = Omit<
         {
           readonly ref: {
             readonly namespace: 'public';
+            readonly table: 'conversation';
+            readonly column: 'updatedAt';
+          };
+          readonly onCreate: { readonly kind: 'generator'; readonly id: 'instantNow' };
+          readonly onUpdate: { readonly kind: 'generator'; readonly id: 'instantNow' };
+        },
+        {
+          readonly ref: {
+            readonly namespace: 'public';
             readonly table: 'finding';
             readonly column: 'id';
           };
           readonly onCreate: { readonly kind: 'generator'; readonly id: 'cuid2' };
+        },
+        {
+          readonly ref: {
+            readonly namespace: 'public';
+            readonly table: 'finding';
+            readonly column: 'updatedAt';
+          };
+          readonly onCreate: { readonly kind: 'generator'; readonly id: 'instantNow' };
+          readonly onUpdate: { readonly kind: 'generator'; readonly id: 'instantNow' };
         },
         {
           readonly ref: {
@@ -2475,6 +2683,15 @@ type ContractBase = Omit<
         {
           readonly ref: {
             readonly namespace: 'public';
+            readonly table: 'research';
+            readonly column: 'updatedAt';
+          };
+          readonly onCreate: { readonly kind: 'generator'; readonly id: 'instantNow' };
+          readonly onUpdate: { readonly kind: 'generator'; readonly id: 'instantNow' };
+        },
+        {
+          readonly ref: {
+            readonly namespace: 'public';
             readonly table: 'source';
             readonly column: 'id';
           };
@@ -2483,10 +2700,28 @@ type ContractBase = Omit<
         {
           readonly ref: {
             readonly namespace: 'public';
+            readonly table: 'source';
+            readonly column: 'updatedAt';
+          };
+          readonly onCreate: { readonly kind: 'generator'; readonly id: 'instantNow' };
+          readonly onUpdate: { readonly kind: 'generator'; readonly id: 'instantNow' };
+        },
+        {
+          readonly ref: {
+            readonly namespace: 'public';
             readonly table: 'tag';
             readonly column: 'id';
           };
           readonly onCreate: { readonly kind: 'generator'; readonly id: 'cuid2' };
+        },
+        {
+          readonly ref: {
+            readonly namespace: 'public';
+            readonly table: 'tag';
+            readonly column: 'updatedAt';
+          };
+          readonly onCreate: { readonly kind: 'generator'; readonly id: 'instantNow' };
+          readonly onUpdate: { readonly kind: 'generator'; readonly id: 'instantNow' };
         },
         {
           readonly ref: {
@@ -2503,6 +2738,15 @@ type ContractBase = Omit<
             readonly column: 'id';
           };
           readonly onCreate: { readonly kind: 'generator'; readonly id: 'cuid2' };
+        },
+        {
+          readonly ref: {
+            readonly namespace: 'public';
+            readonly table: 'workspace';
+            readonly column: 'updatedAt';
+          };
+          readonly onCreate: { readonly kind: 'generator'; readonly id: 'instantNow' };
+          readonly onUpdate: { readonly kind: 'generator'; readonly id: 'instantNow' };
         },
       ];
     };

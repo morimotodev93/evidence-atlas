@@ -43,7 +43,6 @@
   --color-input: var(--input);
   --color-ring: var(--ring);
 
-  --font-sans: var(--font-sans);
   --font-heading: var(--font-sans);
 
   --color-sidebar-ring: var(--sidebar-ring);
@@ -198,5 +197,4 @@
 
 @theme {
   --font-sans: var(--font-ibm-plex-sans), ui-sans-serif, system-ui, sans-serif;
-  --font-ibm-plex-sans: var(--font-ibm-plex-sans);
 }

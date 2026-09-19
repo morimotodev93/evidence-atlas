@@ -2,6 +2,9 @@ import { formatDate } from "@/lib/date";
 import { db } from "@/prisma/db";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { AddSourceDialog } from "./_components/add-source-dialog";
+import { DeleteSourceDialog } from "./_components/delete-source-dialog";
+import { EditSourceDialog } from "./_components/edit-source-dialog";
 
 type ResearchDetailPageProps = {
   params: Promise<{
@@ -104,9 +107,13 @@ export default async function ResearchDetailPage({
               </p>
             </div>
 
-            <span className="text-xs text-muted-foreground">
-              {sources.length} sources
-            </span>
+            <div className="flex items-center gap-3">
+              <span className="text-xs text-muted-foreground">
+                {sources.length} sources
+              </span>
+
+              <AddSourceDialog researchId={id} />
+            </div>
           </div>
 
           <div className="mt-4 space-y-3">
@@ -116,23 +123,36 @@ export default async function ResearchDetailPage({
               </div>
             ) : (
               sources.map((source) => (
-                <Link
+                <div
                   key={source.id}
-                  href={source.url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="block rounded-lg border bg-card p-4 hover:bg-muted/50"
+                  className="flex items-center gap-3 rounded-lg border bg-card p-4"
                 >
-                  <h3 className="font-medium">{source.title}</h3>
+                  <Link
+                    href={source.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="min-w-0 flex-1 hover:opacity-80"
+                  >
+                    <h3 className="font-medium">{source.title}</h3>
 
-                  <p className="mt-1 text-sm text-muted-foreground">
-                    {source.url}
-                  </p>
+                    <p className="mt-1 truncate text-sm text-muted-foreground">
+                      {source.url}
+                    </p>
 
-                  <p className="mt-2 text-xs text-muted-foreground">
-                    Updated {formatDate(source.updatedAt)}
-                  </p>
-                </Link>
+                    <p className="mt-2 text-xs text-muted-foreground">
+                      Updated {formatDate(source.updatedAt)}
+                    </p>
+                  </Link>
+
+                  <div className="flex shrink-0 items-center gap-2">
+                    <EditSourceDialog
+                      sourceId={source.id}
+                      title={source.title}
+                      url={source.url}
+                    />
+                    <DeleteSourceDialog sourceId={source.id} />
+                  </div>
+                </div>
               ))
             )}
           </div>
