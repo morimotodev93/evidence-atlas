@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useState } from "react";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -14,6 +14,10 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import {
+  MAX_SOURCE_TITLE_LENGTH,
+  MAX_SOURCE_URL_LENGTH,
+} from "@/types/research/source";
 import { updateSource, type UpdateSourceState } from "../_actions/updateSource";
 
 type EditSourceDialogProps = {
@@ -21,6 +25,7 @@ type EditSourceDialogProps = {
   title: string;
   url: string;
 };
+
 const initialState: UpdateSourceState = {
   error: null,
 };
@@ -34,6 +39,15 @@ export function EditSourceDialog({
     updateSource.bind(null, sourceId),
     initialState,
   );
+
+  const [editTitle, setEditTitle] = useState(title);
+  const [editUrl, setEditUrl] = useState(url);
+
+  const isTitleOverLimit = editTitle.length > MAX_SOURCE_TITLE_LENGTH;
+
+  const isUrlOverLimit = editUrl.length > MAX_SOURCE_URL_LENGTH;
+
+  const isInvalid = isTitleOverLimit || isUrlOverLimit;
 
   return (
     <Dialog>
@@ -70,9 +84,24 @@ export function EditSourceDialog({
             <Input
               id={`source-title-${sourceId}`}
               name="title"
-              defaultValue={title}
+              value={editTitle}
+              onChange={(event) => setEditTitle(event.target.value)}
+              placeholder="Source title"
               required
             />
+
+            <div className="flex items-center justify-end">
+              <p
+                className={
+                  isTitleOverLimit
+                    ? "text-xs text-destructive-text"
+                    : "text-xs text-muted-foreground"
+                }
+                aria-live="polite"
+              >
+                {editTitle.length} / {MAX_SOURCE_TITLE_LENGTH}
+              </p>
+            </div>
           </div>
 
           <div className="space-y-2">
@@ -82,13 +111,14 @@ export function EditSourceDialog({
               id={`source-url-${sourceId}`}
               name="url"
               type="url"
-              defaultValue={url}
+              value={editUrl}
+              onChange={(event) => setEditUrl(event.target.value)}
               required
             />
           </div>
 
           <DialogFooter>
-            <Button type="submit" disabled={isPending}>
+            <Button type="submit" disabled={isPending || isInvalid}>
               {isPending ? "Saving..." : "Save Changes"}
             </Button>
           </DialogFooter>

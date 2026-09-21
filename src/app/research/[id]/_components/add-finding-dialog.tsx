@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useState } from "react";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -14,6 +14,7 @@ import {
 } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { MAX_FINDING_LENGTH } from "@/types/research/finding";
 import {
   createFinding,
   type CreateFindingState,
@@ -28,10 +29,14 @@ const initialState: CreateFindingState = {
 };
 
 export function AddFindingDialog({ researchId }: AddFindingDialogProps) {
+  const [content, setContent] = useState("");
+
   const [state, action, isPending] = useActionState(
     createFinding.bind(null, researchId),
     initialState,
   );
+
+  const isOverLimit = content.length > MAX_FINDING_LENGTH;
 
   return (
     <Dialog>
@@ -62,14 +67,30 @@ export function AddFindingDialog({ researchId }: AddFindingDialogProps) {
             <Textarea
               id="finding-content"
               name="content"
+              value={content}
+              onChange={(event) => setContent(event.target.value)}
               placeholder="Describe the evidence or insight..."
               rows={6}
+              className="min-h-32 max-h-[60vh] resize-y overflow-y-auto"
               required
             />
+
+            <div className="flex items-center justify-end">
+              <p
+                className={
+                  isOverLimit
+                    ? "text-xs text-destructive-text"
+                    : "text-xs text-muted-foreground"
+                }
+                aria-live="polite"
+              >
+                {content.length} / {MAX_FINDING_LENGTH}
+              </p>
+            </div>
           </div>
 
           <DialogFooter>
-            <Button type="submit" disabled={isPending}>
+            <Button type="submit" disabled={isPending || isOverLimit}>
               {isPending ? "Adding..." : "Add Finding"}
             </Button>
           </DialogFooter>

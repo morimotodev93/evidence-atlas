@@ -11,7 +11,6 @@ export type DeleteFindingState = {
 export async function deleteFinding(
   findingId: string,
   _previousState: DeleteFindingState,
-  _formData: FormData,
 ): Promise<DeleteFindingState> {
   const finding = await db.orm.public.Finding.where({
     id: findingId,

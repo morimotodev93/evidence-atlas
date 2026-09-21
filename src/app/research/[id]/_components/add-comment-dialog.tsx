@@ -19,11 +19,11 @@ import {
   type CreateCommentState,
 } from "../_actions/createComment";
 
+import { MAX_COMMENT_LENGTH } from "@/types/research/comment";
+
 type AddCommentDialogProps = {
   researchId: string;
 };
-
-const MAX_COMMENT_LENGTH = 5000;
 
 const initialState: CreateCommentState = {
   error: null,

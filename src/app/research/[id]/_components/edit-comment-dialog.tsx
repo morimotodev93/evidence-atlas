@@ -19,12 +19,12 @@ import {
   type UpdateCommentState,
 } from "../_actions/updateComment";
 
+import { MAX_COMMENT_LENGTH } from "@/types/research/comment";
+
 type EditCommentDialogProps = {
   commentId: string;
   content: string;
 };
-
-const MAX_COMMENT_LENGTH = 5000;
 
 const initialState: UpdateCommentState = {
   error: null,

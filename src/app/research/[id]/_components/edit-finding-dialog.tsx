@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useState } from "react";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -14,6 +14,7 @@ import {
 } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { MAX_FINDING_LENGTH } from "@/types/research/finding";
 import {
   updateFinding,
   type UpdateFindingState,
@@ -32,10 +33,14 @@ export function EditFindingDialog({
   findingId,
   content,
 }: EditFindingDialogProps) {
+  const [editedContent, setEditedContent] = useState(content);
+
   const [state, action, isPending] = useActionState(
     updateFinding.bind(null, findingId),
     initialState,
   );
+
+  const isOverLimit = editedContent.length > MAX_FINDING_LENGTH;
 
   return (
     <Dialog>
@@ -72,14 +77,29 @@ export function EditFindingDialog({
             <Textarea
               id={`finding-content-${findingId}`}
               name="content"
-              defaultValue={content}
+              value={editedContent}
+              onChange={(event) => setEditedContent(event.target.value)}
               rows={6}
+              className="min-h-40 max-h-[60vh] resize-y overflow-y-auto"
               required
             />
+
+            <div className="flex items-center justify-end">
+              <p
+                className={
+                  isOverLimit
+                    ? "text-xs text-destructive-text"
+                    : "text-xs text-muted-foreground"
+                }
+                aria-live="polite"
+              >
+                {editedContent.length} / {MAX_FINDING_LENGTH}
+              </p>
+            </div>
           </div>
 
           <DialogFooter>
-            <Button type="submit" disabled={isPending}>
+            <Button type="submit" disabled={isPending || isOverLimit}>
               {isPending ? "Saving..." : "Save Changes"}
             </Button>
           </DialogFooter>
