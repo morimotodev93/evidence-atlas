@@ -2,10 +2,13 @@ import { formatDate } from "@/lib/date";
 import { db } from "@/prisma/db";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { AddCommentDialog } from "./_components/add-comment-dialog";
 import { AddFindingDialog } from "./_components/add-finding-dialog";
 import { AddSourceDialog } from "./_components/add-source-dialog";
+import { DeleteCommentDialog } from "./_components/delete-comment-dialog";
 import { DeleteFindingDialog } from "./_components/delete-finding-dialog";
 import { DeleteSourceDialog } from "./_components/delete-source-dialog";
+import { EditCommentDialog } from "./_components/edit-comment-dialog";
 import { EditFindingDialog } from "./_components/edit-finding-dialog";
 import { EditSourceDialog } from "./_components/edit-source-dialog";
 
@@ -36,7 +39,9 @@ export default async function ResearchDetailPage({
 
   const comments = await db.orm.public.Comment.where({
     researchId: research.id,
-  }).all();
+  })
+    .include("user")
+    .all();
 
   return (
     <>
@@ -236,6 +241,11 @@ export default async function ResearchDetailPage({
             </span>
           </div>
 
+          {/* Add comment */}
+          <div className="mt-4 flex justify-end">
+            <AddCommentDialog researchId={id} />
+          </div>
+
           <div className="mt-4 space-y-3">
             {comments.length === 0 ? (
               <div className="rounded-lg border border-dashed p-6 text-center">
@@ -253,12 +263,25 @@ export default async function ResearchDetailPage({
 
                   <div className="mt-3 flex items-center justify-between gap-4">
                     <span className="text-xs text-muted-foreground">
-                      User {comment.userId}
+                      {comment.user.name ??
+                        comment.user.username ??
+                        "Unknown user"}
                     </span>
 
-                    <span className="text-xs text-muted-foreground">
-                      Updated {formatDate(comment.updatedAt)}
-                    </span>
+                    <div className="flex items-center gap-3">
+                      <span className="text-xs text-muted-foreground">
+                        Commented {formatDate(comment.createdAt)}
+                      </span>
+
+                      <div className="flex items-center gap-2">
+                        <EditCommentDialog
+                          commentId={comment.id}
+                          content={comment.content}
+                        />
+
+                        <DeleteCommentDialog commentId={comment.id} />
+                      </div>
+                    </div>
                   </div>
                 </article>
               ))

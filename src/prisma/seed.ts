@@ -204,19 +204,6 @@ async function main() {
     updatedAt: Temporal.Now.instant(),
   });
 
-  await db.orm.public.Message.create({
-    conversationId: conversation.id,
-    authorType: "USER",
-    content:
-      "What are the important considerations when designing a RAG system?",
-  });
-
-  await db.orm.public.Message.create({
-    conversationId: conversation.id,
-    authorType: "AI",
-    content:
-      "Important considerations include retrieval quality, evidence traceability, context selection, and handling conflicting information.",
-  });
   // ============================================================
   // Messages
   // ============================================================

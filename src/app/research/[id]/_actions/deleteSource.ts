@@ -11,7 +11,6 @@ export type DeleteSourceState = {
 export async function deleteSource(
   sourceId: string,
   _previousState: DeleteSourceState,
-  _formData: FormData,
 ): Promise<DeleteSourceState> {
   const source = await db.orm.public.Source.where({
     id: sourceId,
