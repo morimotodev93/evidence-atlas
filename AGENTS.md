@@ -1,9 +1,11 @@
-<!-- BEGIN:nextjs-agent-rules -->
+## Documentation
 
-# This is NOT the Next.js you know
-
-This version has breaking changes — APIs, conventions, and file structure may all differ from your training data. Read the relevant guide in `node_modules/next/dist/docs/` (resolved from this file's directory; in monorepos the `next` package may not be visible from the repo root) before writing any code. Heed deprecation notices.
-
-This block is written and re-added by `next dev` — verify at `node_modules/next/dist/server/lib/generate-agent-files.js`. Removing it from a diff only re-creates the uncommitted change; committing it with your work keeps the tree clean.
-
-<!-- END:nextjs-agent-rules -->
+- Treat `docs/` as the primary project specification.
+- When an implementation changes documented architecture, routes, data models,
+  or project status, update the relevant documentation in the same task.
+- Do not update documentation merely because implementation details changed.
+- Keep `docs/roadmap.md` aligned with completed roadmap phases.
+- Keep directory-structure documentation focused on meaningful architecture,
+  not every individual file.
+- If implementation and documentation conflict, report the conflict instead of
+  silently changing the specification.
