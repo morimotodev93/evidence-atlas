@@ -147,7 +147,7 @@ Workspace
 
 #### 4.4 Research Discussion
 
-- [ ] Comments / discussion
+- [x] Comments / discussion
 
 #### 4.5 Research Organization
 
