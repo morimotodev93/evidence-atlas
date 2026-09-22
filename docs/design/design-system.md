@@ -1,6 +1,13 @@
+# Design System
+
+> **Status:** Design baseline; implementation gaps noted below
+> **Last Updated:** 2026-09-22
+
+This document defines the intended design system. Statements about required behavior are not a claim that every screen has been verified against it.
+
 ## 1. Design Principles
 
-The design system follows the principles established in `design-direction.md`.
+The design system follows the principles established in [Design Direction](design-direction.md).
 
 - **Clarity over decoration** — Prioritize readability and information hierarchy over visual decoration.
 - **Evidence-oriented** — Make evidence, sources, findings, and their relationships easy to identify and understand.
@@ -97,7 +104,9 @@ Other visual effects, such as masking, are considered separately from the elevat
 
 ## 8. Icons
 
-Icons use **Lucide** and are managed through `src/components/icons`.
+Icons use **Lucide**. The intended application icon layer is `src/components/icons`.
+
+**Implementation gap:** this directory does not yet exist; current UI primitives import Lucide icons directly. Semantic wrappers remain a design requirement for application icons, not an implemented layer.
 
 Icons are organized by semantic usage, such as navigation, actions, and status.
 
@@ -169,6 +178,8 @@ When necessary, components may change their layout, visibility, spacing, or inte
 ## 12. Component Architecture
 
 Components are organized by their scope and responsibility.
+
+The following tree is the proposed organization, not the current directory inventory. Only `components/ui/` currently contains implementations; route-specific dialogs are colocated under `src/app/research/[id]/_components/`. See [Directory Structure](../architecture/directory-structure.md) for the current architecture.
 
 ```text
 components/
@@ -252,7 +263,9 @@ Content should remain clear and readable even when decorative elements are reduc
 
 ## 17. Light / Dark Verification
 
-The application supports both Light and Dark themes and respects the user's preferred color scheme by default.
+The application should support both Light and Dark themes and respect the user's preferred color scheme by default.
+
+**Implementation gap:** `src/app/globals.css` defines light tokens on `:root` and dark tokens under `.dark`, but the application does not currently apply a theme class based on system preference or provide a preference control. Defined palettes alone do not complete theme support.
 
 Light and Dark themes use the same semantic design tokens, while their underlying color values may differ where necessary to maintain readability and sufficient contrast.
 

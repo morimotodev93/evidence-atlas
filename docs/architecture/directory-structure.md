@@ -1,68 +1,44 @@
 # Directory Structure
 
-> **Status:** Draft
-> **Last Updated:** 2026-09-08
+> **Status:** Current implementation; future areas remain provisional
+> **Last Updated:** 2026-09-22
 
-This document describes the tentative directory structure of **evidence-atlas**.
-
-The structure is intentionally kept simple at the current stage.
-It will be expanded and revised as the application architecture becomes more defined.
+This document describes the implemented architecture of **Evidence Atlas**. Empty placeholder directories are omitted from the tree below.
 
 ## Project Structure
 
 ```text
 evidence-atlas/
-├── .github/
-│   └── workflows/
-│
-├── .vscode/
-│
 ├── docs/
-│   ├── architecture/
-│   │   └── directory-structure.md
-│   ├── planning/
-│   │   └── roadmap.md
-│   ├── reference/
-│   └── usage/
-│
+│   ├── architecture/       # Data model and application structure
+│   ├── design/             # Design direction and design system
+│   └── planning/           # Product definition and roadmap
+├── migrations/
+│   ├── app/                # Migration packages and database refs
+│   └── snapshots/          # Contract snapshots used by migrations
 ├── public/
-│
 ├── src/
 │   ├── app/
-│   │   ├── (public)/
-│   │   ├── (dashboard)/
-│   │   ├── api/
+│   │   ├── research/
+│   │   │   ├── _actions/
+│   │   │   ├── new/
+│   │   │   └── [id]/
+│   │   │       ├── _actions/
+│   │   │       ├── _components/
+│   │   │       └── edit/
+│   │   ├── globals.css
 │   │   ├── layout.tsx
 │   │   └── page.tsx
-│   │
 │   ├── components/
-│   │   ├── ui/
-│   │   ├── common/
-│   │   └── features/
-│   │
-│   ├── lib/
-│   │   ├── ai/
-│   │   └── utils/
-│   │
-│   ├── prisma/
-│   │   ├── contract.prisma
-│   │   ├── contract.json
-│   │   ├── contract.d.ts
-│   │   └── db.ts
-│   │
-│   ├── types/
-│   │
-│   └── styles/
-│       └── globals.css
-│
+│   │   └── ui/
+│   ├── lib/                # Database query helpers and shared utilities
+│   ├── prisma/             # Contract, generated artifacts, runtime, and seed
+│   └── types/              # Shared types and validation schemas
 ├── .env.example
-├── .gitignore
-├── eslint.config.mjs
-├── next.config.ts
+├── compose.yml
 ├── package.json
-├── postcss.config.mjs
+├── pnpm-lock.yaml
 ├── prisma.config.ts
-├── tsconfig.json
 └── README.md
 ```
 
@@ -70,190 +46,70 @@ evidence-atlas/
 
 ### `docs/`
 
-Project documentation.
-
-```text
-docs/
-├── architecture/
-|   └── directory-structure.md
-├── planning/
-│   ├── roadmap.md
-│   └── product-definition.md
-├── reference/
-└── usage/
-
-```
-
-- `architecture/` — Application architecture and directory structure
-- `planning/` — Development plans and roadmap
-- `reference/` — Technical specifications and reference information
-- `usage/` — Usage and operational documentation
-
----
-
-### `.github/workflows/`
-
-GitHub Actions workflow definitions.
-
-.github/
-└── workflows/
-
-Workflow files will be added here as CI/CD requirements become defined.
-
-Potential responsibilities include:
-
-- Running linting, type checks, and tests
-- Validating pull requests
-- Building the application
-- Automating deployment-related tasks
-
-The workflow structure will be expanded as the project's testing and deployment processes become established.
-
----
-
-### `src/prisma/`
-
-Prisma 8 data contract and database runtime.
-
-```text
-src/prisma/
-├── contract.prisma
-├── contract.json
-├── contract.d.ts
-└── db.ts
-```
-
----
+- `architecture/` defines the data model and application structure.
+- `design/` defines the intended UX and reusable UI conventions.
+- `planning/` defines the product scope and implementation roadmap.
+- `reference/` and `usage/` are reserved for future technical and operational documentation; they currently contain no documents.
 
 ### `src/app/`
 
-Next.js App Router application layer.
+Next.js App Router pages and route-local application behavior.
 
-```text
-src/app/
-├── (public)/
-├── (dashboard)/
-├── api/
-├── layout.tsx
-└── page.tsx
-```
+| Route | Current responsibility |
+| --- | --- |
+| `/` | Workspace overview with static sample content and counts |
+| `/research` | Database-backed Research list |
+| `/research/new` | Create Research |
+| `/research/[id]` | Research detail and Source, Finding, and Comment management |
+| `/research/[id]/edit` | Edit Research title and description |
 
-- `(public)/` — Public-facing pages and the portfolio Demo
-- `(dashboard)/` — Authenticated application pages
-- `api/` — API routes and server endpoints
+Server Actions live in `_actions/`. Research-detail dialogs live in `_components/`. These private folders do not create routes.
 
-Route groups are tentative and may change as the application's navigation and authentication architecture are defined.
-
----
+The root layout defines document metadata and typography. Global styles, semantic tokens, and light/dark palettes live in `src/app/globals.css`.
 
 ### `src/components/`
 
-Reusable React components.
+`ui/` contains reusable shadcn/ui primitives. Route-specific components remain next to their routes. The existing `common/` and `features/` directories are placeholders; shared application components can be added when repeated use justifies them.
+
+### `src/lib/` and `src/types/`
+
+`lib/` contains shared date and class-name utilities and a Prisma query-result compatibility helper. Database runtime configuration lives in `src/prisma/db.ts`.
+
+`types/` contains shared application types and Zod validation schemas for Research, Sources, Findings, and Comments.
+
+### `src/prisma/` and `migrations/`
+
+`contract.prisma` defines the Prisma 8 data contract. `contract.json` and `contract.d.ts` are generated artifacts. `db.ts` creates the PostgreSQL runtime, and `seed.ts` provides development sample data.
+
+`prisma.config.ts` connects the CLI to the contract and `DATABASE_URL`. Migration packages live under `migrations/app/`; their contract snapshots live under `migrations/snapshots/`.
+
+## Current Data Flow
 
 ```text
-src/components/
-├── ui/
-├── common/
-└── features/
+Server-rendered pages / form Server Actions
+                    ↓
+       Prisma runtime (src/prisma/db.ts)
+                    ↓
+                PostgreSQL
 ```
 
-- `ui/` — Basic UI components, including components managed with shadcn/ui
-- `common/` — Reusable application-level components
-- `features/` — Components closely related to specific application features
+Forms use shared validation schemas; interactive dialogs are client components. Pages and Server Actions access the database on the server.
 
-The exact boundary between `common/` and `features/` will be refined during implementation.
+## Planned Architecture and Known Gaps
 
----
+The earlier proposed `(public)` and `(dashboard)` route groups and API layer are not implemented. Public Demo separation and authenticated navigation remain future work, not existing route boundaries.
 
-### `src/lib/`
+AI services, retrieval with pgvector, authentication, authorization, and billing remain planned. Empty infrastructure directories do not indicate working integrations.
 
-Application-level libraries and infrastructure.
+The current Research list is not scoped to a selected Workspace. Research creation uses the first stored Workspace and User, and new Comments use the Research creator as their author. These development behaviors do not implement the membership and permission boundaries defined in the [data model](data-model.md).
 
-```text
-src/lib/
-├── db/
-├── ai/
-└── utils/
-```
-
-- `db/` — Prisma and database-related functionality
-- `ai/` — AI SDK, model providers, prompts, and AI-related logic
-- `utils/` — Shared utility functions
-
-Additional directories may be introduced for authentication, billing, rate limiting, email, or other infrastructure.
-
----
-
-### `src/types/`
-
-Shared TypeScript types and application-level type definitions.
-
-Types should be placed here when they are shared across multiple application areas and do not naturally belong to a specific feature.
-
----
-
-### `src/styles/`
-
-Global styling and application-level CSS.
-
-Tailwind CSS is the primary styling approach.
-
-Additional style organization may be introduced if the design system becomes sufficiently large.
-
----
-
-## Tentative Architecture
-
-The initial application architecture can be viewed as:
-
-```text
-┌─────────────────────────────┐
-│          Next.js            │
-│         App Router          │
-├─────────────────────────────┤
-│        React Components     │
-│  components/ + app/         │
-├─────────────────────────────┤
-│       Application Logic     │
-│        lib/ + types/        │
-├─────────────────────────────┤
-│        AI / Services        │
-│   AI SDK / Auth / Stripe    │
-├─────────────────────────────┤
-│          Prisma             │
-├─────────────────────────────┤
-│        PostgreSQL           │
-│          + pgvector         │
-└─────────────────────────────┘
-```
-
-This diagram represents the intended direction rather than a finalized architecture.
+The read-only public Demo requirement in the [product definition](../planning/product-definition.md) is not implemented: the current application exposes write operations.
 
 ## Architecture Principles
 
-The directory structure should follow these principles:
-
 1. Keep the Next.js App Router structure recognizable.
-2. Separate UI components from application infrastructure.
-3. Keep database access behind a dedicated layer.
-4. Keep AI-related functionality isolated from general application logic.
-5. Avoid creating directories before their responsibilities are clear.
-6. Prefer simple structures initially and expand them when complexity requires it.
-7. Keep the public Demo separated conceptually from authenticated application functionality.
-
-## Status
-
-This is a **provisional structure**.
-
-The directory structure will be revised as the following areas are designed:
-
-- Data model
-- Authentication
-- Authorization
-- Research workflow
-- AI integration
-- Retrieval / RAG
-- Multi-user architecture
-- Billing
-- Public Demo
-- Testing
+2. Separate reusable UI primitives from route-specific components.
+3. Keep database access and sensitive resources on the server.
+4. Isolate AI-related infrastructure when it is introduced.
+5. Add architectural layers when their responsibilities are clear.
+6. Preserve the conceptual separation between the public Demo and authenticated application.

@@ -1,7 +1,7 @@
 # Design Direction
 
 > Status: Draft
-> Last Updated: 2026-09-14
+> Last Updated: 2026-09-22
 
 ## 1. Design Concept
 
@@ -51,8 +51,6 @@ AI-generated supplementary information should be available without disrupting th
 - AI-related UI should remain secondary to the research content rather than dominating the interface.
 
 > **Principle:** The interface should remain quiet until additional information is needed.
-
-...
 
 ### Structured
 
@@ -186,8 +184,8 @@ Additional interface regions may be used when they provide useful supporting fun
 
 Examples include:
 
-- **Header** — global search and global actions
-- **Sidebar** — application navigation
+- **Header** — mobile sidebar trigger and contextual actions
+- **Sidebar** — primary navigation, global search, and secondary functions
 - **Right-side panel** — supplementary or AI-generated information on larger screens
 - **Modal or bottom sheet** — supplementary information on smaller screens
 
@@ -250,7 +248,7 @@ Use a restrained, accessible color palette with clear semantic roles.
 - Filled controls use dedicated colors that maintain sufficient contrast with their foreground text.
 - Status information should never rely on color alone; use icons or text labels alongside semantic colors.
 
-The defined color tokens have been verified for sufficient contrast and will serve as the initial design-system foundation.
+The defined color tokens serve as the initial design-system foundation. Contrast must be verified for the actual foreground/background combinations and interactive states in both themes; this document does not establish application-wide accessibility conformance.
 
 ## 5. Surface and Shape
 
@@ -283,3 +281,15 @@ Use a distinctive, well-balanced font family rather than an overly generic defau
 ## 8. Spacing
 
 Use the default spacing scale provided by the design system, adjusting values only when necessary for readability and visual balance.
+
+## 9. Current Implementation Gaps
+
+The direction above remains the design baseline. The current implementation differs in the following ways:
+
+- Research screens use a simple header; the primary sidebar and mobile overlay navigation are not implemented.
+- The Research detail page places a placeholder Conclusion before Sources. The intended sequence above places Conclusion after Discussion; neither the sequence nor the placeholder should be treated as an approved design change.
+- Related Research, global search, and AI exploration are not implemented.
+- Light and dark palettes are defined, but automatic system-theme selection is not wired up.
+- Research content uses a single-column flow, but responsive navigation and end-to-end accessibility verification remain outstanding.
+
+These gaps are recorded for implementation follow-up. They do not replace the intended navigation, evidence flow, or theme behavior.

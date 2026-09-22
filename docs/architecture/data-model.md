@@ -1,7 +1,7 @@
 # Data Model
 
-> Status: Draft
-> Last Updated: 2026-09-11
+> Status: Core contract implemented; AI/RAG design remains provisional
+> Last Updated: 2026-09-22
 
 ## 1. Overview
 
@@ -68,7 +68,7 @@ An internal vector representation used for semantic retrieval and AI-assisted se
 ### User
 
 - Represents an individual user.
-- Owns the data they create or manage.
+- Records authorship of the data they create; shared research belongs to its Workspace rather than its creator.
 
 ### Organization
 
@@ -157,7 +157,7 @@ Represents a vector representation of research-related content used for semantic
 
 The relationships below describe how the core entities of Evidence Atlas are connected.
 
-The purpose of this section is to define the conceptual relationships between entities. Database-specific details such as foreign keys, join tables, deletion behavior, and exact cardinality are defined during schema design.
+This section defines conceptual relationships. Section 7 describes the implemented contract, including join models and cardinality; conceptual entities do not necessarily correspond to separate tables.
 
 ### User and Organization
 
@@ -262,7 +262,7 @@ Findings represent important evidence or insights identified during research and
 - Source represents the original external information source.
 - Finding represents an important piece of evidence or insight extracted during research.
 - Findings retain a traceable relationship to their supporting sources.
-- A Finding may potentially be supported by multiple Sources, so the exact database relationship is defined during schema design.
+- Findings and Sources have a many-to-many relationship through FindingSource.
 
 ```text
 Source
@@ -276,7 +276,7 @@ Conclusion represents the overall result or synthesis of a Research.
 - A Conclusion belongs to a Research.
 - The Conclusion is based on the findings and evidence accumulated during the Research.
 - It represents the final synthesis rather than an independent research activity.
-- The exact cardinality is finalized during schema design.
+- The current contract stores one optional conclusion text on Research, rather than a separate Conclusion entity.
 
 ```text
 Research
@@ -378,7 +378,7 @@ Research-related data
   └── Embedding
 ```
 
-These relationships establish the conceptual structure of the data model without prematurely defining database-specific implementation details. The next stage can translate these relationships into concrete Prisma models, cardinality, foreign keys, join tables, and deletion behavior.
+These relationships establish the conceptual structure of the data model. Section 7 describes their current Prisma contract representation and the areas deferred to later phases.
 
 ## 5. Research Workflow
 
@@ -425,7 +425,7 @@ Data that belongs to an Organization is shared within that organizational contex
 
 Membership determines a User's participation and organization-level role.
 
-```text id="2t0r8p"
+```text
 Organization
   ├── Membership
   └── Organization data
@@ -437,15 +437,16 @@ A Workspace provides a more focused boundary within an Organization.
 
 Research and related research data belong to a Workspace.
 
-```text id="9p4x6c"
+```text
 Organization
   └── Workspace
+       ├── Tag
        └── Research
             ├── Source
             ├── Finding
             ├── Conclusion
             ├── Comment
-            └── Tag
+            └── ResearchTag ─── Tag
 ```
 
 A User's participation in a Workspace is represented independently through WorkspaceMembership.
@@ -473,7 +474,7 @@ This separation allows ownership boundaries and authorization rules to evolve in
 
 The primary data boundaries are:
 
-```text id="x0n7mf"
+```text
 User
   │
   └── User-level data
@@ -493,11 +494,13 @@ Detailed permission rules are defined separately from the data model and are not
 
 The Prisma schema defines the persistent data model of Evidence Atlas.
 
+The contract source is `src/prisma/contract.prisma`, with generated `contract.json` and `contract.d.ts` alongside it. The baseline migration is stored under `migrations/app/20260919T0109_baseline/`.
+
 The initial schema focuses on the core research workflow and the relationships established in the data model. Implementation-specific details and fields that are not yet required are intentionally deferred.
 
 ### 7.1 Core Entities
 
-The conceptual data model includes the following entities. The initial database schema implements the entities required by the current MVP.
+The current contract implements the following models:
 
 - `User`
 - `Organization`
@@ -513,7 +516,8 @@ The conceptual data model includes the following entities. The initial database 
 - `ResearchTag`
 - `Conversation`
 - `Message`
-- `Embedding`
+
+`Conclusion` is stored as `Research.conclusion`; `Embedding` remains a planned concept and has no model in the current contract. Conversation and Message models exist, but AI interactions are not implemented.
 
 ### 7.2 Organization and Workspace
 
@@ -524,6 +528,8 @@ An organization-level role is stored on the membership itself.
 `WorkspaceMembership` independently represents the relationship between a `User` and a `Workspace`.
 
 Organization-level and workspace-level roles are independent. A user's role in an organization does not determine their role in an individual workspace.
+
+Both role enums contain `ADMIN` and `MEMBER`. Membership pairs are composite primary keys: `(userId, organizationId)` and `(userId, workspaceId)`. These records do not by themselves implement application authorization.
 
 ### 7.3 Research
 
@@ -562,6 +568,8 @@ For the MVP, sources are primarily external links or URLs.
 
 A Source is independent from a Finding so that the same source can be referenced by multiple Findings.
 
+The current Source fields are `title`, `url`, `researchId`, an ID, and timestamps. Additional source metadata and notes are not modeled yet.
+
 ### 7.5 Finding
 
 `Finding` represents an important piece of evidence, observation, or insight identified during Research.
@@ -569,16 +577,18 @@ A Source is independent from a Finding so that the same source can be referenced
 A Finding contains:
 
 - content describing the finding
-- associated data
-- a display style selected by its author
+- optional JSON data (`data`)
+- a display style (`displayStyle`)
 
 The display style determines how the Finding is presented in the UI.
 
-The specific display styles and the exact structure of the associated data will be defined during the UI/component design phase.
+The current contract defines only `TEXT`, which is the default display style. The UI edits textual content; additional display styles, author selection, and structured data editing remain future work.
 
 A Finding can reference one or more Sources through `FindingSource`.
 
 This preserves traceability between a finding and its supporting evidence.
+
+The contract permits a Finding without any FindingSource rows. The current create/edit forms do not manage these links, and the detail page does not display them. This is an implementation gap relative to the evidence-traceability workflow in the product definition.
 
 ### 7.6 Finding–Source Relationship
 
@@ -602,7 +612,7 @@ At this stage, Conclusion is intentionally kept simple.
 
 A Research may have a conclusion, but a conclusion is not required while the Research is in progress.
 
-The current design does not make Conclusion a separate entity. It is represented as data belonging to Research.
+The current design does not make Conclusion a separate entity. It is represented as the optional string field `Research.conclusion`.
 
 The exact fields and representation of the conclusion will be considered separately if future requirements justify additional structure.
 
@@ -626,6 +636,8 @@ Tag names are unique within a Workspace.
 
 Research and Tag have a many-to-many relationship through ResearchTag.
 
+The contract enforces unique `(workspaceId, name)` pairs and unique `(researchId, tagId)` pairs. The requirement that a Research and its Tags share a Workspace is not enforced by these separate foreign keys; it must be enforced when tag assignment is implemented.
+
 ### 7.10 Conversation and Message
 
 `Conversation` represents an independent conversation within the AI interaction layer.
@@ -633,6 +645,8 @@ Research and Tag have a many-to-many relationship through ResearchTag.
 A Conversation does not need to belong directly to a Research.
 
 `Message` represents an individual message within a Conversation and records whether it was authored by a User or generated by AI.
+
+`Message.authorType` contains `USER` or `AI`; it does not identify an individual User. Conversation currently has no User, Organization, Workspace, or Research foreign key. Ownership and access boundaries must be defined before AI interactions are exposed.
 
 The detailed relationship between conversations and accumulated research knowledge will be defined as the AI/RAG architecture is designed.
 
@@ -666,11 +680,13 @@ Data ownership follows the application hierarchy:
 ```text
 Organization
     └── Workspace
+          ├── Tag
           └── Research
                 ├── Source
                 ├── Finding
                 ├── Comment
-                └── Tag
+                ├── conclusion (optional text)
+                └── ResearchTag ─── Tag
 ```
 
 Organization and Workspace provide shared boundaries for research-related data.
@@ -748,13 +764,8 @@ This document defines the current data model and database design for the Evidenc
 
 The core entities, responsibilities, relationships, ownership boundaries, and initial Prisma schema design have been established.
 
-The Prisma schema has been implemented and the initial PostgreSQL database has been initialized from the Prisma contract.
+The repository contains the Prisma contract, generated artifacts, baseline migration, and development seed data. Database-backed Research, Source, Finding, and Comment operations are implemented. Phase 2 is recorded as complete in the [roadmap](../planning/roadmap.md); this document review does not re-verify the state of a running database.
 
-The initial migration has been created and verified to be up to date with the database.
-
-The remaining database work includes:
-
-- Creating seed data.
-- Verifying database operations through the application or database access layer.
+Remaining integration work includes Finding–Source link management, Tag management, conclusion display/editing, lifecycle controls, and enforcement of user and workspace access boundaries. Schema support should not be read as completion of these application features.
 
 Details that are not yet required by the MVP, such as advanced AI/RAG storage, detailed indexing strategies, and future extensions, remain intentionally deferred.

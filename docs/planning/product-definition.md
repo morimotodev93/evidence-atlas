@@ -1,7 +1,7 @@
 # Product Definition
 
 > **Status:** Approved
-> **Last Updated:** 2026-09-10
+> **Last Updated:** 2026-09-22
 
 This document defines the approved product concept, target users, and primary use cases for **Evidence Atlas**.
 
@@ -590,6 +590,7 @@ The following terminology is currently used throughout the project.
 | **Source**         | An external information source used during research                               |
 | **Finding**        | A relevant piece of information or insight extracted from research                |
 | **Discussion**     | A discussion or reasoning process around research findings                        |
+| **Comment**        | A user-authored message attached directly to Research, used to record Discussion  |
 | **Conclusion**     | A conclusion reached from the accumulated research                                |
 | **Knowledge**      | Research information that can be reused within a workspace                        |
 | **Embedding**      | A vector representation of knowledge used for semantic retrieval                  |
@@ -757,9 +758,11 @@ Evidence Atlas uses:
 
 The application structure follows the App Router model.
 
+**Implementation discrepancy:** `package.json` currently declares TypeScript `^6.0.3`, below the stated 7+ target. The target is retained here until a version-policy decision is made; this documentation review does not change dependencies.
+
 ### 9.2 Database
 
-PostgreSQL is the planned primary database.
+PostgreSQL is the configured primary database.
 
 The project requires relational modeling for entities such as:
 
@@ -769,9 +772,11 @@ Workspace
 Research
 Source
 Finding
-Discussion
+Comment
 Conclusion
 ```
+
+Discussion is represented by Comment records. Conclusion is optional text on Research, not a separate database model; see the [data model](../architecture/data-model.md).
 
 Vector search is also planned through PostgreSQL and pgvector.
 
@@ -830,13 +835,13 @@ New architectural components should be introduced when their responsibilities an
 The following areas remain intentionally undecided:
 
 - Exact authentication model
-- Organization membership model
-- Workspace permission model
-- Detailed Research lifecycle
-- Source metadata requirements
-- Finding structure
-- Discussion model
-- Conclusion structure
+- Organization membership administration and invitation flows (the Membership model and roles are defined)
+- Workspace permission enforcement (WorkspaceMembership and roles are defined)
+- Research lifecycle transition rules (the three status values are defined)
+- Source metadata beyond the current title and URL
+- Finding display styles beyond TEXT and structured JSON data requirements
+- Discussion behavior beyond Research-level Comments, including whether threaded replies are needed
+- Conclusion structure beyond the current optional text on Research
 - AI provider
 - Embedding model
 - Chunking strategy
@@ -885,7 +890,7 @@ Evidence Atlas should follow these principles during development:
 
 ## 12. Status
 
-This document is a **provisional product definition**.
+The product concept, target users, and primary use cases are **approved**. Implementation details and the open questions above remain provisional.
 
 It establishes the current direction of Evidence Atlas while intentionally leaving implementation details and future product decisions open.
 
@@ -897,3 +902,16 @@ The document should be revised when:
 - Major architectural decisions are made
 - Demo requirements become clearer
 - Authentication, collaboration, or AI requirements are defined
+
+### Current Implementation Gaps
+
+The intended workflows above remain the product baseline. As of 2026-09-22:
+
+- Research creation and title/description editing, plus Source, Finding, and Comment CRUD, are implemented.
+- Finding–Source links exist in the contract and seed data, but cannot yet be managed or inspected through the Finding UI.
+- Conclusion storage exists, but the detail page displays placeholder text and has no conclusion editor.
+- Comments attach to Research, not individual Findings; the UC-04 wording about selecting Findings describes discussion context, not a separate Comment relationship. Threaded replies are not modeled.
+- UC-05's broader conclusion workflow has only one optional text field in the current contract; multiple conclusion records and structured links to supporting Findings are not implemented.
+- Workspace selection, authentication, permission enforcement, search, AI assistance, and read-only Demo controls remain pending.
+
+See the [roadmap](roadmap.md) for remaining work. These gaps do not redefine the approved product behavior.

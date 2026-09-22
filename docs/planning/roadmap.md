@@ -1,5 +1,9 @@
 # evidence-atlas Roadmap
 
+> **Last Updated:** 2026-09-22
+
+Current stage: Phase 4 is in progress. Phases 0–3 have established the foundation, product direction, data contract, and design-system baseline. Checked implementation items describe code present in the repository, not a fresh runtime verification or completion of every related product requirement.
+
 ## 1. Project Overview
 
 **evidence-atlas** is a collaborative research workspace for collecting evidence, organizing findings, and deepening knowledge with AI.
@@ -65,19 +69,22 @@ The public deployment is primarily a curated, read-only demo. Users who want to 
 
 **Goal:** Design the knowledge model that forms the core of evidence-atlas.
 
-Potential core entities:
+Core concepts (see the [data model](../architecture/data-model.md) for implemented models and deferred concepts):
 
 ```text
 User
 Organization
 Membership
 Workspace
+WorkspaceMembership
 Research
 Source
 Finding
+FindingSource
 Conclusion
 Comment
 Tag
+ResearchTag
 Conversation
 Message
 Embedding
@@ -85,13 +92,13 @@ Embedding
 
 Tasks:
 
-[x] Design Prisma schema
-[x] Configure PostgreSQL
-[x] Configure Prisma
-[x] Create initial migration
-[x] Create seed data
-[x] Verify database operations
-[x] Document the data model
+- [x] Design Prisma schema
+- [x] Configure PostgreSQL
+- [x] Configure Prisma
+- [x] Create initial migration
+- [x] Create seed data
+- [x] Verify database operations
+- [x] Document the data model
 
 The initial model should prioritize the research workflow:
 
@@ -100,7 +107,7 @@ Workspace
   └── Research
        ├── Source
        ├── Finding
-       ├── Discussion
+       ├── Comment (discussion)
        └── Conclusion
 ```
 
@@ -123,6 +130,8 @@ Workspace
 - [x] Define responsive behavior
 - [x] Define light/dark theme strategy
 
+**Status: Baseline established.** These items establish design conventions and UI primitives. Automatic system-theme selection, sidebar navigation, semantic icon wrappers, and full accessibility/theme verification remain outstanding; see the [design system](../design/design-system.md) and [design direction](../design/design-direction.md).
+
 ---
 
 ### Phase 4 — Research Workspace MVP
@@ -131,23 +140,29 @@ Workspace
 
 #### 4.1 Workspace & Research Navigation
 
-- [x] Workspace overview
+- [x] Workspace overview layout with static sample content
+- [ ] Connect Workspace overview to stored data
 - [x] Research list
 - [x] Research detail
 
 #### 4.2 Research Management
 
 - [x] Create Research
-- [x] Update Research
+- [x] Update Research title and description
+- [ ] Display and edit the stored Conclusion
+- [ ] Add Research lifecycle status controls
 
 #### 4.3 Evidence Management
 
 - [x] Source management
 - [x] Finding management
+- [ ] Manage Finding–Source links and display supporting Sources
 
 #### 4.4 Research Discussion
 
 - [x] Comments / discussion
+
+Comment CRUD is implemented. New Comments currently use the Research creator as the author; authenticated authorship and permissions remain part of Phase 7.
 
 #### 4.5 Research Organization
 
@@ -158,6 +173,8 @@ Workspace
 - [ ] Search
 - [ ] Filtering
 - [ ] Basic sorting
+
+**Status: In progress.** Tags exist in the contract and seed data, but application management and discovery controls are not implemented. The Conclusion section is currently placeholder text, and Finding CRUD does not yet provide evidence linking.
 
 **Principle:** The initial experience should make the research
 process understandable without AI.
@@ -179,6 +196,8 @@ process understandable without AI.
 - [ ] Display supporting evidence
 - [ ] Handle insufficient evidence / uncertainty
 - [ ] Document AI architecture
+
+The `ai` dependency and Conversation/Message contract models are present. Provider integration, conversation ownership, and the application interaction flow are still pending.
 
 Target concept:
 
@@ -224,26 +243,26 @@ RAG should be introduced only after the basic AI workflow is working.
 - [ ] Define authentication requirements
 - [ ] Select authentication solution
 - [ ] Implement authentication
-- [ ] Implement User
-- [ ] Implement Organization
-- [ ] Implement Membership
+- [ ] Integrate User records with authentication and account management
+- [ ] Implement Organization management
+- [ ] Implement Membership management
 - [ ] Implement Workspace permissions
 - [ ] Define authorization rules
 - [ ] Protect server-side resources
 - [ ] Test access control
 
+User, Organization, Membership, and WorkspaceMembership models and sample records already exist from Phase 2. The tasks above refer to application behavior and access control. Current reads and writes do not enforce these membership boundaries.
+
 Target structure:
 
 ```text
 User
-  ↓
-Organization
-  ↓
-Membership
-  ↓
-Workspace
-  ↓
-Research
+  ├── Membership ───────────── Organization
+  │                                │
+  │                                └── Workspace
+  │
+  └── WorkspaceMembership ─────────── Workspace
+                                          └── Research
 ```
 
 ---
@@ -284,6 +303,8 @@ Only features that contribute meaningfully to the portfolio should be implemente
 - [ ] Verify that no private credentials are exposed
 - [ ] Verify that arbitrary public writes are disabled
 
+Development seed data exists, but a curated public Demo and read-only enforcement are not implemented. Seed data alone does not complete this phase.
+
 Public deployment concept:
 
 ```text
@@ -316,6 +337,8 @@ Users who want to operate the application themselves should use their own databa
 - [ ] Responsive UI review
 - [ ] Production build verification
 
+Vitest and Playwright dependencies and scripts are present. No application test suites are currently checked in; installing test runners does not complete the testing tasks.
+
 ---
 
 ### Phase 11 — Deployment
@@ -343,6 +366,7 @@ Users who want to operate the application themselves should use their own databa
 
 - [ ] Complete `README.md`
 - [ ] Complete `docs/planning/`
+- [ ] Complete `docs/architecture/` and `docs/design/`
 - [ ] Complete `docs/reference/`
 - [ ] Complete `docs/usage/`
 - [ ] Document architecture
