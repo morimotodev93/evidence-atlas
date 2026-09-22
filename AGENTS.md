@@ -9,3 +9,11 @@
   not every individual file.
 - If implementation and documentation conflict, report the conflict instead of
   silently changing the specification.
+
+## Package management
+
+- Use pnpm for dependency management.
+- Respect the package manager version declared in package.json.
+- Do not replace pnpm with npm or yarn.
+- Do not modify the packageManager field solely to accommodate the agent environment.
+- Run `pnpm install` when dependencies need to be installed.
