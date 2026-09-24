@@ -235,7 +235,7 @@ export default async function ResearchDetailPage({
                   key={finding.id}
                   className="rounded-lg border bg-card p-4"
                 >
-                  <p className="text-sm leading-6">{finding.content}</p>
+                  <p className="text-sm whitespace-pre-wrap leading-6">{finding.content}</p>
 
                   <div className="mt-3 flex items-center justify-between gap-4">
                     <span className="text-xs text-muted-foreground">
@@ -295,7 +295,9 @@ export default async function ResearchDetailPage({
                   key={comment.id}
                   className="rounded-lg border bg-card p-4"
                 >
-                  <p className="text-sm leading-6">{comment.content}</p>
+                  <p className="text-sm whitespace-pre-wrap leading-6">
+                    {comment.content}
+                  </p>
 
                   <div className="mt-3 flex items-center justify-between gap-4">
                     <span className="text-xs text-muted-foreground">

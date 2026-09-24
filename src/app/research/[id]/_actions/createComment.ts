@@ -14,8 +14,10 @@ export async function createComment(
   _previousState: CreateCommentState,
   formData: FormData,
 ): Promise<CreateCommentState> {
+  const content = String(formData.get("content") ?? "").replace(/\r\n?/g, "\n");
+
   const result = commentSchema.safeParse({
-    content: String(formData.get("content") ?? ""),
+    content,
   });
 
   if (!result.success) {

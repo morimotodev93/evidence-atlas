@@ -14,7 +14,10 @@ export async function updateConclusion(
   _previousState: UpdateConclusionState,
   formData: FormData,
 ): Promise<UpdateConclusionState> {
-  const conclusion = String(formData.get("conclusion") ?? "");
+  const conclusion = String(formData.get("conclusion") ?? "").replace(
+    /\r\n?/g,
+    "\n",
+  );
 
   const result = conclusionSchema.safeParse({
     conclusion,

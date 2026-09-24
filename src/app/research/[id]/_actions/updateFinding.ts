@@ -14,8 +14,10 @@ export async function updateFinding(
   _previousState: UpdateFindingState,
   formData: FormData,
 ): Promise<UpdateFindingState> {
+  const content = String(formData.get("content") ?? "").replace(/\r\n?/g, "\n");
+
   const result = findingSchema.safeParse({
-    content: String(formData.get("content") ?? ""),
+    content,
   });
 
   if (!result.success) {
