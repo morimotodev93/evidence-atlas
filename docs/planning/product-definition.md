@@ -910,7 +910,7 @@ The intended workflows above remain the product baseline. As of 2026-09-24:
 - Research creation and title/description editing, plus Source, Finding, and Comment CRUD, are implemented.
 - Workspace Tags can be created or reused by name, attached to Research, displayed on list/detail pages, and detached without deleting the Tag. Tag renaming, Workspace-level Tag deletion, and Tag filtering are not implemented.
 - Finding–Source links exist in the contract and seed data, but cannot yet be managed or inspected through the Finding UI.
-- Conclusion storage exists, but the detail page displays placeholder text and has no conclusion editor.
+- The detail page displays the stored Conclusion and supports editing or clearing it.
 - Comments attach to Research, not individual Findings; the UC-04 wording about selecting Findings describes discussion context, not a separate Comment relationship. Threaded replies are not modeled.
 - UC-05's broader conclusion workflow has only one optional text field in the current contract; multiple conclusion records and structured links to supporting Findings are not implemented.
 - Workspace selection, authentication, permission enforcement, search, AI assistance, and read-only Demo controls remain pending.

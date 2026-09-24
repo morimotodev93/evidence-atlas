@@ -614,6 +614,8 @@ A Research may have a conclusion, but a conclusion is not required while the Res
 
 The current design does not make Conclusion a separate entity. It is represented as the optional string field `Research.conclusion`.
 
+The Research detail page displays the stored Conclusion and provides an editor. Application validation trims the text and limits it to 5,000 characters; an empty value is stored as null.
+
 The exact fields and representation of the conclusion will be considered separately if future requirements justify additional structure.
 
 ### 7.8 Comment
@@ -770,6 +772,6 @@ The core entities, responsibilities, relationships, ownership boundaries, and in
 
 The repository contains the Prisma contract, generated artifacts, baseline migration, and development seed data. Database-backed Research, Source, Finding, and Comment operations, plus Tag creation, attachment, display, and detachment, are implemented. Phase 2 is recorded as complete in the [roadmap](../planning/roadmap.md); this document review does not re-verify the state of a running database.
 
-Remaining integration work includes Finding–Source link management, conclusion display/editing, lifecycle controls, discovery controls, and enforcement of user and workspace access boundaries. Tag renaming and Workspace-level Tag deletion are also not implemented. Schema support should not be read as completion of these application features.
+Remaining integration work includes Finding–Source link management, lifecycle controls, discovery controls, and enforcement of user and workspace access boundaries. Tag renaming and Workspace-level Tag deletion are also not implemented. Schema support should not be read as completion of these application features.
 
 Details that are not yet required by the MVP, such as advanced AI/RAG storage, detailed indexing strategies, and future extensions, remain intentionally deferred.

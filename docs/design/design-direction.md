@@ -287,7 +287,7 @@ Use the default spacing scale provided by the design system, adjusting values on
 The direction above remains the design baseline. The current implementation differs in the following ways:
 
 - Research screens use a simple header; the primary sidebar and mobile overlay navigation are not implemented.
-- The Research detail page places a placeholder Conclusion before Sources. The intended sequence above places Conclusion after Discussion; neither the sequence nor the placeholder should be treated as an approved design change.
+- The Research detail page places the stored, editable Conclusion before Sources. The intended sequence above places Conclusion after Discussion; this ordering difference remains an implementation gap, not an approved design change.
 - Related Research, global search, and AI exploration are not implemented.
 - Light and dark palettes are defined, but automatic system-theme selection is not wired up.
 - Research content uses a single-column flow, but responsive navigation and end-to-end accessibility verification remain outstanding.

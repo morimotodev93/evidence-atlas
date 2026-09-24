@@ -149,7 +149,7 @@ Workspace
 
 - [x] Create Research
 - [x] Update Research title and description
-- [ ] Display and edit the stored Conclusion
+- [x] Display and edit the stored Conclusion
 - [ ] Add Research lifecycle status controls
 
 #### 4.3 Evidence Management
@@ -178,7 +178,7 @@ Tag renaming and Workspace-level Tag deletion are not implemented. Discovery con
 - [ ] Filtering
 - [ ] Basic sorting
 
-**Status: In progress.** Research Tag creation, attachment, display, and detachment are implemented; discovery controls remain pending. The Conclusion section is currently placeholder text, and Finding CRUD does not yet provide evidence linking.
+**Status: In progress.** Research Tag creation, attachment, display, and detachment are implemented; discovery controls remain pending. The stored Conclusion can be displayed, edited, and cleared. Finding CRUD does not yet provide evidence linking.
 
 **Principle:** The initial experience should make the research
 process understandable without AI.

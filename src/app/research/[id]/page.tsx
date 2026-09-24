@@ -12,6 +12,7 @@ import { DeleteFindingDialog } from "./_components/delete-finding-dialog";
 import { DeleteSourceDialog } from "./_components/delete-source-dialog";
 import { DetachTagDialog } from "./_components/detach-tag-dialog";
 import { EditCommentDialog } from "./_components/edit-comment-dialog";
+import { EditConclusionDialog } from "./_components/edit-conclusion-dialog";
 import { EditFindingDialog } from "./_components/edit-finding-dialog";
 import { EditSourceDialog } from "./_components/edit-source-dialog";
 
@@ -120,12 +121,24 @@ export default async function ResearchDetailPage({
 
         {/* Conclusion */}
         <section className="border-b py-6">
-          <h2 className="text-lg font-semibold">Conclusion</h2>
+          <div className="flex items-center justify-between gap-4">
+            <h2 className="text-lg font-semibold">Conclusion</h2>
 
-          <p className="mt-2 max-w-3xl text-sm leading-6 text-muted-foreground">
-            The current conclusion will appear here. This section represents the
-            current understanding reached from the collected evidence.
-          </p>
+            <EditConclusionDialog
+              researchId={research.id}
+              initialConclusion={research.conclusion}
+            />
+          </div>
+
+          {research.conclusion ? (
+            <p className="mt-2 max-w-3xl whitespace-pre-wrap text-sm leading-6">
+              {research.conclusion}
+            </p>
+          ) : (
+            <p className="mt-2 max-w-3xl text-sm leading-6 text-muted-foreground">
+              No conclusion yet.
+            </p>
+          )}
         </section>
 
         {/* Sources */}
