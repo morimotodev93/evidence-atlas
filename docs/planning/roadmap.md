@@ -150,7 +150,7 @@ Workspace
 - [x] Create Research
 - [x] Update Research title and description
 - [x] Display and edit the stored Conclusion
-- [ ] Add Research lifecycle status controls
+- [x] Add Research lifecycle status controls
 
 #### 4.3 Evidence Management
 

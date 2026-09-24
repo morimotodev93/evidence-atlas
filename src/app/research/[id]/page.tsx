@@ -14,6 +14,7 @@ import { DetachTagDialog } from "./_components/detach-tag-dialog";
 import { EditCommentDialog } from "./_components/edit-comment-dialog";
 import { EditConclusionDialog } from "./_components/edit-conclusion-dialog";
 import { EditFindingDialog } from "./_components/edit-finding-dialog";
+import { EditResearchStatusDialog } from "./_components/edit-research-status-dialog";
 import { EditSourceDialog } from "./_components/edit-source-dialog";
 
 type ResearchDetailPageProps = {
@@ -53,6 +54,19 @@ export default async function ResearchDetailPage({
     .include("tag")
     .all();
 
+  function formatResearchStatus(status: string) {
+    switch (status) {
+      case "IN_PROGRESS":
+        return "In progress";
+      case "COMPLETED":
+        return "Completed";
+      case "ARCHIVED":
+        return "Archived";
+      default:
+        return status;
+    }
+  }
+
   return (
     <>
       <header className="sticky top-0 z-10 border-b bg-background/95 backdrop-blur">
@@ -91,6 +105,17 @@ export default async function ResearchDetailPage({
             >
               Edit
             </Link>
+          </div>
+
+          <div className="mt-3 flex items-center gap-2">
+            <Badge variant="outline">
+              {formatResearchStatus(research.status)}
+            </Badge>
+
+            <EditResearchStatusDialog
+              researchId={research.id}
+              initialStatus={research.status}
+            />
           </div>
 
           {research.description && (
@@ -235,7 +260,9 @@ export default async function ResearchDetailPage({
                   key={finding.id}
                   className="rounded-lg border bg-card p-4"
                 >
-                  <p className="text-sm whitespace-pre-wrap leading-6">{finding.content}</p>
+                  <p className="text-sm whitespace-pre-wrap leading-6">
+                    {finding.content}
+                  </p>
 
                   <div className="mt-3 flex items-center justify-between gap-4">
                     <span className="text-xs text-muted-foreground">
