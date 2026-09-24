@@ -1,3 +1,4 @@
+import { Badge } from "@/components/ui/badge";
 import { formatDate } from "@/lib/date";
 import { db } from "@/prisma/db";
 import Link from "next/link";
@@ -5,9 +6,11 @@ import { notFound } from "next/navigation";
 import { AddCommentDialog } from "./_components/add-comment-dialog";
 import { AddFindingDialog } from "./_components/add-finding-dialog";
 import { AddSourceDialog } from "./_components/add-source-dialog";
+import { AddTagDialog } from "./_components/add-tag-dialog";
 import { DeleteCommentDialog } from "./_components/delete-comment-dialog";
 import { DeleteFindingDialog } from "./_components/delete-finding-dialog";
 import { DeleteSourceDialog } from "./_components/delete-source-dialog";
+import { DetachTagDialog } from "./_components/detach-tag-dialog";
 import { EditCommentDialog } from "./_components/edit-comment-dialog";
 import { EditFindingDialog } from "./_components/edit-finding-dialog";
 import { EditSourceDialog } from "./_components/edit-source-dialog";
@@ -41,6 +44,12 @@ export default async function ResearchDetailPage({
     researchId: research.id,
   })
     .include("user")
+    .all();
+
+  const researchTags = await db.orm.public.ResearchTag.where({
+    researchId: research.id,
+  })
+    .include("tag")
     .all();
 
   return (
@@ -88,6 +97,20 @@ export default async function ResearchDetailPage({
               {research.description}
             </p>
           )}
+
+          {/* Tags  */}
+          <div className="mt-4 flex flex-wrap items-center  gap-2">
+            {researchTags.map((researchTag) => (
+              <Badge key={researchTag.tagId} variant="secondary">
+                {researchTag.tag.name}
+                <DetachTagDialog
+                  researchId={research.id}
+                  tagId={researchTag.tagId}
+                />
+              </Badge>
+            ))}
+            <AddTagDialog researchId={id} />
+          </div>
 
           <div className="mt-4 flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground">
             <span>Created {formatDate(research.createdAt)}</span>

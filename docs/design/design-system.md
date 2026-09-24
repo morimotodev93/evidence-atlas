@@ -1,7 +1,7 @@
 # Design System
 
 > **Status:** Design baseline; implementation gaps noted below
-> **Last Updated:** 2026-09-22
+> **Last Updated:** 2026-09-24
 
 This document defines the intended design system. Statements about required behavior are not a claim that every screen has been verified against it.
 
@@ -104,9 +104,9 @@ Other visual effects, such as masking, are considered separately from the elevat
 
 ## 8. Icons
 
-Icons use **Lucide**. The intended application icon layer is `src/components/icons`.
+Icons use **Lucide**. The application icon entry point is `src/components/icons`.
 
-**Implementation gap:** this directory does not yet exist; current UI primitives import Lucide icons directly. Semantic wrappers remain a design requirement for application icons, not an implemented layer.
+The entry point currently re-exports Lucide's X icon for the Tag detachment control. UI primitives still import Lucide icons directly. Semantic wrappers remain a design requirement; the current application export is a direct alias.
 
 Icons are organized by semantic usage, such as navigation, actions, and status.
 
@@ -179,7 +179,7 @@ When necessary, components may change their layout, visibility, spacing, or inte
 
 Components are organized by their scope and responsibility.
 
-The following tree is the proposed organization, not the current directory inventory. Only `components/ui/` currently contains implementations; route-specific dialogs are colocated under `src/app/research/[id]/_components/`. See [Directory Structure](../architecture/directory-structure.md) for the current architecture.
+The following tree is the proposed organization, not the current directory inventory. `components/ui/` and `components/icons/` currently contain implementations; route-specific dialogs are colocated under `src/app/research/[id]/_components/`. See [Directory Structure](../architecture/directory-structure.md) for the current architecture.
 
 ```text
 components/

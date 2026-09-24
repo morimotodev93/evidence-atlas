@@ -1,7 +1,7 @@
 # Product Definition
 
 > **Status:** Approved
-> **Last Updated:** 2026-09-22
+> **Last Updated:** 2026-09-24
 
 This document defines the approved product concept, target users, and primary use cases for **Evidence Atlas**.
 
@@ -905,9 +905,10 @@ The document should be revised when:
 
 ### Current Implementation Gaps
 
-The intended workflows above remain the product baseline. As of 2026-09-22:
+The intended workflows above remain the product baseline. As of 2026-09-24:
 
 - Research creation and title/description editing, plus Source, Finding, and Comment CRUD, are implemented.
+- Workspace Tags can be created or reused by name, attached to Research, displayed on list/detail pages, and detached without deleting the Tag. Tag renaming, Workspace-level Tag deletion, and Tag filtering are not implemented.
 - Finding–Source links exist in the contract and seed data, but cannot yet be managed or inspected through the Finding UI.
 - Conclusion storage exists, but the detail page displays placeholder text and has no conclusion editor.
 - Comments attach to Research, not individual Findings; the UC-04 wording about selecting Findings describes discussion context, not a separate Comment relationship. Threaded replies are not modeled.

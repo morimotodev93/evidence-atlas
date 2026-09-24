@@ -1,7 +1,7 @@
 # Data Model
 
 > Status: Core contract implemented; AI/RAG design remains provisional
-> Last Updated: 2026-09-22
+> Last Updated: 2026-09-24
 
 ## 1. Overview
 
@@ -636,7 +636,11 @@ Tag names are unique within a Workspace.
 
 Research and Tag have a many-to-many relationship through ResearchTag.
 
-The contract enforces unique `(workspaceId, name)` pairs and unique `(researchId, tagId)` pairs. The requirement that a Research and its Tags share a Workspace is not enforced by these separate foreign keys; it must be enforced when tag assignment is implemented.
+The contract enforces unique `(workspaceId, name)` pairs and unique `(researchId, tagId)` pairs. The separate foreign keys do not enforce that a Research and its Tags share a Workspace. The current tag assignment action preserves this boundary by looking up or creating Tags within the target Research's Workspace.
+
+The Research detail page accepts a Tag name, reuses an existing Tag in the same Workspace or creates one, and attaches it through ResearchTag. Names are trimmed and validated as 1–50 characters by the application. Duplicate attachments are rejected. Creating a new Tag and its ResearchTag association happens in one transaction.
+
+Tags are displayed on the Research list and detail pages. Detaching a Tag deletes only the ResearchTag association; the Tag and its associations with other Research items remain. Tag renaming, Workspace-level Tag deletion, and Tag filtering are not implemented.
 
 ### 7.10 Conversation and Message
 
@@ -764,8 +768,8 @@ This document defines the current data model and database design for the Evidenc
 
 The core entities, responsibilities, relationships, ownership boundaries, and initial Prisma schema design have been established.
 
-The repository contains the Prisma contract, generated artifacts, baseline migration, and development seed data. Database-backed Research, Source, Finding, and Comment operations are implemented. Phase 2 is recorded as complete in the [roadmap](../planning/roadmap.md); this document review does not re-verify the state of a running database.
+The repository contains the Prisma contract, generated artifacts, baseline migration, and development seed data. Database-backed Research, Source, Finding, and Comment operations, plus Tag creation, attachment, display, and detachment, are implemented. Phase 2 is recorded as complete in the [roadmap](../planning/roadmap.md); this document review does not re-verify the state of a running database.
 
-Remaining integration work includes Finding–Source link management, Tag management, conclusion display/editing, lifecycle controls, and enforcement of user and workspace access boundaries. Schema support should not be read as completion of these application features.
+Remaining integration work includes Finding–Source link management, conclusion display/editing, lifecycle controls, discovery controls, and enforcement of user and workspace access boundaries. Tag renaming and Workspace-level Tag deletion are also not implemented. Schema support should not be read as completion of these application features.
 
 Details that are not yet required by the MVP, such as advanced AI/RAG storage, detailed indexing strategies, and future extensions, remain intentionally deferred.

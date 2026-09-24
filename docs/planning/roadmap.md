@@ -1,6 +1,6 @@
 # evidence-atlas Roadmap
 
-> **Last Updated:** 2026-09-22
+> **Last Updated:** 2026-09-24
 
 Current stage: Phase 4 is in progress. Phases 0–3 have established the foundation, product direction, data contract, and design-system baseline. Checked implementation items describe code present in the repository, not a fresh runtime verification or completion of every related product requirement.
 
@@ -166,7 +166,11 @@ Comment CRUD is implemented. New Comments currently use the Research creator as 
 
 #### 4.5 Research Organization
 
-- [ ] Tags
+- [x] Create or reuse Workspace Tags and attach them to Research
+- [x] Display Tags on Research list and detail pages
+- [x] Detach Tags from Research while retaining the Workspace Tag
+
+Tag renaming and Workspace-level Tag deletion are not implemented. Discovery controls remain tracked separately below.
 
 #### 4.6 Research Discovery
 
@@ -174,7 +178,7 @@ Comment CRUD is implemented. New Comments currently use the Research creator as 
 - [ ] Filtering
 - [ ] Basic sorting
 
-**Status: In progress.** Tags exist in the contract and seed data, but application management and discovery controls are not implemented. The Conclusion section is currently placeholder text, and Finding CRUD does not yet provide evidence linking.
+**Status: In progress.** Research Tag creation, attachment, display, and detachment are implemented; discovery controls remain pending. The Conclusion section is currently placeholder text, and Finding CRUD does not yet provide evidence linking.
 
 **Principle:** The initial experience should make the research
 process understandable without AI.

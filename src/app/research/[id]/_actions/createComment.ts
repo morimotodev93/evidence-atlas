@@ -3,7 +3,7 @@
 import { redirect } from "next/navigation";
 
 import { db } from "@/prisma/db";
-import { commentSchema } from "@/types/research/";
+import { commentSchema } from "@/types/research/comment";
 
 export type CreateCommentState = {
   error: string | null;

@@ -1,7 +1,7 @@
 # Directory Structure
 
 > **Status:** Current implementation; future areas remain provisional
-> **Last Updated:** 2026-09-22
+> **Last Updated:** 2026-09-24
 
 This document describes the implemented architecture of **Evidence Atlas**. Empty placeholder directories are omitted from the tree below.
 
@@ -30,6 +30,7 @@ evidence-atlas/
 │   │   ├── layout.tsx
 │   │   └── page.tsx
 │   ├── components/
+│   │   ├── icons/
 │   │   └── ui/
 │   ├── lib/                # Database query helpers and shared utilities
 │   ├── prisma/             # Contract, generated artifacts, runtime, and seed
@@ -58,9 +59,9 @@ Next.js App Router pages and route-local application behavior.
 | Route | Current responsibility |
 | --- | --- |
 | `/` | Workspace overview with static sample content and counts |
-| `/research` | Database-backed Research list |
+| `/research` | Database-backed Research list with Tags |
 | `/research/new` | Create Research |
-| `/research/[id]` | Research detail and Source, Finding, and Comment management |
+| `/research/[id]` | Research detail, Source/Finding/Comment management, and Tag attachment/detachment |
 | `/research/[id]/edit` | Edit Research title and description |
 
 Server Actions live in `_actions/`. Research-detail dialogs live in `_components/`. These private folders do not create routes.
@@ -71,11 +72,13 @@ The root layout defines document metadata and typography. Global styles, semanti
 
 `ui/` contains reusable shadcn/ui primitives. Route-specific components remain next to their routes. The existing `common/` and `features/` directories are placeholders; shared application components can be added when repeated use justifies them.
 
+`icons/` provides the application icon entry point, currently exporting the Lucide X icon used by the Tag detachment control.
+
 ### `src/lib/` and `src/types/`
 
 `lib/` contains shared date and class-name utilities and a Prisma query-result compatibility helper. Database runtime configuration lives in `src/prisma/db.ts`.
 
-`types/` contains shared application types and Zod validation schemas for Research, Sources, Findings, and Comments.
+`types/` contains shared application types and Zod validation schemas for Research, Sources, Findings, Comments, and Tags.
 
 ### `src/prisma/` and `migrations/`
 

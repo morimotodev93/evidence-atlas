@@ -1,10 +1,18 @@
+import { Badge } from "@/components/ui/badge";
 import { formatDate } from "@/lib/date";
-import { findMany } from "@/lib/prisma";
 import { db } from "@/prisma/db";
 import Link from "next/link";
 
 export default async function Research() {
-  const researches = await findMany(db.orm.public.Research);
+  const researches = await db.orm.public.Research.all();
+
+  const researchIds = researches.map((research) => research.id);
+
+  const researchTags = await db.orm.public.ResearchTag.where((researchTag) =>
+    researchTag.researchId.in(researchIds),
+  )
+    .include("tag")
+    .all();
 
   return (
     <>
@@ -36,28 +44,50 @@ export default async function Research() {
             </div>
           ) : (
             <div className="space-y-3">
-              {researches.map((research) => (
-                <Link
-                  key={research.id}
-                  href={`/research/${research.id}`}
-                  className="block rounded-lg border bg-card p-4 transition-colors hover:bg-accent/50 sm:p-5"
-                >
-                  <div className="flex items-start justify-between gap-4">
-                    <div className="min-w-0">
-                      <h2 className="truncate font-medium">{research.title}</h2>
-                      {research.description && (
-                        <p className="mt-1 line-clamp-2 text-sm text-muted-foreground">
-                          {research.description}
-                        </p>
-                      )}
-                    </div>
+              {researches.map((research) => {
+                const tagsForResearch = researchTags.filter(
+                  (researchTag) => researchTag.researchId === research.id,
+                );
 
-                    <span className="shrink-0 text-xs text-muted-foreground">
-                      {formatDate(research.createdAt)}
-                    </span>
-                  </div>
-                </Link>
-              ))}
+                return (
+                  <Link
+                    key={research.id}
+                    href={`/research/${research.id}`}
+                    className="block rounded-lg border bg-card p-4 transition-colors hover:bg-accent/50 sm:p-5"
+                  >
+                    <div className="flex items-start justify-between gap-4">
+                      <div className="min-w-0">
+                        <h2 className="truncate font-medium">
+                          {research.title}
+                        </h2>
+
+                        {research.description && (
+                          <p className="mt-1 line-clamp-2 text-sm text-muted-foreground">
+                            {research.description}
+                          </p>
+                        )}
+
+                        {tagsForResearch.length > 0 && (
+                          <div className="mt-4 flex flex-wrap items-center gap-2">
+                            {tagsForResearch.map((researchTag) => (
+                              <Badge
+                                key={`${researchTag.researchId}-${researchTag.tagId}`}
+                                variant="secondary"
+                              >
+                                {researchTag.tag.name}
+                              </Badge>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+
+                      <span className="shrink-0 text-xs text-muted-foreground">
+                        {formatDate(research.createdAt)}
+                      </span>
+                    </div>
+                  </Link>
+                );
+              })}
             </div>
           )}
         </section>
