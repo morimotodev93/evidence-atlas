@@ -1,6 +1,6 @@
 # evidence-atlas Roadmap
 
-> **Last Updated:** 2026-09-24
+> **Last Updated:** 2026-09-25
 
 Current stage: Phase 4 is in progress. Phases 0–3 have established the foundation, product direction, data contract, and design-system baseline. Checked implementation items describe code present in the repository, not a fresh runtime verification or completion of every related product requirement.
 
@@ -140,7 +140,7 @@ Workspace
 
 #### 4.1 Workspace & Research Navigation
 
-- [x] Workspace overview layout with static sample content
+- [x] Workspace overview layout
 - [x] Connect Workspace overview to stored data
 - [x] Research list
 - [x] Research detail
@@ -178,7 +178,9 @@ Tag renaming and Workspace-level Tag deletion are not implemented. Discovery con
 - [x] Filtering
 - [x] Basic sorting
 
-**Status: In progress.** Research Tag creation, attachment, display, and detachment are implemented; discovery controls remain pending. The stored Conclusion can be displayed, edited, and cleared. Finding CRUD does not yet provide evidence linking.
+**Status: Complete for the Phase 4 scope.** The overview shows stored Workspace data, the three most recently updated Research items, and Research/Source/Finding/Tag counts. Research lifecycle status and Conclusion can be edited. Findings display supporting Sources and support attaching and removing links; the contract and follow-up migration define cascading deletion of those links when a Finding or Source is deleted.
+
+Research discovery supports case-insensitive title/description search, lifecycle status filtering, and sorting by last update or creation date (newest/oldest). The overview and list use the first returned Workspace; Workspace selection and membership-based access remain Phase 7 work. Phase 10 verification and the broader AI-assisted MVP remain outstanding.
 
 **Principle:** The initial experience should make the research
 process understandable without AI.

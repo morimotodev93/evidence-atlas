@@ -1,7 +1,7 @@
 # Design Direction
 
 > Status: Draft
-> Last Updated: 2026-09-22
+> Last Updated: 2026-09-25
 
 ## 1. Design Concept
 
@@ -288,7 +288,7 @@ The direction above remains the design baseline. The current implementation diff
 
 - Research screens use a simple header; the primary sidebar and mobile overlay navigation are not implemented.
 - The Research detail page places the stored, editable Conclusion before Sources. The intended sequence above places Conclusion after Discussion; this ordering difference remains an implementation gap, not an approved design change.
-- Related Research, global search, and AI exploration are not implemented.
+- Research list search, status filtering, and sorting are implemented as an inline form above the list. Sidebar-based global search, Related Research, and AI exploration are not implemented.
 - Light and dark palettes are defined, but automatic system-theme selection is not wired up.
 - Research content uses a single-column flow, but responsive navigation and end-to-end accessibility verification remain outstanding.
 

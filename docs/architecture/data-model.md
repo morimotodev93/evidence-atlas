@@ -1,7 +1,7 @@
 # Data Model
 
 > Status: Core contract implemented; AI/RAG design remains provisional
-> Last Updated: 2026-09-24
+> Last Updated: 2026-09-25
 
 ## 1. Overview
 
@@ -496,6 +496,8 @@ The Prisma schema defines the persistent data model of Evidence Atlas.
 
 The contract source is `src/prisma/contract.prisma`, with generated `contract.json` and `contract.d.ts` alongside it. The baseline migration is stored under `migrations/app/20260919T0109_baseline/`.
 
+The follow-up migration `migrations/app/20260925T0120_cascade_finding_source_delete/` adds `ON DELETE CASCADE` to both FindingSource foreign keys. This describes the checked-in migration; its application to a running database is not verified by this documentation review.
+
 The initial schema focuses on the core research workflow and the relationships established in the data model. Implementation-specific details and fields that are not yet required are intentionally deferred.
 
 ### 7.1 Core Entities
@@ -560,6 +562,8 @@ The status represents the lifecycle of the research and is independent of its co
 
 A Research may therefore exist without a conclusion while it is still in progress.
 
+The detail page displays the current status and allows changing it to any of the three values. Application validation checks the enum value; it does not require a Conclusion before completion or make archived Research read-only.
+
 ### 7.4 Source
 
 `Source` represents an external source of information used by research.
@@ -588,7 +592,7 @@ A Finding can reference one or more Sources through `FindingSource`.
 
 This preserves traceability between a finding and its supporting evidence.
 
-The contract permits a Finding without any FindingSource rows. The current create/edit forms do not manage these links, and the detail page does not display them. This is an implementation gap relative to the evidence-traceability workflow in the product definition.
+The contract permits a Finding without any FindingSource rows. Content creation/editing and evidence linking are separate operations. On the detail page, each Finding displays its supporting Sources, allows attaching an existing Source from the same Research, and allows removing individual links.
 
 ### 7.6 Finding–Source Relationship
 
@@ -603,6 +607,10 @@ Finding ←→ Source
 A Finding may be supported by multiple Sources, and a Source may support multiple Findings.
 
 The join entity is used instead of storing source references directly inside Finding.
+
+The composite primary key `(findingId, sourceId)` prevents duplicate links. The attachment action checks that both records belong to the same Research; the separate foreign keys alone do not enforce this boundary. The UI offers only Sources from that Research that are not already attached.
+
+Removing a link deletes only the FindingSource row. Both foreign keys define `onDelete: Cascade`: deleting a Finding or Source removes its association rows while preserving the records on the other side. A Finding may consequently remain without supporting Sources.
 
 ### 7.7 Conclusion
 
@@ -770,8 +778,8 @@ This document defines the current data model and database design for the Evidenc
 
 The core entities, responsibilities, relationships, ownership boundaries, and initial Prisma schema design have been established.
 
-The repository contains the Prisma contract, generated artifacts, baseline migration, and development seed data. Database-backed Research, Source, Finding, and Comment operations, plus Tag creation, attachment, display, and detachment, are implemented. Phase 2 is recorded as complete in the [roadmap](../planning/roadmap.md); this document review does not re-verify the state of a running database.
+The repository contains the Prisma contract, generated artifacts, baseline and FindingSource cascade migrations, and development seed data. Database-backed Research, Source, Finding, and Comment operations, Finding–Source link management, lifecycle controls, Conclusion editing, and Tag creation, attachment, display, and detachment are implemented. The overview and Research discovery controls use stored Workspace data. Phases 2 and 4 are recorded as complete for their scopes in the [roadmap](../planning/roadmap.md); this document review does not re-verify the state of a running database.
 
-Remaining integration work includes Finding–Source link management, lifecycle controls, discovery controls, and enforcement of user and workspace access boundaries. Tag renaming and Workspace-level Tag deletion are also not implemented. Schema support should not be read as completion of these application features.
+Remaining integration work includes Workspace selection and enforcement of user and workspace access boundaries. Tag renaming, Workspace-level Tag deletion, and Tag filtering are also not implemented. Schema support should not be read as completion of these application features.
 
 Details that are not yet required by the MVP, such as advanced AI/RAG storage, detailed indexing strategies, and future extensions, remain intentionally deferred.

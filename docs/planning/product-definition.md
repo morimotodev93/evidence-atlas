@@ -1,7 +1,7 @@
 # Product Definition
 
 > **Status:** Approved
-> **Last Updated:** 2026-09-24
+> **Last Updated:** 2026-09-25
 
 This document defines the approved product concept, target users, and primary use cases for **Evidence Atlas**.
 
@@ -905,14 +905,16 @@ The document should be revised when:
 
 ### Current Implementation Gaps
 
-The intended workflows above remain the product baseline. As of 2026-09-24:
+The intended workflows above remain the product baseline. As of 2026-09-25:
 
 - Research creation and title/description editing, plus Source, Finding, and Comment CRUD, are implemented.
 - Workspace Tags can be created or reused by name, attached to Research, displayed on list/detail pages, and detached without deleting the Tag. Tag renaming, Workspace-level Tag deletion, and Tag filtering are not implemented.
-- Finding–Source links exist in the contract and seed data, but cannot yet be managed or inspected through the Finding UI.
+- Findings display their supporting Sources and allow attaching existing Sources from the same Research or removing links. Findings can still exist without a supporting Source.
 - The detail page displays the stored Conclusion and supports editing or clearing it.
+- Research lifecycle status can be changed to In progress, Completed, or Archived. Completion does not require a Conclusion, and archived Research remains editable.
+- The Workspace overview displays stored data, recent Research, and counts. The Research list supports title/description search, status filtering, and sorting by update or creation date. Both pages use the first returned Workspace; search is limited to this list, not global or semantic retrieval.
 - Comments attach to Research, not individual Findings; the UC-04 wording about selecting Findings describes discussion context, not a separate Comment relationship. Threaded replies are not modeled.
 - UC-05's broader conclusion workflow has only one optional text field in the current contract; multiple conclusion records and structured links to supporting Findings are not implemented.
-- Workspace selection, authentication, permission enforcement, search, AI assistance, and read-only Demo controls remain pending.
+- Workspace selection, authentication, permission enforcement, related Research discovery, AI assistance, and read-only Demo controls remain pending.
 
 See the [roadmap](roadmap.md) for remaining work. These gaps do not redefine the approved product behavior.

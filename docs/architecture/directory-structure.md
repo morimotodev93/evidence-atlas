@@ -1,7 +1,7 @@
 # Directory Structure
 
 > **Status:** Current implementation; future areas remain provisional
-> **Last Updated:** 2026-09-24
+> **Last Updated:** 2026-09-25
 
 This document describes the implemented architecture of **Evidence Atlas**. Empty placeholder directories are omitted from the tree below.
 
@@ -58,10 +58,10 @@ Next.js App Router pages and route-local application behavior.
 
 | Route | Current responsibility |
 | --- | --- |
-| `/` | Workspace overview with static sample content and counts |
-| `/research` | Database-backed Research list with Tags |
+| `/` | Database-backed Workspace overview, three recently updated Research items, and Research/Source/Finding/Tag counts |
+| `/research` | Workspace-scoped Research list with Tags, title/description search, status filtering, and sorting |
 | `/research/new` | Create Research |
-| `/research/[id]` | Research detail, Source/Finding/Comment management, and Tag attachment/detachment |
+| `/research/[id]` | Research detail, status/Conclusion editing, Source/Finding/Comment management, Finding–Source links, and Tag attachment/detachment |
 | `/research/[id]/edit` | Edit Research title and description |
 
 Server Actions live in `_actions/`. Research-detail dialogs live in `_components/`. These private folders do not create routes.
@@ -98,13 +98,17 @@ Server-rendered pages / form Server Actions
 
 Forms use shared validation schemas; interactive dialogs are client components. Pages and Server Actions access the database on the server.
 
+The overview and Research list load the first returned Workspace and read its Research data. The overview sorts Research by `updatedAt` and displays up to three items; its counts cover all Research in that Workspace and all of its Tags, including unattached Tags.
+
+The Research list uses GET parameters: `query` searches title and description with trimmed, case-insensitive substring matching; `status` accepts `IN_PROGRESS`, `COMPLETED`, or `ARCHIVED`; `sort` accepts `updated` (default), `newest`, or `oldest`. Invalid status values mean no status filter, and invalid sort values fall back to `updated`. Filtering and sorting run in server-side JavaScript after loading the Workspace's Research records. Tag filtering and pagination are not implemented.
+
 ## Planned Architecture and Known Gaps
 
 The earlier proposed `(public)` and `(dashboard)` route groups and API layer are not implemented. Public Demo separation and authenticated navigation remain future work, not existing route boundaries.
 
 AI services, retrieval with pgvector, authentication, authorization, and billing remain planned. Empty infrastructure directories do not indicate working integrations.
 
-The current Research list is not scoped to a selected Workspace. Research creation uses the first stored Workspace and User, and new Comments use the Research creator as their author. These development behaviors do not implement the membership and permission boundaries defined in the [data model](data-model.md).
+Workspace selection is not implemented: the overview and list use the first returned Workspace, and Research creation uses the first stored Workspace and User. Detail routes and mutations look up records by ID without membership checks; new Comments use the Research creator as their author. These development behaviors do not implement the membership and permission boundaries defined in the [data model](data-model.md).
 
 The read-only public Demo requirement in the [product definition](../planning/product-definition.md) is not implemented: the current application exposes write operations.
 
