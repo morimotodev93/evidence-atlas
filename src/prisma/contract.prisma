@@ -178,12 +178,14 @@ model FindingSource {
 
   finding Finding @relation(
     fields: [findingId],
-    references: [id]
+    references: [id],
+    onDelete: Cascade
   )
 
   source Source @relation(
     fields: [sourceId],
-    references: [id]
+    references: [id],
+    onDelete: Cascade
   )
 
   @@id([findingId, sourceId])

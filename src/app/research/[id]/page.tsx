@@ -1,10 +1,14 @@
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { formatDate } from "@/lib/date";
 import { db } from "@/prisma/db";
 import Link from "next/link";
+
 import { notFound } from "next/navigation";
+import { detachFindingSource } from "./_actions/detachFindingSource";
 import { AddCommentDialog } from "./_components/add-comment-dialog";
 import { AddFindingDialog } from "./_components/add-finding-dialog";
+import { ManageFindingSourcesDialog } from "./_components/add-finding-source-dialog";
 import { AddSourceDialog } from "./_components/add-source-dialog";
 import { AddTagDialog } from "./_components/add-tag-dialog";
 import { DeleteCommentDialog } from "./_components/delete-comment-dialog";
@@ -40,7 +44,9 @@ export default async function ResearchDetailPage({
 
   const findings = await db.orm.public.Finding.where({
     researchId: research.id,
-  }).all();
+  })
+    .include("sources", (findingSource) => findingSource.include("source"))
+    .all();
 
   const comments = await db.orm.public.Comment.where({
     researchId: research.id,
@@ -248,43 +254,105 @@ export default async function ResearchDetailPage({
           </div>
 
           <div className="mt-4 space-y-3">
-            {findings.length === 0 ? (
-              <div className="rounded-lg border border-dashed p-6 text-center">
-                <p className="text-sm text-muted-foreground">
-                  No findings yet.
-                </p>
-              </div>
-            ) : (
-              findings.map((finding) => (
-                <article
-                  key={finding.id}
-                  className="rounded-lg border bg-card p-4"
-                >
-                  <p className="text-sm whitespace-pre-wrap leading-6">
-                    {finding.content}
+            <div className="mt-4 space-y-3">
+              {findings.length === 0 ? (
+                <div className="rounded-lg border border-dashed p-6 text-center">
+                  <p className="text-sm text-muted-foreground">
+                    No findings yet.
                   </p>
+                </div>
+              ) : (
+                findings.map((finding) => {
+                  const attachedSourceIds = new Set(
+                    finding.sources.map(
+                      (findingSource) => findingSource.sourceId,
+                    ),
+                  );
 
-                  <div className="mt-3 flex items-center justify-between gap-4">
-                    <span className="text-xs text-muted-foreground">
-                      {finding.displayStyle}
-                    </span>
+                  const availableSources = sources
+                    .filter((source) => !attachedSourceIds.has(source.id))
+                    .map((source) => ({
+                      id: source.id,
+                      title: source.title,
+                    }));
 
-                    <div className="flex items-center gap-2">
-                      <span className="text-xs text-muted-foreground">
-                        Updated {formatDate(finding.updatedAt)}
-                      </span>
+                  return (
+                    <article
+                      key={finding.id}
+                      className="rounded-lg border bg-card p-4"
+                    >
+                      <p className="text-sm whitespace-pre-wrap leading-6">
+                        {finding.content}
+                      </p>
 
-                      <EditFindingDialog
-                        findingId={finding.id}
-                        content={finding.content}
-                      />
+                      {finding.sources.length > 0 && (
+                        <div className="mt-3">
+                          <p className="text-xs font-medium text-muted-foreground">
+                            Supporting sources
+                          </p>
 
-                      <DeleteFindingDialog findingId={finding.id} />
-                    </div>
-                  </div>
-                </article>
-              ))
-            )}
+                          {finding.sources.map((findingSource) => (
+                            <div
+                              key={findingSource.sourceId}
+                              className="flex items-center justify-between gap-3"
+                            >
+                              <Link
+                                href={findingSource.source.url}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="text-sm hover:underline"
+                              >
+                                {findingSource.source.title}
+                              </Link>
+
+                              <form
+                                action={detachFindingSource.bind(
+                                  null,
+                                  finding.id,
+                                  findingSource.sourceId,
+                                )}
+                              >
+                                <Button type="submit" variant="ghost" size="sm">
+                                  Remove
+                                </Button>
+                              </form>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+
+                      {availableSources.length > 0 && (
+                        <div className="mt-3">
+                          <ManageFindingSourcesDialog
+                            findingId={finding.id}
+                            sources={availableSources}
+                          />
+                        </div>
+                      )}
+
+                      <div className="mt-3 flex items-center justify-between gap-4">
+                        <span className="text-xs text-muted-foreground">
+                          {finding.displayStyle}
+                        </span>
+
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs text-muted-foreground">
+                            Updated {formatDate(finding.updatedAt)}
+                          </span>
+
+                          <EditFindingDialog
+                            findingId={finding.id}
+                            content={finding.content}
+                          />
+
+                          <DeleteFindingDialog findingId={finding.id} />
+                        </div>
+                      </div>
+                    </article>
+                  );
+                })
+              )}
+            </div>
           </div>
         </section>
 

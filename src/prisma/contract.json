@@ -1732,6 +1732,7 @@
               },
               "foreignKeys": [
                 {
+                  "onDelete": "cascade",
                   "source": {
                     "columns": [
                       "findingId"
@@ -1748,6 +1749,7 @@
                   }
                 },
                 {
+                  "onDelete": "cascade",
                   "source": {
                     "columns": [
                       "sourceId"
@@ -2574,7 +2576,7 @@
         "kind": "postgres-schema"
       }
     },
-    "storageHash": "a10fc05cdaeb21d5b248c7292265b86644feb0b022c243aa30e1ea67abeeb7bb"
+    "storageHash": "604af0e00d6abfc869d4103e15bcee6cbc19d1d5c8bbb50586ce4cb3c55bc26b"
   },
   "execution": {
     "executionHash": "7cbe49cf75771236b3ffd5510fac23f366ee445489dbfbbcf0e675245a7b94bc",

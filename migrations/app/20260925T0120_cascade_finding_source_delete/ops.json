@@ -1,0 +1,54 @@
+[
+  {
+    "id": "findingSource.findingId.onDeleteCascade",
+    "label": "Set ON DELETE CASCADE for \"findingSource\".\"findingId\"",
+    "operationClass": "destructive",
+    "target": {
+      "id": "postgres"
+    },
+    "precheck": [
+      {
+        "description": "foreign key exists without ON DELETE CASCADE",
+        "sql": "\n            SELECT EXISTS (\n              SELECT 1\n              FROM pg_constraint\n              WHERE conname = 'findingSource_findingId_fkey'\n                AND conrelid = 'public.\"findingSource\"'::regclass\n                AND confdeltype <> 'c'\n            )\n          "
+      }
+    ],
+    "execute": [
+      {
+        "description": "replace findingId foreign key",
+        "sql": "\n            ALTER TABLE \"public\".\"findingSource\"\n            DROP CONSTRAINT \"findingSource_findingId_fkey\",\n            ADD CONSTRAINT \"findingSource_findingId_fkey\"\n              FOREIGN KEY (\"findingId\")\n              REFERENCES \"public\".\"finding\" (\"id\")\n              ON DELETE CASCADE\n          "
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "findingId foreign key uses ON DELETE CASCADE",
+        "sql": "\n            SELECT EXISTS (\n              SELECT 1\n              FROM pg_constraint\n              WHERE conname = 'findingSource_findingId_fkey'\n                AND conrelid = 'public.\"findingSource\"'::regclass\n                AND confdeltype = 'c'\n            )\n          "
+      }
+    ]
+  },
+  {
+    "id": "findingSource.sourceId.onDeleteCascade",
+    "label": "Set ON DELETE CASCADE for \"findingSource\".\"sourceId\"",
+    "operationClass": "destructive",
+    "target": {
+      "id": "postgres"
+    },
+    "precheck": [
+      {
+        "description": "foreign key exists without ON DELETE CASCADE",
+        "sql": "\n            SELECT EXISTS (\n              SELECT 1\n              FROM pg_constraint\n              WHERE conname = 'findingSource_sourceId_fkey'\n                AND conrelid = 'public.\"findingSource\"'::regclass\n                AND confdeltype <> 'c'\n            )\n          "
+      }
+    ],
+    "execute": [
+      {
+        "description": "replace sourceId foreign key",
+        "sql": "\n            ALTER TABLE \"public\".\"findingSource\"\n            DROP CONSTRAINT \"findingSource_sourceId_fkey\",\n            ADD CONSTRAINT \"findingSource_sourceId_fkey\"\n              FOREIGN KEY (\"sourceId\")\n              REFERENCES \"public\".\"source\" (\"id\")\n              ON DELETE CASCADE\n          "
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "sourceId foreign key uses ON DELETE CASCADE",
+        "sql": "\n            SELECT EXISTS (\n              SELECT 1\n              FROM pg_constraint\n              WHERE conname = 'findingSource_sourceId_fkey'\n                AND conrelid = 'public.\"findingSource\"'::regclass\n                AND confdeltype = 'c'\n            )\n          "
+      }
+    ]
+  }
+]

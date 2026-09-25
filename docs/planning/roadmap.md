@@ -156,7 +156,7 @@ Workspace
 
 - [x] Source management
 - [x] Finding management
-- [ ] Manage Finding–Source links and display supporting Sources
+- [x] Manage Finding–Source links and display supporting Sources
 
 #### 4.4 Research Discussion
 
