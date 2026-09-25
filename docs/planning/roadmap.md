@@ -174,9 +174,9 @@ Tag renaming and Workspace-level Tag deletion are not implemented. Discovery con
 
 #### 4.6 Research Discovery
 
-- [ ] Search
-- [ ] Filtering
-- [ ] Basic sorting
+- [x] Search
+- [x] Filtering
+- [x] Basic sorting
 
 **Status: In progress.** Research Tag creation, attachment, display, and detachment are implemented; discovery controls remain pending. The stored Conclusion can be displayed, edited, and cleared. Finding CRUD does not yet provide evidence linking.
 

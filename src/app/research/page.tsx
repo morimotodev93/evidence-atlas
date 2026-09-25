@@ -1,10 +1,36 @@
 import { Badge } from "@/components/ui/badge";
-import { buttonVariants } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { formatDate } from "@/lib/date";
 import { db } from "@/prisma/db";
 import Link from "next/link";
 
-export default async function Research() {
+type ResearchPageProps = {
+  searchParams: Promise<{
+    query?: string;
+    status?: string;
+    sort?: string;
+  }>;
+};
+
+export default async function Research({ searchParams }: ResearchPageProps) {
+  const { query = "", status = "", sort = "updated" } = await searchParams;
+  const normalizedQuery = query.trim().toLowerCase();
+
+  const validStatuses = ["IN_PROGRESS", "COMPLETED", "ARCHIVED"] as const;
+
+  const selectedStatus = validStatuses.includes(
+    status as (typeof validStatuses)[number],
+  )
+    ? status
+    : "";
+
+  const validSorts = ["updated", "newest", "oldest"] as const;
+
+  const selectedSort = validSorts.includes(sort as (typeof validSorts)[number])
+    ? sort
+    : "updated";
+
   const workspace = await db.orm.public.Workspace.all().then(
     (workspaces) => workspaces[0],
   );
@@ -14,6 +40,40 @@ export default async function Research() {
         workspaceId: workspace.id,
       }).all()
     : [];
+
+  const filteredResearches = researches.filter((research) => {
+    const matchesSearch =
+      !normalizedQuery ||
+      research.title.toLowerCase().includes(normalizedQuery) ||
+      (research.description?.toLowerCase() ?? "").includes(normalizedQuery);
+
+    const matchesStatus = !selectedStatus || research.status === selectedStatus;
+
+    return matchesSearch && matchesStatus;
+  });
+
+  const sortedResearches = [...filteredResearches].sort((a, b) => {
+    switch (selectedSort) {
+      case "newest":
+        return (
+          Number(b.createdAt.epochMilliseconds) -
+          Number(a.createdAt.epochMilliseconds)
+        );
+
+      case "oldest":
+        return (
+          Number(a.createdAt.epochMilliseconds) -
+          Number(b.createdAt.epochMilliseconds)
+        );
+
+      case "updated":
+      default:
+        return (
+          Number(b.updatedAt.epochMilliseconds) -
+          Number(a.updatedAt.epochMilliseconds)
+        );
+    }
+  });
 
   const researchIds = researches.map((research) => research.id);
 
@@ -55,6 +115,60 @@ export default async function Research() {
             </Link>
           )}
         </header>
+        {/* Search Bar */}
+        <form
+          action="/research"
+          method="get"
+          className="mb-6 flex flex-col gap-2 sm:flex-row sm:items-center"
+        >
+          <label htmlFor="research-search" className="sr-only">
+            Search research
+          </label>
+
+          <Input
+            id="research-search"
+            name="query"
+            type="search"
+            defaultValue={query}
+            placeholder="Search research..."
+            className="w-full sm:max-w-md"
+          />
+
+          <label htmlFor="research-status" className="sr-only">
+            Filter by status
+          </label>
+
+          <select
+            id="research-status"
+            name="status"
+            defaultValue={selectedStatus}
+            className="h-8 rounded-lg border border-input bg-background px-2.5 text-sm"
+          >
+            <option value="">All statuses</option>
+            <option value="IN_PROGRESS">In progress</option>
+            <option value="COMPLETED">Completed</option>
+            <option value="ARCHIVED">Archived</option>
+          </select>
+
+          <label htmlFor="research-sort" className="sr-only">
+            Sort research
+          </label>
+
+          <select
+            id="research-sort"
+            name="sort"
+            defaultValue={selectedSort}
+            className="h-8 rounded-lg border border-input bg-background px-2.5 text-sm"
+          >
+            <option value="updated">Recently updated</option>
+            <option value="newest">Newest</option>
+            <option value="oldest">Oldest</option>
+          </select>
+
+          <Button type="submit" variant="outline">
+            Apply
+          </Button>
+        </form>
 
         {/* Research List */}
         <section aria-label="Research list">
@@ -65,9 +179,16 @@ export default async function Research() {
                 Create your first research to start building your knowledge.
               </p>
             </div>
+          ) : sortedResearches.length === 0 ? (
+            <div className="rounded-lg border border-dashed p-8 text-center">
+              <h2 className="font-medium">No research found</h2>
+              <p className="mt-1 text-sm text-muted-foreground">
+                Try a different search term.
+              </p>
+            </div>
           ) : (
             <div className="space-y-3">
-              {researches.map((research) => {
+              {sortedResearches.map((research) => {
                 const tagsForResearch = researchTags.filter(
                   (researchTag) => researchTag.researchId === research.id,
                 );
