@@ -141,7 +141,7 @@ Workspace
 #### 4.1 Workspace & Research Navigation
 
 - [x] Workspace overview layout with static sample content
-- [ ] Connect Workspace overview to stored data
+- [x] Connect Workspace overview to stored data
 - [x] Research list
 - [x] Research detail
 

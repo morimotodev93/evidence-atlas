@@ -1,18 +1,30 @@
 import { Badge } from "@/components/ui/badge";
+import { buttonVariants } from "@/components/ui/button";
 import { formatDate } from "@/lib/date";
 import { db } from "@/prisma/db";
 import Link from "next/link";
 
 export default async function Research() {
-  const researches = await db.orm.public.Research.all();
+  const workspace = await db.orm.public.Workspace.all().then(
+    (workspaces) => workspaces[0],
+  );
+
+  const researches = workspace
+    ? await db.orm.public.Research.where({
+        workspaceId: workspace.id,
+      }).all()
+    : [];
 
   const researchIds = researches.map((research) => research.id);
 
-  const researchTags = await db.orm.public.ResearchTag.where((researchTag) =>
-    researchTag.researchId.in(researchIds),
-  )
-    .include("tag")
-    .all();
+  const researchTags =
+    researchIds.length > 0
+      ? await db.orm.public.ResearchTag.where((researchTag) =>
+          researchTag.researchId.in(researchIds),
+        )
+          .include("tag")
+          .all()
+      : [];
 
   return (
     <>
@@ -26,11 +38,22 @@ export default async function Research() {
       </header>
 
       <main className="mx-auto w-full max-w-5xl px-4 py-6 sm:px-6 sm:py-8">
-        <header className="mb-6">
-          <p className="text-sm text-muted-foreground">Workspace</p>
-          <h1 className="mt-1 text-2xl font-semibold tracking-tight">
-            Research
-          </h1>
+        <header className="mb-6 flex items-end justify-between gap-4">
+          <div>
+            <p className="text-sm text-muted-foreground">Workspace</p>
+            <h1 className="mt-1 text-2xl font-semibold tracking-tight">
+              Research
+            </h1>
+          </div>
+
+          {workspace && (
+            <Link
+              href="/research/new"
+              className={buttonVariants({ variant: "default" })}
+            >
+              New Research
+            </Link>
+          )}
         </header>
 
         {/* Research List */}
