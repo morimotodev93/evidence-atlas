@@ -1,0 +1,125 @@
+[
+  {
+    "id": "column.public.conversation.researchId",
+    "label": "Add column \"researchId\" to \"conversation\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "column",
+        "name": "researchId",
+        "table": "conversation"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure column \"researchId\" is missing",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"information_schema\".\"columns\" WHERE (\"table_schema\" = $1 AND \"table_name\" = $2 AND \"column_name\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "conversation",
+          "researchId"
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add column \"researchId\"",
+        "sql": "ALTER TABLE \"public\".\"conversation\" ADD COLUMN \"researchId\" text"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify column \"researchId\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"information_schema\".\"columns\" WHERE (\"table_schema\" = $1 AND \"table_name\" = $2 AND \"column_name\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "conversation",
+          "researchId"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "index.conversation.conversation_researchId_idx_36f1b4c8",
+    "label": "Create index \"conversation_researchId_idx_36f1b4c8\" on \"conversation\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "index",
+        "name": "conversation_researchId_idx_36f1b4c8",
+        "table": "conversation"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure index \"conversation_researchId_idx_36f1b4c8\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"conversation_researchId_idx_36f1b4c8\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create index \"conversation_researchId_idx_36f1b4c8\"",
+        "sql": "CREATE INDEX \"conversation_researchId_idx_36f1b4c8\" ON \"public\".\"conversation\" (\"researchId\")",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify index \"conversation_researchId_idx_36f1b4c8\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"conversation_researchId_idx_36f1b4c8\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "foreignKey.conversation.conversation_researchId_fkey",
+    "label": "Add foreign key \"conversation_researchId_fkey\" on \"conversation\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "foreignKey",
+        "name": "conversation_researchId_fkey",
+        "table": "conversation"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure FK \"conversation_researchId_fkey\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "conversation_researchId_fkey",
+          "public",
+          "\"public\".\"conversation\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add FK \"conversation_researchId_fkey\"",
+        "sql": "ALTER TABLE \"public\".\"conversation\"\nADD CONSTRAINT \"conversation_researchId_fkey\"\nFOREIGN KEY (\"researchId\")\nREFERENCES \"public\".\"research\" (\"id\")\nON DELETE CASCADE"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify FK \"conversation_researchId_fkey\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "conversation_researchId_fkey",
+          "public",
+          "\"public\".\"conversation\""
+        ]
+      }
+    ]
+  }
+]

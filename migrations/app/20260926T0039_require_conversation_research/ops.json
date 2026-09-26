@@ -1,0 +1,50 @@
+[
+  {
+    "id": "alterNullability.setNotNull.conversation.researchId",
+    "label": "Set NOT NULL on \"conversation\".\"researchId\"",
+    "operationClass": "destructive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "column",
+        "name": "researchId",
+        "table": "conversation"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure column \"researchId\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"information_schema\".\"columns\" WHERE (\"table_schema\" = $1 AND \"table_name\" = $2 AND \"column_name\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "conversation",
+          "researchId"
+        ]
+      },
+      {
+        "description": "ensure no NULL values in \"researchId\"",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"public\".\"conversation\" WHERE \"researchId\" IS NULL) AS \"result\"",
+        "params": []
+      }
+    ],
+    "execute": [
+      {
+        "description": "set NOT NULL on \"researchId\"",
+        "sql": "ALTER TABLE \"public\".\"conversation\" ALTER COLUMN \"researchId\" SET NOT NULL"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify column \"researchId\" is NOT NULL",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"information_schema\".\"columns\" WHERE (\"table_schema\" = $1 AND \"table_name\" = $2 AND \"column_name\" = $3 AND \"is_nullable\" = $4)) AS \"result\"",
+        "params": [
+          "public",
+          "conversation",
+          "researchId",
+          "NO"
+        ]
+      }
+    ]
+  }
+]

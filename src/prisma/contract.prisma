@@ -119,8 +119,24 @@ model Research {
   findings Finding[]
   comments Comment[]
   tags     ResearchTag[]
+  conversations Conversation[]
 }
 
+model Conversation {
+  id         String @id @default(cuid(2))
+  researchId String
+
+  createdAt DateTime @default(now())
+  updatedAt temporal.updatedAt()
+
+  research Research @relation(
+    fields: [researchId],
+    references: [id],
+    onDelete: Cascade
+  )
+
+  messages Message[]
+}
 
 // ============================================================
 // Source
@@ -263,14 +279,7 @@ model ResearchTag {
 // Conversation
 // ============================================================
 
-model Conversation {
-  id String @id @default(cuid(2))
 
-  createdAt DateTime @default(now())
-  updatedAt temporal.updatedAt()
-
-  messages Message[]
-}
 
 enum MessageAuthorType {
   USER

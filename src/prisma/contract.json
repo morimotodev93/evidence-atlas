@@ -252,6 +252,13 @@
                   "kind": "scalar"
                 }
               },
+              "researchId": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/text@1",
+                  "kind": "scalar"
+                }
+              },
               "updatedAt": {
                 "nullable": false,
                 "type": {
@@ -275,6 +282,22 @@
                   "model": "Message",
                   "namespace": "public"
                 }
+              },
+              "research": {
+                "cardinality": "N:1",
+                "nullable": false,
+                "on": {
+                  "localFields": [
+                    "researchId"
+                  ],
+                  "targetFields": [
+                    "id"
+                  ]
+                },
+                "to": {
+                  "model": "Research",
+                  "namespace": "public"
+                }
               }
             },
             "storage": {
@@ -284,6 +307,9 @@
                 },
                 "id": {
                   "column": "id"
+                },
+                "researchId": {
+                  "column": "researchId"
                 },
                 "updatedAt": {
                   "column": "updatedAt"
@@ -787,6 +813,21 @@
                 },
                 "to": {
                   "model": "Comment",
+                  "namespace": "public"
+                }
+              },
+              "conversations": {
+                "cardinality": "1:N",
+                "on": {
+                  "localFields": [
+                    "id"
+                  ],
+                  "targetFields": [
+                    "researchId"
+                  ]
+                },
+                "to": {
+                  "model": "Conversation",
                   "namespace": "public"
                 }
               },
@@ -1608,14 +1649,46 @@
                   "nativeType": "text",
                   "nullable": false
                 },
+                "researchId": {
+                  "codecId": "pg/text@1",
+                  "nativeType": "text",
+                  "nullable": false
+                },
                 "updatedAt": {
                   "codecId": "pg/timestamptz-temporal@1",
                   "nativeType": "timestamptz",
                   "nullable": false
                 }
               },
-              "foreignKeys": [],
-              "indexes": [],
+              "foreignKeys": [
+                {
+                  "onDelete": "cascade",
+                  "source": {
+                    "columns": [
+                      "researchId"
+                    ],
+                    "namespaceId": "public",
+                    "tableName": "conversation"
+                  },
+                  "target": {
+                    "columns": [
+                      "id"
+                    ],
+                    "namespaceId": "public",
+                    "tableName": "research"
+                  }
+                }
+              ],
+              "indexes": [
+                {
+                  "columns": [
+                    "researchId"
+                  ],
+                  "name": "conversation_researchId_idx_36f1b4c8",
+                  "prefix": "conversation_researchId_idx",
+                  "unique": false
+                }
+              ],
               "primaryKey": {
                 "columns": [
                   "id"
@@ -2576,7 +2649,7 @@
         "kind": "postgres-schema"
       }
     },
-    "storageHash": "604af0e00d6abfc869d4103e15bcee6cbc19d1d5c8bbb50586ce4cb3c55bc26b"
+    "storageHash": "f73c4d3e9a68207a2b67ca67d1c9e33beb881b051dae3c8585d6f5d229c4535d"
   },
   "execution": {
     "executionHash": "7cbe49cf75771236b3ffd5510fac23f366ee445489dbfbbcf0e675245a7b94bc",
