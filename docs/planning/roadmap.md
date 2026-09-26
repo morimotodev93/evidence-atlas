@@ -194,16 +194,17 @@ process understandable without AI.
 - [x] Introduce AI SDK
 - [x] Define minimal AI provider boundary
 - [x] Configure development AI provider
-- [ ] Implement basic AI interaction
-- [ ] Implement streaming responses
+- [x] Implement basic AI interaction
+- [x] Implement streaming responses
 - [x] Define AI conversation model
 - [x] Scope conversations to Research
 - [x] Build Research-scoped AI context
-- [ ] Connect AI interaction to Research context
+- [x] Connect AI interaction to Research context
 - [ ] Implement source-aware answers
 - [ ] Display supporting evidence
-- [ ] Handle insufficient evidence / uncertainty
-- [ ] Persist AI conversations and messages
+- [x] Handle insufficient evidence / uncertainty
+- [x] Persist AI conversations and messages
+- [ ] Integrate AI conversation UI into Research
 - [ ] Document AI architecture
 
 The AI SDK and Conversation/Message contract models are present. Conversation ownership is explicitly scoped to Research: each Conversation belongs to a Research and requires a `researchId`.
@@ -214,13 +215,19 @@ A minimal Research-scoped AI context builder is implemented. It provides the Res
 
 The development AI provider is configured through the AI SDK using Google Generative AI and Gemini 3.6 Flash. Provider-specific configuration is kept behind a minimal model boundary rather than introducing a custom provider abstraction prematurely.
 
-The initial Research chat API route is implemented and passes TypeScript validation. The next step is to verify the end-to-end streaming request against the Gemini API before adding conversation/message persistence and UI integration.
+The Research chat API is implemented and verified against the Gemini API. It supports streamed responses grounded in the current Research context and explicitly handles cases where the available Research does not provide enough evidence to answer a question.
+
+AI conversations are persisted as Research-scoped conversation transcripts. Conversations are created explicitly, and user and completed AI messages are stored as append-only conversation history. Previous messages are supplied to the model on subsequent requests so multi-turn conversations retain their context.
+
+Conversation persistence stores the visible conversation rather than AI execution internals. System prompts, Research context snapshots, stream chunks, provider request/response payloads, and failed AI responses are not persisted at this stage. If AI generation fails, the user message may remain in the conversation while no AI message is created. Retry and failure-state management are deferred.
+
+AI conversation content remains distinct from Research knowledge. AI responses do not automatically become Findings or Conclusions; promoting AI-assisted output into Research knowledge requires an explicit human action or review.
 
 For Phase 5, AI context remains intentionally Research-scoped and uses knowledge already stored in the Research. Retrieval infrastructure such as chunking, embeddings, vector search, and RAG remains deferred to Phase 6.
 
 Target concept:
 
-````text
+```text
 Research
 ├─ Conclusion
 ├─ Findings
@@ -228,14 +235,19 @@ Research
 └─ Sources
        ↓
 Research Context
+       +
+Conversation History
        ↓
 AI SDK
        ↓
 Gemini
        ↓
-Grounded Response
+Streamed Grounded Response
        ↓
-Evidence / Sources
+Completed AI Message
+```
+
+The next implementation step is to integrate the conversation workflow into the Research UI, including explicit conversation creation, message history, user input, and streamed response rendering. Source-aware evidence presentation remains a separate Phase 5 step after the basic conversation UI is connected.
 
 ---
 
@@ -285,7 +297,7 @@ User
   │
   └── WorkspaceMembership ─────────── Workspace
                                           └── Research
-````
+```
 
 ---
 
