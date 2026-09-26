@@ -20,6 +20,7 @@ import { EditConclusionDialog } from "./_components/edit-conclusion-dialog";
 import { EditFindingDialog } from "./_components/edit-finding-dialog";
 import { EditResearchStatusDialog } from "./_components/edit-research-status-dialog";
 import { EditSourceDialog } from "./_components/edit-source-dialog";
+import { ResearchAiPanel } from "./_components/research-ai-panel";
 
 type ResearchDetailPageProps = {
   params: Promise<{
@@ -149,278 +150,296 @@ export default async function ResearchDetailPage({
             <span>Updated {formatDate(research.updatedAt)}</span>
           </div>
         </header>
+        {/* 2Column */}
+        <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_20rem]">
+          {" "}
+          <div className="min-w-0">
+            {/* Conclusion */}
+            <section className="border-b py-6">
+              <div className="flex items-center justify-between gap-4">
+                <h2 className="text-lg font-semibold">Conclusion</h2>
 
-        {/* Conclusion */}
-        <section className="border-b py-6">
-          <div className="flex items-center justify-between gap-4">
-            <h2 className="text-lg font-semibold">Conclusion</h2>
-
-            <EditConclusionDialog
-              researchId={research.id}
-              initialConclusion={research.conclusion}
-            />
-          </div>
-
-          {research.conclusion ? (
-            <p className="mt-2 max-w-3xl whitespace-pre-wrap text-sm leading-6">
-              {research.conclusion}
-            </p>
-          ) : (
-            <p className="mt-2 max-w-3xl text-sm leading-6 text-muted-foreground">
-              No conclusion yet.
-            </p>
-          )}
-        </section>
-
-        {/* Sources */}
-        <section className="border-b py-6">
-          <div className="flex items-baseline justify-between gap-4">
-            <div>
-              <h2 className="text-lg font-semibold">Sources</h2>
-              <p className="mt-1 text-sm text-muted-foreground">
-                External sources used in this research.
-              </p>
-            </div>
-
-            <div className="flex items-center gap-3">
-              <span className="text-xs text-muted-foreground">
-                {sources.length} sources
-              </span>
-
-              <AddSourceDialog researchId={id} />
-            </div>
-          </div>
-
-          <div className="mt-4 space-y-3">
-            {sources.length === 0 ? (
-              <div className="rounded-lg border border-dashed p-6 text-center">
-                <p className="text-sm text-muted-foreground">No sources yet.</p>
+                <EditConclusionDialog
+                  researchId={research.id}
+                  initialConclusion={research.conclusion}
+                />
               </div>
-            ) : (
-              sources.map((source) => (
-                <div
-                  key={source.id}
-                  className="flex items-center gap-3 rounded-lg border bg-card p-4"
-                >
-                  <Link
-                    href={source.url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="min-w-0 flex-1 hover:opacity-80"
-                  >
-                    <h3 className="font-medium">{source.title}</h3>
 
-                    <p className="mt-1 truncate text-sm text-muted-foreground">
-                      {source.url}
-                    </p>
+              {research.conclusion ? (
+                <p className="mt-2 max-w-3xl whitespace-pre-wrap text-sm leading-6">
+                  {research.conclusion}
+                </p>
+              ) : (
+                <p className="mt-2 max-w-3xl text-sm leading-6 text-muted-foreground">
+                  No conclusion yet.
+                </p>
+              )}
+            </section>
 
-                    <p className="mt-2 text-xs text-muted-foreground">
-                      Updated {formatDate(source.updatedAt)}
-                    </p>
-                  </Link>
-
-                  <div className="flex shrink-0 items-center gap-2">
-                    <EditSourceDialog
-                      sourceId={source.id}
-                      title={source.title}
-                      url={source.url}
-                    />
-                    <DeleteSourceDialog sourceId={source.id} />
-                  </div>
-                </div>
-              ))
-            )}
-          </div>
-        </section>
-
-        {/* Findings */}
-        <section className="border-b py-6">
-          <div className="flex items-baseline justify-between gap-4">
-            <div>
-              <h2 className="text-lg font-semibold">Findings</h2>
-
-              <p className="mt-1 text-sm text-muted-foreground">
-                Evidence and insights extracted from the sources.
-              </p>
-            </div>
-
-            <div className="flex items-center gap-3">
-              <span className="text-xs text-muted-foreground">
-                {findings.length} findings
-              </span>
-
-              <AddFindingDialog researchId={id} />
-            </div>
-          </div>
-
-          <div className="mt-4 space-y-3">
-            <div className="mt-4 space-y-3">
-              {findings.length === 0 ? (
-                <div className="rounded-lg border border-dashed p-6 text-center">
-                  <p className="text-sm text-muted-foreground">
-                    No findings yet.
+            {/* Sources */}
+            <section className="border-b py-6">
+              <div className="flex items-baseline justify-between gap-4">
+                <div>
+                  <h2 className="text-lg font-semibold">Sources</h2>
+                  <p className="mt-1 text-sm text-muted-foreground">
+                    External sources used in this research.
                   </p>
                 </div>
-              ) : (
-                findings.map((finding) => {
-                  const attachedSourceIds = new Set(
-                    finding.sources.map(
-                      (findingSource) => findingSource.sourceId,
-                    ),
-                  );
 
-                  const availableSources = sources
-                    .filter((source) => !attachedSourceIds.has(source.id))
-                    .map((source) => ({
-                      id: source.id,
-                      title: source.title,
-                    }));
+                <div className="flex items-center gap-3">
+                  <span className="text-xs text-muted-foreground">
+                    {sources.length} sources
+                  </span>
 
-                  return (
+                  <AddSourceDialog researchId={id} />
+                </div>
+              </div>
+
+              <div className="mt-4 space-y-3">
+                {sources.length === 0 ? (
+                  <div className="rounded-lg border border-dashed p-6 text-center">
+                    <p className="text-sm text-muted-foreground">
+                      No sources yet.
+                    </p>
+                  </div>
+                ) : (
+                  sources.map((source) => (
+                    <div
+                      key={source.id}
+                      className="flex items-center gap-3 rounded-lg border bg-card p-4"
+                    >
+                      <Link
+                        href={source.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="min-w-0 flex-1 hover:opacity-80"
+                      >
+                        <h3 className="font-medium">{source.title}</h3>
+
+                        <p className="mt-1 truncate text-sm text-muted-foreground">
+                          {source.url}
+                        </p>
+
+                        <p className="mt-2 text-xs text-muted-foreground">
+                          Updated {formatDate(source.updatedAt)}
+                        </p>
+                      </Link>
+
+                      <div className="flex shrink-0 items-center gap-2">
+                        <EditSourceDialog
+                          sourceId={source.id}
+                          title={source.title}
+                          url={source.url}
+                        />
+                        <DeleteSourceDialog sourceId={source.id} />
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+            </section>
+
+            {/* Findings */}
+            <section className="border-b py-6">
+              <div className="flex items-baseline justify-between gap-4">
+                <div>
+                  <h2 className="text-lg font-semibold">Findings</h2>
+
+                  <p className="mt-1 text-sm text-muted-foreground">
+                    Evidence and insights extracted from the sources.
+                  </p>
+                </div>
+
+                <div className="flex items-center gap-3">
+                  <span className="text-xs text-muted-foreground">
+                    {findings.length} findings
+                  </span>
+
+                  <AddFindingDialog researchId={id} />
+                </div>
+              </div>
+
+              <div className="mt-4 space-y-3">
+                <div className="mt-4 space-y-3">
+                  {findings.length === 0 ? (
+                    <div className="rounded-lg border border-dashed p-6 text-center">
+                      <p className="text-sm text-muted-foreground">
+                        No findings yet.
+                      </p>
+                    </div>
+                  ) : (
+                    findings.map((finding) => {
+                      const attachedSourceIds = new Set(
+                        finding.sources.map(
+                          (findingSource) => findingSource.sourceId,
+                        ),
+                      );
+
+                      const availableSources = sources
+                        .filter((source) => !attachedSourceIds.has(source.id))
+                        .map((source) => ({
+                          id: source.id,
+                          title: source.title,
+                        }));
+
+                      return (
+                        <article
+                          key={finding.id}
+                          className="rounded-lg border bg-card p-4"
+                        >
+                          <p className="text-sm whitespace-pre-wrap leading-6">
+                            {finding.content}
+                          </p>
+
+                          {finding.sources.length > 0 && (
+                            <div className="mt-3">
+                              <p className="text-xs font-medium text-muted-foreground">
+                                Supporting sources
+                              </p>
+
+                              {finding.sources.map((findingSource) => (
+                                <div
+                                  key={findingSource.sourceId}
+                                  className="flex items-center justify-between gap-3"
+                                >
+                                  <Link
+                                    href={findingSource.source.url}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="text-sm hover:underline"
+                                  >
+                                    {findingSource.source.title}
+                                  </Link>
+
+                                  <form
+                                    action={detachFindingSource.bind(
+                                      null,
+                                      finding.id,
+                                      findingSource.sourceId,
+                                    )}
+                                  >
+                                    <Button
+                                      type="submit"
+                                      variant="ghost"
+                                      size="sm"
+                                    >
+                                      Remove
+                                    </Button>
+                                  </form>
+                                </div>
+                              ))}
+                            </div>
+                          )}
+
+                          {availableSources.length > 0 && (
+                            <div className="mt-3">
+                              <ManageFindingSourcesDialog
+                                findingId={finding.id}
+                                sources={availableSources}
+                              />
+                            </div>
+                          )}
+
+                          <div className="mt-3 flex items-center justify-between gap-4">
+                            <span className="text-xs text-muted-foreground">
+                              {finding.displayStyle}
+                            </span>
+
+                            <div className="flex items-center gap-2">
+                              <span className="text-xs text-muted-foreground">
+                                Updated {formatDate(finding.updatedAt)}
+                              </span>
+
+                              <EditFindingDialog
+                                findingId={finding.id}
+                                content={finding.content}
+                              />
+
+                              <DeleteFindingDialog findingId={finding.id} />
+                            </div>
+                          </div>
+                        </article>
+                      );
+                    })
+                  )}
+                </div>
+              </div>
+            </section>
+
+            {/* Discussion */}
+            <section className="py-6">
+              <div className="flex items-baseline justify-between gap-4">
+                <div>
+                  <h2 className="text-lg font-semibold">Discussion</h2>
+
+                  <p className="mt-1 text-sm text-muted-foreground">
+                    Discuss questions, interpretations, and unresolved points.
+                  </p>
+                </div>
+
+                <span className="text-xs text-muted-foreground">
+                  {comments.length} comments
+                </span>
+              </div>
+
+              {/* Add comment */}
+              <div className="mt-4 flex justify-end">
+                <AddCommentDialog researchId={id} />
+              </div>
+
+              <div className="mt-4 space-y-3">
+                {comments.length === 0 ? (
+                  <div className="rounded-lg border border-dashed p-6 text-center">
+                    <p className="text-sm text-muted-foreground">
+                      No discussion yet.
+                    </p>
+                  </div>
+                ) : (
+                  comments.map((comment) => (
                     <article
-                      key={finding.id}
+                      key={comment.id}
                       className="rounded-lg border bg-card p-4"
                     >
                       <p className="text-sm whitespace-pre-wrap leading-6">
-                        {finding.content}
+                        {comment.content}
                       </p>
-
-                      {finding.sources.length > 0 && (
-                        <div className="mt-3">
-                          <p className="text-xs font-medium text-muted-foreground">
-                            Supporting sources
-                          </p>
-
-                          {finding.sources.map((findingSource) => (
-                            <div
-                              key={findingSource.sourceId}
-                              className="flex items-center justify-between gap-3"
-                            >
-                              <Link
-                                href={findingSource.source.url}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="text-sm hover:underline"
-                              >
-                                {findingSource.source.title}
-                              </Link>
-
-                              <form
-                                action={detachFindingSource.bind(
-                                  null,
-                                  finding.id,
-                                  findingSource.sourceId,
-                                )}
-                              >
-                                <Button type="submit" variant="ghost" size="sm">
-                                  Remove
-                                </Button>
-                              </form>
-                            </div>
-                          ))}
-                        </div>
-                      )}
-
-                      {availableSources.length > 0 && (
-                        <div className="mt-3">
-                          <ManageFindingSourcesDialog
-                            findingId={finding.id}
-                            sources={availableSources}
-                          />
-                        </div>
-                      )}
 
                       <div className="mt-3 flex items-center justify-between gap-4">
                         <span className="text-xs text-muted-foreground">
-                          {finding.displayStyle}
+                          {comment.user.name ??
+                            comment.user.username ??
+                            "Unknown user"}
                         </span>
 
-                        <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-3">
                           <span className="text-xs text-muted-foreground">
-                            Updated {formatDate(finding.updatedAt)}
+                            Commented {formatDate(comment.createdAt)}
                           </span>
 
-                          <EditFindingDialog
-                            findingId={finding.id}
-                            content={finding.content}
-                          />
+                          <div className="flex items-center gap-2">
+                            <EditCommentDialog
+                              commentId={comment.id}
+                              content={comment.content}
+                            />
 
-                          <DeleteFindingDialog findingId={finding.id} />
+                            <DeleteCommentDialog commentId={comment.id} />
+                          </div>
                         </div>
                       </div>
                     </article>
-                  );
-                })
-              )}
-            </div>
-          </div>
-        </section>
-
-        {/* Discussion */}
-        <section className="py-6">
-          <div className="flex items-baseline justify-between gap-4">
-            <div>
-              <h2 className="text-lg font-semibold">Discussion</h2>
-
-              <p className="mt-1 text-sm text-muted-foreground">
-                Discuss questions, interpretations, and unresolved points.
-              </p>
-            </div>
-
-            <span className="text-xs text-muted-foreground">
-              {comments.length} comments
-            </span>
-          </div>
-
-          {/* Add comment */}
-          <div className="mt-4 flex justify-end">
-            <AddCommentDialog researchId={id} />
-          </div>
-
-          <div className="mt-4 space-y-3">
-            {comments.length === 0 ? (
-              <div className="rounded-lg border border-dashed p-6 text-center">
-                <p className="text-sm text-muted-foreground">
-                  No discussion yet.
-                </p>
+                  ))
+                )}
               </div>
-            ) : (
-              comments.map((comment) => (
-                <article
-                  key={comment.id}
-                  className="rounded-lg border bg-card p-4"
-                >
-                  <p className="text-sm whitespace-pre-wrap leading-6">
-                    {comment.content}
-                  </p>
-
-                  <div className="mt-3 flex items-center justify-between gap-4">
-                    <span className="text-xs text-muted-foreground">
-                      {comment.user.name ??
-                        comment.user.username ??
-                        "Unknown user"}
-                    </span>
-
-                    <div className="flex items-center gap-3">
-                      <span className="text-xs text-muted-foreground">
-                        Commented {formatDate(comment.createdAt)}
-                      </span>
-
-                      <div className="flex items-center gap-2">
-                        <EditCommentDialog
-                          commentId={comment.id}
-                          content={comment.content}
-                        />
-
-                        <DeleteCommentDialog commentId={comment.id} />
-                      </div>
-                    </div>
-                  </div>
-                </article>
-              ))
-            )}
+            </section>
           </div>
-        </section>
+          {/* Sidebar */}
+          {/* Sidebar */}
+          <aside className="hidden py-6 lg:block">
+            <div className="sticky top-20">
+              <ResearchAiPanel researchId={research.id} />
+            </div>
+          </aside>
+        </div>
 
         {/* Development note */}
         <p className="mt-4 text-xs text-muted-foreground">
