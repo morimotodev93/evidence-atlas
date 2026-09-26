@@ -191,35 +191,51 @@ process understandable without AI.
 
 **Goal:** Make AI useful by grounding it in the workspace's accumulated knowledge.
 
-- [ ] Introduce AI SDK
-- [ ] Define AI provider abstraction
-- [ ] Configure development AI provider
+- [x] Introduce AI SDK
+- [x] Define minimal AI provider boundary
+- [x] Configure development AI provider
 - [ ] Implement basic AI interaction
 - [ ] Implement streaming responses
-- [ ] Define AI conversation model
-- [ ] Connect AI to workspace context
+- [x] Define AI conversation model
+- [x] Scope conversations to Research
+- [x] Build Research-scoped AI context
+- [ ] Connect AI interaction to Research context
 - [ ] Implement source-aware answers
 - [ ] Display supporting evidence
 - [ ] Handle insufficient evidence / uncertainty
+- [ ] Persist AI conversations and messages
 - [ ] Document AI architecture
 
-The `ai` dependency and Conversation/Message contract models are present. Provider integration, conversation ownership, and the application interaction flow are still pending.
+The AI SDK and Conversation/Message contract models are present. Conversation ownership is explicitly scoped to Research: each Conversation belongs to a Research and requires a `researchId`.
+
+The database contract and migrations for this ownership model are complete.
+
+A minimal Research-scoped AI context builder is implemented. It provides the Research conclusion, findings, and supporting source metadata without fetching or treating external source contents as available evidence.
+
+The development AI provider is configured through the AI SDK using Google Generative AI and Gemini 3.6 Flash. Provider-specific configuration is kept behind a minimal model boundary rather than introducing a custom provider abstraction prematurely.
+
+The initial Research chat API route is implemented and passes TypeScript validation. The next step is to verify the end-to-end streaming request against the Gemini API before adding conversation/message persistence and UI integration.
+
+For Phase 5, AI context remains intentionally Research-scoped and uses knowledge already stored in the Research. Retrieval infrastructure such as chunking, embeddings, vector search, and RAG remains deferred to Phase 6.
 
 Target concept:
 
-```text
-Workspace Knowledge
+````text
+Research
+├─ Conclusion
+├─ Findings
+│  └─ Supporting Sources
+└─ Sources
        ↓
-Context Selection
+Research Context
        ↓
 AI SDK
        ↓
-Model Provider
+Gemini
        ↓
 Grounded Response
        ↓
 Evidence / Sources
-```
 
 ---
 
@@ -269,7 +285,7 @@ User
   │
   └── WorkspaceMembership ─────────── Workspace
                                           └── Research
-```
+````
 
 ---
 
