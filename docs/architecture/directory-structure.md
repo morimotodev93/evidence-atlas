@@ -1,7 +1,7 @@
 # Directory Structure
 
 > **Status:** Current implementation; future areas remain provisional
-> **Last Updated:** 2026-09-25
+> **Last Updated:** 2026-09-28
 
 This document describes the implemented architecture of **Evidence Atlas**. Empty placeholder directories are omitted from the tree below.
 
@@ -25,6 +25,7 @@ evidence-atlas/
 │   │   │   └── [id]/
 │   │   │       ├── _actions/
 │   │   │       ├── _components/
+│   │   │       ├── chat/        # Streaming and conversation Route Handlers
 │   │   │       └── edit/
 │   │   ├── globals.css
 │   │   ├── layout.tsx
@@ -33,6 +34,7 @@ evidence-atlas/
 │   │   ├── icons/
 │   │   └── ui/
 │   ├── lib/                # Database query helpers and shared utilities
+│   │   └── ai/             # Model configuration, Research context, citation parsing
 │   ├── prisma/             # Contract, generated artifacts, runtime, and seed
 │   └── types/              # Shared types and validation schemas
 ├── .env.example
@@ -63,8 +65,13 @@ Next.js App Router pages and route-local application behavior.
 | `/research/new` | Create Research |
 | `/research/[id]` | Research detail, status/Conclusion editing, Source/Finding/Comment management, Finding–Source links, and Tag attachment/detachment |
 | `/research/[id]/edit` | Edit Research title and description |
+| `/research/[id]/chat` | POST: stream an AI response for an existing Research conversation |
+| `/research/[id]/chat/conversations` | GET: list conversation previews; POST: create a conversation |
+| `/research/[id]/chat/conversations/[conversationId]` | GET: restore a conversation and its messages |
 
 Server Actions live in `_actions/`. Research-detail dialogs live in `_components/`. These private folders do not create routes.
+
+Research detail also hosts the AI Assistant: a sticky side panel at `lg` and above, and a fixed Ask AI action opening a dialog below `lg`. Both reuse the same panel component. Each panel instance owns its client state; switching viewport layouts does not synchronize the selected conversation or draft. Persisted conversations can be reopened through History.
 
 The root layout defines document metadata and typography. Global styles, semantic tokens, and light/dark palettes live in `src/app/globals.css`.
 
@@ -77,6 +84,8 @@ The root layout defines document metadata and typography. Global styles, semanti
 ### `src/lib/` and `src/types/`
 
 `lib/` contains shared date and class-name utilities and a Prisma query-result compatibility helper. Database runtime configuration lives in `src/prisma/db.ts`.
+
+`lib/ai/` isolates the configured Google model, builds context from stored Research/Findings/Source metadata, and parses Source citation markers. The chat Route Handler combines context with persisted messages and streams plain text to the client. See [AI Architecture](ai-architecture.md) for persistence and citation boundaries.
 
 `types/` contains shared application types and Zod validation schemas for Research, Sources, Findings, Comments, and Tags.
 
@@ -104,9 +113,9 @@ The Research list uses GET parameters: `query` searches title and description wi
 
 ## Planned Architecture and Known Gaps
 
-The earlier proposed `(public)` and `(dashboard)` route groups and API layer are not implemented. Public Demo separation and authenticated navigation remain future work, not existing route boundaries.
+The earlier proposed `(public)` and `(dashboard)` route groups are not implemented. JSON and streaming APIs now exist as Route Handlers under the Research chat routes; there is no separate top-level API directory. Public Demo separation and authenticated navigation remain future work.
 
-AI services, retrieval with pgvector, authentication, authorization, and billing remain planned. Empty infrastructure directories do not indicate working integrations.
+Research-scoped AI conversations are implemented. Workspace-wide retrieval with pgvector, authentication, authorization, and billing remain planned. Chat routes check that a conversation belongs to the requested Research but do not enforce user or Workspace membership.
 
 Workspace selection is not implemented: the overview and list use the first returned Workspace, and Research creation uses the first stored Workspace and User. Detail routes and mutations look up records by ID without membership checks; new Comments use the Research creator as their author. These development behaviors do not implement the membership and permission boundaries defined in the [data model](data-model.md).
 

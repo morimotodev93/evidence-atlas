@@ -1,7 +1,7 @@
 # Product Definition
 
 > **Status:** Approved
-> **Last Updated:** 2026-09-25
+> **Last Updated:** 2026-09-28
 
 This document defines the approved product concept, target users, and primary use cases for **Evidence Atlas**.
 
@@ -788,9 +788,9 @@ The project currently follows the Prisma 8 data contract approach.
 
 ### 9.4 AI
 
-The AI integration is planned around the AI SDK.
+The Research-scoped AI integration uses the AI SDK.
 
-Provider-specific AI services will be selected and integrated when the actual AI requirements are implemented.
+The current model boundary configures Google Generative AI with the model ID `gemini-3.6-flash`. Streaming conversations, persisted history, and Source citation presentation are implemented; Workspace-wide retrieval remains planned. See [AI Architecture](../architecture/ai-architecture.md).
 
 ### 9.5 Retrieval
 
@@ -911,7 +911,7 @@ The document should be revised when:
 
 ### Current Implementation Gaps
 
-The intended workflows above remain the product baseline. As of 2026-09-25:
+The intended workflows above remain the product baseline. As of 2026-09-28:
 
 - Research creation and title/description editing, plus Source, Finding, and Comment CRUD, are implemented.
 - Workspace Tags can be created or reused by name, attached to Research, displayed on list/detail pages, and detached without deleting the Tag. Tag renaming, Workspace-level Tag deletion, and Tag filtering are not implemented.
@@ -921,6 +921,8 @@ The intended workflows above remain the product baseline. As of 2026-09-25:
 - The Workspace overview displays stored data, recent Research, and counts. The Research list supports title/description search, status filtering, and sorting by update or creation date. Both pages use the first returned Workspace; search is limited to this list, not global or semantic retrieval.
 - Comments attach to Research, not individual Findings; the UC-04 wording about selecting Findings describes discussion context, not a separate Comment relationship. Threaded replies are not modeled.
 - UC-05's broader conclusion workflow has only one optional text field in the current contract; multiple conclusion records and structured links to supporting Findings are not implemented.
-- Workspace selection, authentication, permission enforcement, related Research discovery, AI assistance, and read-only Demo controls remain pending.
+- Research-scoped AI conversations support explicit creation, streaming responses, saved history, and supporting Source links. Desktop uses a side panel; smaller screens use an Ask AI dialog. AI outputs are not automatically promoted into Findings or Conclusions.
+- UC-07's Workspace-wide exploration remains incomplete: AI context is limited to the current Research metadata, Conclusion, Findings, and Source metadata. Comments, other Research, and external Source contents are not retrieved. Citation validation checks Source membership in the Research, not whether the cited Source proves a claim.
+- Workspace selection, authentication, permission enforcement, related Research discovery, and read-only Demo controls remain pending. AI routes also lack membership checks and public usage controls.
 
 See the [roadmap](roadmap.md) for remaining work. These gaps do not redefine the approved product behavior.

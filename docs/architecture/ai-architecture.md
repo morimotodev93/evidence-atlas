@@ -2,6 +2,7 @@
 
 > **Status:** Implemented baseline
 > **Scope:** Phase 5 — AI Integration
+> **Last Updated:** 2026-09-28
 
 ## 1. Purpose
 
@@ -73,7 +74,7 @@ AI requests use the AI SDK.
 
 Provider-specific model configuration is isolated from the Research chat flow so that application behavior does not need to depend directly on provider-specific APIs.
 
-The current development provider uses Google Gemini.
+The current development provider uses Google Generative AI through `@ai-sdk/google`. `src/lib/ai/model.ts` configures the model ID `gemini-3.6-flash`; this is the checked-in configuration, not a provider-availability verification performed by this review.
 
 The provider receives:
 
@@ -83,6 +84,8 @@ The provider receives:
 4. the new user message.
 
 The response is streamed back to the client.
+
+The transport is a plain text stream consumed with `fetch` and a stream reader. The server loads persisted history rather than trusting client-supplied message history. It rebuilds Research context on every request; Comments and other Research items are not included. No history truncation or context-size budget is implemented.
 
 ---
 
@@ -120,6 +123,19 @@ It does not persist AI execution internals such as:
 - internal reasoning.
 
 Failed or incomplete AI responses are not intentionally persisted as completed AI Messages.
+
+Specifically, the user message is saved before generation, and an AI message is saved only for a non-empty response with finish reason `stop`. Conversation activity is updated when the user message is accepted. History is ordered by that activity timestamp and previews the first user message. Failed requests can leave persisted user messages even when the client removes the attempted exchange from its display; retry and durable failure-state handling are deferred.
+
+The API surface is:
+
+| Method and route | Behavior |
+| --- | --- |
+| POST `/research/[id]/chat/conversations` | Explicitly create a Conversation; return 201 |
+| GET `/research/[id]/chat/conversations` | List Research conversations by recent activity with previews |
+| GET `/research/[id]/chat/conversations/[conversationId]` | Return the conversation and messages in creation order |
+| POST `/research/[id]/chat` | Accept `conversationId` and a non-empty `message`, persist the user turn, and stream the answer |
+
+Conversation detail and chat requests match both Conversation ID and Research ID. These checks do not authenticate users or enforce Workspace membership.
 
 ---
 
@@ -215,6 +231,8 @@ Application
 
 The application remains responsible for determining whether a referenced Source is a valid Research Source.
 
+Current validation only checks Source membership in the Research using the Sources supplied to the panel. It does not verify the cited Finding–Source relationship or whether a Source supports the answer's claim; those constraints are prompt instructions. Repeated citation IDs are deduplicated, and unresolved IDs are omitted from Supporting sources. Restored transcripts resolve against current Source metadata rather than a historical snapshot.
+
 ---
 
 ## 9. Supporting Evidence UI
@@ -239,6 +257,8 @@ This distinction keeps AI-generated text visually separate from evidence referen
 
 The model is instructed to answer only from the supplied Research context.
 
+This is prompt-based behavior, not a deterministic evidence-sufficiency check. Its reliability still requires evaluation.
+
 When the available Research context does not contain enough information, the model should state that limitation rather than filling the gap with unrelated model knowledge.
 
 The expected behavior is:
@@ -259,11 +279,13 @@ A Finding without a linked Source can still contribute to an answer, but its lac
 
 The same Research AI conversation functionality is used across viewport sizes.
 
-On larger screens, the AI Assistant is displayed alongside the Research detail content.
+At the `lg` breakpoint and above, the AI Assistant is displayed in a sticky, 20rem right-hand column alongside the single-column Research content. The panel is always visible; there is no desktop open/close control.
 
-On smaller screens, a persistent action opens the AI Assistant in a dialog.
+Below `lg`, a fixed bottom Ask AI action opens the AI Assistant in a dialog with a maximum height of `90dvh` and scrollable content.
 
 Both interfaces reuse the same Research AI panel and conversation behavior rather than maintaining separate AI implementations.
+
+Component reuse does not mean shared live state: the desktop and dialog panels have separate selected-conversation, message, and draft state. History restores persisted messages; drafts and in-progress streams are not synchronized between layouts. Users create a conversation with New or restore one with History before sending a question. The UI provides creation, loading, restoration, and submission feedback, but has no stop-generation control. Responsive and accessibility verification remain outstanding.
 
 ---
 
@@ -280,6 +302,8 @@ The Phase 5 architecture intentionally does not implement:
 - automatic external Source fetching,
 - automatic conversion of AI responses into Findings or Conclusions,
 - advanced citation verification against external source contents.
+
+Authentication, membership enforcement, rate limiting, and read-only public Demo controls are also absent. The current Research-scoped baseline does not complete the broader Workspace-wide product workflow or establish public-demo readiness.
 
 These responsibilities require additional retrieval and evidence-processing design and belong to later phases.
 

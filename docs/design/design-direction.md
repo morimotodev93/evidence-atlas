@@ -1,7 +1,7 @@
 # Design Direction
 
 > Status: Draft
-> Last Updated: 2026-09-25
+> Last Updated: 2026-09-28
 
 ## 1. Design Concept
 
@@ -288,7 +288,9 @@ The direction above remains the design baseline. The current implementation diff
 
 - Research screens use a simple header; the primary sidebar and mobile overlay navigation are not implemented.
 - The Research detail page places the stored, editable Conclusion before Sources. The intended sequence above places Conclusion after Discussion; this ordering difference remains an implementation gap, not an approved design change.
-- Research list search, status filtering, and sorting are implemented as an inline form above the list. Sidebar-based global search, Related Research, and AI exploration are not implemented.
+- Research list search, status filtering, and sorting are implemented as an inline form above the list. Sidebar-based global search and Related Research are not implemented.
+- Research-scoped AI exploration uses a sticky right-side panel at `lg` and above. Below `lg`, a fixed bottom Ask AI button opens a dialog capped at `90dvh` with scrollable content. The primary Research content remains a single column. The desktop panel is always visible rather than opening on demand; the intended on-demand interaction remains a design gap.
+- Both layouts reuse the AI panel, including New, History, streaming messages, and Supporting sources. They do not share live conversation selection or draft state across layouts. Workspace-wide AI exploration remains planned.
 - Light and dark palettes are defined, but automatic system-theme selection is not wired up.
 - Research content uses a single-column flow, but responsive navigation and end-to-end accessibility verification remain outstanding.
 

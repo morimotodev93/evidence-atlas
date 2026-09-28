@@ -1,6 +1,6 @@
 # evidence-atlas Roadmap
 
-> **Last Updated:** 2026-09-25
+> **Last Updated:** 2026-09-28
 
 Current stage: Phase 4 is in progress. Phases 0–3 have established the foundation, product direction, data contract, and design-system baseline. Checked implementation items describe code present in the repository, not a fresh runtime verification or completion of every related product requirement.
 
@@ -180,7 +180,7 @@ Tag renaming and Workspace-level Tag deletion are not implemented. Discovery con
 
 **Status: Complete for the Phase 4 scope.** The overview shows stored Workspace data, the three most recently updated Research items, and Research/Source/Finding/Tag counts. Research lifecycle status and Conclusion can be edited. Findings display supporting Sources and support attaching and removing links; the contract and follow-up migration define cascading deletion of those links when a Finding or Source is deleted.
 
-Research discovery supports case-insensitive title/description search, lifecycle status filtering, and sorting by last update or creation date (newest/oldest). The overview and list use the first returned Workspace; Workspace selection and membership-based access remain Phase 7 work. Phase 10 verification and the broader AI-assisted MVP remain outstanding.
+Research discovery supports case-insensitive title/description search, lifecycle status filtering, and sorting by last update or creation date (newest/oldest). The overview and list use the first returned Workspace; Workspace selection and membership-based access remain Phase 7 work. Research-scoped AI is implemented in Phase 5; Phase 10 verification and the broader Workspace-wide AI workflow remain outstanding.
 
 **Principle:** The initial experience should make the research
 process understandable without AI.
@@ -215,7 +215,7 @@ A minimal Research-scoped AI context builder is implemented. It provides the Res
 
 The development AI provider is configured through the AI SDK using Google Generative AI and Gemini 3.6 Flash. Provider-specific configuration is kept behind a minimal model boundary rather than introducing a custom provider abstraction prematurely.
 
-The Research chat API is implemented and verified against the Gemini API. It supports streamed responses grounded in the current Research context and explicitly handles cases where the available Research does not provide enough evidence to answer a question.
+The Research chat API is implemented; the existing progress record reports verification against the Gemini API. This documentation review does not re-run provider calls. Responses stream with the current Research context, and the prompt instructs the model to state when evidence is insufficient; this is not a deterministic evidence-sufficiency check.
 
 AI conversations are persisted as Research-scoped conversation transcripts. Conversations are created explicitly, and user and completed AI messages are stored as append-only conversation history. Previous messages are supplied to the model on subsequent requests so multi-turn conversations retain their context.
 
@@ -278,6 +278,8 @@ Research AI UI
 ```
 
 **Status: Complete for the Phase 5 scope.**
+
+This status covers the Research-scoped baseline. Citation-to-claim verification, shared live state across desktop/mobile panels, request cancellation, retry/failure-state persistence, and automated AI/UI verification are not implemented. Authentication and public AI usage controls remain later-phase work. See [AI Architecture](../architecture/ai-architecture.md) for the current boundaries.
 
 The Phase 5 implementation establishes the basic grounded AI workflow without introducing retrieval infrastructure prematurely. Phase 6 can extend context selection with retrieval and RAG while retaining the conversation, streaming, persistence, citation-validation, and supporting-evidence boundaries established here.
 
@@ -437,7 +439,7 @@ Vitest and Playwright dependencies and scripts are present. No application test 
 - [ ] Complete `docs/usage/`
 - [ ] Document architecture
 - [ ] Document database design
-- [ ] Document AI architecture
+- [x] Document Phase 5 AI architecture
 - [ ] Document local development
 - [ ] Document environment variables
 - [ ] Document Demo behavior
