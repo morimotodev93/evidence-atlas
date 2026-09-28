@@ -20,6 +20,7 @@ import { EditConclusionDialog } from "./_components/edit-conclusion-dialog";
 import { EditFindingDialog } from "./_components/edit-finding-dialog";
 import { EditResearchStatusDialog } from "./_components/edit-research-status-dialog";
 import { EditSourceDialog } from "./_components/edit-source-dialog";
+import { ResearchAiMobileDialog } from "./_components/research-ai-mobile-dialog";
 import { ResearchAiPanel } from "./_components/research-ai-panel";
 
 type ResearchDetailPageProps = {
@@ -84,7 +85,8 @@ export default async function ResearchDetailPage({
         </div>
       </header>
 
-      <main className="mx-auto w-full max-w-5xl px-4 py-6 sm:px-6 sm:py-8">
+      <main className="mx-auto w-full max-w-5xl px-4 pb-24 pt-6 sm:px-6 sm:pb-24 sm:pt-8 lg:pb-8">
+        {" "}
         {/* Back */}
         <div className="mb-6">
           <Link
@@ -94,7 +96,6 @@ export default async function ResearchDetailPage({
             ← Back to Research
           </Link>
         </div>
-
         {/* Research Header */}
         <header className="border-b pb-6">
           <div className="flex items-start justify-between gap-4">
@@ -433,18 +434,36 @@ export default async function ResearchDetailPage({
             </section>
           </div>
           {/* Sidebar */}
-          {/* Sidebar */}
           <aside className="hidden py-6 lg:block">
             <div className="sticky top-20">
-              <ResearchAiPanel researchId={research.id} />
+              <ResearchAiPanel
+                researchId={research.id}
+                sources={sources.map((source) => ({
+                  id: source.id,
+                  title: source.title,
+                  url: source.url,
+                }))}
+              />
             </div>
           </aside>
         </div>
-
         {/* Development note */}
         <p className="mt-4 text-xs text-muted-foreground">
           Research ID: {research.id}
         </p>
+        {/* Mobile AI */}
+        <div className="fixed inset-x-0 bottom-0 z-40 border-t bg-background/95 p-3 backdrop-blur lg:hidden">
+          <div className="mx-auto max-w-5xl px-1 sm:px-3">
+            <ResearchAiMobileDialog
+              researchId={research.id}
+              sources={sources.map((source) => ({
+                id: source.id,
+                title: source.title,
+                url: source.url,
+              }))}
+            />
+          </div>
+        </div>
       </main>
     </>
   );

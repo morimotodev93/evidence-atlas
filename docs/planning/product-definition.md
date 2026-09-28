@@ -842,18 +842,24 @@ The following areas remain intentionally undecided:
 - Finding display styles beyond TEXT and structured JSON data requirements
 - Discussion behavior beyond Research-level Comments, including whether threaded replies are needed
 - Conclusion structure beyond the current optional text on Research
-- AI provider
 - Embedding model
 - Chunking strategy
 - Retrieval and ranking strategy
-- AI citation behavior
 - Exact Demo interaction model
 - Billing requirements
 - Production deployment architecture
 - Rate limiting implementation
 - Monitoring and observability requirements
 
-These decisions should be made when they become necessary for the corresponding implementation phase.
+The Phase 5 AI provider and citation behavior are no longer open questions.
+
+The development AI integration uses Google Generative AI with Gemini 3.6 Flash through the AI SDK. Provider-specific configuration is kept behind a minimal model boundary so the application interaction flow does not depend directly on provider-specific APIs.
+
+Source-aware AI answers use application-level citation markers in the form `[source:<source-id>]`. Completed AI responses retain these markers in persisted `Message.content`. At presentation time, citation markers are parsed and their Source IDs are validated against Sources belonging to the current Research. Only valid Research Sources are displayed as supporting evidence.
+
+This citation behavior applies to the current Research-scoped Phase 5 architecture. Retrieval-specific citation behavior may be extended when retrieval and RAG are designed in Phase 6.
+
+The remaining open decisions should be made when they become necessary for the corresponding implementation phase.
 
 ---
 

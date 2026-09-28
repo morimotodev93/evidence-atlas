@@ -200,12 +200,12 @@ process understandable without AI.
 - [x] Scope conversations to Research
 - [x] Build Research-scoped AI context
 - [x] Connect AI interaction to Research context
-- [ ] Implement source-aware answers
-- [ ] Display supporting evidence
+- [x] Implement source-aware answers
+- [x] Display supporting evidence
 - [x] Handle insufficient evidence / uncertainty
 - [x] Persist AI conversations and messages
-- [ ] Integrate AI conversation UI into Research
-- [ ] Document AI architecture
+- [x] Integrate AI conversation UI into Research
+- [x] Document AI architecture
 
 The AI SDK and Conversation/Message contract models are present. Conversation ownership is explicitly scoped to Research: each Conversation belongs to a Research and requires a `researchId`.
 
@@ -219,11 +219,29 @@ The Research chat API is implemented and verified against the Gemini API. It sup
 
 AI conversations are persisted as Research-scoped conversation transcripts. Conversations are created explicitly, and user and completed AI messages are stored as append-only conversation history. Previous messages are supplied to the model on subsequent requests so multi-turn conversations retain their context.
 
-Conversation persistence stores the visible conversation rather than AI execution internals. System prompts, Research context snapshots, stream chunks, provider request/response payloads, and failed AI responses are not persisted at this stage. If AI generation fails, the user message may remain in the conversation while no AI message is created. Retry and failure-state management are deferred.
+Conversation persistence stores the visible conversation rather than AI execution internals. System prompts, Research context snapshots, stream chunks, provider request/response payloads, and failed AI responses are not persisted at this stage. If AI generation fails, the user message may remain in the conversation while no AI message is created. Retry and persistent failure-state management remain deferred.
+
+The Research UI now integrates the AI conversation workflow. Users can explicitly create a new conversation, submit questions, receive streamed responses, browse previous Research-scoped conversations, and restore an existing conversation with its persisted message history.
+
+Conversation history is ordered by recent activity using `Conversation.updatedAt`. Because adding a Message does not implicitly update its parent Conversation, the Conversation timestamp is explicitly updated when a new user message is accepted. The history UI uses the first persisted user message as a lightweight conversation preview rather than introducing a separate conversation title model.
+
+The AI interaction UI includes loading and error handling for conversation creation, conversation restoration, and message submission. Failed AI responses are not persisted. The client may temporarily remove a failed interaction from the current display while preserving the existing persistence semantics.
 
 AI conversation content remains distinct from Research knowledge. AI responses do not automatically become Findings or Conclusions; promoting AI-assisted output into Research knowledge requires an explicit human action or review.
 
-For Phase 5, AI context remains intentionally Research-scoped and uses knowledge already stored in the Research. Retrieval infrastructure such as chunking, embeddings, vector search, and RAG remains deferred to Phase 6.
+The Research UI treats AI as a supporting layer rather than another Research knowledge section. On larger screens, the AI conversation panel is presented alongside the Research content. On smaller screens, AI is accessed through a persistent mobile action that opens the same Research-scoped conversation interface, avoiding a separate mobile chat implementation.
+
+Source-aware answers are implemented using application-level citation markers in the form `[source:<source-id>]`. The model is instructed to cite only Sources linked to Findings that support the relevant claim and to use only Source IDs supplied in the Research context. Findings without linked Sources may still contribute to an answer, but they do not produce fabricated citations.
+
+Completed AI responses are persisted with their raw citation markers in `Message.content`. Citation interpretation remains a presentation concern: the client parses citation markers from AI messages, removes them from the displayed answer, and resolves the referenced IDs against Sources belonging to the current Research.
+
+Model-generated Source IDs are not trusted directly. Only Source IDs that resolve to an existing Source in the current Research are presented as supporting evidence. Valid Sources are displayed separately from the generated answer under a Supporting Sources section using the stored Source title and URL. Answers without valid Source citations do not display the section.
+
+Because citation markers remain in persisted AI messages, supporting evidence can be reconstructed when a previous conversation is restored from history without introducing a separate citation persistence model.
+
+For Phase 5, AI context remains intentionally Research-scoped and uses knowledge already stored in the Research. Source metadata identifies supporting evidence but does not imply that external source contents were fetched or read by the model. Retrieval infrastructure such as chunking, embeddings, vector search, semantic ranking, external source retrieval, and RAG remains deferred to Phase 6.
+
+The established AI architecture is documented separately in `docs/architecture/ai-architecture.md`. It records the Research-scoped context boundary, provider boundary, streaming interaction, conversation persistence model, source citation contract, application-side citation validation, supporting evidence presentation, and the boundary between Phase 5 grounding and Phase 6 retrieval.
 
 Target concept:
 
@@ -245,9 +263,23 @@ Gemini
 Streamed Grounded Response
        ↓
 Completed AI Message
+│  └─ Raw [source:<source-id>] citations
+       ↓
+Citation Parsing
+       ↓
+Research Source Validation
+       ↓
+Research AI UI
+├─ Grounded Answer
+├─ Supporting Sources
+├─ New Conversation
+├─ Conversation History / Restore
+└─ Desktop Panel / Mobile Dialog
 ```
 
-The next implementation step is to integrate the conversation workflow into the Research UI, including explicit conversation creation, message history, user input, and streamed response rendering. Source-aware evidence presentation remains a separate Phase 5 step after the basic conversation UI is connected.
+**Status: Complete for the Phase 5 scope.**
+
+The Phase 5 implementation establishes the basic grounded AI workflow without introducing retrieval infrastructure prematurely. Phase 6 can extend context selection with retrieval and RAG while retaining the conversation, streaming, persistence, citation-validation, and supporting-evidence boundaries established here.
 
 ---
 

@@ -60,6 +60,13 @@ export async function POST(request: Request, { params }: RouteContext) {
     content: message,
   });
 
+  await db.orm.public.Conversation.where({
+    id: conversationId,
+    researchId: id,
+  }).update({
+    updatedAt: Temporal.Now.instant(),
+  });
+
   const conversationMessages: ModelMessage[] = [
     ...previousMessages.map(
       (previousMessage): ModelMessage => ({
@@ -78,18 +85,26 @@ export async function POST(request: Request, { params }: RouteContext) {
 
     system: `You are an AI research assistant inside Evidence Atlas.
 
-Answer the user's question using only the supplied research context.
+    Answer the user's question using only the supplied research context.
 
-Rules:
-- Treat the research context as the available evidence.
-- Do not invent facts that are not supported by the context.
-- If the context is insufficient, say so clearly.
-- Distinguish findings from source metadata.
-- Source titles and URLs identify supporting evidence; they do not imply that you have read the source contents.
-- Be concise and evidence-oriented.
+    Rules:
+    - Treat the research context as the available evidence.
+    - Do not invent facts that are not supported by the context.
+    - If the context is insufficient, say so clearly.
+    - Distinguish findings from source metadata.
+    - Source titles and URLs identify supporting evidence; they do not imply that you have read the source contents.
+    - Base factual claims primarily on Findings and the Research conclusion.
+    - When a claim is supported by a Finding that has linked Sources, cite the relevant Sources using exactly this format: [source:<source-id>].
+    - Use only Source IDs that exist in the supplied research context.
+    - Never invent or modify a Source ID.
+    - Do not reproduce Source URLs in the answer; reference supporting Sources only with [source:<source-id>].
+    - Do not cite a Source merely because it exists in the Research; cite it only when it is linked to a Finding that supports the claim.
+    - If a Finding has no linked Source, you may use the Finding but do not fabricate a source citation.
+    - Do not claim that a cited Source directly states something unless that information is present in the supplied research context.
+    - Be concise and evidence-oriented.
 
-Research context:
-${JSON.stringify(context, null, 2)}`,
+    Research context:
+    ${JSON.stringify(context, null, 2)}`,
 
     messages: conversationMessages,
 
