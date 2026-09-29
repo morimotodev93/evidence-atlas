@@ -289,9 +289,9 @@ The Phase 5 implementation establishes the basic grounded AI workflow without in
 
 **Goal:** Enable AI to search a larger body of accumulated knowledge.
 
-- [ ] Define retrieval requirements
-- [ ] Evaluate chunking strategy
-- [ ] Define embedding model
+- [x] Define retrieval requirements
+- [x] Evaluate chunking strategy
+- [x] Define embedding model
 - [ ] Add pgvector
 - [ ] Create embedding pipeline
 - [ ] Implement vector search

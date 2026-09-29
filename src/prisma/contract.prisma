@@ -14,6 +14,8 @@ model User {
   workspaceMemberships WorkspaceMembership[]
   researches          Research[]
   comments            Comment[]
+
+  @@map("user")
 }
 
 model Organization {
@@ -22,6 +24,8 @@ model Organization {
 
   memberships Membership[]
   workspaces  Workspace[]
+
+  @@map("organization")
 }
 
 enum OrganizationRole {
@@ -38,6 +42,7 @@ model Membership {
   organization Organization @relation(fields: [organizationId], references: [id])
 
   @@id([userId, organizationId])
+  @@map("membership")
 }
 
 
@@ -63,6 +68,8 @@ model Workspace {
   memberships WorkspaceMembership[]
   researches  Research[]
   tags        Tag[]
+
+  @@map("workspace")
 }
 
 enum WorkspaceRole {
@@ -79,6 +86,8 @@ model WorkspaceMembership {
   workspace Workspace @relation(fields: [workspaceId], references: [id])
 
   @@id([userId, workspaceId])
+
+  @@map("workspaceMembership")
 }
 
 
@@ -120,6 +129,8 @@ model Research {
   comments Comment[]
   tags     ResearchTag[]
   conversations Conversation[]
+
+  @@map("research")
 }
 
 model Conversation {
@@ -136,6 +147,8 @@ model Conversation {
   )
 
   messages Message[]
+
+  @@map("conversation")
 }
 
 // ============================================================
@@ -158,6 +171,8 @@ model Source {
   )
 
   findings FindingSource[]
+
+  @@map("source")
 }
 
 
@@ -186,6 +201,8 @@ model Finding {
   )
 
   sources FindingSource[]
+
+  @@map("finding")
 }
 
 model FindingSource {
@@ -205,6 +222,8 @@ model FindingSource {
   )
 
   @@id([findingId, sourceId])
+
+  @@map("findingSource")
 }
 
 
@@ -231,6 +250,8 @@ model Comment {
     fields: [userId],
     references: [id]
   )
+
+  @@map("comment")
 }
 
 
@@ -255,6 +276,8 @@ model Tag {
   researches ResearchTag[]
 
   @@unique([workspaceId, name])
+
+  @@map("tag")
 }
 
 model ResearchTag {
@@ -272,6 +295,8 @@ model ResearchTag {
   )
 
   @@id([researchId, tagId])
+
+  @@map("researchTag")
 }
 
 
@@ -299,4 +324,6 @@ model Message {
     fields: [conversationId],
     references: [id]
   )
+
+  @@map("message")
 }
