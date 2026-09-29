@@ -1,0 +1,161 @@
+[
+  {
+    "id": "table.retrievalChunk",
+    "label": "Create table \"retrievalChunk\"",
+    "summary": "Creates table \"retrievalChunk\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "table",
+        "name": "retrievalChunk"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure table \"retrievalChunk\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"retrievalChunk\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create table \"retrievalChunk\"",
+        "sql": "CREATE TABLE \"public\".\"retrievalChunk\" (\n  \"chunkIndex\" int4 NOT NULL,\n  \"content\" text NOT NULL,\n  \"createdAt\" timestamptz DEFAULT (now()) NOT NULL,\n  \"embedding\" vector(768) NOT NULL,\n  \"id\" text NOT NULL,\n  \"researchId\" text NOT NULL,\n  \"sourceId\" text NOT NULL,\n  \"sourceType\" text NOT NULL,\n  \"updatedAt\" timestamptz NOT NULL,\n  \"workspaceId\" text NOT NULL,\n  PRIMARY KEY (\"id\"),\n  CONSTRAINT \"retrievalChunk_sourceType_check_3ff43eef\" CHECK (\"sourceType\" IN ('FINDING', 'CONCLUSION', 'RESEARCH'))\n)",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify table \"retrievalChunk\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"retrievalChunk\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "unique.retrievalChunk.retrievalChunk_sourceType_sourceId_chunkIndex_key",
+    "label": "Add unique constraint on \"retrievalChunk\" (sourceType, sourceId, chunkIndex)",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "unique",
+        "name": "retrievalChunk_sourceType_sourceId_chunkIndex_key",
+        "table": "retrievalChunk"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure constraint \"retrievalChunk_sourceType_sourceId_chunkIndex_key\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "retrievalChunk_sourceType_sourceId_chunkIndex_key",
+          "public",
+          "\"public\".\"retrievalChunk\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add unique constraint \"retrievalChunk_sourceType_sourceId_chunkIndex_key\"",
+        "sql": "ALTER TABLE \"public\".\"retrievalChunk\" ADD CONSTRAINT \"retrievalChunk_sourceType_sourceId_chunkIndex_key\" UNIQUE (\"sourceType\", \"sourceId\", \"chunkIndex\")"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify constraint \"retrievalChunk_sourceType_sourceId_chunkIndex_key\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "retrievalChunk_sourceType_sourceId_chunkIndex_key",
+          "public",
+          "\"public\".\"retrievalChunk\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "index.retrievalChunk.retrievalChunk_researchId_idx_36f1b4c8",
+    "label": "Create index \"retrievalChunk_researchId_idx_36f1b4c8\" on \"retrievalChunk\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "index",
+        "name": "retrievalChunk_researchId_idx_36f1b4c8",
+        "table": "retrievalChunk"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure index \"retrievalChunk_researchId_idx_36f1b4c8\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"retrievalChunk_researchId_idx_36f1b4c8\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create index \"retrievalChunk_researchId_idx_36f1b4c8\"",
+        "sql": "CREATE INDEX \"retrievalChunk_researchId_idx_36f1b4c8\" ON \"public\".\"retrievalChunk\" (\"researchId\")",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify index \"retrievalChunk_researchId_idx_36f1b4c8\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"retrievalChunk_researchId_idx_36f1b4c8\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "index.retrievalChunk.retrievalChunk_workspaceId_idx_ba65f874",
+    "label": "Create index \"retrievalChunk_workspaceId_idx_ba65f874\" on \"retrievalChunk\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "index",
+        "name": "retrievalChunk_workspaceId_idx_ba65f874",
+        "table": "retrievalChunk"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure index \"retrievalChunk_workspaceId_idx_ba65f874\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"retrievalChunk_workspaceId_idx_ba65f874\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create index \"retrievalChunk_workspaceId_idx_ba65f874\"",
+        "sql": "CREATE INDEX \"retrievalChunk_workspaceId_idx_ba65f874\" ON \"public\".\"retrievalChunk\" (\"workspaceId\")",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify index \"retrievalChunk_workspaceId_idx_ba65f874\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"retrievalChunk_workspaceId_idx_ba65f874\""
+        ]
+      }
+    ]
+  }
+]

@@ -327,3 +327,35 @@ model Message {
 
   @@map("message")
 }
+
+// ============================================================
+// Pgvector
+// ============================================================
+
+types {
+  Embedding768 = pgvector.Vector(768)
+}
+
+enum RetrievalSourceType {
+  FINDING
+  CONCLUSION
+  RESEARCH
+}
+
+model RetrievalChunk {
+  id          String              @id @default(uuid())
+  workspaceId String
+  researchId  String
+  sourceType  RetrievalSourceType
+  sourceId    String
+  chunkIndex  Int
+  content     String
+  embedding   Embedding768
+  createdAt   DateTime @default(now())
+  updatedAt   temporal.updatedAt()
+
+  @@unique([sourceType, sourceId, chunkIndex])
+  @@index([workspaceId])
+  @@index([researchId])
+  @@map("retrievalChunk")
+}

@@ -40,6 +40,10 @@
       "model": "ResearchTag",
       "namespace": "public"
     },
+    "retrievalChunk": {
+      "model": "RetrievalChunk",
+      "namespace": "public"
+    },
     "source": {
       "model": "Source",
       "namespace": "public"
@@ -114,6 +118,23 @@
               {
                 "name": "ARCHIVED",
                 "value": "ARCHIVED"
+              }
+            ]
+          },
+          "RetrievalSourceType": {
+            "codecId": "pg/text@1",
+            "members": [
+              {
+                "name": "FINDING",
+                "value": "FINDING"
+              },
+              {
+                "name": "CONCLUSION",
+                "value": "CONCLUSION"
+              },
+              {
+                "name": "RESEARCH",
+                "value": "RESEARCH"
               }
             ]
           },
@@ -1005,6 +1026,123 @@
               },
               "namespaceId": "public",
               "table": "researchTag"
+            }
+          },
+          "RetrievalChunk": {
+            "fields": {
+              "chunkIndex": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/int4@1",
+                  "kind": "scalar"
+                }
+              },
+              "content": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/text@1",
+                  "kind": "scalar"
+                }
+              },
+              "createdAt": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/timestamptz-temporal@1",
+                  "kind": "scalar"
+                }
+              },
+              "embedding": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/vector@1",
+                  "kind": "scalar"
+                }
+              },
+              "id": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/text@1",
+                  "kind": "scalar"
+                }
+              },
+              "researchId": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/text@1",
+                  "kind": "scalar"
+                }
+              },
+              "sourceId": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/text@1",
+                  "kind": "scalar"
+                }
+              },
+              "sourceType": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/text@1",
+                  "kind": "scalar"
+                },
+                "valueSet": {
+                  "entityKind": "enum",
+                  "entityName": "RetrievalSourceType",
+                  "namespaceId": "public",
+                  "plane": "domain"
+                }
+              },
+              "updatedAt": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/timestamptz-temporal@1",
+                  "kind": "scalar"
+                }
+              },
+              "workspaceId": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/text@1",
+                  "kind": "scalar"
+                }
+              }
+            },
+            "relations": {},
+            "storage": {
+              "fields": {
+                "chunkIndex": {
+                  "column": "chunkIndex"
+                },
+                "content": {
+                  "column": "content"
+                },
+                "createdAt": {
+                  "column": "createdAt"
+                },
+                "embedding": {
+                  "column": "embedding"
+                },
+                "id": {
+                  "column": "id"
+                },
+                "researchId": {
+                  "column": "researchId"
+                },
+                "sourceId": {
+                  "column": "sourceId"
+                },
+                "sourceType": {
+                  "column": "sourceType"
+                },
+                "updatedAt": {
+                  "column": "updatedAt"
+                },
+                "workspaceId": {
+                  "column": "workspaceId"
+                }
+              },
+              "namespaceId": "public",
+              "table": "retrievalChunk"
             }
           },
           "Source": {
@@ -2259,6 +2397,111 @@
               },
               "uniques": []
             },
+            "retrievalChunk": {
+              "checks": [
+                {
+                  "expression": "\"sourceType\" IN ('FINDING', 'CONCLUSION', 'RESEARCH')",
+                  "name": "retrievalChunk_sourceType_check_3ff43eef",
+                  "prefix": "retrievalChunk_sourceType_check"
+                }
+              ],
+              "columns": {
+                "chunkIndex": {
+                  "codecId": "pg/int4@1",
+                  "nativeType": "int4",
+                  "nullable": false
+                },
+                "content": {
+                  "codecId": "pg/text@1",
+                  "nativeType": "text",
+                  "nullable": false
+                },
+                "createdAt": {
+                  "codecId": "pg/timestamptz-temporal@1",
+                  "default": {
+                    "expression": "now()",
+                    "kind": "function"
+                  },
+                  "nativeType": "timestamptz",
+                  "nullable": false
+                },
+                "embedding": {
+                  "codecId": "pg/vector@1",
+                  "nativeType": "vector",
+                  "nullable": false,
+                  "typeRef": "Embedding768"
+                },
+                "id": {
+                  "codecId": "pg/text@1",
+                  "nativeType": "text",
+                  "nullable": false
+                },
+                "researchId": {
+                  "codecId": "pg/text@1",
+                  "nativeType": "text",
+                  "nullable": false
+                },
+                "sourceId": {
+                  "codecId": "pg/text@1",
+                  "nativeType": "text",
+                  "nullable": false
+                },
+                "sourceType": {
+                  "codecId": "pg/text@1",
+                  "nativeType": "text",
+                  "nullable": false,
+                  "valueSet": {
+                    "entityKind": "valueSet",
+                    "entityName": "RetrievalSourceType",
+                    "namespaceId": "public",
+                    "plane": "storage"
+                  }
+                },
+                "updatedAt": {
+                  "codecId": "pg/timestamptz-temporal@1",
+                  "nativeType": "timestamptz",
+                  "nullable": false
+                },
+                "workspaceId": {
+                  "codecId": "pg/text@1",
+                  "nativeType": "text",
+                  "nullable": false
+                }
+              },
+              "foreignKeys": [],
+              "indexes": [
+                {
+                  "columns": [
+                    "researchId"
+                  ],
+                  "name": "retrievalChunk_researchId_idx_36f1b4c8",
+                  "prefix": "retrievalChunk_researchId_idx",
+                  "unique": false
+                },
+                {
+                  "columns": [
+                    "workspaceId"
+                  ],
+                  "name": "retrievalChunk_workspaceId_idx_ba65f874",
+                  "prefix": "retrievalChunk_workspaceId_idx",
+                  "unique": false
+                }
+              ],
+              "primaryKey": {
+                "columns": [
+                  "id"
+                ]
+              },
+              "uniques": [
+                {
+                  "columns": [
+                    "sourceType",
+                    "sourceId",
+                    "chunkIndex"
+                  ]
+                }
+              ]
+            },
             "source": {
               "columns": {
                 "createdAt": {
@@ -2636,6 +2879,14 @@
                 "ARCHIVED"
               ]
             },
+            "RetrievalSourceType": {
+              "kind": "valueSet",
+              "values": [
+                "FINDING",
+                "CONCLUSION",
+                "RESEARCH"
+              ]
+            },
             "WorkspaceRole": {
               "kind": "valueSet",
               "values": [
@@ -2649,10 +2900,20 @@
         "kind": "postgres-schema"
       }
     },
-    "storageHash": "f73c4d3e9a68207a2b67ca67d1c9e33beb881b051dae3c8585d6f5d229c4535d"
+    "storageHash": "1d0d4103d58b2225f5359157b9537fa99a0c295c80b2e67272646ec251b98380",
+    "types": {
+      "Embedding768": {
+        "codecId": "pg/vector@1",
+        "kind": "codec-instance",
+        "nativeType": "vector",
+        "typeParams": {
+          "length": 768
+        }
+      }
+    }
   },
   "execution": {
-    "executionHash": "7cbe49cf75771236b3ffd5510fac23f366ee445489dbfbbcf0e675245a7b94bc",
+    "executionHash": "fb2692f9d1605dbfbe3154ffe77bebddd18f76fc2da24588d389661175b2031b",
     "mutations": {
       "defaults": [
         {
@@ -2779,6 +3040,32 @@
             "column": "updatedAt",
             "namespace": "public",
             "table": "research"
+          }
+        },
+        {
+          "onCreate": {
+            "id": "uuidv4",
+            "kind": "generator"
+          },
+          "ref": {
+            "column": "id",
+            "namespace": "public",
+            "table": "retrievalChunk"
+          }
+        },
+        {
+          "onCreate": {
+            "id": "instantNow",
+            "kind": "generator"
+          },
+          "onUpdate": {
+            "id": "instantNow",
+            "kind": "generator"
+          },
+          "ref": {
+            "column": "updatedAt",
+            "namespace": "public",
+            "table": "retrievalChunk"
           }
         },
         {
