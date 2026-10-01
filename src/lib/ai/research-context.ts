@@ -22,6 +22,7 @@ export async function buildResearchContext(researchId: string) {
   return {
     research: {
       id: research.id,
+      workspaceId: research.workspaceId,
       title: research.title,
       description: research.description,
       conclusion: research.conclusion,

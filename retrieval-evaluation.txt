@@ -1,0 +1,1125 @@
+﻿
+########################################
+STRONG_POSITIVE: 保存されたFindingの内容をかなり直接的に尋ねる
+########################################
+
+========================================
+Query: Prisma ORM 8ではPrismaClientの扱いはどう変わった？
+========================================
+{
+  rank: 1,
+  distance: 0.2243167432936629,
+  type: 'FINDING',
+  researchId: 'a61u0pnx2n30o8wj35id77nb',
+  researchTitle: 'Prisma8について',
+  findingId: 'gpd4860byt3gnnttivw9v3b4',
+  content: '御にはSQLビルダーも利用可能（同一クライアント上）。  \n' +
+    '   クライアントは遅延接続で、シャットダウン時は`OnModuleDestroy`で`db.close()`を呼ぶことを推奨。\n' +
+    '\n' +
+    '5. **デプロイ**  \n' +
+    '   `npm run build` 後に `npx prisma deploy module.ts`（または`npm run deploy`）でPrisma Computeにデプロイ。Prisma Composer（早期アクセス）経由でデータベースとコンピュートサービスがプロビジョニングされ、ローカルの`DATABASE_URL`は使われません。初回リクエストでシードされます。\n' +
+    '\n' +
+    '### 補足・注意点\n' +
+    '- Prisma ORM 8は記事時点でリリース候補版。\n' +
+    '- MongoDBサポートも早期アクセスとして触れられていますが、詳細は限定的で、トランザクション未対応などの注意があります。\n' +
+    '- アップグレードは公式のPrisma ORM 7→8ガイドを参照するよう案内されています。',
+  sourceIds: [ 'rhb2aztwnt63hidwx4ktmcba' ]
+}
+{
+  rank: 2,
+  distance: 0.2428215375902948,
+  type: 'FINDING',
+  researchId: 'ttji6qo5m74sf983pe2ox1lw',
+  researchTitle: 'RAG Architecture Research',
+  findingId: 'fm3eei406vty67hc5wz78hb5',
+  content: 'Prisma8のDocsLink',
+  sourceIds: [ 'xlgt3hb5dm19aq4fiidd31da' ]
+}
+{
+  rank: 3,
+  distance: 0.3356800336489485,
+  type: 'RESEARCH',
+  researchId: 'a61u0pnx2n30o8wj35id77nb',
+  researchTitle: 'Prisma8について',
+  findingId: undefined,
+  content: 'Prisma8について\n\nAI Test 用にいろいろなものを置くためのResearch',
+  sourceIds: []
+}
+{
+  rank: 4,
+  distance: 0.40568348781123675,
+  type: 'FINDING',
+  researchId: 'ttji6qo5m74sf983pe2ox1lw',
+  researchTitle: 'RAG Architecture Research',
+  findingId: 'h1824fd2apbet760442zsav7',
+  content: 'SDK Link',
+  sourceIds: []
+}
+{
+  rank: 5,
+  distance: 0.4913528156821414,
+  type: 'RESEARCH',
+  researchId: 'ttji6qo5m74sf983pe2ox1lw',
+  researchTitle: 'RAG Architecture Research',
+  findingId: undefined,
+  content: 'RAG Architecture Research\n' +
+    '\n' +
+    'Research into retrieval-augmented generation architectures and knowledge retrieval.',
+  sourceIds: []
+}
+
+========================================
+Query: Prisma ORM 8で$extendsはどうなった？
+========================================
+{
+  rank: 1,
+  distance: 0.24784416695424294,
+  type: 'FINDING',
+  researchId: 'a61u0pnx2n30o8wj35id77nb',
+  researchTitle: 'Prisma8について',
+  findingId: 'gpd4860byt3gnnttivw9v3b4',
+  content: '**Prisma公式ブログ記事「How to use Prisma ORM 8 in NestJS: setup, queries, deploy」（著者: Ankur Datta、公開日: 2026年9月24日、Prisma 8シリーズ第15回）の要約です。**\n' +
+    '\n' +
+    'この記事は、Prisma ORM 8（リリース候補版、検証時は `prisma@8.0.0-rc.15` など）をNestJSで利用する新しい方法を、スキャフォールドからクエリ作成、Prisma Computeへのデプロイまでステップバイステップで解説しています。NestJS 11とPrisma Postgresを前提としています。\n' +
+    '\n' +
+    '### 主な変更点（Prisma ORM 7からの進化）\n' +
+    '- Prisma ORM 8ではクライアントが**クラスではなくプレーンなオブジェクト**（`src/prisma/db.ts` からエクスポート）になります。そのため、従来の「`PrismaService` が `PrismaClient` を継承する」パターンは不要・不可能です。\n' +
+    '- `$extends()` は廃止され、クロスカットの振る舞い（ミドルウェア）はクライアント作成時の `middleware` オプションで指定します。\n' +
+    '- 生成されたクライアントパッケージはなくなり、契約（旧schema.prisma）は `src/prisma/contract.json` と `contract.d.ts` として相対パスでインポートされます。\n' +
+    '- 共有クライアントを1つ持ち、`PrismaService` はそれをラップして通常のTypeScript関数として書いたクエリヘルパーを公開する形になります。\n' +
+    '\n' +
+    'これにより、従来の継承パターンで生じていた拡張時の不整合やインポートパス・型エラーの問題が解消されます。',
+  sourceIds: [ 'rhb2aztwnt63hidwx4ktmcba' ]
+}
+{
+  rank: 2,
+  distance: 0.25650520029291657,
+  type: 'FINDING',
+  researchId: 'ttji6qo5m74sf983pe2ox1lw',
+  researchTitle: 'RAG Architecture Research',
+  findingId: 'fm3eei406vty67hc5wz78hb5',
+  content: 'Prisma8のDocsLink',
+  sourceIds: [ 'xlgt3hb5dm19aq4fiidd31da' ]
+}
+{
+  rank: 3,
+  distance: 0.3370606966144589,
+  type: 'RESEARCH',
+  researchId: 'a61u0pnx2n30o8wj35id77nb',
+  researchTitle: 'Prisma8について',
+  findingId: undefined,
+  content: 'Prisma8について\n\nAI Test 用にいろいろなものを置くためのResearch',
+  sourceIds: []
+}
+{
+  rank: 4,
+  distance: 0.42338146960321155,
+  type: 'FINDING',
+  researchId: 'ttji6qo5m74sf983pe2ox1lw',
+  researchTitle: 'RAG Architecture Research',
+  findingId: 'h1824fd2apbet760442zsav7',
+  content: 'SDK Link',
+  sourceIds: []
+}
+{
+  rank: 5,
+  distance: 0.4578256420463528,
+  type: 'RESEARCH',
+  researchId: 'ttji6qo5m74sf983pe2ox1lw',
+  researchTitle: 'RAG Architecture Research',
+  findingId: undefined,
+  content: 'RAG Architecture Research\n' +
+    '\n' +
+    'Research into retrieval-augmented generation architectures and knowledge retrieval.',
+  sourceIds: []
+}
+
+========================================
+Query: Prisma Computeへデプロイするコマンドは？
+========================================
+{
+  rank: 1,
+  distance: 0.25154543520390427,
+  type: 'FINDING',
+  researchId: 'a61u0pnx2n30o8wj35id77nb',
+  researchTitle: 'Prisma8について',
+  findingId: 'gpd4860byt3gnnttivw9v3b4',
+  content: '御にはSQLビルダーも利用可能（同一クライアント上）。  \n' +
+    '   クライアントは遅延接続で、シャットダウン時は`OnModuleDestroy`で`db.close()`を呼ぶことを推奨。\n' +
+    '\n' +
+    '5. **デプロイ**  \n' +
+    '   `npm run build` 後に `npx prisma deploy module.ts`（または`npm run deploy`）でPrisma Computeにデプロイ。Prisma Composer（早期アクセス）経由でデータベースとコンピュートサービスがプロビジョニングされ、ローカルの`DATABASE_URL`は使われません。初回リクエストでシードされます。\n' +
+    '\n' +
+    '### 補足・注意点\n' +
+    '- Prisma ORM 8は記事時点でリリース候補版。\n' +
+    '- MongoDBサポートも早期アクセスとして触れられていますが、詳細は限定的で、トランザクション未対応などの注意があります。\n' +
+    '- アップグレードは公式のPrisma ORM 7→8ガイドを参照するよう案内されています。',
+  sourceIds: [ 'rhb2aztwnt63hidwx4ktmcba' ]
+}
+{
+  rank: 2,
+  distance: 0.3201510796790893,
+  type: 'FINDING',
+  researchId: 'ttji6qo5m74sf983pe2ox1lw',
+  researchTitle: 'RAG Architecture Research',
+  findingId: 'fm3eei406vty67hc5wz78hb5',
+  content: 'Prisma8のDocsLink',
+  sourceIds: [ 'xlgt3hb5dm19aq4fiidd31da' ]
+}
+{
+  rank: 3,
+  distance: 0.3250133867418369,
+  type: 'RESEARCH',
+  researchId: 'a61u0pnx2n30o8wj35id77nb',
+  researchTitle: 'Prisma8について',
+  findingId: undefined,
+  content: 'Prisma8について\n\nAI Test 用にいろいろなものを置くためのResearch',
+  sourceIds: []
+}
+{
+  rank: 4,
+  distance: 0.40002985626629917,
+  type: 'FINDING',
+  researchId: 'ttji6qo5m74sf983pe2ox1lw',
+  researchTitle: 'RAG Architecture Research',
+  findingId: 'h1824fd2apbet760442zsav7',
+  content: 'SDK Link',
+  sourceIds: []
+}
+{
+  rank: 5,
+  distance: 0.4705021349083468,
+  type: 'RESEARCH',
+  researchId: 'ttji6qo5m74sf983pe2ox1lw',
+  researchTitle: 'RAG Architecture Research',
+  findingId: undefined,
+  content: 'RAG Architecture Research\n' +
+    '\n' +
+    'Research into retrieval-augmented generation architectures and knowledge retrieval.',
+  sourceIds: []
+}
+
+========================================
+Query: NestJSからPrisma ORM 8のクエリを実行する構成は？
+========================================
+{
+  rank: 1,
+  distance: 0.20021185680868736,
+  type: 'FINDING',
+  researchId: 'a61u0pnx2n30o8wj35id77nb',
+  researchTitle: 'Prisma8について',
+  findingId: 'gpd4860byt3gnnttivw9v3b4',
+  content: '**Prisma公式ブログ記事「How to use Prisma ORM 8 in NestJS: setup, queries, deploy」（著者: Ankur Datta、公開日: 2026年9月24日、Prisma 8シリーズ第15回）の要約です。**\n' +
+    '\n' +
+    'この記事は、Prisma ORM 8（リリース候補版、検証時は `prisma@8.0.0-rc.15` など）をNestJSで利用する新しい方法を、スキャフォールドからクエリ作成、Prisma Computeへのデプロイまでステップバイステップで解説しています。NestJS 11とPrisma Postgresを前提としています。\n' +
+    '\n' +
+    '### 主な変更点（Prisma ORM 7からの進化）\n' +
+    '- Prisma ORM 8ではクライアントが**クラスではなくプレーンなオブジェクト**（`src/prisma/db.ts` からエクスポート）になります。そのため、従来の「`PrismaService` が `PrismaClient` を継承する」パターンは不要・不可能です。\n' +
+    '- `$extends()` は廃止され、クロスカットの振る舞い（ミドルウェア）はクライアント作成時の `middleware` オプションで指定します。\n' +
+    '- 生成されたクライアントパッケージはなくなり、契約（旧schema.prisma）は `src/prisma/contract.json` と `contract.d.ts` として相対パスでインポートされます。\n' +
+    '- 共有クライアントを1つ持ち、`PrismaService` はそれをラップして通常のTypeScript関数として書いたクエリヘルパーを公開する形になります。\n' +
+    '\n' +
+    'これにより、従来の継承パターンで生じていた拡張時の不整合やインポートパス・型エラーの問題が解消されます。',
+  sourceIds: [ 'rhb2aztwnt63hidwx4ktmcba' ]
+}
+{
+  rank: 2,
+  distance: 0.24255659609695235,
+  type: 'FINDING',
+  researchId: 'ttji6qo5m74sf983pe2ox1lw',
+  researchTitle: 'RAG Architecture Research',
+  findingId: 'fm3eei406vty67hc5wz78hb5',
+  content: 'Prisma8のDocsLink',
+  sourceIds: [ 'xlgt3hb5dm19aq4fiidd31da' ]
+}
+{
+  rank: 3,
+  distance: 0.3174132086939011,
+  type: 'RESEARCH',
+  researchId: 'a61u0pnx2n30o8wj35id77nb',
+  researchTitle: 'Prisma8について',
+  findingId: undefined,
+  content: 'Prisma8について\n\nAI Test 用にいろいろなものを置くためのResearch',
+  sourceIds: []
+}
+{
+  rank: 4,
+  distance: 0.4218541905392884,
+  type: 'FINDING',
+  researchId: 'ttji6qo5m74sf983pe2ox1lw',
+  researchTitle: 'RAG Architecture Research',
+  findingId: 'h1824fd2apbet760442zsav7',
+  content: 'SDK Link',
+  sourceIds: []
+}
+{
+  rank: 5,
+  distance: 0.46753039046889966,
+  type: 'RESEARCH',
+  researchId: 'ttji6qo5m74sf983pe2ox1lw',
+  researchTitle: 'RAG Architecture Research',
+  findingId: undefined,
+  content: 'RAG Architecture Research\n' +
+    '\n' +
+    'Research into retrieval-augmented generation architectures and knowledge retrieval.',
+  sourceIds: []
+}
+
+########################################
+WEAK_POSITIVE: 保存知識で答えられるが、表現がFindingから離れている
+########################################
+
+========================================
+Query: Prismaの新しいバージョンでは従来の継承型Serviceは必要？
+========================================
+{
+  rank: 1,
+  distance: 0.18875953585344563,
+  type: 'FINDING',
+  researchId: 'a61u0pnx2n30o8wj35id77nb',
+  researchTitle: 'Prisma8について',
+  findingId: 'gpd4860byt3gnnttivw9v3b4',
+  content: 'を公開する形になります。\n' +
+    '\n' +
+    'これにより、従来の継承パターンで生じていた拡張時の不整合やインポートパス・型エラーの問題が解消されます。\n' +
+    '\n' +
+    '### セットアップの流れ\n' +
+    '1. **プロジェクト作成**  \n' +
+    '   Node.js 24.11以上（または22.18以上）が必要。  \n' +
+    '   `npm create prisma@latest -- nest-prisma-8 --template nest --provider postgres --yes` でNestJSアプリをスキャフォールド。`src/prisma/contract.prisma`（旧schema）、`db.ts`、`PrismaService`、サンプルの`/users`エンドポイントなどが自動生成されます。\n' +
+    '\n' +
+    '2. **データベース接続と初期化**  \n' +
+    '   `npx create-db@latest` で一時的なPrisma Postgresを作成し、接続文字列をエクスポート後に `npm run db:init` を実行。シードは専用コマンドがなく、最初の`listUsers`呼び出し時にサンプルユーザーをupsertします。\n' +
+    '\n' +
+    '3. **リクエストの流れ**  \n' +
+    '   Controller → UsersService → PrismaService → クエリヘルパー（`src/prisma/users.ts`など）→ 共有`db`クライアント。  \n' +
+    '   開発時（tsx）ではデコレータメタデータが効かないため、`@Inject`を明示的に使う必要があります。\n' +
+    '\n' +
+    '4. **クエリの書き方**  \n' +
+    '   チェーン形式で条件を組み立て、`.all()` や `.first()` で実行。例：  \n' +
+    '   `db.orm.public.User.select("id", "email").orderBy(...).limit(10).all()`  \n' +
+    '   低レベル制御にはSQLビルダーも利用可能（同一クライアント上）。  \n' +
+    '   クライアントは遅延接続で、シャットダウン時は`OnModuleDestroy`で`db.close()`を呼ぶことを推奨。',
+  sourceIds: [ 'rhb2aztwnt63hidwx4ktmcba' ]
+}
+{
+  rank: 2,
+  distance: 0.29468998294174353,
+  type: 'FINDING',
+  researchId: 'ttji6qo5m74sf983pe2ox1lw',
+  researchTitle: 'RAG Architecture Research',
+  findingId: 'fm3eei406vty67hc5wz78hb5',
+  content: 'Prisma8のDocsLink',
+  sourceIds: [ 'xlgt3hb5dm19aq4fiidd31da' ]
+}
+{
+  rank: 3,
+  distance: 0.34654422181931843,
+  type: 'RESEARCH',
+  researchId: 'a61u0pnx2n30o8wj35id77nb',
+  researchTitle: 'Prisma8について',
+  findingId: undefined,
+  content: 'Prisma8について\n\nAI Test 用にいろいろなものを置くためのResearch',
+  sourceIds: []
+}
+{
+  rank: 4,
+  distance: 0.42309630624418115,
+  type: 'FINDING',
+  researchId: 'ttji6qo5m74sf983pe2ox1lw',
+  researchTitle: 'RAG Architecture Research',
+  findingId: 'h1824fd2apbet760442zsav7',
+  content: 'SDK Link',
+  sourceIds: []
+}
+{
+  rank: 5,
+  distance: 0.45147589581759284,
+  type: 'RESEARCH',
+  researchId: 'ttji6qo5m74sf983pe2ox1lw',
+  researchTitle: 'RAG Architecture Research',
+  findingId: undefined,
+  content: 'RAG Architecture Research\n' +
+    '\n' +
+    'Research into retrieval-augmented generation architectures and knowledge retrieval.',
+  sourceIds: []
+}
+
+========================================
+Query: 新しいPrismaでアプリ終了時のDB接続はどう処理する？
+========================================
+{
+  rank: 1,
+  distance: 0.2532597595621475,
+  type: 'FINDING',
+  researchId: 'a61u0pnx2n30o8wj35id77nb',
+  researchTitle: 'Prisma8について',
+  findingId: 'gpd4860byt3gnnttivw9v3b4',
+  content: 'を公開する形になります。\n' +
+    '\n' +
+    'これにより、従来の継承パターンで生じていた拡張時の不整合やインポートパス・型エラーの問題が解消されます。\n' +
+    '\n' +
+    '### セットアップの流れ\n' +
+    '1. **プロジェクト作成**  \n' +
+    '   Node.js 24.11以上（または22.18以上）が必要。  \n' +
+    '   `npm create prisma@latest -- nest-prisma-8 --template nest --provider postgres --yes` でNestJSアプリをスキャフォールド。`src/prisma/contract.prisma`（旧schema）、`db.ts`、`PrismaService`、サンプルの`/users`エンドポイントなどが自動生成されます。\n' +
+    '\n' +
+    '2. **データベース接続と初期化**  \n' +
+    '   `npx create-db@latest` で一時的なPrisma Postgresを作成し、接続文字列をエクスポート後に `npm run db:init` を実行。シードは専用コマンドがなく、最初の`listUsers`呼び出し時にサンプルユーザーをupsertします。\n' +
+    '\n' +
+    '3. **リクエストの流れ**  \n' +
+    '   Controller → UsersService → PrismaService → クエリヘルパー（`src/prisma/users.ts`など）→ 共有`db`クライアント。  \n' +
+    '   開発時（tsx）ではデコレータメタデータが効かないため、`@Inject`を明示的に使う必要があります。\n' +
+    '\n' +
+    '4. **クエリの書き方**  \n' +
+    '   チェーン形式で条件を組み立て、`.all()` や `.first()` で実行。例：  \n' +
+    '   `db.orm.public.User.select("id", "email").orderBy(...).limit(10).all()`  \n' +
+    '   低レベル制御にはSQLビルダーも利用可能（同一クライアント上）。  \n' +
+    '   クライアントは遅延接続で、シャットダウン時は`OnModuleDestroy`で`db.close()`を呼ぶことを推奨。',
+  sourceIds: [ 'rhb2aztwnt63hidwx4ktmcba' ]
+}
+{
+  rank: 2,
+  distance: 0.2851255727920631,
+  type: 'FINDING',
+  researchId: 'ttji6qo5m74sf983pe2ox1lw',
+  researchTitle: 'RAG Architecture Research',
+  findingId: 'fm3eei406vty67hc5wz78hb5',
+  content: 'Prisma8のDocsLink',
+  sourceIds: [ 'xlgt3hb5dm19aq4fiidd31da' ]
+}
+{
+  rank: 3,
+  distance: 0.3460312937000891,
+  type: 'RESEARCH',
+  researchId: 'a61u0pnx2n30o8wj35id77nb',
+  researchTitle: 'Prisma8について',
+  findingId: undefined,
+  content: 'Prisma8について\n\nAI Test 用にいろいろなものを置くためのResearch',
+  sourceIds: []
+}
+{
+  rank: 4,
+  distance: 0.4163335581940466,
+  type: 'FINDING',
+  researchId: 'ttji6qo5m74sf983pe2ox1lw',
+  researchTitle: 'RAG Architecture Research',
+  findingId: 'h1824fd2apbet760442zsav7',
+  content: 'SDK Link',
+  sourceIds: []
+}
+{
+  rank: 5,
+  distance: 0.46039588963613776,
+  type: 'RESEARCH',
+  researchId: 'ttji6qo5m74sf983pe2ox1lw',
+  researchTitle: 'RAG Architecture Research',
+  findingId: undefined,
+  content: 'RAG Architecture Research\n' +
+    '\n' +
+    'Research into retrieval-augmented generation architectures and knowledge retrieval.',
+  sourceIds: []
+}
+
+========================================
+Query: NestJSで新しいPrismaを導入するときの注意点は？
+========================================
+{
+  rank: 1,
+  distance: 0.18834849916322294,
+  type: 'FINDING',
+  researchId: 'a61u0pnx2n30o8wj35id77nb',
+  researchTitle: 'Prisma8について',
+  findingId: 'gpd4860byt3gnnttivw9v3b4',
+  content: 'を公開する形になります。\n' +
+    '\n' +
+    'これにより、従来の継承パターンで生じていた拡張時の不整合やインポートパス・型エラーの問題が解消されます。\n' +
+    '\n' +
+    '### セットアップの流れ\n' +
+    '1. **プロジェクト作成**  \n' +
+    '   Node.js 24.11以上（または22.18以上）が必要。  \n' +
+    '   `npm create prisma@latest -- nest-prisma-8 --template nest --provider postgres --yes` でNestJSアプリをスキャフォールド。`src/prisma/contract.prisma`（旧schema）、`db.ts`、`PrismaService`、サンプルの`/users`エンドポイントなどが自動生成されます。\n' +
+    '\n' +
+    '2. **データベース接続と初期化**  \n' +
+    '   `npx create-db@latest` で一時的なPrisma Postgresを作成し、接続文字列をエクスポート後に `npm run db:init` を実行。シードは専用コマンドがなく、最初の`listUsers`呼び出し時にサンプルユーザーをupsertします。\n' +
+    '\n' +
+    '3. **リクエストの流れ**  \n' +
+    '   Controller → UsersService → PrismaService → クエリヘルパー（`src/prisma/users.ts`など）→ 共有`db`クライアント。  \n' +
+    '   開発時（tsx）ではデコレータメタデータが効かないため、`@Inject`を明示的に使う必要があります。\n' +
+    '\n' +
+    '4. **クエリの書き方**  \n' +
+    '   チェーン形式で条件を組み立て、`.all()` や `.first()` で実行。例：  \n' +
+    '   `db.orm.public.User.select("id", "email").orderBy(...).limit(10).all()`  \n' +
+    '   低レベル制御にはSQLビルダーも利用可能（同一クライアント上）。  \n' +
+    '   クライアントは遅延接続で、シャットダウン時は`OnModuleDestroy`で`db.close()`を呼ぶことを推奨。',
+  sourceIds: [ 'rhb2aztwnt63hidwx4ktmcba' ]
+}
+{
+  rank: 2,
+  distance: 0.28040046402266705,
+  type: 'FINDING',
+  researchId: 'ttji6qo5m74sf983pe2ox1lw',
+  researchTitle: 'RAG Architecture Research',
+  findingId: 'fm3eei406vty67hc5wz78hb5',
+  content: 'Prisma8のDocsLink',
+  sourceIds: [ 'xlgt3hb5dm19aq4fiidd31da' ]
+}
+{
+  rank: 3,
+  distance: 0.32157124576599083,
+  type: 'RESEARCH',
+  researchId: 'a61u0pnx2n30o8wj35id77nb',
+  researchTitle: 'Prisma8について',
+  findingId: undefined,
+  content: 'Prisma8について\n\nAI Test 用にいろいろなものを置くためのResearch',
+  sourceIds: []
+}
+{
+  rank: 4,
+  distance: 0.4222224601183383,
+  type: 'FINDING',
+  researchId: 'ttji6qo5m74sf983pe2ox1lw',
+  researchTitle: 'RAG Architecture Research',
+  findingId: 'h1824fd2apbet760442zsav7',
+  content: 'SDK Link',
+  sourceIds: []
+}
+{
+  rank: 5,
+  distance: 0.4588309474435752,
+  type: 'RESEARCH',
+  researchId: 'ttji6qo5m74sf983pe2ox1lw',
+  researchTitle: 'RAG Architecture Research',
+  findingId: undefined,
+  content: 'RAG Architecture Research\n' +
+    '\n' +
+    'Research into retrieval-augmented generation architectures and knowledge retrieval.',
+  sourceIds: []
+}
+
+========================================
+Query: Prismaの新しいクライアント設計について教えて
+========================================
+{
+  rank: 1,
+  distance: 0.2256838476389147,
+  type: 'FINDING',
+  researchId: 'a61u0pnx2n30o8wj35id77nb',
+  researchTitle: 'Prisma8について',
+  findingId: 'gpd4860byt3gnnttivw9v3b4',
+  content: 'を公開する形になります。\n' +
+    '\n' +
+    'これにより、従来の継承パターンで生じていた拡張時の不整合やインポートパス・型エラーの問題が解消されます。\n' +
+    '\n' +
+    '### セットアップの流れ\n' +
+    '1. **プロジェクト作成**  \n' +
+    '   Node.js 24.11以上（または22.18以上）が必要。  \n' +
+    '   `npm create prisma@latest -- nest-prisma-8 --template nest --provider postgres --yes` でNestJSアプリをスキャフォールド。`src/prisma/contract.prisma`（旧schema）、`db.ts`、`PrismaService`、サンプルの`/users`エンドポイントなどが自動生成されます。\n' +
+    '\n' +
+    '2. **データベース接続と初期化**  \n' +
+    '   `npx create-db@latest` で一時的なPrisma Postgresを作成し、接続文字列をエクスポート後に `npm run db:init` を実行。シードは専用コマンドがなく、最初の`listUsers`呼び出し時にサンプルユーザーをupsertします。\n' +
+    '\n' +
+    '3. **リクエストの流れ**  \n' +
+    '   Controller → UsersService → PrismaService → クエリヘルパー（`src/prisma/users.ts`など）→ 共有`db`クライアント。  \n' +
+    '   開発時（tsx）ではデコレータメタデータが効かないため、`@Inject`を明示的に使う必要があります。\n' +
+    '\n' +
+    '4. **クエリの書き方**  \n' +
+    '   チェーン形式で条件を組み立て、`.all()` や `.first()` で実行。例：  \n' +
+    '   `db.orm.public.User.select("id", "email").orderBy(...).limit(10).all()`  \n' +
+    '   低レベル制御にはSQLビルダーも利用可能（同一クライアント上）。  \n' +
+    '   クライアントは遅延接続で、シャットダウン時は`OnModuleDestroy`で`db.close()`を呼ぶことを推奨。',
+  sourceIds: [ 'rhb2aztwnt63hidwx4ktmcba' ]
+}
+{
+  rank: 2,
+  distance: 0.2884409335518754,
+  type: 'FINDING',
+  researchId: 'ttji6qo5m74sf983pe2ox1lw',
+  researchTitle: 'RAG Architecture Research',
+  findingId: 'fm3eei406vty67hc5wz78hb5',
+  content: 'Prisma8のDocsLink',
+  sourceIds: [ 'xlgt3hb5dm19aq4fiidd31da' ]
+}
+{
+  rank: 3,
+  distance: 0.3393641405682113,
+  type: 'RESEARCH',
+  researchId: 'a61u0pnx2n30o8wj35id77nb',
+  researchTitle: 'Prisma8について',
+  findingId: undefined,
+  content: 'Prisma8について\n\nAI Test 用にいろいろなものを置くためのResearch',
+  sourceIds: []
+}
+{
+  rank: 4,
+  distance: 0.39406121413510475,
+  type: 'FINDING',
+  researchId: 'ttji6qo5m74sf983pe2ox1lw',
+  researchTitle: 'RAG Architecture Research',
+  findingId: 'h1824fd2apbet760442zsav7',
+  content: 'SDK Link',
+  sourceIds: []
+}
+{
+  rank: 5,
+  distance: 0.42727657938491204,
+  type: 'RESEARCH',
+  researchId: 'ttji6qo5m74sf983pe2ox1lw',
+  researchTitle: 'RAG Architecture Research',
+  findingId: undefined,
+  content: 'RAG Architecture Research\n' +
+    '\n' +
+    'Research into retrieval-augmented generation architectures and knowledge retrieval.',
+  sourceIds: []
+}
+
+########################################
+RELATED_BUT_UNSUPPORTED: テーマは近いがWorkspaceの知識だけでは答えられない
+########################################
+
+========================================
+Query: Prisma ORM 8のパフォーマンスはPrisma ORM 7より速い？
+========================================
+{
+  rank: 1,
+  distance: 0.24190745075164022,
+  type: 'FINDING',
+  researchId: 'a61u0pnx2n30o8wj35id77nb',
+  researchTitle: 'Prisma8について',
+  findingId: 'gpd4860byt3gnnttivw9v3b4',
+  content: '御にはSQLビルダーも利用可能（同一クライアント上）。  \n' +
+    '   クライアントは遅延接続で、シャットダウン時は`OnModuleDestroy`で`db.close()`を呼ぶことを推奨。\n' +
+    '\n' +
+    '5. **デプロイ**  \n' +
+    '   `npm run build` 後に `npx prisma deploy module.ts`（または`npm run deploy`）でPrisma Computeにデプロイ。Prisma Composer（早期アクセス）経由でデータベースとコンピュートサービスがプロビジョニングされ、ローカルの`DATABASE_URL`は使われません。初回リクエストでシードされます。\n' +
+    '\n' +
+    '### 補足・注意点\n' +
+    '- Prisma ORM 8は記事時点でリリース候補版。\n' +
+    '- MongoDBサポートも早期アクセスとして触れられていますが、詳細は限定的で、トランザクション未対応などの注意があります。\n' +
+    '- アップグレードは公式のPrisma ORM 7→8ガイドを参照するよう案内されています。',
+  sourceIds: [ 'rhb2aztwnt63hidwx4ktmcba' ]
+}
+{
+  rank: 2,
+  distance: 0.25433028830614923,
+  type: 'FINDING',
+  researchId: 'ttji6qo5m74sf983pe2ox1lw',
+  researchTitle: 'RAG Architecture Research',
+  findingId: 'fm3eei406vty67hc5wz78hb5',
+  content: 'Prisma8のDocsLink',
+  sourceIds: [ 'xlgt3hb5dm19aq4fiidd31da' ]
+}
+{
+  rank: 3,
+  distance: 0.3080579617543474,
+  type: 'RESEARCH',
+  researchId: 'a61u0pnx2n30o8wj35id77nb',
+  researchTitle: 'Prisma8について',
+  findingId: undefined,
+  content: 'Prisma8について\n\nAI Test 用にいろいろなものを置くためのResearch',
+  sourceIds: []
+}
+{
+  rank: 4,
+  distance: 0.42231954666760463,
+  type: 'FINDING',
+  researchId: 'ttji6qo5m74sf983pe2ox1lw',
+  researchTitle: 'RAG Architecture Research',
+  findingId: 'h1824fd2apbet760442zsav7',
+  content: 'SDK Link',
+  sourceIds: []
+}
+{
+  rank: 5,
+  distance: 0.45987639132024705,
+  type: 'RESEARCH',
+  researchId: 'ttji6qo5m74sf983pe2ox1lw',
+  researchTitle: 'RAG Architecture Research',
+  findingId: undefined,
+  content: 'RAG Architecture Research\n' +
+    '\n' +
+    'Research into retrieval-augmented generation architectures and knowledge retrieval.',
+  sourceIds: []
+}
+
+========================================
+Query: Prisma ORM 8をNext.jsで使うベストプラクティスは？
+========================================
+{
+  rank: 1,
+  distance: 0.23251553100886335,
+  type: 'FINDING',
+  researchId: 'a61u0pnx2n30o8wj35id77nb',
+  researchTitle: 'Prisma8について',
+  findingId: 'gpd4860byt3gnnttivw9v3b4',
+  content: '御にはSQLビルダーも利用可能（同一クライアント上）。  \n' +
+    '   クライアントは遅延接続で、シャットダウン時は`OnModuleDestroy`で`db.close()`を呼ぶことを推奨。\n' +
+    '\n' +
+    '5. **デプロイ**  \n' +
+    '   `npm run build` 後に `npx prisma deploy module.ts`（または`npm run deploy`）でPrisma Computeにデプロイ。Prisma Composer（早期アクセス）経由でデータベースとコンピュートサービスがプロビジョニングされ、ローカルの`DATABASE_URL`は使われません。初回リクエストでシードされます。\n' +
+    '\n' +
+    '### 補足・注意点\n' +
+    '- Prisma ORM 8は記事時点でリリース候補版。\n' +
+    '- MongoDBサポートも早期アクセスとして触れられていますが、詳細は限定的で、トランザクション未対応などの注意があります。\n' +
+    '- アップグレードは公式のPrisma ORM 7→8ガイドを参照するよう案内されています。',
+  sourceIds: [ 'rhb2aztwnt63hidwx4ktmcba' ]
+}
+{
+  rank: 2,
+  distance: 0.2739939188173812,
+  type: 'FINDING',
+  researchId: 'ttji6qo5m74sf983pe2ox1lw',
+  researchTitle: 'RAG Architecture Research',
+  findingId: 'fm3eei406vty67hc5wz78hb5',
+  content: 'Prisma8のDocsLink',
+  sourceIds: [ 'xlgt3hb5dm19aq4fiidd31da' ]
+}
+{
+  rank: 3,
+  distance: 0.3268160572976925,
+  type: 'RESEARCH',
+  researchId: 'a61u0pnx2n30o8wj35id77nb',
+  researchTitle: 'Prisma8について',
+  findingId: undefined,
+  content: 'Prisma8について\n\nAI Test 用にいろいろなものを置くためのResearch',
+  sourceIds: []
+}
+{
+  rank: 4,
+  distance: 0.4270168058808501,
+  type: 'FINDING',
+  researchId: 'ttji6qo5m74sf983pe2ox1lw',
+  researchTitle: 'RAG Architecture Research',
+  findingId: 'h1824fd2apbet760442zsav7',
+  content: 'SDK Link',
+  sourceIds: []
+}
+{
+  rank: 5,
+  distance: 0.4633134308474537,
+  type: 'RESEARCH',
+  researchId: 'ttji6qo5m74sf983pe2ox1lw',
+  researchTitle: 'RAG Architecture Research',
+  findingId: undefined,
+  content: 'RAG Architecture Research\n' +
+    '\n' +
+    'Research into retrieval-augmented generation architectures and knowledge retrieval.',
+  sourceIds: []
+}
+
+========================================
+Query: Prisma Computeの料金はいくら？
+========================================
+{
+  rank: 1,
+  distance: 0.32850887801419393,
+  type: 'RESEARCH',
+  researchId: 'a61u0pnx2n30o8wj35id77nb',
+  researchTitle: 'Prisma8について',
+  findingId: undefined,
+  content: 'Prisma8について\n\nAI Test 用にいろいろなものを置くためのResearch',
+  sourceIds: []
+}
+{
+  rank: 2,
+  distance: 0.3331637686162082,
+  type: 'FINDING',
+  researchId: 'a61u0pnx2n30o8wj35id77nb',
+  researchTitle: 'Prisma8について',
+  findingId: 'gpd4860byt3gnnttivw9v3b4',
+  content: '御にはSQLビルダーも利用可能（同一クライアント上）。  \n' +
+    '   クライアントは遅延接続で、シャットダウン時は`OnModuleDestroy`で`db.close()`を呼ぶことを推奨。\n' +
+    '\n' +
+    '5. **デプロイ**  \n' +
+    '   `npm run build` 後に `npx prisma deploy module.ts`（または`npm run deploy`）でPrisma Computeにデプロイ。Prisma Composer（早期アクセス）経由でデータベースとコンピュートサービスがプロビジョニングされ、ローカルの`DATABASE_URL`は使われません。初回リクエストでシードされます。\n' +
+    '\n' +
+    '### 補足・注意点\n' +
+    '- Prisma ORM 8は記事時点でリリース候補版。\n' +
+    '- MongoDBサポートも早期アクセスとして触れられていますが、詳細は限定的で、トランザクション未対応などの注意があります。\n' +
+    '- アップグレードは公式のPrisma ORM 7→8ガイドを参照するよう案内されています。',
+  sourceIds: [ 'rhb2aztwnt63hidwx4ktmcba' ]
+}
+{
+  rank: 3,
+  distance: 0.34744360057729795,
+  type: 'FINDING',
+  researchId: 'ttji6qo5m74sf983pe2ox1lw',
+  researchTitle: 'RAG Architecture Research',
+  findingId: 'fm3eei406vty67hc5wz78hb5',
+  content: 'Prisma8のDocsLink',
+  sourceIds: [ 'xlgt3hb5dm19aq4fiidd31da' ]
+}
+{
+  rank: 4,
+  distance: 0.440363929422278,
+  type: 'FINDING',
+  researchId: 'ttji6qo5m74sf983pe2ox1lw',
+  researchTitle: 'RAG Architecture Research',
+  findingId: 'h1824fd2apbet760442zsav7',
+  content: 'SDK Link',
+  sourceIds: []
+}
+{
+  rank: 5,
+  distance: 0.46189136523292185,
+  type: 'RESEARCH',
+  researchId: 'ttji6qo5m74sf983pe2ox1lw',
+  researchTitle: 'RAG Architecture Research',
+  findingId: undefined,
+  content: 'RAG Architecture Research\n' +
+    '\n' +
+    'Research into retrieval-augmented generation architectures and knowledge retrieval.',
+  sourceIds: []
+}
+
+========================================
+Query: Prisma ORM 8のセキュリティ上の利点は？
+========================================
+{
+  rank: 1,
+  distance: 0.2523040177861452,
+  type: 'FINDING',
+  researchId: 'a61u0pnx2n30o8wj35id77nb',
+  researchTitle: 'Prisma8について',
+  findingId: 'gpd4860byt3gnnttivw9v3b4',
+  content: '御にはSQLビルダーも利用可能（同一クライアント上）。  \n' +
+    '   クライアントは遅延接続で、シャットダウン時は`OnModuleDestroy`で`db.close()`を呼ぶことを推奨。\n' +
+    '\n' +
+    '5. **デプロイ**  \n' +
+    '   `npm run build` 後に `npx prisma deploy module.ts`（または`npm run deploy`）でPrisma Computeにデプロイ。Prisma Composer（早期アクセス）経由でデータベースとコンピュートサービスがプロビジョニングされ、ローカルの`DATABASE_URL`は使われません。初回リクエストでシードされます。\n' +
+    '\n' +
+    '### 補足・注意点\n' +
+    '- Prisma ORM 8は記事時点でリリース候補版。\n' +
+    '- MongoDBサポートも早期アクセスとして触れられていますが、詳細は限定的で、トランザクション未対応などの注意があります。\n' +
+    '- アップグレードは公式のPrisma ORM 7→8ガイドを参照するよう案内されています。',
+  sourceIds: [ 'rhb2aztwnt63hidwx4ktmcba' ]
+}
+{
+  rank: 2,
+  distance: 0.2766045923702275,
+  type: 'FINDING',
+  researchId: 'ttji6qo5m74sf983pe2ox1lw',
+  researchTitle: 'RAG Architecture Research',
+  findingId: 'fm3eei406vty67hc5wz78hb5',
+  content: 'Prisma8のDocsLink',
+  sourceIds: [ 'xlgt3hb5dm19aq4fiidd31da' ]
+}
+{
+  rank: 3,
+  distance: 0.3265476526342951,
+  type: 'RESEARCH',
+  researchId: 'a61u0pnx2n30o8wj35id77nb',
+  researchTitle: 'Prisma8について',
+  findingId: undefined,
+  content: 'Prisma8について\n\nAI Test 用にいろいろなものを置くためのResearch',
+  sourceIds: []
+}
+{
+  rank: 4,
+  distance: 0.43909842472621907,
+  type: 'FINDING',
+  researchId: 'ttji6qo5m74sf983pe2ox1lw',
+  researchTitle: 'RAG Architecture Research',
+  findingId: 'h1824fd2apbet760442zsav7',
+  content: 'SDK Link',
+  sourceIds: []
+}
+{
+  rank: 5,
+  distance: 0.4647712315511462,
+  type: 'RESEARCH',
+  researchId: 'ttji6qo5m74sf983pe2ox1lw',
+  researchTitle: 'RAG Architecture Research',
+  findingId: undefined,
+  content: 'RAG Architecture Research\n' +
+    '\n' +
+    'Research into retrieval-augmented generation architectures and knowledge retrieval.',
+  sourceIds: []
+}
+
+########################################
+UNRELATED: Workspaceとは明確に無関係
+########################################
+
+========================================
+Query: React Server Componentsのキャッシュ戦略について
+========================================
+{
+  rank: 1,
+  distance: 0.41360508350864067,
+  type: 'FINDING',
+  researchId: 'ttji6qo5m74sf983pe2ox1lw',
+  researchTitle: 'RAG Architecture Research',
+  findingId: 'fm3eei406vty67hc5wz78hb5',
+  content: 'Prisma8のDocsLink',
+  sourceIds: [ 'xlgt3hb5dm19aq4fiidd31da' ]
+}
+{
+  rank: 2,
+  distance: 0.4155341041466014,
+  type: 'RESEARCH',
+  researchId: 'a61u0pnx2n30o8wj35id77nb',
+  researchTitle: 'Prisma8について',
+  findingId: undefined,
+  content: 'Prisma8について\n\nAI Test 用にいろいろなものを置くためのResearch',
+  sourceIds: []
+}
+{
+  rank: 3,
+  distance: 0.4231173225377325,
+  type: 'FINDING',
+  researchId: 'a61u0pnx2n30o8wj35id77nb',
+  researchTitle: 'Prisma8について',
+  findingId: 'gpd4860byt3gnnttivw9v3b4',
+  content: '御にはSQLビルダーも利用可能（同一クライアント上）。  \n' +
+    '   クライアントは遅延接続で、シャットダウン時は`OnModuleDestroy`で`db.close()`を呼ぶことを推奨。\n' +
+    '\n' +
+    '5. **デプロイ**  \n' +
+    '   `npm run build` 後に `npx prisma deploy module.ts`（または`npm run deploy`）でPrisma Computeにデプロイ。Prisma Composer（早期アクセス）経由でデータベースとコンピュートサービスがプロビジョニングされ、ローカルの`DATABASE_URL`は使われません。初回リクエストでシードされます。\n' +
+    '\n' +
+    '### 補足・注意点\n' +
+    '- Prisma ORM 8は記事時点でリリース候補版。\n' +
+    '- MongoDBサポートも早期アクセスとして触れられていますが、詳細は限定的で、トランザクション未対応などの注意があります。\n' +
+    '- アップグレードは公式のPrisma ORM 7→8ガイドを参照するよう案内されています。',
+  sourceIds: [ 'rhb2aztwnt63hidwx4ktmcba' ]
+}
+{
+  rank: 4,
+  distance: 0.42974269196356296,
+  type: 'FINDING',
+  researchId: 'ttji6qo5m74sf983pe2ox1lw',
+  researchTitle: 'RAG Architecture Research',
+  findingId: 'h1824fd2apbet760442zsav7',
+  content: 'SDK Link',
+  sourceIds: []
+}
+{
+  rank: 5,
+  distance: 0.43634107678483947,
+  type: 'RESEARCH',
+  researchId: 'ttji6qo5m74sf983pe2ox1lw',
+  researchTitle: 'RAG Architecture Research',
+  findingId: undefined,
+  content: 'RAG Architecture Research\n' +
+    '\n' +
+    'Research into retrieval-augmented generation architectures and knowledge retrieval.',
+  sourceIds: []
+}
+
+========================================
+Query: KubernetesのHorizontal Pod Autoscalerについて
+========================================
+{
+  rank: 1,
+  distance: 0.4152220983926205,
+  type: 'RESEARCH',
+  researchId: 'a61u0pnx2n30o8wj35id77nb',
+  researchTitle: 'Prisma8について',
+  findingId: undefined,
+  content: 'Prisma8について\n\nAI Test 用にいろいろなものを置くためのResearch',
+  sourceIds: []
+}
+{
+  rank: 2,
+  distance: 0.4444498230804529,
+  type: 'FINDING',
+  researchId: 'ttji6qo5m74sf983pe2ox1lw',
+  researchTitle: 'RAG Architecture Research',
+  findingId: 'fm3eei406vty67hc5wz78hb5',
+  content: 'Prisma8のDocsLink',
+  sourceIds: [ 'xlgt3hb5dm19aq4fiidd31da' ]
+}
+{
+  rank: 3,
+  distance: 0.45895301483732454,
+  type: 'FINDING',
+  researchId: 'a61u0pnx2n30o8wj35id77nb',
+  researchTitle: 'Prisma8について',
+  findingId: 'gpd4860byt3gnnttivw9v3b4',
+  content: '**Prisma公式ブログ記事「How to use Prisma ORM 8 in NestJS: setup, queries, deploy」（著者: Ankur Datta、公開日: 2026年9月24日、Prisma 8シリーズ第15回）の要約です。**\n' +
+    '\n' +
+    'この記事は、Prisma ORM 8（リリース候補版、検証時は `prisma@8.0.0-rc.15` など）をNestJSで利用する新しい方法を、スキャフォールドからクエリ作成、Prisma Computeへのデプロイまでステップバイステップで解説しています。NestJS 11とPrisma Postgresを前提としています。\n' +
+    '\n' +
+    '### 主な変更点（Prisma ORM 7からの進化）\n' +
+    '- Prisma ORM 8ではクライアントが**クラスではなくプレーンなオブジェクト**（`src/prisma/db.ts` からエクスポート）になります。そのため、従来の「`PrismaService` が `PrismaClient` を継承する」パターンは不要・不可能です。\n' +
+    '- `$extends()` は廃止され、クロスカットの振る舞い（ミドルウェア）はクライアント作成時の `middleware` オプションで指定します。\n' +
+    '- 生成されたクライアントパッケージはなくなり、契約（旧schema.prisma）は `src/prisma/contract.json` と `contract.d.ts` として相対パスでインポートされます。\n' +
+    '- 共有クライアントを1つ持ち、`PrismaService` はそれをラップして通常のTypeScript関数として書いたクエリヘルパーを公開する形になります。\n' +
+    '\n' +
+    'これにより、従来の継承パターンで生じていた拡張時の不整合やインポートパス・型エラーの問題が解消されます。',
+  sourceIds: [ 'rhb2aztwnt63hidwx4ktmcba' ]
+}
+{
+  rank: 4,
+  distance: 0.4676921745456163,
+  type: 'FINDING',
+  researchId: 'ttji6qo5m74sf983pe2ox1lw',
+  researchTitle: 'RAG Architecture Research',
+  findingId: 'h1824fd2apbet760442zsav7',
+  content: 'SDK Link',
+  sourceIds: []
+}
+{
+  rank: 5,
+  distance: 0.4690412840981093,
+  type: 'RESEARCH',
+  researchId: 'ttji6qo5m74sf983pe2ox1lw',
+  researchTitle: 'RAG Architecture Research',
+  findingId: undefined,
+  content: 'RAG Architecture Research\n' +
+    '\n' +
+    'Research into retrieval-augmented generation architectures and knowledge retrieval.',
+  sourceIds: []
+}
+
+========================================
+Query: Pythonで画像分類モデルを作る方法
+========================================
+{
+  rank: 1,
+  distance: 0.3897354206358802,
+  type: 'RESEARCH',
+  researchId: 'a61u0pnx2n30o8wj35id77nb',
+  researchTitle: 'Prisma8について',
+  findingId: undefined,
+  content: 'Prisma8について\n\nAI Test 用にいろいろなものを置くためのResearch',
+  sourceIds: []
+}
+{
+  rank: 2,
+  distance: 0.4354656738366999,
+  type: 'FINDING',
+  researchId: 'ttji6qo5m74sf983pe2ox1lw',
+  researchTitle: 'RAG Architecture Research',
+  findingId: 'h1824fd2apbet760442zsav7',
+  content: 'SDK Link',
+  sourceIds: []
+}
+{
+  rank: 3,
+  distance: 0.4405579617647185,
+  type: 'RESEARCH',
+  researchId: 'ttji6qo5m74sf983pe2ox1lw',
+  researchTitle: 'RAG Architecture Research',
+  findingId: undefined,
+  content: 'RAG Architecture Research\n' +
+    '\n' +
+    'Research into retrieval-augmented generation architectures and knowledge retrieval.',
+  sourceIds: []
+}
+{
+  rank: 4,
+  distance: 0.4580631515359592,
+  type: 'FINDING',
+  researchId: 'ttji6qo5m74sf983pe2ox1lw',
+  researchTitle: 'RAG Architecture Research',
+  findingId: 'fm3eei406vty67hc5wz78hb5',
+  content: 'Prisma8のDocsLink',
+  sourceIds: [ 'xlgt3hb5dm19aq4fiidd31da' ]
+}
+{
+  rank: 5,
+  distance: 0.46354876404568224,
+  type: 'FINDING',
+  researchId: 'a61u0pnx2n30o8wj35id77nb',
+  researchTitle: 'Prisma8について',
+  findingId: 'gpd4860byt3gnnttivw9v3b4',
+  content: 'を公開する形になります。\n' +
+    '\n' +
+    'これにより、従来の継承パターンで生じていた拡張時の不整合やインポートパス・型エラーの問題が解消されます。\n' +
+    '\n' +
+    '### セットアップの流れ\n' +
+    '1. **プロジェクト作成**  \n' +
+    '   Node.js 24.11以上（または22.18以上）が必要。  \n' +
+    '   `npm create prisma@latest -- nest-prisma-8 --template nest --provider postgres --yes` でNestJSアプリをスキャフォールド。`src/prisma/contract.prisma`（旧schema）、`db.ts`、`PrismaService`、サンプルの`/users`エンドポイントなどが自動生成されます。\n' +
+    '\n' +
+    '2. **データベース接続と初期化**  \n' +
+    '   `npx create-db@latest` で一時的なPrisma Postgresを作成し、接続文字列をエクスポート後に `npm run db:init` を実行。シードは専用コマンドがなく、最初の`listUsers`呼び出し時にサンプルユーザーをupsertします。\n' +
+    '\n' +
+    '3. **リクエストの流れ**  \n' +
+    '   Controller → UsersService → PrismaService → クエリヘルパー（`src/prisma/users.ts`など）→ 共有`db`クライアント。  \n' +
+    '   開発時（tsx）ではデコレータメタデータが効かないため、`@Inject`を明示的に使う必要があります。\n' +
+    '\n' +
+    '4. **クエリの書き方**  \n' +
+    '   チェーン形式で条件を組み立て、`.all()` や `.first()` で実行。例：  \n' +
+    '   `db.orm.public.User.select("id", "email").orderBy(...).limit(10).all()`  \n' +
+    '   低レベル制御にはSQLビルダーも利用可能（同一クライアント上）。  \n' +
+    '   クライアントは遅延接続で、シャットダウン時は`OnModuleDestroy`で`db.close()`を呼ぶことを推奨。',
+  sourceIds: [ 'rhb2aztwnt63hidwx4ktmcba' ]
+}
+
+========================================
+Query: 大阪から東京まで新幹線で何時間かかる？
+========================================
+{
+  rank: 1,
+  distance: 0.4661179537352911,
+  type: 'FINDING',
+  researchId: 'ttji6qo5m74sf983pe2ox1lw',
+  researchTitle: 'RAG Architecture Research',
+  findingId: 'fm3eei406vty67hc5wz78hb5',
+  content: 'Prisma8のDocsLink',
+  sourceIds: [ 'xlgt3hb5dm19aq4fiidd31da' ]
+}
+{
+  rank: 2,
+  distance: 0.48370376339529475,
+  type: 'FINDING',
+  researchId: 'ttji6qo5m74sf983pe2ox1lw',
+  researchTitle: 'RAG Architecture Research',
+  findingId: 'h1824fd2apbet760442zsav7',
+  content: 'SDK Link',
+  sourceIds: []
+}
+{
+  rank: 3,
+  distance: 0.4868470417365496,
+  type: 'RESEARCH',
+  researchId: 'a61u0pnx2n30o8wj35id77nb',
+  researchTitle: 'Prisma8について',
+  findingId: undefined,
+  content: 'Prisma8について\n\nAI Test 用にいろいろなものを置くためのResearch',
+  sourceIds: []
+}
+{
+  rank: 4,
+  distance: 0.5039612046025539,
+  type: 'FINDING',
+  researchId: 'a61u0pnx2n30o8wj35id77nb',
+  researchTitle: 'Prisma8について',
+  findingId: 'gpd4860byt3gnnttivw9v3b4',
+  content: 'を公開する形になります。\n' +
+    '\n' +
+    'これにより、従来の継承パターンで生じていた拡張時の不整合やインポートパス・型エラーの問題が解消されます。\n' +
+    '\n' +
+    '### セットアップの流れ\n' +
+    '1. **プロジェクト作成**  \n' +
+    '   Node.js 24.11以上（または22.18以上）が必要。  \n' +
+    '   `npm create prisma@latest -- nest-prisma-8 --template nest --provider postgres --yes` でNestJSアプリをスキャフォールド。`src/prisma/contract.prisma`（旧schema）、`db.ts`、`PrismaService`、サンプルの`/users`エンドポイントなどが自動生成されます。\n' +
+    '\n' +
+    '2. **データベース接続と初期化**  \n' +
+    '   `npx create-db@latest` で一時的なPrisma Postgresを作成し、接続文字列をエクスポート後に `npm run db:init` を実行。シードは専用コマンドがなく、最初の`listUsers`呼び出し時にサンプルユーザーをupsertします。\n' +
+    '\n' +
+    '3. **リクエストの流れ**  \n' +
+    '   Controller → UsersService → PrismaService → クエリヘルパー（`src/prisma/users.ts`など）→ 共有`db`クライアント。  \n' +
+    '   開発時（tsx）ではデコレータメタデータが効かないため、`@Inject`を明示的に使う必要があります。\n' +
+    '\n' +
+    '4. **クエリの書き方**  \n' +
+    '   チェーン形式で条件を組み立て、`.all()` や `.first()` で実行。例：  \n' +
+    '   `db.orm.public.User.select("id", "email").orderBy(...).limit(10).all()`  \n' +
+    '   低レベル制御にはSQLビルダーも利用可能（同一クライアント上）。  \n' +
+    '   クライアントは遅延接続で、シャットダウン時は`OnModuleDestroy`で`db.close()`を呼ぶことを推奨。',
+  sourceIds: [ 'rhb2aztwnt63hidwx4ktmcba' ]
+}
+{
+  rank: 5,
+  distance: 0.5460601476435025,
+  type: 'RESEARCH',
+  researchId: 'ttji6qo5m74sf983pe2ox1lw',
+  researchTitle: 'RAG Architecture Research',
+  findingId: undefined,
+  content: 'RAG Architecture Research\n' +
+    '\n' +
+    'Research into retrieval-augmented generation architectures and knowledge retrieval.',
+  sourceIds: []
+}

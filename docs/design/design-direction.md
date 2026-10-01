@@ -1,7 +1,7 @@
 # Design Direction
 
 > Status: Draft
-> Last Updated: 2026-09-28
+> Last Updated: 2026-10-01
 
 ## 1. Design Concept
 
@@ -290,7 +290,8 @@ The direction above remains the design baseline. The current implementation diff
 - The Research detail page places the stored, editable Conclusion before Sources. The intended sequence above places Conclusion after Discussion; this ordering difference remains an implementation gap, not an approved design change.
 - Research list search, status filtering, and sorting are implemented as an inline form above the list. Sidebar-based global search and Related Research are not implemented.
 - Research-scoped AI exploration uses a sticky right-side panel at `lg` and above. Below `lg`, a fixed bottom Ask AI button opens a dialog capped at `90dvh` with scrollable content. The primary Research content remains a single column. The desktop panel is always visible rather than opening on demand; the intended on-demand interaction remains a design gap.
-- Both layouts reuse the AI panel, including New, History, streaming messages, and Supporting sources. They do not share live conversation selection or draft state across layouts. Workspace-wide AI exploration remains planned.
+- Both layouts reuse the AI panel, including New, History, streaming messages, and Supporting sources. They do not share live conversation selection or draft state across layouts. Phase 6 adds same-Workspace knowledge retrieval to these Research conversations; there is no separate Workspace chat destination.
+- Supporting sources can include Sources from other Research items in the same Workspace. The panel refreshes Source metadata after streaming and restores it with history. It displays Source titles and external links without a separate originating-Research label or retrieval-results view. UI copy still describes asking about the current Research, so the broader retrieval scope is not explicitly communicated in the panel.
 - Light and dark palettes are defined, but automatic system-theme selection is not wired up.
 - Research content uses a single-column flow, but responsive navigation and end-to-end accessibility verification remain outstanding.
 

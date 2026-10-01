@@ -1,8 +1,8 @@
 # evidence-atlas Roadmap
 
-> **Last Updated:** 2026-09-28
+> **Last Updated:** 2026-10-01
 
-Current stage: Phase 4 is in progress. Phases 0–3 have established the foundation, product direction, data contract, and design-system baseline. Checked implementation items describe code present in the repository, not a fresh runtime verification or completion of every related product requirement.
+Current stage: Phases 4–6 are complete for their stated baseline scopes; Phase 7 authentication and multi-user behavior remain outstanding. Phases 0–3 have established the foundation, product direction, data contract, and design-system baseline. Checked implementation items describe code present in the repository, not a fresh runtime verification or completion of every related product requirement.
 
 ## 1. Project Overview
 
@@ -180,7 +180,7 @@ Tag renaming and Workspace-level Tag deletion are not implemented. Discovery con
 
 **Status: Complete for the Phase 4 scope.** The overview shows stored Workspace data, the three most recently updated Research items, and Research/Source/Finding/Tag counts. Research lifecycle status and Conclusion can be edited. Findings display supporting Sources and support attaching and removing links; the contract and follow-up migration define cascading deletion of those links when a Finding or Source is deleted.
 
-Research discovery supports case-insensitive title/description search, lifecycle status filtering, and sorting by last update or creation date (newest/oldest). The overview and list use the first returned Workspace; Workspace selection and membership-based access remain Phase 7 work. Research-scoped AI is implemented in Phase 5; Phase 10 verification and the broader Workspace-wide AI workflow remain outstanding.
+Research discovery supports case-insensitive title/description search, lifecycle status filtering, and sorting by last update or creation date (newest/oldest). The overview and list use the first returned Workspace; Workspace selection and membership-based access remain Phase 7 work. Phase 5 provides Research-scoped conversations, and Phase 6 adds Workspace retrieval. The broader product workflow and Phase 10 quality requirements remain outstanding.
 
 **Principle:** The initial experience should make the research
 process understandable without AI.
@@ -188,6 +188,8 @@ process understandable without AI.
 ---
 
 ### Phase 5 — AI Integration
+
+The record below describes the Phase 5 baseline. Phase 6 extends its context and citation boundaries; current behavior is documented in [AI Architecture](../architecture/ai-architecture.md).
 
 **Goal:** Make AI useful by grounding it in the workspace's accumulated knowledge.
 
@@ -241,7 +243,7 @@ Because citation markers remain in persisted AI messages, supporting evidence ca
 
 For Phase 5, AI context remains intentionally Research-scoped and uses knowledge already stored in the Research. Source metadata identifies supporting evidence but does not imply that external source contents were fetched or read by the model. Retrieval infrastructure such as chunking, embeddings, vector search, semantic ranking, external source retrieval, and RAG remains deferred to Phase 6.
 
-The established AI architecture is documented separately in `docs/architecture/ai-architecture.md`. It records the Research-scoped context boundary, provider boundary, streaming interaction, conversation persistence model, source citation contract, application-side citation validation, supporting evidence presentation, and the boundary between Phase 5 grounding and Phase 6 retrieval.
+The AI architecture is documented separately in `docs/architecture/ai-architecture.md`. It now covers both the Phase 5 conversation baseline and Phase 6 Workspace retrieval, including the extended citation-validation and Source-resolution boundaries.
 
 Target concept:
 
@@ -281,7 +283,7 @@ Research AI UI
 
 This status covers the Research-scoped baseline. Citation-to-claim verification, shared live state across desktop/mobile panels, request cancellation, retry/failure-state persistence, and automated AI/UI verification are not implemented. Authentication and public AI usage controls remain later-phase work. See [AI Architecture](../architecture/ai-architecture.md) for the current boundaries.
 
-The Phase 5 implementation establishes the basic grounded AI workflow without introducing retrieval infrastructure prematurely. Phase 6 can extend context selection with retrieval and RAG while retaining the conversation, streaming, persistence, citation-validation, and supporting-evidence boundaries established here.
+The Phase 5 implementation established the grounded AI workflow. Phase 6 extends context selection with retrieval and RAG, retains Research-owned conversations and streaming, and strengthens citation validation before persistence while resolving supporting Sources across the Workspace.
 
 ---
 
@@ -294,13 +296,21 @@ The Phase 5 implementation establishes the basic grounded AI workflow without in
 - [x] Define embedding model
 - [x] Add pgvector
 - [x] Create embedding pipeline
-- [ ] Implement vector search
-- [ ] Combine metadata filtering with vector search
-- [ ] Integrate retrieval with AI responses
-- [ ] Evaluate retrieval quality
-- [ ] Document RAG architecture
+- [x] Implement vector search
+- [x] Combine metadata filtering with vector search
+- [x] Integrate retrieval with AI responses
+- [x] Evaluate retrieval quality
+- [x] Document RAG architecture
 
 RAG should be introduced only after the basic AI workflow is working.
+
+**Status: Complete for the Phase 6 baseline scope.** Research-scoped conversations now combine full current Research context with same-Workspace retrieval over indexed Findings, Conclusions, and Research title/description metadata. The implementation uses 768-dimensional Gemini embeddings, pgvector cosine search, ten candidates, a maximum distance of 0.35, deduplication by knowledge item, and at most five selected items.
+
+Indexing explicitly replaces one Research's chunks and is not automatically synchronized with knowledge edits. Completed AI messages validate citation IDs against Sources linked to supplied Findings; conversation detail resolves cited Sources across the current Workspace. See [AI Architecture](../architecture/ai-architecture.md) for the indexing lifecycle, retrieval flow, citation boundaries, and remaining limitations.
+
+Retrieval evaluation covers direct, paraphrased, related-but-unsupported, and unrelated questions. The manual evaluation recorded in [AI Architecture](../architecture/ai-architecture.md#135-retrieval-evaluation) selected 0.35 as the initial cutoff: tested positive cases were retained and unrelated cases rejected. Separate manual chat E2E checks confirmed a supported answer with a Source and insufficient-evidence responses for related-but-unsupported and unrelated questions. These results are an existing evaluation record, not a new run during this documentation update.
+
+The inspection scripts are not an automated quality gate. The local exploratory log includes distances above the current cutoff and is not a passing regression result for the filtered configuration. Broader evaluation as the corpus grows, representative-chunk selection improvements, automatic indexing, authentication, and public usage controls remain outstanding.
 
 ---
 
@@ -405,7 +415,7 @@ Users who want to operate the application themselves should use their own databa
 - [ ] Responsive UI review
 - [ ] Production build verification
 
-Vitest and Playwright dependencies and scripts are present. No application test suites are currently checked in; installing test runners does not complete the testing tasks.
+Vitest and Playwright dependencies and scripts are present. Phase 6 adds manual retrieval/citation inspection scripts and records manual chat E2E checks. These do not constitute assertion-based application test suites or complete the broader Phase 10 tasks. Automated regression coverage, accessibility/responsive review, and production build verification remain outstanding.
 
 ---
 
@@ -439,7 +449,7 @@ Vitest and Playwright dependencies and scripts are present. No application test 
 - [ ] Complete `docs/usage/`
 - [ ] Document architecture
 - [ ] Document database design
-- [x] Document Phase 5 AI architecture
+- [x] Document Phase 5 AI architecture and Phase 6 RAG architecture
 - [ ] Document local development
 - [ ] Document environment variables
 - [ ] Document Demo behavior

@@ -1,5 +1,5 @@
 import type { GoogleEmbeddingModelOptions } from "@ai-sdk/google";
-import { embedMany } from "ai";
+import { embed, embedMany } from "ai";
 
 import { embeddingModel } from "@/lib/ai/model";
 
@@ -22,4 +22,19 @@ export async function embedTexts(texts: string[]): Promise<number[][]> {
   });
 
   return embeddings;
+}
+
+export async function embedQuery(text: string): Promise<number[]> {
+  const { embedding } = await embed({
+    model: embeddingModel,
+    value: text,
+    providerOptions: {
+      google: {
+        outputDimensionality: EMBEDDING_DIMENSIONS,
+        taskType: "RETRIEVAL_QUERY",
+      } satisfies GoogleEmbeddingModelOptions,
+    },
+  });
+
+  return embedding;
 }

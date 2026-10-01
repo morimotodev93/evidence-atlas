@@ -34,6 +34,7 @@ type ConversationDetail = {
   researchId: string;
   createdAt: string;
   messages: ConversationMessage[];
+  sources?: ResearchAiSource[];
 };
 
 export function ResearchAiPanel({ researchId, sources }: ResearchAiPanelProps) {
@@ -50,11 +51,19 @@ export function ResearchAiPanel({ researchId, sources }: ResearchAiPanelProps) {
   const [isRestoring, setIsRestoring] = useState(false);
   const [restoreError, setRestoreError] = useState<string | null>(null);
 
+  const [conversationSources, setConversationSources] = useState<
+    ResearchAiSource[]
+  >([]);
+
   function getSupportingSources(content: string) {
     const parsed = parseSourceCitations(content);
 
     const supportingSources = parsed.sourceIds
-      .map((sourceId) => sources.find((source) => source.id === sourceId))
+      .map(
+        (sourceId) =>
+          conversationSources.find((source) => source.id === sourceId) ??
+          sources.find((source) => source.id === sourceId),
+      )
       .filter((source): source is ResearchAiSource => source !== undefined);
 
     return {
@@ -87,6 +96,7 @@ export function ResearchAiPanel({ researchId, sources }: ResearchAiPanelProps) {
 
       setConversationId(conversation.id);
       setMessages([]);
+      setConversationSources([]);
       setInput("");
 
       setSendError(null);
@@ -161,6 +171,23 @@ export function ResearchAiPanel({ researchId, sources }: ResearchAiPanelProps) {
           return next;
         });
       }
+
+      try {
+        const conversationResponse = await fetch(
+          `/research/${researchId}/chat/conversations/${conversationId}`,
+        );
+
+        if (!conversationResponse.ok) {
+          throw new Error("Failed to refresh conversation sources.");
+        }
+
+        const conversation: ConversationDetail =
+          await conversationResponse.json();
+
+        setConversationSources(conversation.sources ?? []);
+      } catch (error) {
+        console.error("Failed to refresh conversation sources.", error);
+      }
     } catch (error) {
       console.error(error);
 
@@ -203,6 +230,7 @@ export function ResearchAiPanel({ researchId, sources }: ResearchAiPanelProps) {
       setConversationId(conversation.id);
       setSendError(null);
       setMessages(restoredMessages);
+      setConversationSources(conversation.sources ?? []);
       setRestoreError(null);
       setCreateError(null);
       setInput("");

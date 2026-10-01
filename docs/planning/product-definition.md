@@ -1,7 +1,7 @@
 # Product Definition
 
 > **Status:** Approved
-> **Last Updated:** 2026-09-28
+> **Last Updated:** 2026-10-01
 
 This document defines the approved product concept, target users, and primary use cases for **Evidence Atlas**.
 
@@ -616,7 +616,7 @@ Conclusion
   = What was ultimately determined
 ```
 
-This distinction is important for traceability and future AI retrieval.
+This distinction is important for traceability and AI retrieval.
 
 ---
 
@@ -778,7 +778,7 @@ Conclusion
 
 Discussion is represented by Comment records. Conclusion is optional text on Research, not a separate database model; see the [data model](../architecture/data-model.md).
 
-Vector search is also planned through PostgreSQL and pgvector.
+Phase 6 implements Workspace-scoped vector search through PostgreSQL and pgvector. RetrievalChunk stores derived text and embeddings separately from original research knowledge.
 
 ### 9.3 ORM
 
@@ -790,27 +790,29 @@ The project currently follows the Prisma 8 data contract approach.
 
 The Research-scoped AI integration uses the AI SDK.
 
-The current model boundary configures Google Generative AI with the model ID `gemini-3.6-flash`. Streaming conversations, persisted history, and Source citation presentation are implemented; Workspace-wide retrieval remains planned. See [AI Architecture](../architecture/ai-architecture.md).
+The current model boundary configures Google Generative AI with the model ID `gemini-3.6-flash`. Streaming conversations, persisted history, and Source citation presentation are implemented. Phase 6 supplements current Research context with indexed knowledge from the same Workspace while retaining Research-owned Conversations. See [AI Architecture](../architecture/ai-architecture.md).
 
 ### 9.5 Retrieval
 
-The intended knowledge retrieval architecture is:
+The Phase 6 knowledge retrieval baseline is:
 
 ```text
 Research Knowledge
        ↓
-Embedding
+Chunking + document embeddings
        ↓
 PostgreSQL + pgvector
        ↓
-Vector Search
+Workspace-filtered vector search using the question embedding
+       ↓
+Selected context + current Research + conversation history
        ↓
 AI SDK
        ↓
 Generated Answer
 ```
 
-The exact chunking, embedding, retrieval, ranking, and citation strategies remain undecided.
+The implemented pipeline indexes Findings, Conclusions, and Research title/description metadata. It uses `gemini-embedding-001` with 768-dimensional vectors, chunking, cosine-distance filtering, and deduplication. Indexing is explicit rather than synchronized with edits. Source bodies and discussions are not indexed. Detailed parameters, citation eligibility, and evaluation results are maintained in [AI Architecture](../architecture/ai-architecture.md), rather than duplicated as product requirements.
 
 ### 9.6 Public Demo
 
@@ -842,22 +844,22 @@ The following areas remain intentionally undecided:
 - Finding display styles beyond TEXT and structured JSON data requirements
 - Discussion behavior beyond Research-level Comments, including whether threaded replies are needed
 - Conclusion structure beyond the current optional text on Research
-- Embedding model
-- Chunking strategy
-- Retrieval and ranking strategy
+- Automatic index synchronization and cleanup
+- Retrieval improvements beyond the Phase 6 baseline, including chunk expansion and reranking
+- Broader retrieval/answer evaluation as Workspace knowledge grows
 - Exact Demo interaction model
 - Billing requirements
 - Production deployment architecture
 - Rate limiting implementation
 - Monitoring and observability requirements
 
-The Phase 5 AI provider and citation behavior are no longer open questions.
+The Phase 5 AI provider and the Phase 6 baseline embedding, chunking, retrieval, and citation behavior are established.
 
 The development AI integration uses Google Generative AI with Gemini 3.6 Flash through the AI SDK. Provider-specific configuration is kept behind a minimal model boundary so the application interaction flow does not depend directly on provider-specific APIs.
 
-Source-aware AI answers use application-level citation markers in the form `[source:<source-id>]`. Completed AI responses retain these markers in persisted `Message.content`. At presentation time, citation markers are parsed and their Source IDs are validated against Sources belonging to the current Research. Only valid Research Sources are displayed as supporting evidence.
+Source-aware AI answers use `[source:<source-id>]` markers. Before persistence, recognized markers are restricted to Sources linked to Findings supplied in the current Research and retrieved contexts. Conversation detail resolves retained citations against current Workspace Sources. This checks citation eligibility, not whether a Source proves the generated claim.
 
-This citation behavior applies to the current Research-scoped Phase 5 architecture. Retrieval-specific citation behavior may be extended when retrieval and RAG are designed in Phase 6.
+The live stream and stored answer have different validation timing; the panel refreshes supporting Source metadata after streaming. See [AI Architecture](../architecture/ai-architecture.md) for presentation and restoration limits. Baseline manual retrieval and chat evaluation is recorded there; broader automated evaluation remains future work.
 
 The remaining open decisions should be made when they become necessary for the corresponding implementation phase.
 
@@ -911,18 +913,18 @@ The document should be revised when:
 
 ### Current Implementation Gaps
 
-The intended workflows above remain the product baseline. As of 2026-09-28:
+The intended workflows above remain the product baseline. As of 2026-10-01:
 
 - Research creation and title/description editing, plus Source, Finding, and Comment CRUD, are implemented.
 - Workspace Tags can be created or reused by name, attached to Research, displayed on list/detail pages, and detached without deleting the Tag. Tag renaming, Workspace-level Tag deletion, and Tag filtering are not implemented.
 - Findings display their supporting Sources and allow attaching existing Sources from the same Research or removing links. Findings can still exist without a supporting Source.
 - The detail page displays the stored Conclusion and supports editing or clearing it.
 - Research lifecycle status can be changed to In progress, Completed, or Archived. Completion does not require a Conclusion, and archived Research remains editable.
-- The Workspace overview displays stored data, recent Research, and counts. The Research list supports title/description search, status filtering, and sorting by update or creation date. Both pages use the first returned Workspace; search is limited to this list, not global or semantic retrieval.
+- The Workspace overview displays stored data, recent Research, and counts. The Research list supports title/description search, status filtering, and sorting by update or creation date. Both pages use the first returned Workspace. This list search is separate from semantic retrieval used internally by AI chat; there is no global search interface.
 - Comments attach to Research, not individual Findings; the UC-04 wording about selecting Findings describes discussion context, not a separate Comment relationship. Threaded replies are not modeled.
 - UC-05's broader conclusion workflow has only one optional text field in the current contract; multiple conclusion records and structured links to supporting Findings are not implemented.
 - Research-scoped AI conversations support explicit creation, streaming responses, saved history, and supporting Source links. Desktop uses a side panel; smaller screens use an Ask AI dialog. AI outputs are not automatically promoted into Findings or Conclusions.
-- UC-07's Workspace-wide exploration remains incomplete: AI context is limited to the current Research metadata, Conclusion, Findings, and Source metadata. Comments, other Research, and external Source contents are not retrieved. Citation validation checks Source membership in the Research, not whether the cited Source proves a claim.
+- UC-07 has a Phase 6 baseline: Research conversations combine current knowledge with relevant indexed Findings, Conclusions, and Research metadata from the same Workspace, including other Research items. The broader use case remains incomplete: discussions and external Source bodies are not retrieved, indexing is manual, and citation eligibility does not prove a claim. Research metadata is discovery context rather than supported evidence.
 - Workspace selection, authentication, permission enforcement, related Research discovery, and read-only Demo controls remain pending. AI routes also lack membership checks and public usage controls.
 
 See the [roadmap](roadmap.md) for remaining work. These gaps do not redefine the approved product behavior.

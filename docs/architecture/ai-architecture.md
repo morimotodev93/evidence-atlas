@@ -1,8 +1,8 @@
 # AI Architecture
 
-> **Status:** Implemented baseline
-> **Scope:** Phase 5 — AI Integration
-> **Last Updated:** 2026-09-28
+> **Status:** Implemented Phase 6 baseline
+> **Scope:** Phase 5 AI Integration + Phase 6 Retrieval / RAG
+> **Last Updated:** 2026-10-01
 
 ## 1. Purpose
 
@@ -10,39 +10,33 @@ Evidence Atlas uses AI as an assisting layer over structured research knowledge.
 
 AI does not replace the underlying research process or act as an authoritative source of truth. Answers should remain grounded in accumulated research knowledge and traceable to supporting evidence.
 
-The current AI architecture establishes the basic grounded conversation workflow before retrieval-augmented generation (RAG) is introduced.
+Phase 6 adds Workspace-wide retrieval to the Phase 5 grounded conversation workflow. This document describes code currently present in the repository, including local Phase 6 changes; it does not report a new database or provider verification.
 
 ---
 
 ## 2. Current Architecture
 
-The Phase 5 AI flow is:
+The Phase 6 AI flow is:
 
 ```text
-Research
-   ↓
-Research Context
-   ├── Research metadata
-   ├── Conclusion
-   ├── Findings
-   └── Finding → Sources
-          ↓
-      AI SDK
-          ↓
-   Model Provider
-          ↓
-  Streaming Response
-          ↓
-Source Citation Markers
-          ↓
-Application Validation
-          ↓
-Answer + Supporting Sources
+Workspace knowledge -> Chunking -> Document embeddings -> RetrievalChunk
+                                                              ↓
+User message -> Query embedding -> Workspace cosine search -> Selected context
+                                                              +
+Current Research context + persisted conversation history -----+
+                                                              ↓
+                                                    AI SDK / Model Provider
+                                                              ↓
+                                              Plain text stream -> Research UI
+                                                              ↓
+                                  Completed answer -> Citation validation -> Message
+                                                              ↓
+                                  Workspace Source resolution -> Supporting sources
 ```
 
-AI interaction is currently scoped to a single Research.
+Conversations and the interaction entry point remain scoped to a single Research. Retrieval supplements the full current Research context with related knowledge from the same Workspace, including the current Research when it matches.
 
-Workspace-wide retrieval, embeddings, vector search, and ranking are not part of the Phase 5 architecture.
+The server derives the Workspace ID from the current Research. This restricts retrieval scope but does not authenticate callers or enforce Workspace membership.
 
 ---
 
@@ -53,6 +47,7 @@ The server builds AI context from the current Research.
 The context contains:
 
 - Research ID
+- Workspace ID
 - Research title
 - Research description
 - Research conclusion
@@ -64,7 +59,7 @@ A linked Source is represented using its stored ID, title, and URL.
 
 The Source metadata identifies supporting evidence. Providing a Source title or URL to the model does not imply that the model has read or retrieved the external source content.
 
-The current implementation therefore grounds answers in information already stored inside Evidence Atlas rather than fetching external source contents.
+The current implementation therefore grounds answers in information already stored inside Evidence Atlas rather than fetching external source contents. Retrieved context is supplied separately; its selection and indexing lifecycle are described in Section 13.
 
 ---
 
@@ -80,12 +75,13 @@ The provider receives:
 
 1. the system instructions,
 2. the current Research context,
-3. persisted conversation history,
-4. the new user message.
+3. selected Workspace retrieval context,
+4. persisted conversation history,
+5. the new user message.
 
 The response is streamed back to the client.
 
-The transport is a plain text stream consumed with `fetch` and a stream reader. The server loads persisted history rather than trusting client-supplied message history. It rebuilds Research context on every request; Comments and other Research items are not included. No history truncation or context-size budget is implemented.
+The transport is a plain text stream consumed with `fetch` and a stream reader. The server loads persisted history rather than trusting client-supplied message history. It rebuilds Research context and retrieves Workspace context on every request. Comments are not included. No history truncation or total context-size budget is implemented; the retrieval result limit is not a total prompt budget.
 
 ---
 
@@ -124,16 +120,16 @@ It does not persist AI execution internals such as:
 
 Failed or incomplete AI responses are not intentionally persisted as completed AI Messages.
 
-Specifically, the user message is saved before generation, and an AI message is saved only for a non-empty response with finish reason `stop`. Conversation activity is updated when the user message is accepted. History is ordered by that activity timestamp and previews the first user message. Failed requests can leave persisted user messages even when the client removes the attempted exchange from its display; retry and durable failure-state handling are deferred.
+Specifically, retrieval runs before the user message is saved. The user message is then saved before generation, and an AI message is saved only for a response that is non-empty before citation validation and has finish reason `stop`. Conversation activity is updated when the user message is accepted. History is ordered by that activity timestamp and previews the first user message. Retrieval failures do not save the new user turn; later failures can leave persisted user messages even when the client removes the attempted exchange from its display. Retry and durable failure-state handling are deferred. Retrieval results, distances, and context snapshots are not persisted with messages.
 
 The API surface is:
 
-| Method and route | Behavior |
-| --- | --- |
-| POST `/research/[id]/chat/conversations` | Explicitly create a Conversation; return 201 |
-| GET `/research/[id]/chat/conversations` | List Research conversations by recent activity with previews |
-| GET `/research/[id]/chat/conversations/[conversationId]` | Return the conversation and messages in creation order |
-| POST `/research/[id]/chat` | Accept `conversationId` and a non-empty `message`, persist the user turn, and stream the answer |
+| Method and route                                         | Behavior                                                                                                                    |
+| -------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------- |
+| POST `/research/[id]/chat/conversations`                 | Explicitly create a Conversation; return 201                                                                                |
+| GET `/research/[id]/chat/conversations`                  | List Research conversations by recent activity with previews                                                                |
+| GET `/research/[id]/chat/conversations/[conversationId]` | Return the conversation, messages in creation order, and cited Sources resolved within its Workspace                        |
+| POST `/research/[id]/chat`                               | Accept `conversationId` and a non-empty `message`, retrieve Workspace context, persist the user turn, and stream the answer |
 
 Conversation detail and chat requests match both Conversation ID and Research ID. These checks do not authenticate users or enforce Workspace membership.
 
@@ -153,7 +149,7 @@ For example:
 This finding is supported by the recorded Prisma documentation. [source:abc123]
 ```
 
-The model is instructed to use only Source IDs supplied in the Research context.
+The model is instructed to use only Source IDs supplied in the current Research and Workspace retrieval contexts, and not to reproduce Source URLs in answer text.
 
 A Source should be cited only when it is linked to a Finding that supports the relevant claim.
 
@@ -165,17 +161,19 @@ Research-level Source existence alone is not sufficient evidence for a citation.
 
 ## 7. Citation Persistence and Presentation
 
-Citation markers are stored unchanged inside `Message.content`.
+Before saving a completed AI answer, the server removes recognized citation markers whose IDs are outside the request's allowed Source ID set. Allowed markers remain inside `Message.content`.
 
 ```text
 AI response
    ↓
 Raw response with [source:ID]
    ↓
-Message.content
+validateSourceCitations() against request allowlist
+   ↓
+Message.content with allowed citation markers
 ```
 
-Citation interpretation happens at the presentation boundary rather than during persistence.
+Citation eligibility is checked during persistence; citation parsing and Source presentation remain separate concerns.
 
 ```text
 Message.content
@@ -184,7 +182,7 @@ parseSourceCitations()
    ↓
 Answer text + Source IDs
    ↓
-Validate IDs against current Research Sources
+Resolve IDs against current Workspace Sources
    ↓
 Valid Supporting Sources
    ↓
@@ -201,9 +199,9 @@ It also allows restored conversation history to reconstruct supporting evidence 
 
 Model-generated Source IDs are not trusted directly.
 
-After citation markers are parsed, each Source ID is checked against Sources belonging to the current Research.
+For each request, the server builds an allowlist from Sources linked to Findings in the full current Research context and Sources linked to retrieved `FINDING` results. A Source appearing only in the Research-level Source list or previous conversation history is not automatically eligible.
 
-Only matching Sources are exposed as supporting evidence in the UI.
+`validateSourceCitations()` removes recognized markers outside that set before persistence. It does not verify that an eligible Source supports a particular claim or validate arbitrary prose and links.
 
 Conceptually:
 
@@ -213,10 +211,10 @@ Model citation
        ↓
 Parse Source ID
        ↓
-Does abc123 exist in this Research?
+Is abc123 linked to a Finding supplied for this request?
        ↓
-    yes → display Source
-     no → ignore citation
+    yes → retain marker in persisted answer
+     no → remove marker from persisted answer
 ```
 
 This separates two responsibilities:
@@ -229,9 +227,11 @@ Application
 → validates and presents evidence references
 ```
 
-The application remains responsible for determining whether a referenced Source is a valid Research Source.
+Conversation detail parses persisted AI citation IDs and calls `resolveWorkspaceSources()`. The resolver deduplicates IDs and restricts Sources to Research items in the Conversation's current Workspace, returning a conversation-level `sources` array.
 
-Current validation only checks Source membership in the Research using the Sources supplied to the panel. It does not verify the cited Finding–Source relationship or whether a Source supports the answer's claim; those constraints are prompt instructions. Repeated citation IDs are deduplicated, and unresolved IDs are omitted from Supporting sources. Restored transcripts resolve against current Source metadata rather than a historical snapshot.
+The panel resolves citation IDs against conversation Sources first, then falls back to its current Research Sources. Repeated IDs are deduplicated and unresolved IDs are omitted. Restored transcripts resolve current Source metadata rather than a historical snapshot; history loading does not revalidate the original Finding–Source relationship or migrate older Phase 5 markers.
+
+The outgoing text stream is not filtered by the persistence allowlist. After streaming, the panel fetches conversation detail to refresh Sources, but does not replace live messages with validated persisted text. Live and restored answers can therefore differ. Live Source lookup uses conversation-level Sources and the Research fallback, not the per-request allowlist. A Source refresh failure is logged without failing the completed exchange.
 
 ---
 
@@ -255,18 +255,18 @@ This distinction keeps AI-generated text visually separate from evidence referen
 
 ## 10. Insufficient Evidence
 
-The model is instructed to answer only from the supplied Research context.
+The model is instructed to answer only from the supplied current Research and Workspace retrieval contexts.
 
-This is prompt-based behavior, not a deterministic evidence-sufficiency check. Its reliability still requires evaluation.
+This is prompt-based behavior, not a deterministic evidence-sufficiency check. Phase 6 baseline evaluation confirmed the expected behavior for positive, related-but-unsupported, and unrelated questions, but broader evaluation remains necessary as Workspace knowledge grows.
 
-When the available Research context does not contain enough information, the model should state that limitation rather than filling the gap with unrelated model knowledge.
+When the available contexts do not contain enough information, the model should state that limitation rather than filling the gap with unrelated model knowledge. Semantic similarity alone does not establish answer support.
 
 The expected behavior is:
 
 ```text
 Question
    ↓
-Relevant Research knowledge exists?
+Sufficient knowledge exists in the supplied contexts?
    ├── yes → grounded answer
    └── no  → insufficient-evidence response
 ```
@@ -291,57 +291,108 @@ Component reuse does not mean shared live state: the desktop and dialog panels h
 
 ## 12. Current Boundaries
 
-The Phase 5 architecture intentionally does not implement:
+The Phase 6 baseline does not implement:
 
-- embeddings,
-- vector search,
-- pgvector retrieval,
-- semantic ranking,
-- chunking,
-- workspace-wide retrieval,
+- automatic or incremental index synchronization and stale-chunk cleanup,
+- query rewriting, hybrid retrieval, reranking, or adjacent-chunk expansion,
+- total context/history budgets or persisted retrieval provenance,
 - automatic external Source fetching,
 - automatic conversion of AI responses into Findings or Conclusions,
 - advanced citation verification against external source contents.
 
-Authentication, membership enforcement, rate limiting, and read-only public Demo controls are also absent. The current Research-scoped baseline does not complete the broader Workspace-wide product workflow or establish public-demo readiness.
+Authentication, membership enforcement, rate limiting, and read-only public Demo controls are also absent. Workspace retrieval does not establish public-demo readiness or a standalone Workspace chat workflow; Conversation ownership and routes remain Research-scoped.
 
 These responsibilities require additional retrieval and evidence-processing design and belong to later phases.
 
 ---
 
-## 13. Phase 6 Extension
+## 13. Phase 6 Retrieval / RAG
 
-Phase 6 can extend the context-selection boundary without replacing the basic conversation architecture.
+### 13.1 Indexed Knowledge
 
-Current:
+`indexResearch()` builds candidates from stored knowledge:
 
-```text
-Research
-   ↓
-Build Research Context
-   ↓
-AI
+| Type         | Indexed content                              | Knowledge role                                            | Retrieved Sources        |
+| ------------ | -------------------------------------------- | --------------------------------------------------------- | ------------------------ |
+| `FINDING`    | Finding content                              | Evidence from Workspace knowledge                         | Currently linked Sources |
+| `CONCLUSION` | Research conclusion                          | Synthesized knowledge, not automatically authoritative    | None                     |
+| `RESEARCH`   | Title and description joined by a blank line | Discovery metadata, not equivalent to a supported Finding | None                     |
+
+Empty candidates are skipped. Source bodies, external pages, Comments, Tags, and conversation transcripts are not indexed. Finding and Conclusion embeddings do not prepend Research metadata. A retrieved Conclusion has no direct Source citations unless supporting Findings are also supplied.
+
+### 13.2 Chunking and Embedding
+
+`chunkText()` trims input and leaves short knowledge items intact. Longer text targets **768 estimated tokens** with approximately **96 tokens of overlap**, preferring paragraph boundaries, then sentence punctuation, then character boundaries. Chunks do not cross knowledge-item boundaries, but overlap can begin mid-sentence.
+
+The local estimate weights ASCII characters at one third of a token and non-ASCII characters at 1.5 tokens. It is not the provider tokenizer or a strict provider token limit.
+
+`model.ts` configures `gemini-embedding-001`. `embedTexts()` uses AI SDK `embedMany()` with task type `RETRIEVAL_DOCUMENT`; `embedQuery()` uses `embed()` with `RETRIEVAL_QUERY`. Both request **768 dimensions** from the same embedding model.
+
+### 13.3 Storage and Indexing Lifecycle
+
+Prisma's pgvector extension is registered in control configuration and the database runtime. The contract defines `Embedding768 = pgvector.Vector(768)` and `RetrievalChunk`, mapped to `retrievalChunk`:
+
+| Fields                      | Purpose                                 |
+| --------------------------- | --------------------------------------- |
+| `id`                        | Chunk identity                          |
+| `workspaceId`, `researchId` | Search scope and owning Research        |
+| `sourceType`, `sourceId`    | Knowledge type and identity             |
+| `chunkIndex`                | Position within the knowledge item      |
+| `content`, `embedding`      | Indexed text and 768-dimensional vector |
+| `createdAt`, `updatedAt`    | Row timestamps                          |
+
+For `FINDING`, `sourceId` is the Finding ID; for `CONCLUSION` and `RESEARCH`, it is the Research ID. It is **not** the Source ID used in citation markers. Citation Sources are loaded through Finding–Source links at retrieval time.
+
+The contract defines uniqueness on `(sourceType, sourceId, chunkIndex)` and ordinary indexes on Workspace and Research IDs. It defines neither an HNSW/IVFFlat vector index nor foreign-key relations to the original knowledge records. Migrations exist for the vector extension and retrieval table; their presence does not verify deployment to a particular database.
+
+`indexResearch(researchId)` loads Research and Findings, builds and chunks candidates, generates document embeddings, and checks the embedding count. It then deletes that Research's old chunks and inserts the replacement set in one transaction. Embeddings are generated before deletion, so an embedding failure preserves the previous index. Missing Research returns `null`.
+
+Indexing is explicit:
+
+```sh
+pnpm exec tsx scripts/index-research.ts <research-id>
 ```
 
-Future:
+This requires configured database and AI provider credentials. CRUD does not automatically invoke indexing. Edits require reindexing, and deletions do not automatically clean up chunks. Retrieval skips missing original records during hydration, but existing records can have stale indexed text until reindexed. Research titles and Source links are hydrated from current records, so they can differ from the text's original indexing state. There is no incremental change detection, embedding-version tracking, or concurrent-job coordination.
 
-```text
-Workspace Knowledge
-       ↓
-Retrieval
-       ↓
-Relevant Context
-       ↓
-AI
-       ↓
-Grounded Answer
-       ↓
-Supporting Evidence
-```
+### 13.4 Selection and Hydration
 
-The existing conversation, streaming, citation parsing, validation, and supporting-evidence presentation can remain useful when retrieval is introduced.
+Every chat request embeds the new message directly. Previous turns do not rewrite the retrieval query, so context-dependent follow-up questions can retrieve poorly even though generation receives conversation history.
 
-The primary Phase 6 change is therefore expected around how relevant context is selected, rather than requiring the Phase 5 interaction model to be replaced.
+`searchRetrievalChunks()` filters by Workspace ID, sorts by ascending cosine distance, and applies a candidate limit. Its standalone default is five; `retrieveWorkspaceContext()` requests ten and then:
+
+1. Removes candidates with distance greater than **0.35**.
+2. Deduplicates by `(sourceType, sourceId)`, retaining the closest chunk per knowledge item.
+3. Selects at most **five** items.
+4. Hydrates current Research/Finding records and linked Source metadata.
+
+Results contain type, Research ID/title, indexed chunk content, distance, and Sources. Finding results also include the Finding ID. Conclusions and Research metadata have empty Source arrays.
+
+Selection precedes hydration. Missing records are skipped without backfilling, so fewer than five results can be returned. Only one chunk per item survives; neighboring chunks and full retrieved Findings are not expanded. Multiple chunks of one item can occupy the ten-candidate pool before deduplication. Retrieved items are not deduplicated against the full current Research context.
+
+The cutoff is a heuristic, not a confidence score or evidence-sufficiency check. Metadata filtering currently means Workspace scope; there is no Tag/status filter, hybrid search, type weighting, or reranker. Empty retrieval still allows generation from current Research knowledge. Embedding or database failures fail the request rather than falling back automatically to Research-only generation.
+
+### 13.5 Retrieval Evaluation
+
+The repository includes manual inspection scripts:
+
+| Script                                       | Purpose                                                       |
+| -------------------------------------------- | ------------------------------------------------------------- |
+| `scripts/test-vector-search.ts`              | Inspect query dimensions and raw ranked chunks                |
+| `scripts/test-retrieve-workspace-context.ts` | Inspect filtered, deduplicated, hydrated context              |
+| `scripts/evaluate-retrieval.ts`              | Inspect raw retrieval for four sample queries                 |
+| `scripts/evaluate-retrieval-context.ts`      | Inspect final context for 16 queries in four relevance groups |
+| `scripts/test-source-citations.ts`           | Print citation validation/parsing examples                    |
+
+Context evaluation covers strong positives, weak/paraphrased positives, related-but-unsupported questions, and unrelated questions. These scripts print results for human review; they do not provide assertion-based regression tests or recall/precision metrics. End-to-end generated-answer behavior was evaluated separately through manual chat testing.
+
+The initial maximum cosine distance of **0.35** was selected from the current Phase 6 evaluation set. It preserved the tested strong and weak positive cases while rejecting the tested unrelated cases. Related-but-unsupported questions can still pass the similarity threshold, which is intentional: semantic relevance is not equivalent to answer support. The threshold is an evaluation-derived initial parameter rather than a permanent confidence boundary and should be reevaluated as Workspace knowledge grows.
+
+A separate manual chat E2E evaluation covered three behaviors: a positive question supported by retrieved Workspace evidence, a related-but-unsupported question, and an unrelated question. The positive case produced a grounded answer with a Supporting Source. The related-but-unsupported and unrelated cases produced insufficient-evidence responses rather than unsupported answers.
+
+One known retrieval-quality limitation remains: Finding-level deduplication retains only the closest chunk for each knowledge item. That representative chunk may not contain the most useful answer span even when the correct Finding was retrieved. Adjacent-chunk expansion, reranking, or other chunk-selection improvements are deferred until broader evaluation shows that this limitation materially affects answer quality.
+
+The local `retrieval-evaluation.txt` contains exploratory results, including distances above the current 0.35 cutoff. It should be treated as an exploratory evaluation artifact rather than a passing regression result for the current filtered implementation. The log also illustrates that topic similarity can return link-only Findings or chunks that omit the requested information. Broader threshold calibration and retrieval-quality evaluation remain necessary as the indexed Workspace corpus grows. No database or provider evaluation was rerun specifically for this documentation update.
 
 ---
 
@@ -355,5 +406,5 @@ The AI implementation follows these principles:
 4. **Validate model-generated evidence references in the application.**
 5. **Keep persistence independent from presentation.**
 6. **Persist conversation state rather than provider execution details.**
-7. **Introduce retrieval infrastructure only when its requirements are clear.**
+7. **Keep derived retrieval chunks separate from authoritative knowledge records and evaluate retrieval quality.**
 8. **Prefer incremental architecture over premature abstraction.**

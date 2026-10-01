@@ -1,7 +1,7 @@
 # Data Model
 
-> Status: Core and Research-scoped conversation contracts implemented; RAG remains provisional
-> Last Updated: 2026-09-28
+> Status: Core, Research-scoped conversations, and Phase 6 retrieval storage implemented
+> Last Updated: 2026-10-01
 
 ## 1. Overview
 
@@ -62,6 +62,10 @@ An individual user or AI contribution within a Conversation.
 ### Embedding
 
 An internal vector representation used for semantic retrieval and AI-assisted search.
+
+### RetrievalChunk
+
+A derived text chunk and its embedding, scoped by Workspace and Research IDs. Phase 6 stores embeddings on RetrievalChunk rather than in a separate Embedding model.
 
 ## 3. Entity Responsibilities
 
@@ -136,7 +140,7 @@ Represents a conversation within a specific Research.
 
 - Groups messages into a single conversation.
 - Provides a context for user and AI interactions.
-- Belongs to one Research and uses its current stored knowledge as AI context.
+- Belongs to one Research and uses its current stored knowledge plus selected knowledge from the same Workspace as AI context.
 
 ### Message
 
@@ -152,6 +156,12 @@ Represents a vector representation of research-related content used for semantic
 - Supports semantic search and retrieval.
 - Is generated from existing research-related data.
 - Is managed as internal application data rather than user-facing content.
+
+### RetrievalChunk
+
+- Stores indexed Finding content, Research conclusions, or Research title/description text.
+- Keeps the knowledge item's identity, chunk position, text, and vector together.
+- Is replaceable derived data, separate from original knowledge and conversation history.
 
 ## 4. Entity Relationships
 
@@ -341,12 +351,12 @@ Embeddings are internal representations used to support semantic retrieval and A
 
 - Embeddings are generated from research-related data.
 - They support retrieval rather than representing user-facing content.
-- Embeddings may reference the underlying data from which they were generated.
-- The exact entities that are embedded and the storage structure are defined during AI/RAG architecture and schema design.
+- Phase 6 stores embeddings alongside text in RetrievalChunk, identifying the originating Finding or Research by scalar IDs.
+- These identifiers are not foreign-key relations; synchronization and cleanup require application handling.
 
 ```text
-Research-related data
-  └── Embedding
+Finding / Research conclusion / Research title and description
+  └── RetrievalChunk (content + embedding)
 ```
 
 ### Overall Relationship
@@ -371,7 +381,7 @@ User
                                                  └── Message (USER or AI)
 
 Research-related data
-  └── Embedding
+  └── RetrievalChunk (derived text + embedding; scalar IDs, not foreign keys)
 ```
 
 These relationships establish the conceptual structure of the data model. Section 7 describes their current Prisma contract representation and the areas deferred to later phases.
@@ -455,6 +465,8 @@ Research-related entities such as Source, Finding, and Comment belong to the Wor
 
 Tag belongs directly to a Workspace.
 
+RetrievalChunk stores `workspaceId` and `researchId` for search scoping. The contract does not enforce these IDs through relations. The indexer copies them from Research, and retrieval uses the Workspace derived from the current Research. This is data selection, not membership enforcement.
+
 ### Roles and Ownership
 
 Roles define permissions within their respective boundaries.
@@ -496,6 +508,8 @@ The follow-up migration `migrations/app/20260925T0120_cascade_finding_source_del
 
 The migrations `20260926T0033_add_research_conversation` and `20260926T0039_require_conversation_research` add the Conversation–Research relationship and make `researchId` required. The current contract scopes each Conversation to exactly one Research.
 
+Phase 6 adds `migrations/pgvector/20260601T0000_install_vector_extension/` and `migrations/app/20260929T0308_add_retrieval_chunks/` for vector support and retrieval storage. Their presence records schema evolution, not verification that a particular database has applied them.
+
 The initial schema focuses on the core research workflow and the relationships established in the data model. Implementation-specific details and fields that are not yet required are intentionally deferred.
 
 ### 7.1 Core Entities
@@ -516,8 +530,9 @@ The current contract implements the following models:
 - `ResearchTag`
 - `Conversation`
 - `Message`
+- `RetrievalChunk`
 
-`Conclusion` is stored as `Research.conclusion`; `Embedding` remains a planned concept and has no model in the current contract. Conversation and Message support implemented Research-scoped AI interactions and persisted history.
+`Conclusion` is stored as `Research.conclusion`; embeddings are stored in `RetrievalChunk.embedding`, not a separate Embedding model. Conversation and Message retain Research-scoped ownership while generation can retrieve knowledge across the same Workspace.
 
 ### 7.2 Organization and Workspace
 
@@ -660,15 +675,30 @@ A Conversation has a required `researchId`, an ID, and creation/update timestamp
 
 `Message.authorType` contains `USER` or `AI`; it does not identify an individual User. Neither Conversation nor Message records an authenticated author. Chat routes check the Conversation's Research ID, but do not enforce membership or permissions.
 
-The application explicitly creates Conversations and appends user messages before generation. An AI Message is saved only when generation finishes with `finishReason: "stop"` and non-empty text. Failed or incomplete generation may leave a user message without a saved AI reply. Accepting a user message explicitly updates `Conversation.updatedAt`; history lists use that timestamp and the first user message as a preview.
+The application explicitly creates Conversations, retrieves context, and then appends user messages before generation. Retrieval failure does not save the new user turn. An AI Message is saved only when generation finishes with `finishReason: "stop"` and text that is non-empty before citation validation. Later failures may leave a user message without a saved AI reply. Accepting a user message explicitly updates `Conversation.updatedAt`; history lists use that timestamp and the first user message as a preview.
 
-Messages store visible text, including raw `[source:<source-id>]` citation markers. Citations are not foreign keys or separate records: the UI resolves them against current Research Sources. Context snapshots and execution details are not persisted. See [AI Architecture](ai-architecture.md) for context, streaming, and citation limitations.
+Messages store visible text with allowed `[source:<source-id>]` citation markers. Before saving an AI reply, the server removes recognized markers outside the Sources linked to Findings supplied in that request's current and retrieved contexts. Citations are not foreign keys or separate records. Conversation detail resolves persisted IDs against current Workspace Sources; metadata changes and deletions therefore affect restored supporting evidence. Context snapshots, retrieval results, and execution details are not persisted. See [AI Architecture](ai-architecture.md) for the separate live-stream, persistence, and presentation boundaries.
 
-### 7.11 Embedding
+### 7.11 RetrievalChunk and Embedding
 
-`Embedding` represents an internal vector representation used for semantic search and AI retrieval.
+`RetrievalChunk` maps to `retrievalChunk`. Its embedding uses the contract type `Embedding768 = pgvector.Vector(768)`.
 
-The exact entities to be embedded, storage strategy, and retrieval architecture are deferred to the AI/RAG design phase.
+| Field | Meaning |
+| --- | --- |
+| `id` | UUID chunk identity |
+| `workspaceId`, `researchId` | Scalar scope identifiers |
+| `sourceType` | `FINDING`, `CONCLUSION`, or `RESEARCH` |
+| `sourceId` | Finding ID for `FINDING`; Research ID for the other types |
+| `chunkIndex` | Position within the original knowledge item |
+| `content` | Indexed text snapshot |
+| `embedding` | 768-dimensional vector |
+| `createdAt`, `updatedAt` | Row timestamps |
+
+`sourceId` here is not a citation Source ID. Supporting Sources are obtained from current FindingSource relationships during hydration, not stored on the chunk.
+
+The contract enforces uniqueness on `(sourceType, sourceId, chunkIndex)` and ordinary indexes on `workspaceId` and `researchId`. It has no HNSW/IVFFlat vector index and no foreign keys to Workspace, Research, or Finding. Deleting original knowledge therefore does not cascade to chunks.
+
+Explicit indexing generates embeddings, then transactionally replaces all chunks for one Research. CRUD does not automatically reindex or clean up derived rows. Retrieval skips missing records but can return stale text for edited records until reindexing. The table stores neither embedding model/version metadata nor a historical snapshot of Source links. Chunking, model settings, search selection, and evaluation are defined in [AI Architecture](ai-architecture.md#13-phase-6-retrieval--rag).
 
 ### 7.12 Schema Design Principles
 
@@ -680,7 +710,7 @@ The initial Prisma schema follows these principles:
 - Keep Research as the central entity of the core workflow.
 - Avoid adding fields before their domain purpose is clear.
 - Keep presentation concerns separate from the underlying research data where possible.
-- Defer AI/RAG-specific implementation details until their requirements are defined.
+- Keep derived retrieval data separate from original knowledge and conversation records.
 - Prefer a small, understandable schema over premature generalization.
 
 ## 8. Database Considerations
@@ -756,7 +786,7 @@ In particular:
 
 - Conclusion remains part of Research unless independent lifecycle or metadata becomes necessary.
 - Finding data is kept flexible while its presentation requirements are explored.
-- AI/RAG-specific storage details are deferred until their requirements are defined.
+- RetrievalChunk provides the Phase 6 storage baseline; additional provenance, synchronization, and indexing structures should follow demonstrated needs.
 
 ### 8.6 Evolution
 
@@ -778,10 +808,10 @@ This document defines the current data model and database design for the Evidenc
 
 The core entities, responsibilities, relationships, ownership boundaries, and initial Prisma schema design have been established.
 
-The repository contains the Prisma contract, generated artifacts, baseline and FindingSource cascade migrations, and development seed data. Database-backed Research, Source, Finding, and Comment operations, Finding–Source link management, lifecycle controls, Conclusion editing, and Tag creation, attachment, display, and detachment are implemented. The overview and Research discovery controls use stored Workspace data. Phases 2 and 4 are recorded as complete for their scopes in the [roadmap](../planning/roadmap.md); this document review does not re-verify the state of a running database.
+The repository contains the Prisma contract, generated artifacts, migrations for core data, FindingSource cascades, Research-owned conversations, and pgvector retrieval storage, plus development seed data. Database-backed Research, Source, Finding, and Comment operations, Finding–Source link management, lifecycle controls, Conclusion editing, and Tag creation, attachment, display, and detachment are implemented. The overview and Research discovery controls use stored Workspace data. Phases 2 and 4–6 are recorded as complete for their baseline scopes in the [roadmap](../planning/roadmap.md); this document review does not re-verify a running database.
 
 Remaining integration work includes Workspace selection and enforcement of user and workspace access boundaries. Tag renaming, Workspace-level Tag deletion, and Tag filtering are also not implemented. Schema support should not be read as completion of these application features.
 
-Phase 5 adds required Research ownership for Conversations and persisted user/AI Messages. This supersedes the earlier standalone Conversation description; Workspace-wide exploration remains a product goal rather than an implemented conversation scope.
+Phase 5 adds required Research ownership for Conversations and persisted user/AI Messages. Phase 6 adds same-Workspace retrieval without changing Conversation ownership. A standalone Workspace conversation model is not implemented.
 
-Details that are not yet required by the MVP, such as advanced AI/RAG storage, detailed indexing strategies, and future extensions, remain intentionally deferred.
+Automatic index synchronization, vector-index tuning, richer provenance, and future storage extensions remain deferred. The existing index and retrieval pipeline are described in [AI Architecture](ai-architecture.md).

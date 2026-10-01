@@ -1,7 +1,7 @@
 # Design System
 
 > **Status:** Design baseline; implementation gaps noted below
-> **Last Updated:** 2026-09-24
+> **Last Updated:** 2026-10-01
 
 This document defines the intended design system. Statements about required behavior are not a claim that every screen has been verified against it.
 
@@ -260,6 +260,14 @@ Visual hierarchy should help users quickly understand:
 Typography, spacing, color, layout, and component styling should reinforce the information hierarchy rather than compete with the content.
 
 Content should remain clear and readable even when decorative elements are reduced or removed.
+
+### Current AI Answer Presentation
+
+The Research AI panel separates user and AI messages with role labels and presents supporting evidence under **Supporting sources**. Recognized citation markers are removed from displayed answer text; resolvable Sources appear as titles linked to their stored URLs. The evidence section is omitted when no Sources resolve.
+
+Phase 6 allows these Sources to come from other Research items in the same Workspace. After streaming, the panel refreshes Source metadata; history restoration loads messages and Sources together. Source titles and links are currently the only evidence labels: originating Research and retrieval distances are not displayed. Generated answers remain separate from editable Research knowledge.
+
+This describes the current presentation, not a claim of citation correctness or complete accessibility verification. Source eligibility, live-stream differences, and restoration behavior are documented in [AI Architecture](../architecture/ai-architecture.md).
 
 ## 17. Light / Dark Verification
 

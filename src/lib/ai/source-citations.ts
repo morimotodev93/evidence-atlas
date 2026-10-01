@@ -16,3 +16,12 @@ export function parseSourceCitations(content: string) {
     sourceIds: [...new Set(sourceIds)],
   };
 }
+
+export function validateSourceCitations(
+  content: string,
+  allowedSourceIds: ReadonlySet<string>,
+) {
+  return content.replace(SOURCE_CITATION_PATTERN, (marker, sourceId: string) =>
+    allowedSourceIds.has(sourceId) ? marker : "",
+  );
+}
