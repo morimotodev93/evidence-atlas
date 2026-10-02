@@ -5,6 +5,9 @@ import { formatDate } from "@/lib/date";
 import { db } from "@/prisma/db";
 import Link from "next/link";
 
+import { requireUser } from "@/auth/requireUser";
+import { requireCurrentWorkspace } from "@/workspace/requireCurrentWorkspace";
+
 type ResearchPageProps = {
   searchParams: Promise<{
     query?: string;
@@ -31,15 +34,12 @@ export default async function Research({ searchParams }: ResearchPageProps) {
     ? sort
     : "updated";
 
-  const workspace = await db.orm.public.Workspace.all().then(
-    (workspaces) => workspaces[0],
-  );
+  const user = await requireUser();
+  const workspace = await requireCurrentWorkspace(user.id);
 
-  const researches = workspace
-    ? await db.orm.public.Research.where({
-        workspaceId: workspace.id,
-      }).all()
-    : [];
+  const researches = await db.orm.public.Research.where({
+    workspaceId: workspace.id,
+  }).all();
 
   const filteredResearches = researches.filter((research) => {
     const matchesSearch =
@@ -106,14 +106,12 @@ export default async function Research({ searchParams }: ResearchPageProps) {
             </h1>
           </div>
 
-          {workspace && (
-            <Link
-              href="/research/new"
-              className={buttonVariants({ variant: "default" })}
-            >
-              New Research
-            </Link>
-          )}
+          <Link
+            href="/research/new"
+            className={buttonVariants({ variant: "default" })}
+          >
+            New Research
+          </Link>
         </header>
         {/* Search Bar */}
         <form

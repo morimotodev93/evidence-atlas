@@ -318,16 +318,16 @@ The inspection scripts are not an automated quality gate. The local exploratory 
 
 **Goal:** Establish the SaaS-oriented multi-user model.
 
-Authentication ✅
-User integration ✅
-Workspace membership ✅
-Research authorization ✅
-Current Workspace ← 次
-Workspace selector
-Organization management
-Membership management
-Role permissions
-Access-control tests
+- [x] Define authentication requirements
+- [x] Select authentication solution
+- [x] Implement authentication
+- [x] Integrate User records with authentication and account management
+- [ ] Implement Organization management
+- [ ] Implement Membership management
+- [ ] Implement Workspace permissions
+- [ ] Define authorization rules
+- [ ] Protect server-side resources
+- [ ] Test access control
 
 User, Organization, Membership, and WorkspaceMembership models and sample records already exist from Phase 2. The tasks above refer to application behavior and access control. Research and Conclusion updates, Comment/Finding/Source updates and deletions, and FindingSource attachment/detachment now require an authenticated user with membership in the Research's Workspace before writing. This is partial enforcement; comprehensive access control and role-specific rules remain unfinished.
 
