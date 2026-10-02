@@ -318,18 +318,18 @@ The inspection scripts are not an automated quality gate. The local exploratory 
 
 **Goal:** Establish the SaaS-oriented multi-user model.
 
-- [ ] Define authentication requirements
-- [ ] Select authentication solution
-- [ ] Implement authentication
-- [ ] Integrate User records with authentication and account management
-- [ ] Implement Organization management
-- [ ] Implement Membership management
-- [ ] Implement Workspace permissions
-- [ ] Define authorization rules
-- [ ] Protect server-side resources
-- [ ] Test access control
+Authentication ✅
+User integration ✅
+Workspace membership ✅
+Research authorization ✅
+Current Workspace ← 次
+Workspace selector
+Organization management
+Membership management
+Role permissions
+Access-control tests
 
-User, Organization, Membership, and WorkspaceMembership models and sample records already exist from Phase 2. The tasks above refer to application behavior and access control. Current reads and writes do not enforce these membership boundaries.
+User, Organization, Membership, and WorkspaceMembership models and sample records already exist from Phase 2. The tasks above refer to application behavior and access control. Research and Conclusion updates, Comment/Finding/Source updates and deletions, and FindingSource attachment/detachment now require an authenticated user with membership in the Research's Workspace before writing. This is partial enforcement; comprehensive access control and role-specific rules remain unfinished.
 
 Target structure:
 
@@ -415,7 +415,7 @@ Users who want to operate the application themselves should use their own databa
 - [ ] Responsive UI review
 - [ ] Production build verification
 
-Vitest and Playwright dependencies and scripts are present. Phase 6 adds manual retrieval/citation inspection scripts and records manual chat E2E checks. These do not constitute assertion-based application test suites or complete the broader Phase 10 tasks. Automated regression coverage, accessibility/responsive review, and production build verification remain outstanding.
+Vitest and Playwright dependencies and scripts are present. Phase 6 adds manual retrieval/citation inspection scripts and records manual chat E2E checks. Vitest now covers access control for the ten mutation actions described in Phase 7, using mocked authentication and database operations: missing Research, non-membership, unauthenticated requests, unexpected Research lookup failures, and authorized writes. Broader automated regression coverage, accessibility/responsive review, and production build verification remain outstanding.
 
 ---
 

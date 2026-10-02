@@ -2,6 +2,11 @@
 
 import { redirect } from "next/navigation";
 
+import {
+  requireResearchAccess,
+  ResearchAccessError,
+} from "@/auth/requireResearchAccess";
+import { requireUser } from "@/auth/requireUser";
 import { db } from "@/prisma/db";
 
 export type AttachFindingSourceState = {
@@ -29,6 +34,18 @@ export async function attachFindingSource(
     return {
       error: "Finding not found.",
     };
+  }
+
+  const user = await requireUser();
+
+  try {
+    await requireResearchAccess(user.id, finding.researchId);
+  } catch (error) {
+    if (error instanceof ResearchAccessError) {
+      return { error: "Research not found." };
+    }
+
+    throw error;
   }
 
   const source = await db.orm.public.Source.where({

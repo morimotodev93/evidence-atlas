@@ -2,6 +2,11 @@
 
 import { redirect } from "next/navigation";
 
+import {
+  requireResearchAccess,
+  ResearchAccessError,
+} from "@/auth/requireResearchAccess";
+import { requireUser } from "@/auth/requireUser";
 import { db } from "@/prisma/db";
 import { conclusionSchema } from "@/types/research/conclusion";
 
@@ -28,6 +33,19 @@ export async function updateConclusion(
       error: result.error.issues[0]?.message ?? "Invalid conclusion.",
     };
   }
+
+  const user = await requireUser();
+
+  try {
+    await requireResearchAccess(user.id, id);
+  } catch (error) {
+    if (error instanceof ResearchAccessError) {
+      return { error: "Research not found." };
+    }
+
+    throw error;
+  }
+
   const research = await db.orm.public.Research.where({
     id,
   }).update({

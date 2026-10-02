@@ -23,6 +23,12 @@ import { EditSourceDialog } from "./_components/edit-source-dialog";
 import { ResearchAiMobileDialog } from "./_components/research-ai-mobile-dialog";
 import { ResearchAiPanel } from "./_components/research-ai-panel";
 
+import {
+  requireResearchAccess,
+  ResearchAccessError,
+} from "@/auth/requireResearchAccess";
+import { requireUser } from "@/auth/requireUser";
+
 type ResearchDetailPageProps = {
   params: Promise<{
     id: string;
@@ -32,12 +38,20 @@ type ResearchDetailPageProps = {
 export default async function ResearchDetailPage({
   params,
 }: ResearchDetailPageProps) {
-  const { id } = await params;
+  const { id: researchId } = await params;
 
-  const research = await db.orm.public.Research.where({ id }).first();
+  const user = await requireUser();
 
-  if (!research) {
-    notFound();
+  let research;
+
+  try {
+    research = await requireResearchAccess(user.id, researchId);
+  } catch (error) {
+    if (error instanceof ResearchAccessError) {
+      notFound();
+    }
+
+    throw error;
   }
 
   const sources = await db.orm.public.Source.where({
@@ -143,7 +157,7 @@ export default async function ResearchDetailPage({
                 />
               </Badge>
             ))}
-            <AddTagDialog researchId={id} />
+            <AddTagDialog researchId={research.id} />
           </div>
 
           <div className="mt-4 flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground">
@@ -192,7 +206,7 @@ export default async function ResearchDetailPage({
                     {sources.length} sources
                   </span>
 
-                  <AddSourceDialog researchId={id} />
+                  <AddSourceDialog researchId={research.id} />
                 </div>
               </div>
 
@@ -256,7 +270,7 @@ export default async function ResearchDetailPage({
                     {findings.length} findings
                   </span>
 
-                  <AddFindingDialog researchId={id} />
+                  <AddFindingDialog researchId={research.id} />
                 </div>
               </div>
 
@@ -385,7 +399,7 @@ export default async function ResearchDetailPage({
 
               {/* Add comment */}
               <div className="mt-4 flex justify-end">
-                <AddCommentDialog researchId={id} />
+                <AddCommentDialog researchId={research.id} />
               </div>
 
               <div className="mt-4 space-y-3">

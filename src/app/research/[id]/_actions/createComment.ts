@@ -1,5 +1,6 @@
 "use server";
 
+import { requireUser } from "@/auth/requireUser";
 import { redirect } from "next/navigation";
 
 import { db } from "@/prisma/db";
@@ -26,6 +27,8 @@ export async function createComment(
     };
   }
 
+  const user = await requireUser();
+
   const research = await db.orm.public.Research.where({
     id: researchId,
   }).first();
@@ -39,7 +42,7 @@ export async function createComment(
   try {
     await db.orm.public.Comment.create({
       researchId: research.id,
-      userId: research.createdById,
+      userId: user.id,
       content: result.data.content,
     });
   } catch {
