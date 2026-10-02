@@ -5,17 +5,70 @@
 // ============================================================
 
 model User {
-  id       String  @id @default(cuid(2))
-  email    String  @unique
-  username String?
-  name     String?
+  id            String    @id @default(cuid(2))
+  email         String    @unique
+  emailVerified DateTime?
+  username      String?
+  name          String?
+  image         String?
 
-  memberships         Membership[]
+  accounts             Account[]
+  sessions             Session[]
+  memberships          Membership[]
   workspaceMemberships WorkspaceMembership[]
-  researches          Research[]
-  comments            Comment[]
+  researches           Research[]
+  comments             Comment[]
 
   @@map("user")
+}
+
+model Account {
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+
+  refresh_token String?
+  access_token  String?
+  expires_at    Int?
+  token_type    String?
+  scope         String?
+  id_token      String?
+  session_state String?
+
+  user User @relation(
+    fields: [userId],
+    references: [id],
+    onDelete: Cascade
+  )
+
+  @@id([provider, providerAccountId])
+  @@index([userId])
+  @@map("account")
+}
+
+model Session {
+  sessionToken String   @id
+  userId       String
+  expires      DateTime
+
+  user User @relation(
+    fields: [userId],
+    references: [id],
+    onDelete: Cascade
+  )
+
+  @@index([userId])
+  @@map("session")
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@id([identifier, token])
+  @@map("verificationToken")
 }
 
 model Organization {

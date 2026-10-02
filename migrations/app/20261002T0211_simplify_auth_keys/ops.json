@@ -1,0 +1,60 @@
+[
+  {
+    "id": "auth.account-primary-key",
+    "label": "Replace account primary key",
+    "summary": "Remove the unused account id column and use provider/providerAccountId as the primary key",
+    "operationClass": "destructive",
+    "target": {
+      "id": "postgres"
+    },
+    "precheck": [],
+    "execute": [
+      {
+        "description": "drop account id primary key",
+        "sql": "ALTER TABLE \"public\".\"account\" DROP CONSTRAINT \"account_pkey\""
+      },
+      {
+        "description": "drop redundant account provider unique constraint",
+        "sql": "ALTER TABLE \"public\".\"account\" DROP CONSTRAINT \"account_provider_providerAccountId_key\""
+      },
+      {
+        "description": "drop unused account id column",
+        "sql": "ALTER TABLE \"public\".\"account\" DROP COLUMN \"id\""
+      },
+      {
+        "description": "add account composite primary key",
+        "sql": "ALTER TABLE \"public\".\"account\" ADD PRIMARY KEY (\"provider\", \"providerAccountId\")"
+      }
+    ],
+    "postcheck": []
+  },
+  {
+    "id": "auth.session-primary-key",
+    "label": "Replace session primary key",
+    "summary": "Remove the unused session id column and use sessionToken as the primary key",
+    "operationClass": "destructive",
+    "target": {
+      "id": "postgres"
+    },
+    "precheck": [],
+    "execute": [
+      {
+        "description": "drop session id primary key",
+        "sql": "ALTER TABLE \"public\".\"session\" DROP CONSTRAINT \"session_pkey\""
+      },
+      {
+        "description": "drop redundant session token unique constraint",
+        "sql": "ALTER TABLE \"public\".\"session\" DROP CONSTRAINT \"session_sessionToken_key\""
+      },
+      {
+        "description": "drop unused session id column",
+        "sql": "ALTER TABLE \"public\".\"session\" DROP COLUMN \"id\""
+      },
+      {
+        "description": "add session token primary key",
+        "sql": "ALTER TABLE \"public\".\"session\" ADD PRIMARY KEY (\"sessionToken\")"
+      }
+    ],
+    "postcheck": []
+  }
+]

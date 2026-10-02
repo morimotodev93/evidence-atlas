@@ -15,6 +15,7 @@
   },
   "dependencies": {
     "@ai-sdk/google": "^3.0.127",
+    "@auth/kysely-adapter": "1.11.3",
     "@base-ui/react": "^1.8.0",
     "@hookform/resolvers": "^5.9.1",
     "@prisma/orm-extension-pgvector": "8.0.0-rc.12",
@@ -24,8 +25,10 @@
     "clsx": "^2",
     "cn": "^0.3.0",
     "dotenv": "^17.4.2",
+    "kysely": "0.28.17",
     "lucide-react": "^0",
     "next": "16.3.4",
+    "next-auth": "5.0.0-beta.32",
     "pg": "^8",
     "react": "19.2.8",
     "react-dom": "19.2.8",
@@ -52,5 +55,5 @@
     "typescript": "^6.0.3",
     "vitest": "^3"
   },
-  "packageManager": "pnpm@12.6.0"
+  "packageManager": "pnpm@12.8.1"
 }
