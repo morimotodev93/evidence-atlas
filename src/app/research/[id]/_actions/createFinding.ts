@@ -2,6 +2,11 @@
 
 import { redirect } from "next/navigation";
 
+import {
+  requireResearchAccess,
+  ResearchAccessError,
+} from "@/auth/requireResearchAccess";
+import { requireUser } from "@/auth/requireUser";
 import { db } from "@/prisma/db";
 import { findingSchema } from "@/types/research/finding";
 
@@ -26,14 +31,20 @@ export async function createFinding(
     };
   }
 
-  const research = await db.orm.public.Research.where({
-    id: researchId,
-  }).first();
+  const user = await requireUser();
 
-  if (!research) {
-    return {
-      error: "Research not found.",
-    };
+  let research;
+
+  try {
+    research = await requireResearchAccess(user.id, researchId);
+  } catch (error) {
+    if (error instanceof ResearchAccessError) {
+      return {
+        error: "Research not found.",
+      };
+    }
+
+    throw error;
   }
 
   try {

@@ -1,5 +1,11 @@
 import { streamText, type ModelMessage } from "ai";
 
+import { auth } from "@/auth";
+import {
+  requireResearchAccess,
+  ResearchAccessError,
+} from "@/auth/requireResearchAccess";
+
 import { researchModel } from "@/lib/ai/model";
 import { buildResearchContext } from "@/lib/ai/research-context";
 import { retrieveWorkspaceContext } from "@/lib/ai/retrieve-workspace-context";
@@ -13,7 +19,26 @@ type RouteContext = {
 };
 
 export async function POST(request: Request, { params }: RouteContext) {
-  const { id } = await params;
+  const { id: researchId } = await params;
+
+  const session = await auth();
+
+  if (!session?.user?.id) {
+    return Response.json({ error: "Unauthorized." }, { status: 401 });
+  }
+
+  let research;
+
+  try {
+    research = await requireResearchAccess(session.user.id, researchId);
+  } catch (error) {
+    if (error instanceof ResearchAccessError) {
+      return Response.json({ error: "Research not found." }, { status: 404 });
+    }
+
+    throw error;
+  }
+
   const body: unknown = await request.json();
 
   if (
@@ -37,21 +62,21 @@ export async function POST(request: Request, { params }: RouteContext) {
 
   const conversation = await db.orm.public.Conversation.where({
     id: conversationId,
-    researchId: id,
+    researchId: research.id,
   }).first();
 
   if (!conversation) {
     return Response.json({ error: "Conversation not found." }, { status: 404 });
   }
 
-  const context = await buildResearchContext(id);
+  const context = await buildResearchContext(research.id);
 
   if (!context) {
     return Response.json({ error: "Research not found." }, { status: 404 });
   }
 
   const retrievalContext = await retrieveWorkspaceContext(
-    context.research.workspaceId,
+    research.workspaceId,
     message,
   );
 
@@ -80,7 +105,7 @@ export async function POST(request: Request, { params }: RouteContext) {
 
   await db.orm.public.Conversation.where({
     id: conversationId,
-    researchId: id,
+    researchId: research.id,
   }).update({
     updatedAt: Temporal.Now.instant(),
   });

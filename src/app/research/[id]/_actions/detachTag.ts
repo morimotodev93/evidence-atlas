@@ -2,6 +2,12 @@
 
 import { redirect } from "next/navigation";
 
+import {
+  requireResearchAccess,
+  ResearchAccessError,
+} from "@/auth/requireResearchAccess";
+import { requireUser } from "@/auth/requireUser";
+
 import { db } from "@/prisma/db";
 
 export type DetachTagState = {
@@ -12,14 +18,20 @@ export async function detachTag(
   researchId: string,
   tagId: string,
 ): Promise<DetachTagState> {
-  const research = await db.orm.public.Research.where({
-    id: researchId,
-  }).first();
+  const user = await requireUser();
 
-  if (!research) {
-    return {
-      error: "Research not found.",
-    };
+  let research;
+
+  try {
+    research = await requireResearchAccess(user.id, researchId);
+  } catch (error) {
+    if (error instanceof ResearchAccessError) {
+      return {
+        error: "Research not found.",
+      };
+    }
+
+    throw error;
   }
 
   const researchTag = await db.orm.public.ResearchTag.where({

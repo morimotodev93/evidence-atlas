@@ -1,7 +1,12 @@
 "use server";
 
-import { requireUser } from "@/auth/requireUser";
 import { redirect } from "next/navigation";
+
+import {
+  requireResearchAccess,
+  ResearchAccessError,
+} from "@/auth/requireResearchAccess";
+import { requireUser } from "@/auth/requireUser";
 
 import { db } from "@/prisma/db";
 import { commentSchema } from "@/types/research/comment";
@@ -29,14 +34,18 @@ export async function createComment(
 
   const user = await requireUser();
 
-  const research = await db.orm.public.Research.where({
-    id: researchId,
-  }).first();
+  let research;
 
-  if (!research) {
-    return {
-      error: "Research not found.",
-    };
+  try {
+    research = await requireResearchAccess(user.id, researchId);
+  } catch (error) {
+    if (error instanceof ResearchAccessError) {
+      return {
+        error: "Research not found.",
+      };
+    }
+
+    throw error;
   }
 
   try {

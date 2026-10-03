@@ -2,6 +2,12 @@
 
 import { redirect } from "next/navigation";
 
+import {
+  requireResearchAccess,
+  ResearchAccessError,
+} from "@/auth/requireResearchAccess";
+import { requireUser } from "@/auth/requireUser";
+
 import { db } from "@/prisma/db";
 import { tagSchema } from "@/types/research/tag";
 
@@ -24,14 +30,20 @@ export async function createTag(
     };
   }
 
-  const research = await db.orm.public.Research.where({
-    id: researchId,
-  }).first();
+  const user = await requireUser();
 
-  if (!research) {
-    return {
-      error: "Research not found.",
-    };
+  let research;
+
+  try {
+    research = await requireResearchAccess(user.id, researchId);
+  } catch (error) {
+    if (error instanceof ResearchAccessError) {
+      return {
+        error: "Research not found.",
+      };
+    }
+
+    throw error;
   }
 
   try {

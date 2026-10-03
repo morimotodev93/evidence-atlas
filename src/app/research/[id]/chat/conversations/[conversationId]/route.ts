@@ -1,3 +1,9 @@
+import { auth } from "@/auth";
+import {
+  requireResearchAccess,
+  ResearchAccessError,
+} from "@/auth/requireResearchAccess";
+
 import { resolveWorkspaceSources } from "@/lib/ai/resolve-workspace-sources";
 import { parseSourceCitations } from "@/lib/ai/source-citations";
 import { db } from "@/prisma/db";
@@ -10,23 +16,33 @@ type RouteContext = {
 };
 
 export async function GET(_request: Request, { params }: RouteContext) {
-  const { id, conversationId } = await params;
+  const { id: researchId, conversationId } = await params;
+
+  const session = await auth();
+
+  if (!session?.user?.id) {
+    return Response.json({ error: "Unauthorized." }, { status: 401 });
+  }
+
+  let research;
+
+  try {
+    research = await requireResearchAccess(session.user.id, researchId);
+  } catch (error) {
+    if (error instanceof ResearchAccessError) {
+      return Response.json({ error: "Research not found." }, { status: 404 });
+    }
+
+    throw error;
+  }
 
   const conversation = await db.orm.public.Conversation.where({
     id: conversationId,
-    researchId: id,
+    researchId: research.id,
   }).first();
 
   if (!conversation) {
     return Response.json({ error: "Conversation not found." }, { status: 404 });
-  }
-
-  const research = await db.orm.public.Research.where({
-    id: conversation.researchId,
-  }).first();
-
-  if (!research) {
-    return Response.json({ error: "Research not found." }, { status: 404 });
   }
 
   const messages = await db.orm.public.Message.where({

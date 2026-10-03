@@ -1,3 +1,8 @@
+import { auth } from "@/auth";
+import {
+  requireResearchAccess,
+  ResearchAccessError,
+} from "@/auth/requireResearchAccess";
 import { db } from "@/prisma/db";
 
 type RouteContext = {
@@ -7,12 +12,24 @@ type RouteContext = {
 };
 
 export async function GET(_request: Request, { params }: RouteContext) {
-  const { id } = await params;
+  const { id: researchId } = await params;
 
-  const research = await db.orm.public.Research.first({ id });
+  const session = await auth();
 
-  if (!research) {
-    return Response.json({ error: "Research not found." }, { status: 404 });
+  if (!session?.user?.id) {
+    return Response.json({ error: "Unauthorized." }, { status: 401 });
+  }
+
+  let research;
+
+  try {
+    research = await requireResearchAccess(session.user.id, researchId);
+  } catch (error) {
+    if (error instanceof ResearchAccessError) {
+      return Response.json({ error: "Research not found." }, { status: 404 });
+    }
+
+    throw error;
   }
 
   const conversations = await db.orm.public.Conversation.where({
@@ -41,12 +58,24 @@ export async function GET(_request: Request, { params }: RouteContext) {
 }
 
 export async function POST(_request: Request, { params }: RouteContext) {
-  const { id } = await params;
+  const { id: researchId } = await params;
 
-  const research = await db.orm.public.Research.first({ id });
+  const session = await auth();
 
-  if (!research) {
-    return Response.json({ error: "Research not found." }, { status: 404 });
+  if (!session?.user?.id) {
+    return Response.json({ error: "Unauthorized." }, { status: 401 });
+  }
+
+  let research;
+
+  try {
+    research = await requireResearchAccess(session.user.id, researchId);
+  } catch (error) {
+    if (error instanceof ResearchAccessError) {
+      return Response.json({ error: "Research not found." }, { status: 404 });
+    }
+
+    throw error;
   }
 
   const conversation = await db.orm.public.Conversation.create({
