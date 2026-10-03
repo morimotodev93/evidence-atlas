@@ -1,3 +1,4 @@
+import { AppHeader } from "@/components/layout/app-header";
 import { Badge } from "@/components/ui/badge";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -100,40 +101,29 @@ export default async function Research({ searchParams }: ResearchPageProps) {
 
   return (
     <>
-      {/* Dummy Header */}
-      <header className="sticky top-0 z-10 border-b bg-background/95 backdrop-blur">
-        <div className="mx-auto flex h-14 w-full max-w-5xl items-center px-4 sm:px-6">
-          <Link href="/" className="font-semibold">
-            Evidence Atlas
-          </Link>
-        </div>
-      </header>
+      <AppHeader>
+        <WorkspaceSelector
+          workspaces={workspaceOptions}
+          currentWorkspaceId={workspace.id}
+        />
+      </AppHeader>
 
       <main className="mx-auto w-full max-w-5xl px-4 py-6 sm:px-6 sm:py-8">
-        <header className="mb-6">
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
-            <div>
-              <p className="text-sm text-muted-foreground">{workspace.name}</p>
+        <header className="mb-6 flex items-end justify-between gap-4">
+          <div>
+            <p className="text-sm text-muted-foreground">{workspace.name}</p>
 
-              <h1 className="mt-1 text-2xl font-semibold tracking-tight">
-                Research
-              </h1>
-            </div>
-
-            <div className="flex flex-wrap items-center gap-2">
-              <WorkspaceSelector
-                workspaces={workspaceOptions}
-                currentWorkspaceId={workspace.id}
-              />
-
-              <Link
-                href="/research/new"
-                className={buttonVariants({ variant: "default" })}
-              >
-                New Research
-              </Link>
-            </div>
+            <h1 className="mt-1 text-2xl font-semibold tracking-tight">
+              Research
+            </h1>
           </div>
+
+          <Link
+            href="/research/new"
+            className={buttonVariants({ variant: "default" })}
+          >
+            New Research
+          </Link>
         </header>
         {/* Search Bar */}
         <form
