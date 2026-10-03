@@ -5,11 +5,22 @@ import { db } from "@/prisma/db";
 import { formatDate } from "@/lib/date";
 
 import { requireUser } from "@/auth/requireUser";
+import { WorkspaceSelector } from "@/components/workspace/workspace-selector";
+import { getAccessibleWorkspaces } from "@/workspace/getAccessibleWorkspaces";
 import { requireCurrentWorkspace } from "@/workspace/requireCurrentWorkspace";
 
 export default async function Home() {
   const user = await requireUser();
-  const workspace = await requireCurrentWorkspace(user.id);
+
+  const [workspace, workspaces] = await Promise.all([
+    requireCurrentWorkspace(user.id),
+    getAccessibleWorkspaces(user.id),
+  ]);
+
+  const workspaceOptions = workspaces.map((workspace) => ({
+    id: workspace.id,
+    name: workspace.name,
+  }));
 
   const researches = await db.orm.public.Research.where({
     workspaceId: workspace.id,
@@ -46,10 +57,21 @@ export default async function Home() {
   return (
     <main className="mx-auto w-full max-w-5xl px-4 py-6 sm:px-6 sm:py-8">
       <header className="mb-8">
-        <p className="text-sm text-muted-foreground">Workspace</p>
-        <h1 className="mt-1 text-2xl font-semibold tracking-tight">
-          {workspace.name}
-        </h1>
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+          <div>
+            <p className="text-sm text-muted-foreground">Workspace</p>
+
+            <h1 className="mt-1 text-2xl font-semibold tracking-tight">
+              {workspace.name}
+            </h1>
+          </div>
+
+          <WorkspaceSelector
+            workspaces={workspaceOptions}
+            currentWorkspaceId={workspace.id}
+          />
+        </div>
+
         <p className="mt-2 max-w-2xl text-sm text-muted-foreground">
           Explore, organize, and build reusable knowledge from your research.
         </p>

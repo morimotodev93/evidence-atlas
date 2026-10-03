@@ -8,6 +8,9 @@ import Link from "next/link";
 import { requireUser } from "@/auth/requireUser";
 import { requireCurrentWorkspace } from "@/workspace/requireCurrentWorkspace";
 
+import { WorkspaceSelector } from "@/components/workspace/workspace-selector";
+import { getAccessibleWorkspaces } from "@/workspace/getAccessibleWorkspaces";
+
 type ResearchPageProps = {
   searchParams: Promise<{
     query?: string;
@@ -35,7 +38,16 @@ export default async function Research({ searchParams }: ResearchPageProps) {
     : "updated";
 
   const user = await requireUser();
-  const workspace = await requireCurrentWorkspace(user.id);
+
+  const [workspace, workspaces] = await Promise.all([
+    requireCurrentWorkspace(user.id),
+    getAccessibleWorkspaces(user.id),
+  ]);
+
+  const workspaceOptions = workspaces.map((workspace) => ({
+    id: workspace.id,
+    name: workspace.name,
+  }));
 
   const researches = await db.orm.public.Research.where({
     workspaceId: workspace.id,
@@ -98,20 +110,30 @@ export default async function Research({ searchParams }: ResearchPageProps) {
       </header>
 
       <main className="mx-auto w-full max-w-5xl px-4 py-6 sm:px-6 sm:py-8">
-        <header className="mb-6 flex items-end justify-between gap-4">
-          <div>
-            <p className="text-sm text-muted-foreground">Workspace</p>
-            <h1 className="mt-1 text-2xl font-semibold tracking-tight">
-              Research
-            </h1>
-          </div>
+        <header className="mb-6">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+            <div>
+              <p className="text-sm text-muted-foreground">{workspace.name}</p>
 
-          <Link
-            href="/research/new"
-            className={buttonVariants({ variant: "default" })}
-          >
-            New Research
-          </Link>
+              <h1 className="mt-1 text-2xl font-semibold tracking-tight">
+                Research
+              </h1>
+            </div>
+
+            <div className="flex flex-wrap items-center gap-2">
+              <WorkspaceSelector
+                workspaces={workspaceOptions}
+                currentWorkspaceId={workspace.id}
+              />
+
+              <Link
+                href="/research/new"
+                className={buttonVariants({ variant: "default" })}
+              >
+                New Research
+              </Link>
+            </div>
+          </div>
         </header>
         {/* Search Bar */}
         <form
