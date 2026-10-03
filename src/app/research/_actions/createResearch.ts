@@ -30,13 +30,5 @@ export async function createResearch(formData: FormData) {
     description: result.data.description,
   });
 
-  const membership = await db.orm.public.WorkspaceMembership.where({
-    userId: user.id,
-  }).first();
-
-  if (!membership) {
-    throw new Error("No workspace is available.");
-  }
-
   redirect(`/research/${research.id}`);
 }
