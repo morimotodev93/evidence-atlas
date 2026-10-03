@@ -1,4 +1,5 @@
 import { cookies } from "next/headers";
+import { redirect } from "next/navigation";
 
 import { requireWorkspaceAccess } from "@/auth/requireWorkspaceAccess";
 import { db } from "@/prisma/db";
@@ -30,7 +31,7 @@ export async function requireCurrentWorkspace(userId: string) {
   const [workspace] = await getAccessibleWorkspaces(userId);
 
   if (!workspace) {
-    throw new Error("No accessible workspace.");
+    redirect("/onboarding");
   }
 
   return workspace;

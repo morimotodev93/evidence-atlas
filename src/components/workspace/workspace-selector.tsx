@@ -45,7 +45,7 @@ export function WorkspaceSelector({
         });
       }}
     >
-      <SelectTrigger className="w-56 shrink-0">
+      <SelectTrigger className="w-full sm:w-56">
         <SelectValue placeholder="Select workspace">
           {currentWorkspace?.name}
         </SelectValue>
