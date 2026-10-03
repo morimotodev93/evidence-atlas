@@ -22,6 +22,14 @@ export function AppHeader({ children }: AppHeaderProps) {
             <span className="hidden sm:inline">Organization</span>
           </Link>
 
+          <Link
+            href="/settings/workspace"
+            className="shrink-0 text-sm text-muted-foreground hover:text-foreground"
+          >
+            <span className="sm:hidden">WS</span>
+            <span className="hidden sm:inline">Workspace</span>
+          </Link>
+
           {children}
         </div>
       </div>
