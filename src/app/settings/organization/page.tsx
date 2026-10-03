@@ -6,6 +6,7 @@ import { AppHeader } from "@/components/layout/app-header";
 import { Badge } from "@/components/ui/badge";
 import { db } from "@/prisma/db";
 import { requireCurrentWorkspace } from "@/workspace/requireCurrentWorkspace";
+import { OrganizationMemberRoleForm } from "./_components/organization-member-role-form";
 
 export default async function OrganizationSettingsPage() {
   const user = await requireUser();
@@ -75,7 +76,15 @@ export default async function OrganizationSettingsPage() {
                   )}
                 </div>
 
-                <Badge variant="secondary">{membership.role}</Badge>
+                {currentMembership.role === "ADMIN" ? (
+                  <OrganizationMemberRoleForm
+                    organizationId={organization.id}
+                    userId={membership.userId}
+                    initialRole={membership.role}
+                  />
+                ) : (
+                  <Badge variant="secondary">{membership.role}</Badge>
+                )}
               </div>
             ))}
           </div>
