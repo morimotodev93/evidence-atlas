@@ -1,6 +1,9 @@
 import { db } from "@/prisma/db";
 
-import { requireWorkspaceAccess } from "./requireWorkspaceAccess";
+import {
+  requireWorkspaceAccess,
+  WorkspaceAccessError,
+} from "./requireWorkspaceAccess";
 
 export class ResearchAccessError extends Error {
   constructor() {
@@ -23,8 +26,12 @@ export async function requireResearchAccess(
 
   try {
     await requireWorkspaceAccess(userId, research.workspaceId);
-  } catch {
-    throw new ResearchAccessError();
+  } catch (error) {
+    if (error instanceof WorkspaceAccessError) {
+      throw new ResearchAccessError();
+    }
+
+    throw error;
   }
 
   return research;

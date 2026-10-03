@@ -1,5 +1,12 @@
 import { db } from "@/prisma/db";
 
+export class WorkspaceAccessError extends Error {
+  constructor() {
+    super("Workspace access denied");
+    this.name = "WorkspaceAccessError";
+  }
+}
+
 export async function requireWorkspaceAccess(
   userId: string,
   workspaceId: string,
@@ -10,7 +17,7 @@ export async function requireWorkspaceAccess(
   }).first();
 
   if (!membership) {
-    throw new Error("Forbidden");
+    throw new WorkspaceAccessError();
   }
 
   return membership;
