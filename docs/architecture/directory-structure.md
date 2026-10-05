@@ -52,9 +52,9 @@ evidence-atlas/
 │   │   ├── layout/         # Shared application header
 │   │   ├── ui/
 │   │   └── workspace/      # Workspace selector
-│   │── lib/                # Shared utilities and AI infrastructure
-│   └── ai/                 # Models, indexing/retrieval, context, and citations
-│   ├── prisma/             # Contract, generated artifacts, runtime, and seed
+│   ├── lib/                # Shared utilities and AI infrastructure
+│   │   └── ai/             # Models, indexing/retrieval, context, and citations
+│   ├── prisma/
 │   ├── types/              # Shared types, validation, and session augmentation
 │   └── workspace/          # Current Workspace resolution and switching
 ├── .env.example
