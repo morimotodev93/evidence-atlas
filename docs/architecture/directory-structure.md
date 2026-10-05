@@ -3,7 +3,9 @@
 > **Status:** Current implementation; future areas remain provisional
 > **Last Updated:** 2026-10-05
 
-This document describes the implemented architecture of **Evidence Atlas**. Empty placeholder directories are omitted from the tree below.
+This document describes the implemented architecture of **Evidence Atlas**.
+The tree below highlights the application-relevant structure.
+Empty placeholder directories and ancillary tooling/configuration files may be omitted.
 
 ## Project Structure
 
@@ -50,8 +52,8 @@ evidence-atlas/
 │   │   ├── layout/         # Shared application header
 │   │   ├── ui/
 │   │   └── workspace/      # Workspace selector
-│   ├── lib/                # Database query helpers and shared utilities
-│   │   └── ai/             # Models, indexing/retrieval, context, and citations
+│   │── lib/                # Shared utilities and AI infrastructure
+│   └── ai/                 # Models, indexing/retrieval, context, and citations
 │   ├── prisma/             # Contract, generated artifacts, runtime, and seed
 │   ├── types/              # Shared types, validation, and session augmentation
 │   └── workspace/          # Current Workspace resolution and switching
@@ -72,26 +74,26 @@ evidence-atlas/
 - `architecture/` defines the data model, AI/RAG boundaries, and application structure.
 - `design/` defines the intended UX and reusable UI conventions.
 - `planning/` defines the product scope and implementation roadmap.
-- `reference/` and `usage/` are reserved for future technical and operational documentation; they currently contain no documents.
+- `reference/` and `usage/` are reserved for future technical and operational documentation and are not currently checked in.
 
 ### `src/app/`
 
 Next.js App Router pages and route-local application behavior.
 
-| Route | Current responsibility |
-| --- | --- |
-| `/` | Database-backed Workspace overview, three recently updated Research items, and Research/Source/Finding/Tag counts |
-| `/research` | Workspace-scoped Research list with Tags, title/description search, status filtering, and sorting |
-| `/research/new` | Create Research |
-| `/api/auth/[...nextauth]` | Auth.js GET/POST handlers for Google sign-in, callbacks, sessions, and sign-out |
-| `/onboarding` | Create an initial Organization, Workspace, and ADMIN memberships for a User without an accessible Workspace |
-| `/settings/organization` | Display the current Workspace's Organization and members; Organization ADMIN users can change member roles |
-| `/settings/workspace` | Display the current Workspace and members; Workspace ADMIN users can change member roles |
-| `/research/[id]` | Research detail, status/Conclusion editing, Source/Finding/Comment management, Finding–Source links, and Tag attachment/detachment |
-| `/research/[id]/edit` | Edit Research title and description |
-| `/research/[id]/chat` | POST: retrieve same-Workspace knowledge and stream an AI response for an existing Research conversation |
-| `/research/[id]/chat/conversations` | GET: list conversation previews; POST: create a conversation |
-| `/research/[id]/chat/conversations/[conversationId]` | GET: restore messages and cited Sources resolved within the Research's Workspace |
+| Route                                                | Current responsibility                                                                                                             |
+| ---------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------- |
+| `/`                                                  | Database-backed Workspace overview, three recently updated Research items, and Research/Source/Finding/Tag counts                  |
+| `/research`                                          | Workspace-scoped Research list with Tags, title/description search, status filtering, and sorting                                  |
+| `/research/new`                                      | Create Research                                                                                                                    |
+| `/api/auth/[...nextauth]`                            | Auth.js GET/POST handlers for Google sign-in, callbacks, sessions, and sign-out                                                    |
+| `/onboarding`                                        | Create an initial Organization, Workspace, and ADMIN memberships for a User without an accessible Workspace                        |
+| `/settings/organization`                             | Display the current Workspace's Organization and members; Organization ADMIN users can change member roles                         |
+| `/settings/workspace`                                | Display the current Workspace and members; Workspace ADMIN users can change member roles                                           |
+| `/research/[id]`                                     | Research detail, status/Conclusion editing, Source/Finding/Comment management, Finding–Source links, and Tag attachment/detachment |
+| `/research/[id]/edit`                                | Edit Research title and description                                                                                                |
+| `/research/[id]/chat`                                | POST: retrieve same-Workspace knowledge and stream an AI response for an existing Research conversation                            |
+| `/research/[id]/chat/conversations`                  | GET: list conversation previews; POST: create a conversation                                                                       |
+| `/research/[id]/chat/conversations/[conversationId]` | GET: restore messages and cited Sources resolved within the Research's Workspace                                                   |
 
 Route-local Server Actions live in `_actions/`. Research-detail dialogs and onboarding/settings forms live in `_components/`. These private folders do not create routes. Workspace switching is a shared Server Action in `src/workspace/`.
 
@@ -101,7 +103,8 @@ The root layout defines document metadata and typography. Global styles, semanti
 
 ### `src/components/`
 
-`ui/` contains reusable shadcn/ui primitives. Route-specific components remain next to their routes. The existing `common/` and `features/` directories are placeholders; shared application components can be added when repeated use justifies them.
+`ui/` contains reusable shadcn/ui primitives. Route-specific components remain next to their routes.
+Additional shared areas such as `common/` or `features/` may be introduced later when repeated use justifies them.
 
 `icons/` provides the application icon entry point, currently exporting the Lucide X icon used by the Tag detachment control.
 
