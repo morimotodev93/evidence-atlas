@@ -1,7 +1,7 @@
 # Product Definition
 
 > **Status:** Approved
-> **Last Updated:** 2026-10-01
+> **Last Updated:** 2026-10-05
 
 This document defines the approved product concept, target users, and primary use cases for **Evidence Atlas**.
 
@@ -814,7 +814,29 @@ Generated Answer
 
 The implemented pipeline indexes Findings, Conclusions, and Research title/description metadata. It uses `gemini-embedding-001` with 768-dimensional vectors, chunking, cosine-distance filtering, and deduplication. Indexing is explicit rather than synchronized with edits. Source bodies and discussions are not indexed. Detailed parameters, citation eligibility, and evaluation results are maintained in [AI Architecture](../architecture/ai-architecture.md), rather than duplicated as product requirements.
 
-### 9.6 Public Demo
+### 9.6 Authentication & Authorization
+
+Evidence Atlas uses Auth.js with Google OAuth and database-backed sessions.
+
+Authenticated accounts are integrated with the existing User model. A newly authenticated User without an accessible Workspace is directed through onboarding to create an initial Organization and Workspace.
+
+Organization membership and Workspace membership are separate authorization scopes.
+
+- Membership controls participation and administrative role within an Organization.
+- WorkspaceMembership controls access and administrative role within a Workspace.
+- Organization roles do not imply Workspace roles, and Workspace roles do not imply Organization roles.
+- Both scopes currently use ADMIN and MEMBER roles.
+- Organization ADMIN can manage Organization member roles.
+- Workspace ADMIN can manage Workspace member roles.
+- The final ADMIN in either scope cannot be demoted through the current role-management flow.
+
+Workspace membership is the baseline permission boundary for Research work. Users with access to a Workspace may work with Research and its related Sources, Findings, Comments, Tags, Conclusions, lifecycle status, and Research-scoped AI conversations within that Workspace.
+
+Research-related server operations enforce access through the Research's Workspace rather than relying on client-side navigation or resource identifiers alone.
+
+The current baseline does not implement per-Research ownership permissions, invitation flows, member removal flows, or advanced role and permission management.
+
+### 9.7 Public Demo
 
 The public deployment will be conceptually separated from the full authenticated SaaS application.
 
@@ -822,7 +844,7 @@ The public Demo is a curated, read-only experience intended to demonstrate the p
 
 Visitors may explore the prepared knowledge and interact with AI-assisted features, but they cannot create, edit, or delete persistent demo data.
 
-### 9.7 Incremental Architecture
+### 9.8 Incremental Architecture
 
 The architecture will evolve as product requirements become clearer.
 
@@ -836,9 +858,7 @@ New architectural components should be introduced when their responsibilities an
 
 The following areas remain intentionally undecided:
 
-- Exact authentication model
-- Organization membership administration and invitation flows (the Membership model and roles are defined)
-- Workspace permission enforcement (WorkspaceMembership and roles are defined)
+- Organization and Workspace invitation, member removal, and broader membership administration flows
 - Research lifecycle transition rules (the three status values are defined)
 - Source metadata beyond the current title and URL
 - Finding display styles beyond TEXT and structured JSON data requirements
@@ -920,11 +940,11 @@ The intended workflows above remain the product baseline. As of 2026-10-01:
 - Findings display their supporting Sources and allow attaching existing Sources from the same Research or removing links. Findings can still exist without a supporting Source.
 - The detail page displays the stored Conclusion and supports editing or clearing it.
 - Research lifecycle status can be changed to In progress, Completed, or Archived. Completion does not require a Conclusion, and archived Research remains editable.
-- The Workspace overview displays stored data, recent Research, and counts. The Research list supports title/description search, status filtering, and sorting by update or creation date. Both pages use the first returned Workspace. This list search is separate from semantic retrieval used internally by AI chat; there is no global search interface.
+- The Workspace overview displays stored data, recent Research, and counts. The Research list supports title/description search, status filtering, and sorting by update or creation date. Both pages are scoped to the authenticated User's current Workspace, and accessible Workspaces can be switched through the application UI. This list search is separate from semantic retrieval used internally by AI chat; there is no global search interface.
 - Comments attach to Research, not individual Findings; the UC-04 wording about selecting Findings describes discussion context, not a separate Comment relationship. Threaded replies are not modeled.
 - UC-05's broader conclusion workflow has only one optional text field in the current contract; multiple conclusion records and structured links to supporting Findings are not implemented.
 - Research-scoped AI conversations support explicit creation, streaming responses, saved history, and supporting Source links. Desktop uses a side panel; smaller screens use an Ask AI dialog. AI outputs are not automatically promoted into Findings or Conclusions.
 - UC-07 has a Phase 6 baseline: Research conversations combine current knowledge with relevant indexed Findings, Conclusions, and Research metadata from the same Workspace, including other Research items. The broader use case remains incomplete: discussions and external Source bodies are not retrieved, indexing is manual, and citation eligibility does not prove a claim. Research metadata is discovery context rather than supported evidence.
-- Workspace selection, authentication, permission enforcement, related Research discovery, and read-only Demo controls remain pending. AI routes also lack membership checks and public usage controls.
+- Authentication, current Workspace selection, Workspace-based Research permission enforcement, onboarding, and Research-scoped AI route authorization are implemented. Related Research discovery, read-only Demo controls, invitation and broader membership administration flows, and public AI usage controls remain pending.
 
 See the [roadmap](roadmap.md) for remaining work. These gaps do not redefine the approved product behavior.

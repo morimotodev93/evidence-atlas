@@ -2,7 +2,7 @@
 
 > **Last Updated:** 2026-10-01
 
-Current stage: Phases 4–6 are complete for their stated baseline scopes; Phase 7 authentication and multi-user behavior remain outstanding. Phases 0–3 have established the foundation, product direction, data contract, and design-system baseline. Checked implementation items describe code present in the repository, not a fresh runtime verification or completion of every related product requirement.
+Current stage: Phases 4–7 are complete for their stated baseline scopes. Phases 0–3 established the foundation, product direction, data contract, and design-system baseline. Checked implementation items describe code present in the repository, not a fresh runtime verification or completion of every related product requirement.
 
 ## 1. Project Overview
 
@@ -180,7 +180,7 @@ Tag renaming and Workspace-level Tag deletion are not implemented. Discovery con
 
 **Status: Complete for the Phase 4 scope.** The overview shows stored Workspace data, the three most recently updated Research items, and Research/Source/Finding/Tag counts. Research lifecycle status and Conclusion can be edited. Findings display supporting Sources and support attaching and removing links; the contract and follow-up migration define cascading deletion of those links when a Finding or Source is deleted.
 
-Research discovery supports case-insensitive title/description search, lifecycle status filtering, and sorting by last update or creation date (newest/oldest). The overview and list use the first returned Workspace; Workspace selection and membership-based access remain Phase 7 work. Phase 5 provides Research-scoped conversations, and Phase 6 adds Workspace retrieval. The broader product workflow and Phase 10 quality requirements remain outstanding.
+Research discovery supports case-insensitive title/description search, lifecycle status filtering, and sorting by last update or creation date (newest/oldest). The overview and Research list are scoped to the authenticated user's current Workspace. Workspace selection and membership-based access are implemented as part of Phase 7. Phase 5 provides Research-scoped conversations, and Phase 6 adds Workspace retrieval. The broader product workflow and Phase 10 quality requirements remain outstanding.
 
 **Principle:** The initial experience should make the research
 process understandable without AI.
@@ -322,14 +322,30 @@ The inspection scripts are not an automated quality gate. The local exploratory 
 - [x] Select authentication solution
 - [x] Implement authentication
 - [x] Integrate User records with authentication and account management
-- [ ] Implement Organization management
-- [ ] Implement Membership management
-- [ ] Implement Workspace permissions
-- [ ] Define authorization rules
-- [ ] Protect server-side resources
-- [ ] Test access control
+- [x] Implement Organization management
+- [x] Implement Membership management
+- [x] Implement Workspace permissions
+- [x] Define authorization rules
+- [x] Protect server-side resources
+- [x] Test access control
 
-User, Organization, Membership, and WorkspaceMembership models and sample records already exist from Phase 2. The tasks above refer to application behavior and access control. Research and Conclusion updates, Comment/Finding/Source updates and deletions, and FindingSource attachment/detachment now require an authenticated user with membership in the Research's Workspace before writing. This is partial enforcement; comprehensive access control and role-specific rules remain unfinished.
+The Phase 7 baseline uses Auth.js with Google OAuth and database-backed sessions. Authentication records are integrated with the existing User model, and unauthenticated application pages redirect to the sign-in flow.
+
+A newly authenticated User without an accessible Workspace is directed through onboarding, which creates an initial Organization and Workspace together with Organization ADMIN and Workspace ADMIN memberships.
+
+Workspace selection is persisted in a cookie but is treated as untrusted input. The selected Workspace is revalidated against WorkspaceMembership before use, with fallback to another accessible Workspace when necessary.
+
+Organization membership and Workspace membership remain independent authorization scopes. Organization ADMIN users can manage Organization member roles, while Workspace ADMIN users can manage Workspace member roles. Both boundaries prevent removal of the final ADMIN through role demotion.
+
+Workspace membership provides access to Research and its related resources within that Workspace. Research reads and writes, evidence management, Tags, Comments, Research status changes, and Research-scoped AI conversations enforce the Research → Workspace membership boundary on the server.
+
+Research resources that are missing or inaccessible are intentionally handled through the same Research access failure boundary so that authorization checks do not expose Research existence to users outside the Workspace. Unexpected database failures are not converted into authorization failures.
+
+Chat Route Handlers perform authentication separately from page-oriented helpers: unauthenticated API requests return `401`, while inaccessible Research or Conversation resources return `404`.
+
+Access-control tests cover Research actions, Research creation-related actions, Organization and Workspace role management, onboarding provisioning, and Research chat routes.
+
+The Phase 7 baseline intentionally does not include invitation flows, member removal flows, advanced organization administration, or advanced role and permission management. Those remain future product decisions rather than requirements for this phase.
 
 Target structure:
 
@@ -342,6 +358,8 @@ User
   └── WorkspaceMembership ─────────── Workspace
                                           └── Research
 ```
+
+**Status: Complete for the Phase 7 baseline.**
 
 ---
 

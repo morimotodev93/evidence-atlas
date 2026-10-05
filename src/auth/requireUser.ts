@@ -1,4 +1,4 @@
-// src/auth/requireUser.ts
+import { redirect } from "next/navigation";
 
 import { auth } from "@/auth";
 
@@ -6,7 +6,7 @@ export async function requireUser() {
   const session = await auth();
 
   if (!session?.user?.id) {
-    throw new Error("Unauthorized");
+    redirect("/api/auth/signin");
   }
 
   return session.user;

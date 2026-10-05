@@ -1,8 +1,8 @@
 # AI Architecture
 
-> **Status:** Implemented Phase 6 baseline
-> **Scope:** Phase 5 AI Integration + Phase 6 Retrieval / RAG
-> **Last Updated:** 2026-10-01
+> **Status:** Implemented Phase 6 baseline with Phase 7 route authorization
+> **Scope:** Phase 5 AI Integration + Phase 6 Retrieval / RAG + Phase 7 AI route access control
+> **Last Updated:** 2026-10-05
 
 ## 1. Purpose
 
@@ -10,7 +10,7 @@ Evidence Atlas uses AI as an assisting layer over structured research knowledge.
 
 AI does not replace the underlying research process or act as an authoritative source of truth. Answers should remain grounded in accumulated research knowledge and traceable to supporting evidence.
 
-Phase 6 adds Workspace-wide retrieval to the Phase 5 grounded conversation workflow. This document describes code currently present in the repository, including local Phase 6 changes; it does not report a new database or provider verification.
+Phase 6 adds Workspace-wide retrieval to the Phase 5 grounded conversation workflow. Phase 7 adds authentication and Workspace-membership authorization to the Research-scoped AI routes. This document describes code currently present in the repository; it does not report a new database or provider verification.
 
 ---
 
@@ -36,9 +36,9 @@ Current Research context + persisted conversation history -----+
 
 Conversations and the interaction entry point remain scoped to a single Research. Retrieval supplements the full current Research context with related knowledge from the same Workspace, including the current Research when it matches.
 
-The server derives the Workspace ID from the current Research. This restricts retrieval scope but does not authenticate callers or enforce Workspace membership.
+The server derives the Workspace ID from the authorized current Research. Research-scoped AI Route Handlers authenticate the caller and verify access to the Research through its Workspace membership boundary before Conversation data, Research context, Workspace retrieval, or Message persistence is accessed.
 
----
+## Workspace filtering inside retrieval remains a data-selection boundary rather than an authorization mechanism. Authorization occurs before retrieval begins.
 
 ## 3. Research Context
 
@@ -120,7 +120,15 @@ It does not persist AI execution internals such as:
 
 Failed or incomplete AI responses are not intentionally persisted as completed AI Messages.
 
-Specifically, retrieval runs before the user message is saved. The user message is then saved before generation, and an AI message is saved only for a response that is non-empty before citation validation and has finish reason `stop`. Conversation activity is updated when the user message is accepted. History is ordered by that activity timestamp and previews the first user message. Retrieval failures do not save the new user turn; later failures can leave persisted user messages even when the client removes the attempted exchange from its display. Retry and durable failure-state handling are deferred. Retrieval results, distances, and context snapshots are not persisted with messages.
+Specifically, retrieval runs before the user message is saved. The user message is then saved before generation, and an AI message is saved only for a response that is non-empty before citation validation and has finish reason `stop`.
+
+All Research-scoped chat routes authenticate the caller before accessing Conversation or Message data. The requested Research is then authorized through its Workspace membership boundary.
+
+Conversation-specific operations additionally match both Conversation ID and the authorized Research ID. This prevents a Conversation belonging to another Research from being accessed by supplying its ID directly.
+
+Unauthenticated API requests return `401`. Requests for inaccessible Research, or for Conversations outside the authorized Research, return `404` without exposing the protected resource through subsequent reads or writes.
+
+Conversation activity is updated when the user message is accepted. History is ordered by that activity timestamp and previews the first user message. Retrieval failures do not save the new user turn; later failures can leave persisted user messages even when the client removes the attempted exchange from its display. Retry and durable failure-state handling are deferred. Retrieval results, distances, and context snapshots are not persisted with messages.
 
 The API surface is:
 
@@ -300,7 +308,11 @@ The Phase 6 baseline does not implement:
 - automatic conversion of AI responses into Findings or Conclusions,
 - advanced citation verification against external source contents.
 
-Authentication, membership enforcement, rate limiting, and read-only public Demo controls are also absent. Workspace retrieval does not establish public-demo readiness or a standalone Workspace chat workflow; Conversation ownership and routes remain Research-scoped.
+Authentication and Workspace-membership enforcement are implemented for the Research-scoped AI routes. They are application authorization responsibilities and are intentionally separate from retrieval filtering.
+
+Rate limiting and read-only public Demo controls remain absent. Workspace retrieval does not by itself establish public-demo readiness or a standalone Workspace chat workflow; Conversation ownership and routes remain Research-scoped.
+
+The remaining retrieval, public-access, and operational responsibilities require additional design and belong to later phases.
 
 These responsibilities require additional retrieval and evidence-processing design and belong to later phases.
 
@@ -408,3 +420,4 @@ The AI implementation follows these principles:
 6. **Persist conversation state rather than provider execution details.**
 7. **Keep derived retrieval chunks separate from authoritative knowledge records and evaluate retrieval quality.**
 8. **Prefer incremental architecture over premature abstraction.**
+9. **Authorize before retrieval and persistence.** Research-scoped AI operations authenticate the caller and verify Workspace-derived Research access before loading protected conversation data, retrieving Workspace knowledge, or writing Messages.
