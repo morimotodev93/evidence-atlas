@@ -412,3 +412,37 @@ model RetrievalChunk {
   @@index([researchId])
   @@map("retrievalChunk")
 }
+
+// ============================================================
+// AiUsageEvent
+// ============================================================
+
+enum AiUsageOperation {
+  CHAT
+}
+
+model AiUsageEvent {
+  id             String @id @default(cuid(2))
+  workspaceId    String
+  userId         String
+  researchId     String
+  conversationId String
+
+  operation AiUsageOperation
+
+  provider String
+  model    String
+
+  inputTokens  Int?
+  outputTokens Int?
+  totalTokens  Int?
+
+  finishReason String?
+
+  createdAt DateTime @default(now())
+
+  @@index([workspaceId, createdAt])
+  @@index([userId, createdAt])
+
+  @@map("aiUsageEvent")
+}

@@ -106,9 +106,11 @@ Conversation history is persisted so that users can restore previous AI conversa
 
 The persistence boundary follows this principle:
 
-> Persist the conversation, not the execution.
+> Persist the conversation and limited usage metadata, without storing execution payloads.
 
 The application persists visible user messages and completed AI responses.
+
+Limited generation metadata is stored separately in `AiUsageEvent`; see Rate Limiting & Usage Tracking below.
 
 It does not persist AI execution internals such as:
 
@@ -261,6 +263,44 @@ This distinction keeps AI-generated text visually separate from evidence referen
 
 ---
 
+### Rate Limiting & Usage Tracking
+
+The generation route (`POST /research/[id]/chat`) uses Upstash Redis and `@upstash/ratelimit` with a sliding window of 10 requests per minute. The limiter identifier is `workspaceId:userId`, so the limit applies per Workspace × User.
+
+```text
+Authentication
+    ↓
+Research access
+    ↓
+Request validation
+    ↓
+Conversation ownership (Conversation belongs to the requested Research)
+    ↓
+AI chat rate limit
+    ↓
+Research context
+    ↓
+Workspace retrieval / embedding
+    ↓
+Gemini generation
+```
+
+Authentication, access, request validation, and Conversation ownership checks precede the limiter. A denied request returns HTTP `429` with `Retry-After` in seconds until the rate-limit reset (rounded up, with a minimum of one second). Because rejection precedes retrieval, embedding, and generation, rate-limit-denied requests make no AI provider calls and incur no embedding or generation cost.
+
+```text
+streamText
+    ↓
+onFinish
+    ├── persist AiUsageEvent from totalUsage
+    └── if finishReason === "stop" and text is non-empty
+           ↓
+         validate citations and persist AI Message
+```
+
+Usage persistence and AI Message persistence have different completion conditions. The callback first records an `AiUsageEvent` with operation `CHAT`, scalar Workspace/User/Research/Conversation IDs, provider, model, input/output/total token counts, and finish reason. Missing token counts are stored as null. A `length` finish still records usage but does not save an AI Message. The Message condition checks non-empty text before citation validation. Recording happens in `onFinish`; this is not a guaranteed accounting record for requests that fail before that callback.
+
+The baseline does not implement query or indexing embedding usage tracking, monetary cost accounting, daily/monthly quotas, subscription-based limits, a usage analytics dashboard, or billing enforcement. See the [data model](data-model.md#712-aiusageevent) for storage fields and indexes.
+
 ## 10. Insufficient Evidence
 
 The model is instructed to answer only from the supplied current Research and Workspace retrieval contexts.
@@ -310,7 +350,7 @@ The Phase 6 baseline does not implement:
 
 Authentication and Workspace-membership enforcement are implemented for the Research-scoped AI routes. They are application authorization responsibilities and are intentionally separate from retrieval filtering.
 
-Rate limiting and read-only public Demo controls remain absent. Workspace retrieval does not by itself establish public-demo readiness or a standalone Workspace chat workflow; Conversation ownership and routes remain Research-scoped.
+AI chat burst rate limiting and chat-generation usage tracking are implemented. Read-only public Demo controls remain absent. Workspace retrieval does not by itself establish public-demo readiness or a standalone Workspace chat workflow; Conversation ownership and routes remain Research-scoped.
 
 The remaining retrieval, public-access, and operational responsibilities require additional design and belong to later phases.
 

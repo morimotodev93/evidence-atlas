@@ -1,0 +1,119 @@
+[
+  {
+    "id": "table.aiUsageEvent",
+    "label": "Create table \"aiUsageEvent\"",
+    "summary": "Creates table \"aiUsageEvent\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "table",
+        "name": "aiUsageEvent"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure table \"aiUsageEvent\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"aiUsageEvent\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create table \"aiUsageEvent\"",
+        "sql": "CREATE TABLE \"public\".\"aiUsageEvent\" (\n  \"conversationId\" text NOT NULL,\n  \"createdAt\" timestamptz DEFAULT (now()) NOT NULL,\n  \"finishReason\" text,\n  \"id\" text NOT NULL,\n  \"inputTokens\" int4,\n  \"model\" text NOT NULL,\n  \"operation\" text NOT NULL,\n  \"outputTokens\" int4,\n  \"provider\" text NOT NULL,\n  \"researchId\" text NOT NULL,\n  \"totalTokens\" int4,\n  \"userId\" text NOT NULL,\n  \"workspaceId\" text NOT NULL,\n  PRIMARY KEY (\"id\"),\n  CONSTRAINT \"aiUsageEvent_operation_check_ba79fa05\" CHECK (\"operation\" IN ('CHAT'))\n)",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify table \"aiUsageEvent\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"aiUsageEvent\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "index.aiUsageEvent.aiUsageEvent_userId_createdAt_idx_f726f04a",
+    "label": "Create index \"aiUsageEvent_userId_createdAt_idx_f726f04a\" on \"aiUsageEvent\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "index",
+        "name": "aiUsageEvent_userId_createdAt_idx_f726f04a",
+        "table": "aiUsageEvent"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure index \"aiUsageEvent_userId_createdAt_idx_f726f04a\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"aiUsageEvent_userId_createdAt_idx_f726f04a\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create index \"aiUsageEvent_userId_createdAt_idx_f726f04a\"",
+        "sql": "CREATE INDEX \"aiUsageEvent_userId_createdAt_idx_f726f04a\" ON \"public\".\"aiUsageEvent\" (\"userId\", \"createdAt\")",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify index \"aiUsageEvent_userId_createdAt_idx_f726f04a\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"aiUsageEvent_userId_createdAt_idx_f726f04a\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "index.aiUsageEvent.aiUsageEvent_workspaceId_createdAt_idx_5ff7e893",
+    "label": "Create index \"aiUsageEvent_workspaceId_createdAt_idx_5ff7e893\" on \"aiUsageEvent\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "index",
+        "name": "aiUsageEvent_workspaceId_createdAt_idx_5ff7e893",
+        "table": "aiUsageEvent"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure index \"aiUsageEvent_workspaceId_createdAt_idx_5ff7e893\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"aiUsageEvent_workspaceId_createdAt_idx_5ff7e893\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create index \"aiUsageEvent_workspaceId_createdAt_idx_5ff7e893\"",
+        "sql": "CREATE INDEX \"aiUsageEvent_workspaceId_createdAt_idx_5ff7e893\" ON \"public\".\"aiUsageEvent\" (\"workspaceId\", \"createdAt\")",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify index \"aiUsageEvent_workspaceId_createdAt_idx_5ff7e893\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"aiUsageEvent_workspaceId_createdAt_idx_5ff7e893\""
+        ]
+      }
+    ]
+  }
+]

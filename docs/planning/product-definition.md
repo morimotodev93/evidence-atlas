@@ -870,7 +870,6 @@ The following areas remain intentionally undecided:
 - Exact Demo interaction model
 - Billing requirements
 - Production deployment architecture
-- Rate limiting implementation
 - Monitoring and observability requirements
 
 The Phase 5 AI provider and the Phase 6 baseline embedding, chunking, retrieval, and citation behavior are established.

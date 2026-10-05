@@ -8,6 +8,10 @@
       "model": "Account",
       "namespace": "public"
     },
+    "aiUsageEvent": {
+      "model": "AiUsageEvent",
+      "namespace": "public"
+    },
     "comment": {
       "model": "Comment",
       "namespace": "public"
@@ -81,6 +85,15 @@
     "namespaces": {
       "public": {
         "enum": {
+          "AiUsageOperation": {
+            "codecId": "pg/text@1",
+            "members": [
+              {
+                "name": "CHAT",
+                "value": "CHAT"
+              }
+            ]
+          },
           "FindingDisplayStyle": {
             "codecId": "pg/text@1",
             "members": [
@@ -301,6 +314,153 @@
               },
               "namespaceId": "public",
               "table": "account"
+            }
+          },
+          "AiUsageEvent": {
+            "fields": {
+              "conversationId": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/text@1",
+                  "kind": "scalar"
+                }
+              },
+              "createdAt": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/timestamptz-temporal@1",
+                  "kind": "scalar"
+                }
+              },
+              "finishReason": {
+                "nullable": true,
+                "type": {
+                  "codecId": "pg/text@1",
+                  "kind": "scalar"
+                }
+              },
+              "id": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/text@1",
+                  "kind": "scalar"
+                }
+              },
+              "inputTokens": {
+                "nullable": true,
+                "type": {
+                  "codecId": "pg/int4@1",
+                  "kind": "scalar"
+                }
+              },
+              "model": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/text@1",
+                  "kind": "scalar"
+                }
+              },
+              "operation": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/text@1",
+                  "kind": "scalar"
+                },
+                "valueSet": {
+                  "entityKind": "enum",
+                  "entityName": "AiUsageOperation",
+                  "namespaceId": "public",
+                  "plane": "domain"
+                }
+              },
+              "outputTokens": {
+                "nullable": true,
+                "type": {
+                  "codecId": "pg/int4@1",
+                  "kind": "scalar"
+                }
+              },
+              "provider": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/text@1",
+                  "kind": "scalar"
+                }
+              },
+              "researchId": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/text@1",
+                  "kind": "scalar"
+                }
+              },
+              "totalTokens": {
+                "nullable": true,
+                "type": {
+                  "codecId": "pg/int4@1",
+                  "kind": "scalar"
+                }
+              },
+              "userId": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/text@1",
+                  "kind": "scalar"
+                }
+              },
+              "workspaceId": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/text@1",
+                  "kind": "scalar"
+                }
+              }
+            },
+            "relations": {},
+            "storage": {
+              "fields": {
+                "conversationId": {
+                  "column": "conversationId"
+                },
+                "createdAt": {
+                  "column": "createdAt"
+                },
+                "finishReason": {
+                  "column": "finishReason"
+                },
+                "id": {
+                  "column": "id"
+                },
+                "inputTokens": {
+                  "column": "inputTokens"
+                },
+                "model": {
+                  "column": "model"
+                },
+                "operation": {
+                  "column": "operation"
+                },
+                "outputTokens": {
+                  "column": "outputTokens"
+                },
+                "provider": {
+                  "column": "provider"
+                },
+                "researchId": {
+                  "column": "researchId"
+                },
+                "totalTokens": {
+                  "column": "totalTokens"
+                },
+                "userId": {
+                  "column": "userId"
+                },
+                "workspaceId": {
+                  "column": "workspaceId"
+                }
+              },
+              "namespaceId": "public",
+              "table": "aiUsageEvent"
             }
           },
           "Comment": {
@@ -2069,6 +2229,119 @@
               },
               "uniques": []
             },
+            "aiUsageEvent": {
+              "checks": [
+                {
+                  "expression": "\"operation\" IN ('CHAT')",
+                  "name": "aiUsageEvent_operation_check_ba79fa05",
+                  "prefix": "aiUsageEvent_operation_check"
+                }
+              ],
+              "columns": {
+                "conversationId": {
+                  "codecId": "pg/text@1",
+                  "nativeType": "text",
+                  "nullable": false
+                },
+                "createdAt": {
+                  "codecId": "pg/timestamptz-temporal@1",
+                  "default": {
+                    "expression": "now()",
+                    "kind": "function"
+                  },
+                  "nativeType": "timestamptz",
+                  "nullable": false
+                },
+                "finishReason": {
+                  "codecId": "pg/text@1",
+                  "nativeType": "text",
+                  "nullable": true
+                },
+                "id": {
+                  "codecId": "pg/text@1",
+                  "nativeType": "text",
+                  "nullable": false
+                },
+                "inputTokens": {
+                  "codecId": "pg/int4@1",
+                  "nativeType": "int4",
+                  "nullable": true
+                },
+                "model": {
+                  "codecId": "pg/text@1",
+                  "nativeType": "text",
+                  "nullable": false
+                },
+                "operation": {
+                  "codecId": "pg/text@1",
+                  "nativeType": "text",
+                  "nullable": false,
+                  "valueSet": {
+                    "entityKind": "valueSet",
+                    "entityName": "AiUsageOperation",
+                    "namespaceId": "public",
+                    "plane": "storage"
+                  }
+                },
+                "outputTokens": {
+                  "codecId": "pg/int4@1",
+                  "nativeType": "int4",
+                  "nullable": true
+                },
+                "provider": {
+                  "codecId": "pg/text@1",
+                  "nativeType": "text",
+                  "nullable": false
+                },
+                "researchId": {
+                  "codecId": "pg/text@1",
+                  "nativeType": "text",
+                  "nullable": false
+                },
+                "totalTokens": {
+                  "codecId": "pg/int4@1",
+                  "nativeType": "int4",
+                  "nullable": true
+                },
+                "userId": {
+                  "codecId": "pg/text@1",
+                  "nativeType": "text",
+                  "nullable": false
+                },
+                "workspaceId": {
+                  "codecId": "pg/text@1",
+                  "nativeType": "text",
+                  "nullable": false
+                }
+              },
+              "foreignKeys": [],
+              "indexes": [
+                {
+                  "columns": [
+                    "userId",
+                    "createdAt"
+                  ],
+                  "name": "aiUsageEvent_userId_createdAt_idx_f726f04a",
+                  "prefix": "aiUsageEvent_userId_createdAt_idx",
+                  "unique": false
+                },
+                {
+                  "columns": [
+                    "workspaceId",
+                    "createdAt"
+                  ],
+                  "name": "aiUsageEvent_workspaceId_createdAt_idx_5ff7e893",
+                  "prefix": "aiUsageEvent_workspaceId_createdAt_idx",
+                  "unique": false
+                }
+              ],
+              "primaryKey": {
+                "columns": [
+                  "id"
+                ]
+              },
+              "uniques": []
+            },
             "comment": {
               "columns": {
                 "content": {
@@ -3343,6 +3616,12 @@
             }
           },
           "valueSet": {
+            "AiUsageOperation": {
+              "kind": "valueSet",
+              "values": [
+                "CHAT"
+              ]
+            },
             "FindingDisplayStyle": {
               "kind": "valueSet",
               "values": [
@@ -3392,7 +3671,7 @@
         "kind": "postgres-schema"
       }
     },
-    "storageHash": "f6b2e04bb40d78de0b0b1dae94cadd64bc4378033247ab8e51ebc256ea1215e7",
+    "storageHash": "2538aaf38e932fcf310c5d7b7f13f53e9aae06467492d64c8c30d0724df783f5",
     "types": {
       "Embedding768": {
         "codecId": "pg/vector@1",
@@ -3405,9 +3684,20 @@
     }
   },
   "execution": {
-    "executionHash": "fb2692f9d1605dbfbe3154ffe77bebddd18f76fc2da24588d389661175b2031b",
+    "executionHash": "7eeb9d19a5a3abce6c8e2ab971d9f61aeba6073edbf7ff4a812155f396855c3e",
     "mutations": {
       "defaults": [
+        {
+          "onCreate": {
+            "id": "cuid2",
+            "kind": "generator"
+          },
+          "ref": {
+            "column": "id",
+            "namespace": "public",
+            "table": "aiUsageEvent"
+          }
+        },
         {
           "onCreate": {
             "id": "cuid2",

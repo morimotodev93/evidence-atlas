@@ -1,6 +1,6 @@
 # Data Model
 
-> Status: Core, Research-scoped conversations, and Phase 6 retrieval storage implemented
+> Status: Core, Research-scoped conversations, Phase 6 retrieval storage, and chat-generation usage storage implemented
 > Last Updated: 2026-10-05
 
 ## 1. Overview
@@ -66,6 +66,10 @@ An internal vector representation used for semantic retrieval and AI-assisted se
 ### RetrievalChunk
 
 A derived text chunk and its embedding, scoped by Workspace and Research IDs. Phase 6 stores embeddings on RetrievalChunk rather than in a separate Embedding model.
+
+### AiUsageEvent
+
+An operational record of chat-generation token usage and limited generation metadata, separate from conversation messages.
 
 ## 3. Entity Responsibilities
 
@@ -162,6 +166,12 @@ Represents a vector representation of research-related content used for semantic
 - Stores indexed Finding content, Research conclusions, or Research title/description text.
 - Keeps the knowledge item's identity, chunk position, text, and vector together.
 - Is replaceable derived data, separate from original knowledge and conversation history.
+
+### AiUsageEvent
+
+- Records the provider, model, token counts, and finish reason for chat generation.
+- Attributes usage through scalar Workspace, User, Research, and Conversation IDs.
+- Provides baseline operational usage storage; it does not implement billing or an analytics dashboard.
 
 ## 4. Entity Relationships
 
@@ -510,6 +520,8 @@ The migrations `20260926T0033_add_research_conversation` and `20260926T0039_requ
 
 Phase 6 adds `migrations/pgvector/20260601T0000_install_vector_extension/` and `migrations/app/20260929T0308_add_retrieval_chunks/` for vector support and retrieval storage. Their presence records schema evolution, not verification that a particular database has applied them.
 
+The migration `migrations/app/20261005T0212_add_ai_usage_event/` adds chat-generation usage storage and its attribution/time indexes without foreign-key relations. Its presence does not verify application to a running database.
+
 The initial schema focuses on the core research workflow and the relationships established in the data model. Implementation-specific details and fields that are not yet required are intentionally deferred.
 
 ### 7.1 Core Entities
@@ -531,6 +543,7 @@ The current contract implements the following models:
 - `Conversation`
 - `Message`
 - `RetrievalChunk`
+- `AiUsageEvent`
 
 `Conclusion` is stored as `Research.conclusion`; embeddings are stored in `RetrievalChunk.embedding`, not a separate Embedding model. Conversation and Message retain Research-scoped ownership while generation can retrieve knowledge across the same Workspace.
 
@@ -679,7 +692,7 @@ Authentication and Research access are enforced by the application before Conver
 
 The application explicitly creates Conversations, retrieves context, and then appends user messages before generation. Retrieval failure does not save the new user turn. An AI Message is saved only when generation finishes with `finishReason: "stop"` and text that is non-empty before citation validation. Later failures may leave a user message without a saved AI reply. Accepting a user message explicitly updates `Conversation.updatedAt`; history lists use that timestamp and the first user message as a preview.
 
-Messages store visible text with allowed `[source:<source-id>]` citation markers. Before saving an AI reply, the server removes recognized markers outside the Sources linked to Findings supplied in that request's current and retrieved contexts. Citations are not foreign keys or separate records. Conversation detail resolves persisted IDs against current Workspace Sources; metadata changes and deletions therefore affect restored supporting evidence. Context snapshots, retrieval results, and execution details are not persisted. See [AI Architecture](ai-architecture.md) for the separate live-stream, persistence, and presentation boundaries.
+Messages store visible text with allowed `[source:<source-id>]` citation markers. Before saving an AI reply, the server removes recognized markers outside the Sources linked to Findings supplied in that request's current and retrieved contexts. Citations are not foreign keys or separate records. Conversation detail resolves persisted IDs against current Workspace Sources; metadata changes and deletions therefore affect restored supporting evidence. Prompts, context snapshots, retrieval results, and provider request/response payloads are not persisted. Limited generation metadata is persisted separately in `AiUsageEvent` for usage tracking. See [AI Architecture](ai-architecture.md) for the separate live-stream, persistence, and presentation boundaries.
 
 ### 7.11 RetrievalChunk and Embedding
 
@@ -702,7 +715,27 @@ The contract enforces uniqueness on `(sourceType, sourceId, chunkIndex)` and ord
 
 Explicit indexing generates embeddings, then transactionally replaces all chunks for one Research. CRUD does not automatically reindex or clean up derived rows. Retrieval skips missing records but can return stale text for edited records until reindexing. The table stores neither embedding model/version metadata nor a historical snapshot of Source links. Chunking, model settings, search selection, and evaluation are defined in [AI Architecture](ai-architecture.md#13-phase-6-retrieval--rag).
 
-### 7.12 Schema Design Principles
+### 7.12 AiUsageEvent
+
+`AiUsageEvent` maps to `aiUsageEvent` and stores Workspace, User, Research, and Conversation identifiers as scalar attribution fields rather than foreign-key relations.
+
+| Field | Meaning |
+| ----- | ------- |
+| `id` | CUID v2 event identity |
+| `workspaceId`, `userId`, `researchId`, `conversationId` | Required scalar attribution identifiers |
+| `operation` | `AiUsageOperation`, currently `CHAT` only |
+| `provider`, `model` | Generation provider and model identifiers |
+| `inputTokens`, `outputTokens`, `totalTokens` | Nullable token counts; unavailable values are stored as null |
+| `finishReason` | Nullable generation finish reason |
+| `createdAt` | Creation timestamp, defaulting to the current time |
+
+The contract defines indexes on `(workspaceId, createdAt)` and `(userId, createdAt)`. It does not enforce attribution IDs through foreign keys or declare cascading deletion for them.
+
+The chat route records `totalUsage` in `streamText.onFinish` before checking whether an AI Message should be saved. Usage persistence and AI Message persistence have different completion conditions: a `length` finish records usage without saving an AI Message; a `stop` finish saves an AI Message only when text is non-empty before citation validation.
+
+Monetary cost is not persisted. The current baseline records chat-generation usage only; query and indexing embedding usage are not tracked. Quotas, subscription-based limits, a usage analytics dashboard, and billing enforcement are not implemented.
+
+### 7.13 Schema Design Principles
 
 The initial Prisma schema follows these principles:
 

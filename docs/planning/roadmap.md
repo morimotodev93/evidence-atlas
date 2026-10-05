@@ -1,6 +1,6 @@
 # evidence-atlas Roadmap
 
-> **Last Updated:** 2026-10-01
+> **Last Updated:** 2026-10-05
 
 Current stage: Phases 4–7 are complete for their stated baseline scopes. Phases 0–3 established the foundation, product direction, data contract, and design-system baseline. Checked implementation items describe code present in the repository, not a fresh runtime verification or completion of every related product requirement.
 
@@ -374,10 +374,14 @@ Potential features:
 - [ ] Billing state synchronization
 - [ ] Email infrastructure
 - [x] Rate limiting
-- [ ] Usage tracking
+- [x] Usage tracking
 - [ ] Background jobs
 - [ ] Error monitoring
 - [ ] Application observability
+
+**Implemented baseline:** AI chat uses an Upstash Redis sliding-window rate limit of 10 requests per minute per Workspace × User, enforced before retrieval, embedding, and generation. Chat-generation token usage and finish reason are recorded in `AiUsageEvent`, with Workspace, User, Research, and Conversation IDs stored as scalar attribution fields.
+
+This baseline does not include embedding usage tracking, monetary cost accounting, daily/monthly quotas, subscription-based limits, a usage analytics dashboard, or billing enforcement. Phase 8 remains partially complete.
 
 Only features that contribute meaningfully to the portfolio should be implemented.
 

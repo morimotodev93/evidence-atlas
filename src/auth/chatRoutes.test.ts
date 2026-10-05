@@ -1,3 +1,5 @@
+import "temporal-polyfill/full/global";
+
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { GET as getConversation } from "@/app/research/[id]/chat/conversations/[conversationId]/route";
@@ -59,6 +61,8 @@ const mocks = vi.hoisted(() => {
     messageCreate: vi.fn(),
     messageQuery,
 
+    aiUsageEventCreate: vi.fn(),
+
     buildResearchContext: vi.fn(),
     retrieveWorkspaceContext: vi.fn(),
     resolveWorkspaceSources: vi.fn(),
@@ -90,6 +94,9 @@ vi.mock("@/prisma/db", () => ({
           where: mocks.messageWhere,
           create: mocks.messageCreate,
         },
+        AiUsageEvent: {
+          create: mocks.aiUsageEventCreate,
+        },
       },
     },
   },
@@ -100,6 +107,8 @@ vi.mock("@/lib/ai/chat-rate-limit", () => ({
 }));
 
 vi.mock("@/lib/ai/model", () => ({
+  RESEARCH_MODEL_PROVIDER: "google",
+  RESEARCH_MODEL_ID: "gemini-3.6-flash",
   researchModel: {},
 }));
 
@@ -195,6 +204,20 @@ describe("research chat route authorization", () => {
     });
 
     mocks.messageQuery.all.mockResolvedValue([]);
+
+    mocks.buildResearchContext.mockResolvedValue({
+      findings: [],
+    });
+
+    mocks.retrieveWorkspaceContext.mockResolvedValue({
+      results: [],
+    });
+
+    mocks.validateSourceCitations.mockImplementation((text: string) => text);
+
+    mocks.streamText.mockImplementation(() => ({
+      toTextStreamResponse: () => new Response("stream"),
+    }));
 
     mocks.parseSourceCitations.mockReturnValue({
       sourceIds: [],
@@ -512,5 +535,146 @@ describe("research chat route authorization", () => {
 
     expect(mocks.messageCreate).not.toHaveBeenCalled();
     expect(mocks.streamText).not.toHaveBeenCalled();
+  });
+
+  it("records AI usage and persists a completed AI message", async () => {
+    const response = await sendChatMessage(chatRequest(), routeContext());
+
+    expect(response.status).toBe(200);
+    expect(mocks.streamText).toHaveBeenCalledOnce();
+
+    const streamOptions = mocks.streamText.mock.calls[0]?.[0] as {
+      onFinish: (result: {
+        text: string;
+        finishReason: string;
+        totalUsage: {
+          inputTokens?: number;
+          outputTokens?: number;
+          totalTokens?: number;
+        };
+      }) => Promise<void>;
+    };
+
+    await streamOptions.onFinish({
+      text: "The evidence supports this conclusion.",
+      finishReason: "stop",
+      totalUsage: {
+        inputTokens: 120,
+        outputTokens: 40,
+        totalTokens: 160,
+      },
+    });
+
+    expect(mocks.aiUsageEventCreate).toHaveBeenCalledWith({
+      workspaceId,
+      userId,
+      researchId,
+      conversationId,
+      operation: "CHAT",
+      provider: "google",
+      model: "gemini-3.6-flash",
+      inputTokens: 120,
+      outputTokens: 40,
+      totalTokens: 160,
+      finishReason: "stop",
+    });
+
+    expect(mocks.validateSourceCitations).toHaveBeenCalledWith(
+      "The evidence supports this conclusion.",
+      expect.any(Set),
+    );
+
+    expect(mocks.messageCreate).toHaveBeenNthCalledWith(1, {
+      conversationId,
+      authorType: "USER",
+      content: "What does the evidence show?",
+    });
+
+    expect(mocks.messageCreate).toHaveBeenNthCalledWith(2, {
+      conversationId,
+      authorType: "AI",
+      content: "The evidence supports this conclusion.",
+    });
+  });
+
+  it("records AI usage but does not persist an incomplete AI message", async () => {
+    const response = await sendChatMessage(chatRequest(), routeContext());
+
+    expect(response.status).toBe(200);
+
+    const streamOptions = mocks.streamText.mock.calls[0]?.[0] as {
+      onFinish: (result: {
+        text: string;
+        finishReason: string;
+        totalUsage: {
+          inputTokens?: number;
+          outputTokens?: number;
+          totalTokens?: number;
+        };
+      }) => Promise<void>;
+    };
+
+    await streamOptions.onFinish({
+      text: "Partial generated response",
+      finishReason: "length",
+      totalUsage: {
+        inputTokens: 100,
+        outputTokens: 50,
+        totalTokens: 150,
+      },
+    });
+
+    expect(mocks.aiUsageEventCreate).toHaveBeenCalledWith({
+      workspaceId,
+      userId,
+      researchId,
+      conversationId,
+      operation: "CHAT",
+      provider: "google",
+      model: "gemini-3.6-flash",
+      inputTokens: 100,
+      outputTokens: 50,
+      totalTokens: 150,
+      finishReason: "length",
+    });
+
+    expect(mocks.validateSourceCitations).not.toHaveBeenCalled();
+
+    expect(mocks.messageCreate).toHaveBeenCalledTimes(1);
+    expect(mocks.messageCreate).toHaveBeenCalledWith({
+      conversationId,
+      authorType: "USER",
+      content: "What does the evidence show?",
+    });
+  });
+
+  it("stores null for unavailable token usage values", async () => {
+    await sendChatMessage(chatRequest(), routeContext());
+
+    const streamOptions = mocks.streamText.mock.calls[0]?.[0] as {
+      onFinish: (result: {
+        text: string;
+        finishReason: string;
+        totalUsage: {
+          inputTokens?: number;
+          outputTokens?: number;
+          totalTokens?: number;
+        };
+      }) => Promise<void>;
+    };
+
+    await streamOptions.onFinish({
+      text: "Completed response",
+      finishReason: "stop",
+      totalUsage: {},
+    });
+
+    expect(mocks.aiUsageEventCreate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        inputTokens: null,
+        outputTokens: null,
+        totalTokens: null,
+      }),
+    );
   });
 });

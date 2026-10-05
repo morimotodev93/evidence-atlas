@@ -7,7 +7,11 @@ import {
 } from "@/auth/requireResearchAccess";
 
 import { chatRateLimit } from "@/lib/ai/chat-rate-limit";
-import { researchModel } from "@/lib/ai/model";
+import {
+  RESEARCH_MODEL_ID,
+  RESEARCH_MODEL_PROVIDER,
+  researchModel,
+} from "@/lib/ai/model";
 import { buildResearchContext } from "@/lib/ai/research-context";
 import { retrieveWorkspaceContext } from "@/lib/ai/retrieve-workspace-context";
 import { validateSourceCitations } from "@/lib/ai/source-citations";
@@ -181,7 +185,21 @@ export async function POST(request: Request, { params }: RouteContext) {
 
     messages: conversationMessages,
 
-    async onFinish({ text, finishReason }) {
+    async onFinish({ text, finishReason, totalUsage }) {
+      await db.orm.public.AiUsageEvent.create({
+        workspaceId: research.workspaceId,
+        userId: session.user.id,
+        researchId: research.id,
+        conversationId,
+        operation: "CHAT",
+        provider: RESEARCH_MODEL_PROVIDER,
+        model: RESEARCH_MODEL_ID,
+        inputTokens: totalUsage.inputTokens ?? null,
+        outputTokens: totalUsage.outputTokens ?? null,
+        totalTokens: totalUsage.totalTokens ?? null,
+        finishReason,
+      });
+
       if (finishReason !== "stop" || text.trim().length === 0) {
         return;
       }
