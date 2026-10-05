@@ -6,6 +6,7 @@ import {
   ResearchAccessError,
 } from "@/auth/requireResearchAccess";
 
+import { chatRateLimit } from "@/lib/ai/chat-rate-limit";
 import { researchModel } from "@/lib/ai/model";
 import { buildResearchContext } from "@/lib/ai/research-context";
 import { retrieveWorkspaceContext } from "@/lib/ai/retrieve-workspace-context";
@@ -67,6 +68,26 @@ export async function POST(request: Request, { params }: RouteContext) {
 
   if (!conversation) {
     return Response.json({ error: "Conversation not found." }, { status: 404 });
+  }
+
+  const rateLimit = await chatRateLimit.limit(
+    `${research.workspaceId}:${session.user.id}`,
+  );
+
+  if (!rateLimit.success) {
+    return Response.json(
+      {
+        error: "Too many AI requests. Please try again shortly.",
+      },
+      {
+        status: 429,
+        headers: {
+          "Retry-After": String(
+            Math.max(1, Math.ceil((rateLimit.reset - Date.now()) / 1000)),
+          ),
+        },
+      },
+    );
   }
 
   const context = await buildResearchContext(research.id);
