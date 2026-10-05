@@ -47,6 +47,10 @@ const mocks = vi.hoisted(() => {
     auth: vi.fn(),
     requireResearchAccess: vi.fn(),
 
+    chatRateLimit: {
+      limit: vi.fn(),
+    },
+
     conversationWhere: vi.fn(() => conversationQuery),
     conversationCreate: vi.fn(),
     conversationQuery,
@@ -89,6 +93,10 @@ vi.mock("@/prisma/db", () => ({
       },
     },
   },
+}));
+
+vi.mock("@/lib/ai/chat-rate-limit", () => ({
+  chatRateLimit: mocks.chatRateLimit,
 }));
 
 vi.mock("@/lib/ai/model", () => ({
@@ -179,6 +187,13 @@ describe("research chat route authorization", () => {
       createdAt: "2026-10-03T00:00:00.000Z",
     });
 
+    mocks.chatRateLimit.limit.mockResolvedValue({
+      success: true,
+      limit: 10,
+      remaining: 9,
+      reset: Date.now() + 60_000,
+    });
+
     mocks.messageQuery.all.mockResolvedValue([]);
 
     mocks.parseSourceCitations.mockReturnValue({
@@ -203,6 +218,7 @@ describe("research chat route authorization", () => {
 
     expect(mocks.requireResearchAccess).not.toHaveBeenCalled();
     expect(mocks.conversationWhere).not.toHaveBeenCalled();
+    expect(mocks.chatRateLimit.limit).not.toHaveBeenCalled();
   });
 
   it("returns 404 for a conversation list when the user cannot access the research", async () => {
@@ -245,6 +261,67 @@ describe("research chat route authorization", () => {
     expect(mocks.conversationWhere).toHaveBeenCalledWith({
       researchId,
     });
+  });
+
+  it("returns 429 when the AI chat rate limit is exceeded", async () => {
+    const dateNowSpy = vi.spyOn(Date, "now").mockReturnValue(1_000_000);
+
+    mocks.chatRateLimit.limit.mockResolvedValue({
+      success: false,
+      limit: 10,
+      remaining: 0,
+      reset: 1_030_000,
+    });
+
+    const response = await sendChatMessage(chatRequest(), routeContext());
+
+    expect(response.status).toBe(429);
+
+    await expect(response.json()).resolves.toEqual({
+      error: "Too many AI requests. Please try again shortly.",
+    });
+
+    expect(response.headers.get("Retry-After")).toBe("30");
+
+    expect(mocks.chatRateLimit.limit).toHaveBeenCalledWith(
+      `${workspaceId}:${userId}`,
+    );
+
+    expect(mocks.buildResearchContext).not.toHaveBeenCalled();
+    expect(mocks.retrieveWorkspaceContext).not.toHaveBeenCalled();
+    expect(mocks.messageCreate).not.toHaveBeenCalled();
+    expect(mocks.streamText).not.toHaveBeenCalled();
+
+    dateNowSpy.mockRestore();
+  });
+
+  it("does not consume the rate limit for an invalid chat request", async () => {
+    const request = new Request(
+      `http://localhost/research/${researchId}/chat`,
+      {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+        },
+        body: JSON.stringify({
+          conversationId,
+          message: "",
+        }),
+      },
+    );
+
+    const response = await sendChatMessage(request, routeContext());
+
+    expect(response.status).toBe(400);
+
+    await expect(response.json()).resolves.toEqual({
+      error: "A conversationId and non-empty message are required.",
+    });
+
+    expect(mocks.chatRateLimit.limit).not.toHaveBeenCalled();
+    expect(mocks.conversationWhere).not.toHaveBeenCalled();
+    expect(mocks.retrieveWorkspaceContext).not.toHaveBeenCalled();
+    expect(mocks.streamText).not.toHaveBeenCalled();
   });
 
   it("does not create a conversation when the user cannot access the research", async () => {
@@ -395,6 +472,7 @@ describe("research chat route authorization", () => {
     expect(mocks.requireResearchAccess).not.toHaveBeenCalled();
     expect(mocks.messageCreate).not.toHaveBeenCalled();
     expect(mocks.streamText).not.toHaveBeenCalled();
+    expect(mocks.chatRateLimit.limit).not.toHaveBeenCalled();
   });
 
   it("returns 404 for an inaccessible research without writing or invoking AI", async () => {
@@ -412,6 +490,7 @@ describe("research chat route authorization", () => {
     expect(mocks.conversationWhere).not.toHaveBeenCalled();
     expect(mocks.messageCreate).not.toHaveBeenCalled();
     expect(mocks.streamText).not.toHaveBeenCalled();
+    expect(mocks.chatRateLimit.limit).not.toHaveBeenCalled();
   });
 
   it("returns 404 when the conversation does not belong to the authorized research", async () => {
@@ -428,6 +507,8 @@ describe("research chat route authorization", () => {
       id: conversationId,
       researchId,
     });
+
+    expect(mocks.chatRateLimit.limit).not.toHaveBeenCalled();
 
     expect(mocks.messageCreate).not.toHaveBeenCalled();
     expect(mocks.streamText).not.toHaveBeenCalled();
