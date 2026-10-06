@@ -431,9 +431,17 @@ The dataset defines six Workspace Tags attached through ResearchTag. Each Resear
 
 `pnpm seed` selects `development`; `pnpm seed:demo` selects `public-demo`. The Demo seed provisions canonical data only: it does not create RetrievalChunk records or embeddings, request Inngest jobs, or run retrieval indexing. The derived retrieval index requires a separate indexing operation.
 
-Both profiles create rows without deleting or truncating existing data; neither is a database reset or an idempotent operation. Repeated execution can fail on unique User emails (including `demo@evidence-atlas.local` for the Demo). Provisioning should target a fresh or otherwise appropriate database after checking existing data.
+Both profiles create rows without deleting or truncating existing data; neither is a database reset or an idempotent operation. Repeated execution can fail on unique User emails, including `demo@evidence-atlas.local` for the Demo. Provisioning should therefore target a fresh or otherwise appropriate database after checking existing data.
 
-The checked dataset items describe code present in the repository. The user reports a successful `pnpm build`, but the Demo seed has not been run against the current database, dataset creation remains unverified, and Demo Research indexing has not been run. This documentation task performed no seed execution or database operations. Public unauthenticated access, read-only enforcement, Demo labels, the GitHub link, final Demo documentation, credential/public-write checks, and deployed Demo verification remain pending. Phase 9 is not complete.
+The Public Demo seed has been verified against the isolated local database `evidence_atlas_demo_test`, without modifying or resetting the existing `evidence_atlas` database. `pnpm prisma db verify --db "$env:DATABASE_URL"` confirmed that the database marker and schema match the current Prisma contract.
+
+The seeded Demo data was also verified directly in PostgreSQL. All four expected Research records are present with `COMPLETED` status, the Workspace is **AI-Assisted Software Development**, and the Organization is **Evidence Atlas Demo**. The verified Demo dataset contains 4 Research records, 6 Tags, 10 ResearchTag links, 12 Sources, 16 Findings, 22 FindingSource links, 4 Comments, 4 Conversations, and 8 Messages. `retrievalChunk` remains empty, as expected before the separate indexing step.
+
+The verification database contains two User records in total: the expected `demo@evidence-atlas.local` Demo user and one pre-existing non-Demo user. The additional User is not a duplicate created by the Public Demo seed and does not affect the verified Demo dataset.
+
+Demo Research indexing has been verified against the isolated `evidence_atlas_demo_test` database. All four Demo Research records produced the expected six retrieval chunks each—four `FINDING`, one `CONCLUSION`, and one `RESEARCH` chunk—for 24 `RetrievalChunk` records in total.
+
+Public unauthenticated access, read-only enforcement, Demo labels, the GitHub link, final Demo documentation, credential/public-write checks, and deployed Demo verification remain pending. Phase 9 is not complete.
 
 Public deployment concept:
 
