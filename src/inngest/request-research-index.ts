@@ -1,3 +1,5 @@
+import * as Sentry from "@sentry/nextjs";
+
 import { inngest, researchIndexRequested } from "@/inngest/client";
 
 export async function requestResearchIndex(researchId: string): Promise<void> {
@@ -8,6 +10,16 @@ export async function requestResearchIndex(researchId: string): Promise<void> {
       }),
     );
   } catch (error) {
+    Sentry.captureException(error, {
+      tags: {
+        subsystem: "background-jobs",
+        operation: "research-index-enqueue",
+      },
+      extra: {
+        researchId,
+      },
+    });
+
     console.error("Failed to enqueue research indexing.", {
       researchId,
       error,

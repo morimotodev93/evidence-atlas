@@ -20,6 +20,7 @@
     "@hookform/resolvers": "^5.9.1",
     "@prisma/orm-extension-pgvector": "8.0.0-rc.12",
     "@prisma/orm-postgres": "8.0.0-rc.12",
+    "@sentry/nextjs": "^11.4.0",
     "@upstash/ratelimit": "2.2.0",
     "@upstash/redis": "1.39.0",
     "ai": "^6",

@@ -50,3 +50,6 @@ dist/
 # upload folder
 
 /AI SaaS Evidence Atlas/
+
+# Sentry Config File
+.env.sentry-build-plugin

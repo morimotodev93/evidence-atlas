@@ -376,14 +376,18 @@ Potential features:
 - [x] Rate limiting
 - [x] Usage tracking
 - [x] Background jobs
-- [ ] Error monitoring
+- [x] Error monitoring
 - [ ] Application observability
 
 **Implemented baseline:** AI chat uses an Upstash Redis sliding-window rate limit of 10 requests per minute per Workspace × User, enforced before retrieval, embedding, and generation. Chat-generation token usage and finish reason are recorded in `AiUsageEvent`, with Workspace, User, Research, and Conversation IDs stored as scalar attribution fields.
 
 **Phase 8.3 Background Jobs:** Inngest refreshes the Research-scoped retrieval index after successful Research creation, title/description updates, Conclusion updates, and Finding creation, content updates, and deletion. Events are debounced per Research ID (`5s` period, `30s` timeout), with singleton mode `cancel` and `3` retries. A PostgreSQL advisory transaction lock and idempotent upserts protect the database write path. Enqueue is best-effort and does not fail successful CRUD operations; transactional outbox, a general-purpose job platform, and strong consistency are outside this baseline.
 
-This baseline does not include embedding usage tracking, monetary cost accounting, daily/monthly quotas, subscription-based limits, a usage analytics dashboard, or billing enforcement. Phase 8 remains partially complete; subscription, Stripe, billing, email, error monitoring, and application observability remain pending.
+**Phase 8.4 Error Monitoring:** Sentry Next.js SDK 11.4.0 is manually configured for the App Router client, Node.js, and edge runtimes, including `onRequestError`, the router transition hook, and the global error boundary. Best-effort Research index enqueue failures are captured with operation tags and a Research ID without failing successful CRUD operations. Tracing, replay, logs, profiling, metrics, and AI monitoring are outside this scope; automatic dependency instrumentation at build time and Vercel cron monitors are disabled.
+
+`dataCollection` disables automatic user information, cookies, HTTP headers/bodies, URL query parameters, stack-frame variables, AI inputs/outputs, database query data, queue arguments, and GraphQL content. It does not redact arbitrary exception messages, manual extras, console/DOM breadcrumbs, or all URL fields; Research/AI content must not be placed in those fields. The public `NEXT_PUBLIC_SENTRY_DSN` controls runtime delivery (and is embedded in the browser at build time). `SENTRY_ORG`, `SENTRY_PROJECT`, and the secret `SENTRY_AUTH_TOKEN` are build-time source map upload settings. Live event ingestion and readable production stack traces remain to be verified with authenticated Sentry access; the checked item records the code baseline only.
+
+This baseline does not include embedding usage tracking, monetary cost accounting, daily/monthly quotas, subscription-based limits, a usage analytics dashboard, or billing enforcement. Phase 8 remains partially complete; subscription, Stripe, billing, email, and application observability remain pending.
 
 Only features that contribute meaningfully to the portfolio should be implemented.
 

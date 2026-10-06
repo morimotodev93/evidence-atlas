@@ -3,6 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 const mocks = vi.hoisted(() => ({
   send: vi.fn(),
   createEvent: vi.fn(),
+  captureException: vi.fn(),
 }));
 
 vi.mock("@/inngest/client", () => ({
@@ -12,6 +13,10 @@ vi.mock("@/inngest/client", () => ({
   researchIndexRequested: {
     create: mocks.createEvent,
   },
+}));
+
+vi.mock("@sentry/nextjs", () => ({
+  captureException: mocks.captureException,
 }));
 
 import { requestResearchIndex } from "@/inngest/request-research-index";
@@ -45,9 +50,11 @@ describe("requestResearchIndex", () => {
 
     expect(mocks.send).toHaveBeenCalledTimes(1);
     expect(mocks.send).toHaveBeenCalledWith(event);
+
+    expect(mocks.captureException).not.toHaveBeenCalled();
   });
 
-  it("does not throw when enqueueing fails", async () => {
+  it("reports the error without throwing when enqueueing fails", async () => {
     const error = new Error("Inngest unavailable");
 
     mocks.createEvent.mockReturnValueOnce({
@@ -65,7 +72,18 @@ describe("requestResearchIndex", () => {
 
     await expect(requestResearchIndex("research-1")).resolves.toBeUndefined();
 
-    expect(consoleError).toHaveBeenCalledTimes(1);
+    expect(mocks.captureException).toHaveBeenCalledTimes(1);
+
+    expect(mocks.captureException).toHaveBeenCalledWith(error, {
+      tags: {
+        subsystem: "background-jobs",
+        operation: "research-index-enqueue",
+      },
+      extra: {
+        researchId: "research-1",
+      },
+    });
+
     expect(consoleError).toHaveBeenCalledWith(
       expect.stringContaining("Failed to enqueue research indexing"),
       expect.objectContaining({
