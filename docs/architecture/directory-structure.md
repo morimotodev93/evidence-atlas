@@ -62,6 +62,12 @@ evidence-atlas/
 │   │   ├── ai/             # Models, indexing/retrieval, DB locking, context, and citations
 │   │   └── observability/  # Shared Sentry tracing configuration and tests
 │   ├── prisma/
+│   │   ├── contract.prisma # Data contract; generated contract.json / contract.d.ts alongside it
+│   │   ├── db.ts
+│   │   ├── seed.ts         # Seed-profile entrypoint
+│   │   └── seeds/
+│   │       ├── development.ts
+│   │       └── public-demo.ts
 │   ├── types/              # Shared types, validation, and session augmentation
 │   └── workspace/          # Current Workspace resolution and switching
 ├── .env.example
@@ -150,7 +156,9 @@ The retrieval and indexing functions in `lib/ai/` define their own Sentry custom
 
 ### `src/prisma/` and `migrations/`
 
-`contract.prisma` defines the Prisma 8 data contract. `contract.json` and `contract.d.ts` are generated artifacts. `db.ts` creates the PostgreSQL runtime, and `seed.ts` provides development sample data.
+`contract.prisma` defines the Prisma 8 data contract. `contract.json` and `contract.d.ts` are generated artifacts. `db.ts` creates the PostgreSQL runtime. `seed.ts` is the seed-profile entrypoint: it dispatches `development` (the default) or `public-demo`, handles errors, and closes the runtime. `seeds/development.ts` contains local development fixtures; `seeds/public-demo.ts` contains curated portfolio Demo data.
+
+The Public Demo profile provisions canonical research data using existing models; it does not enforce read-only access. Seeding creates no RetrievalChunk records or embeddings and does not enqueue background indexing. Retrieval indexing remains separate from data provisioning. Profile scripts and execution limits are documented in the [Phase 9 roadmap](../planning/roadmap.md#phase-9--public-demo).
 
 `prisma.config.ts` connects the CLI to the contract and `DATABASE_URL`. Both CLI configuration and runtime register the pgvector extension. Application migrations, including RetrievalChunk storage, live under `migrations/app/`; extension installation lives under `migrations/pgvector/`, and contract snapshots under `migrations/snapshots/`. Local Compose uses a PostgreSQL 18 image with pgvector.
 
@@ -178,7 +186,7 @@ The Research list uses GET parameters: `query` searches title and description wi
 
 ## Planned Architecture and Known Gaps
 
-The earlier proposed `(public)` and `(dashboard)` route groups are not implemented. JSON and streaming APIs exist as Route Handlers under the Research chat routes; Auth.js uses a separate handler under `src/app/api/auth/`. Authenticated application navigation is implemented through the shared header. Public Demo separation remains future work.
+The earlier proposed `(public)` and `(dashboard)` route groups are not implemented. JSON and streaming APIs exist as Route Handlers under the Research chat routes; Auth.js uses a separate handler under `src/app/api/auth/`. Authenticated application navigation is implemented through the shared header. Curated Public Demo data provisioning is implemented as a separate seed profile; public route/auth separation and read-only enforcement remain pending. The Demo seed has not been run against the current database.
 
 Research-scoped AI conversations and same-Workspace retrieval with pgvector are implemented. Authentication and membership-based authorization are implemented for application pages, mutations, and chat routes. Chat routes check both Workspace access and that a conversation belongs to the requested Research. Retrieval scope supplements these access checks; it is not itself an authorization boundary. Billing remains planned. AI chat rate limiting, chat-generation usage tracking, and Inngest background Research indexing are implemented. Transactional outbox and general reconciliation remain future work.
 

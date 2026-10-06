@@ -406,11 +406,11 @@ Only features that contribute meaningfully to the portfolio should be implemente
 
 **Goal:** Prepare a safe and understandable portfolio demonstration.
 
-- [ ] Create curated Demo Workspace
-- [ ] Create realistic Research data
-- [ ] Create Sources
-- [ ] Create Findings
-- [ ] Create Conclusions
+- [x] Create curated Demo Workspace
+- [x] Create realistic Research data
+- [x] Create Sources
+- [x] Create Findings
+- [x] Create Conclusions
 - [ ] Configure read-only Demo behavior
 - [ ] Add Demo labels
 - [ ] Add GitHub link
@@ -418,7 +418,22 @@ Only features that contribute meaningfully to the portfolio should be implemente
 - [ ] Verify that no private credentials are exposed
 - [ ] Verify that arbitrary public writes are disabled
 
-Development seed data exists, but a curated public Demo and read-only enforcement are not implemented. Seed data alone does not complete this phase.
+**Phase 9.1 — Curated dataset implementation:** Seed profiles are split into `development` and `public-demo`. `src/prisma/seed.ts` dispatches the selected profile, handles errors, and closes the database runtime; omitting the profile selects `development`. `seeds/development.ts` contains local development fixtures, while `seeds/public-demo.ts` defines curated portfolio data using the existing application UI and Research models.
+
+The Demo Organization is **Evidence Atlas Demo**. Its Workspace and official theme are **AI-Assisted Software Development**, with four `COMPLETED` Research records:
+
+- Developer Productivity
+- Code Quality & Reliability
+- Developer Experience
+- Adoption & Organizational Impact
+
+The dataset defines six Workspace Tags attached through ResearchTag. Each Research has three Sources, four text Findings linked through FindingSource, a stored Conclusion, one Comment, and one persisted example Conversation with a USER question and a predefined AI answer. AI answers build the existing `[source:<source-id>]` citation markers from generated Source IDs, providing examples for citation restoration without calling an AI provider.
+
+`pnpm seed` selects `development`; `pnpm seed:demo` selects `public-demo`. The Demo seed provisions canonical data only: it does not create RetrievalChunk records or embeddings, request Inngest jobs, or run retrieval indexing. The derived retrieval index requires a separate indexing operation.
+
+Both profiles create rows without deleting or truncating existing data; neither is a database reset or an idempotent operation. Repeated execution can fail on unique User emails (including `demo@evidence-atlas.local` for the Demo). Provisioning should target a fresh or otherwise appropriate database after checking existing data.
+
+The checked dataset items describe code present in the repository. The user reports a successful `pnpm build`, but the Demo seed has not been run against the current database, dataset creation remains unverified, and Demo Research indexing has not been run. This documentation task performed no seed execution or database operations. Public unauthenticated access, read-only enforcement, Demo labels, the GitHub link, final Demo documentation, credential/public-write checks, and deployed Demo verification remain pending. Phase 9 is not complete.
 
 Public deployment concept:
 
@@ -524,7 +539,7 @@ Authentication, billing, advanced RAG, background processing, and other infrastr
 
 The public portfolio deployment is not intended to function as an unrestricted public SaaS service.
 
-The Demo environment uses curated data and is primarily read-only.
+The planned Demo environment will use curated data and be primarily read-only. The dataset definition is implemented; public access and read-only enforcement remain pending.
 
 This approach allows the project to demonstrate:
 

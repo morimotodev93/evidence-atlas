@@ -11,7 +11,8 @@
     "test": "vitest",
     "test:e2e": "playwright test",
     "contract:emit": "prisma contract emit",
-    "seed": "node src/prisma/seed.ts"
+    "seed": "node src/prisma/seed.ts development",
+    "seed:demo": "node src/prisma/seed.ts public-demo"
   },
   "dependencies": {
     "@ai-sdk/google": "^3.0.127",

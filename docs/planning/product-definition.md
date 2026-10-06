@@ -622,11 +622,11 @@ This distinction is important for traceability and AI retrieval.
 
 ## 6. Demo Experience
 
-The public demo site is a curated, read-only portfolio experience.
+The planned public demo site is a curated, read-only portfolio experience. Public unauthenticated access and read-only enforcement remain separate Phase 9 responsibilities.
 
 Visitors can explore a prepared Demo Workspace, review its accumulated research knowledge, and interact with AI-assisted knowledge exploration.
 
-The underlying demo data is immutable. Visitors cannot create, edit, or delete persistent research data.
+The underlying demo data must be immutable to visitors: they must not be able to create, edit, or delete persistent research data. These controls are not yet implemented.
 
 The demo is intended to communicate the product concept and demonstrate its core workflow rather than operate as a publicly available SaaS.
 
@@ -647,6 +647,10 @@ Read-only Exploration
 ```
 
 Visitors should be able to inspect representative research data and understand how Evidence Atlas organizes research knowledge.
+
+The curated Demo Workspace theme is **AI-Assisted Software Development**. Four Research items explore Developer Productivity, Code Quality & Reliability, Developer Experience, and Adoption & Organizational Impact to demonstrate evidence organization and cross-Research knowledge reuse. Representative data includes Sources, traceable Findings, Conclusions, Tags, Comments, and saved example AI conversations with Source citations.
+
+The content and data provisioning approach is defined in a dedicated `public-demo` seed profile using the existing application models. The dataset implementation exists, but seeding and indexing have not yet been run for the current database; this is not a verified public Demo deployment.
 
 ### 6.3 Demo Goals
 
@@ -672,7 +676,7 @@ The initial direction is therefore:
 - No requirement for visitors to provide personal API credentials
 - No production SaaS administration through the public Demo
 
-The exact Demo implementation remains to be defined.
+Curated content and data provisioning are defined. Public access, read-only enforcement, and the remaining public Demo behavior still need to be completed.
 
 ---
 
@@ -945,6 +949,7 @@ The intended workflows above remain the product baseline. As of 2026-10-06:
 - Research-scoped AI conversations support explicit creation, streaming responses, saved history, and supporting Source links. Desktop uses a side panel; smaller screens use an Ask AI dialog. AI outputs are not automatically promoted into Findings or Conclusions.
 - UC-07 has a Phase 6 baseline: Research conversations combine current knowledge with relevant indexed Findings, Conclusions, and Research metadata from the same Workspace, including other Research items. Phase 8.3 adds asynchronous background reindexing after relevant Research/Finding mutations, with best-effort enqueue and a manual maintenance path. The broader use case remains incomplete: discussions and external Source bodies are not retrieved, the derived index can be stale, and citation eligibility does not prove a claim. Research metadata is discovery context rather than supported evidence.
 - Authentication, current Workspace selection, Workspace-based Research permission enforcement, onboarding, and Research-scoped AI route authorization are implemented. Related Research discovery, read-only Demo controls, invitation and broader membership administration flows, and public AI usage controls remain pending.
+- Curated Demo data is defined in the `public-demo` seed profile. Creation in the current database and Demo indexing remain unverified; public unauthenticated access and read-only enforcement are still pending.
 - A Sentry error-monitoring baseline, configurable sampled performance tracing, and targeted retrieval/indexing spans with count-based attributes are implemented. Broader production monitoring requirements remain open; see the [roadmap](roadmap.md#phase-8--saas-infrastructure).
 
 See the [roadmap](roadmap.md) for remaining work. These gaps do not redefine the approved product behavior.
