@@ -58,8 +58,9 @@ evidence-atlas/
 │   │   ├── request-research-index.ts
 │   │   └── functions/
 │   │       └── index-research.ts
-│   ├── lib/                # Shared utilities and AI infrastructure
-│   │   └── ai/             # Models, indexing/retrieval, DB locking, context, and citations
+│   ├── lib/                # Shared utilities, AI infrastructure, and telemetry configuration
+│   │   ├── ai/             # Models, indexing/retrieval, DB locking, context, and citations
+│   │   └── observability/  # Shared Sentry tracing configuration and tests
 │   ├── prisma/
 │   ├── types/              # Shared types, validation, and session augmentation
 │   └── workspace/          # Current Workspace resolution and switching
@@ -142,6 +143,8 @@ Access-control Vitest tests are colocated in `auth/`. They cover Research mutati
 `types/` contains shared application types and Zod validation schemas for Research, Sources, Findings, Comments, and Tags.
 
 `lib/ai/index-research.ts` implements the shared manual/background index refresh. `research-index-lock.ts` builds its Research-scoped PostgreSQL advisory transaction lock; the write transaction cleans up prior chunks and upserts replacements using their unique key.
+
+The retrieval and indexing functions in `lib/ai/` define their own Sentry custom span boundaries and record operational counts. Shared application telemetry configuration belongs to `lib/observability/`: `sentry-config.ts` parses and validates the tracing sample rate for client, server, and edge SDK configuration, with colocated Vitest tests. See [AI Architecture](ai-architecture.md#136-retrieval-and-indexing-observability) for the span and privacy boundaries.
 
 `next-auth.d.ts` augments the session type with the authenticated User ID. Onboarding and member-role validation schemas remain local to their Server Actions.
 

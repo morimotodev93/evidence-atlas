@@ -127,6 +127,21 @@ const mocks = vi.hoisted(() => {
 
   const buildResearchIndexLockPlan = vi.fn(() => lockPlan);
 
+  const spanSetAttribute = vi.fn();
+
+  const startSpan = vi.fn(
+    async (
+      _options: unknown,
+      callback: (span: {
+        setAttribute: (name: string, value: number) => void;
+      }) => Promise<unknown>,
+    ) => {
+      return await callback({
+        setAttribute: spanSetAttribute,
+      });
+    },
+  );
+
   return {
     state,
     lockPlan,
@@ -142,6 +157,8 @@ const mocks = vi.hoisted(() => {
     chunkText,
     embedTexts,
     buildResearchIndexLockPlan,
+    spanSetAttribute,
+    startSpan,
   };
 });
 
@@ -171,6 +188,10 @@ vi.mock("@/lib/ai/embed-texts", () => ({
 
 vi.mock("@/lib/ai/research-index-lock", () => ({
   buildResearchIndexLockPlan: mocks.buildResearchIndexLockPlan,
+}));
+
+vi.mock("@sentry/nextjs", () => ({
+  startSpan: mocks.startSpan,
 }));
 
 import { indexResearch } from "@/lib/ai/index-research";
@@ -240,6 +261,29 @@ describe("indexResearch", () => {
     expect(mocks.deleteChunks.mock.invocationCallOrder[0]).toBeLessThan(
       mocks.upsert.mock.invocationCallOrder[0],
     );
+
+    expect(mocks.startSpan).toHaveBeenCalledTimes(1);
+
+    expect(mocks.startSpan).toHaveBeenCalledWith(
+      {
+        name: "index research",
+        op: "ai.indexing",
+      },
+      expect.any(Function),
+    );
+
+    expect(mocks.spanSetAttribute.mock.calls).toEqual([
+      ["evidence_atlas.index.candidate_count", 1],
+      ["evidence_atlas.index.chunk_count", 1],
+    ]);
+
+    const recordedAttributes = JSON.stringify(
+      mocks.spanSetAttribute.mock.calls,
+    );
+
+    expect(recordedAttributes).not.toContain("research-1");
+    expect(recordedAttributes).not.toContain("workspace-1");
+    expect(recordedAttributes).not.toContain("Initial title");
   });
 
   it("is idempotent when the same chunk already exists", async () => {

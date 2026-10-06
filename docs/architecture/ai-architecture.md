@@ -462,6 +462,43 @@ The local `retrieval-evaluation.txt` contains exploratory results, including dis
 
 ---
 
+### 13.6 Retrieval and Indexing Observability
+
+Phase 8.5 adds targeted Sentry custom spans for operation latency and execution visibility. Performance tracing uses the environment-driven sample rate documented in the [Phase 8 roadmap](../planning/roadmap.md#phase-8--saas-infrastructure); spans are subject to sampling rather than a record of every execution. Phase 8.4 remains responsible for error capture and source-map support.
+
+#### Retrieval observability
+
+`retrieveWorkspaceContext()` runs inside a span named `retrieve workspace context` with op `ai.retrieval`. Its boundary covers query embedding, vector candidate search, distance filtering, deduplication, result selection, and hydration.
+
+| Attribute | Meaning |
+| --------- | ------- |
+| `evidence_atlas.retrieval.candidate_count` | Raw vector-search candidates before filtering |
+| `evidence_atlas.retrieval.selected_count` | Items selected after distance filtering, deduplication, and the result limit |
+| `evidence_atlas.retrieval.result_count` | Results returned after hydration skips missing records |
+
+#### Indexing observability
+
+`indexResearch()` runs inside a span named `index research` with op `ai.indexing`, including when called by the Inngest background function. Its boundary covers Research/Findings reads, candidate construction, chunking, embedding, advisory-lock acquisition, and transactional cleanup/upsert.
+
+| Attribute | Meaning |
+| --------- | ------- |
+| `evidence_atlas.index.candidate_count` | Knowledge candidates constructed from non-empty indexed fields |
+| `evidence_atlas.index.chunk_count` | Chunks generated for the replacement index |
+
+Both functions attach counts only after their pipelines complete successfully. Missing Research returns `null` before indexing counts are attached; failures can also end a span before counts are recorded.
+
+#### Data and usage boundaries
+
+These custom span attributes contain operational counts only. They do not include AI query text, Research title/description/conclusion, Finding content, Source content/URLs, Workspace/Research/Finding IDs, or other user-generated content. Function inputs and returned context/indexing data remain application data and are not attached as custom span attributes.
+
+The restrictive Phase 8.4 `dataCollection` settings remain in effect, including disabled AI input/output and database query data collection. This is not complete redaction of arbitrary exception messages or manually supplied data. Replay, logs, profiling, and metrics are not enabled by this baseline, and the spans do not establish tracing of every database operation.
+
+Sentry provides sampled request/operation latency and retrieval/indexing execution visibility. `AiUsageEvent` separately records chat-generation domain usage: provider, model, token counts, finish reason, and the application attribution defined by the [data model](data-model.md). These spans do not store AI prompts/responses or replace database usage tracking.
+
+Colocated Vitest tests cover sample-rate parsing and verify the custom span names, operations, and count-only attributes, with checks against identifiers and content. This documentation review does not rerun database/provider calls or validate production performance.
+
+---
+
 ## 14. Architectural Principles
 
 The AI implementation follows these principles:

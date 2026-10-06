@@ -377,7 +377,7 @@ Potential features:
 - [x] Usage tracking
 - [x] Background jobs
 - [x] Error monitoring
-- [ ] Application observability
+- [x] Application observability
 
 **Implemented baseline:** AI chat uses an Upstash Redis sliding-window rate limit of 10 requests per minute per Workspace × User, enforced before retrieval, embedding, and generation. Chat-generation token usage and finish reason are recorded in `AiUsageEvent`, with Workspace, User, Research, and Conversation IDs stored as scalar attribution fields.
 
@@ -390,7 +390,13 @@ Source-map resolution was also verified with a local production build, where Sen
 resolved the emitted client error back to the original TSX source and source context.
 The deployed production environment should be re-verified during Phase 11 deployment.
 
-This baseline does not include embedding usage tracking, monetary cost accounting, daily/monthly quotas, subscription-based limits, a usage analytics dashboard, or billing enforcement. Phase 8 remains partially complete; subscription, Stripe, billing, email, and application observability remain pending.
+**Phase 8.5 Application Observability:** Sentry performance tracing is configurable across the client, Node.js, and edge runtimes, providing sampled Next.js request tracing and targeted custom spans for Workspace retrieval and Research indexing. `getSentryTracesSampleRate()` reads the public, non-secret `NEXT_PUBLIC_SENTRY_TRACES_SAMPLE_RATE` and accepts finite values within `0..1`. Missing, empty, non-numeric, non-finite, or out-of-range values fall back to `0`, which disables tracing. Like the public DSN, the browser configuration is embedded at build time. `.env.example` defaults to `0` and recommends `0.1` as a production baseline; this is not a required production value. `SENTRY_AUTH_TOKEN` remains a build-only secret.
+
+The custom spans record only operational counts: retrieval candidates, selected items, hydrated results, and indexing candidates/chunks. Their attributes exclude AI query text, Research title/description/conclusion, Finding content, Source content/URLs, Workspace/Research/Finding IDs, and other user-generated content. Phase 8.4's restrictive `dataCollection` configuration is retained; it does not provide complete redaction of arbitrary exception messages or manually supplied data. Replay, logs, profiling, and metrics are outside this baseline, and it does not enable automatic database query data collection. Span boundaries and attributes are documented in [AI Architecture](../architecture/ai-architecture.md#136-retrieval-and-indexing-observability).
+
+Vitest covers sample-rate parsing and verifies count-only custom span attributes without Research/query identifiers or content. Targeted tests, the full test suite, and `pnpm build` were reported successful by the implementation author; this documentation review does not rerun runtime verification or establish production performance validation.
+
+This baseline does not include embedding usage tracking, monetary cost accounting, daily/monthly quotas, subscription-based limits, a usage analytics dashboard, or billing enforcement. Phase 8 remains partially complete; subscription, Stripe, billing, and email remain pending.
 
 Only features that contribute meaningfully to the portfolio should be implemented.
 

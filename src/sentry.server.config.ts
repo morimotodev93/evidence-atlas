@@ -1,3 +1,4 @@
+import { getSentryTracesSampleRate } from "@/lib/observability/sentry-config";
 import * as Sentry from "@sentry/nextjs";
 
 const dsn = process.env.NEXT_PUBLIC_SENTRY_DSN;
@@ -7,7 +8,7 @@ Sentry.init({
   enabled: Boolean(dsn),
   environment: process.env.NODE_ENV,
   // Keep error monitoring only, including when tracing env vars are present.
-  tracesSampleRate: 0,
+  tracesSampleRate: getSentryTracesSampleRate(),
 
   dataCollection: {
     userInfo: false,

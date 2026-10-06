@@ -870,7 +870,7 @@ The following areas remain intentionally undecided:
 - Exact Demo interaction model
 - Billing requirements
 - Production deployment architecture
-- Monitoring and observability requirements
+- Production alerting/SLO requirements, broader metrics and profiling strategy, and long-term telemetry retention/operational policy
 
 The Phase 5 AI provider and the Phase 6 baseline embedding, chunking, retrieval, and citation behavior are established.
 
@@ -945,5 +945,6 @@ The intended workflows above remain the product baseline. As of 2026-10-06:
 - Research-scoped AI conversations support explicit creation, streaming responses, saved history, and supporting Source links. Desktop uses a side panel; smaller screens use an Ask AI dialog. AI outputs are not automatically promoted into Findings or Conclusions.
 - UC-07 has a Phase 6 baseline: Research conversations combine current knowledge with relevant indexed Findings, Conclusions, and Research metadata from the same Workspace, including other Research items. Phase 8.3 adds asynchronous background reindexing after relevant Research/Finding mutations, with best-effort enqueue and a manual maintenance path. The broader use case remains incomplete: discussions and external Source bodies are not retrieved, the derived index can be stale, and citation eligibility does not prove a claim. Research metadata is discovery context rather than supported evidence.
 - Authentication, current Workspace selection, Workspace-based Research permission enforcement, onboarding, and Research-scoped AI route authorization are implemented. Related Research discovery, read-only Demo controls, invitation and broader membership administration flows, and public AI usage controls remain pending.
+- A Sentry error-monitoring baseline, configurable sampled performance tracing, and targeted retrieval/indexing spans with count-based attributes are implemented. Broader production monitoring requirements remain open; see the [roadmap](roadmap.md#phase-8--saas-infrastructure).
 
 See the [roadmap](roadmap.md) for remaining work. These gaps do not redefine the approved product behavior.
