@@ -1,7 +1,7 @@
 # Product Definition
 
 > **Status:** Approved
-> **Last Updated:** 2026-10-05
+> **Last Updated:** 2026-10-06
 
 This document defines the approved product concept, target users, and primary use cases for **Evidence Atlas**.
 
@@ -812,7 +812,7 @@ AI SDK
 Generated Answer
 ```
 
-The implemented pipeline indexes Findings, Conclusions, and Research title/description metadata. It uses `gemini-embedding-001` with 768-dimensional vectors, chunking, cosine-distance filtering, and deduplication. Indexing is explicit rather than synchronized with edits. Source bodies and discussions are not indexed. Detailed parameters, citation eligibility, and evaluation results are maintained in [AI Architecture](../architecture/ai-architecture.md), rather than duplicated as product requirements.
+The implemented pipeline indexes Findings, Conclusions, and Research title/description metadata. It uses `gemini-embedding-001` with 768-dimensional vectors, chunking, cosine-distance filtering, and deduplication. Relevant Research/Finding mutations request automatic background reindexing through Inngest; synchronization is asynchronous with best-effort enqueue, and a manual reindex path remains available. Not every product mutation triggers indexing: its inputs are Research title/description/conclusion and Finding content. Source bodies and discussions are not indexed. Detailed parameters, citation eligibility, and evaluation results are maintained in [AI Architecture](../architecture/ai-architecture.md), rather than duplicated as product requirements.
 
 ### 9.6 Authentication & Authorization
 
@@ -864,7 +864,7 @@ The following areas remain intentionally undecided:
 - Finding display styles beyond TEXT and structured JSON data requirements
 - Discussion behavior beyond Research-level Comments, including whether threaded replies are needed
 - Conclusion structure beyond the current optional text on Research
-- Automatic index synchronization and cleanup
+- Durable reconciliation after failed enqueue and lifecycle cleanup beyond current mutation-triggered reindexing
 - Retrieval improvements beyond the Phase 6 baseline, including chunk expansion and reranking
 - Broader retrieval/answer evaluation as Workspace knowledge grows
 - Exact Demo interaction model
@@ -932,7 +932,7 @@ The document should be revised when:
 
 ### Current Implementation Gaps
 
-The intended workflows above remain the product baseline. As of 2026-10-01:
+The intended workflows above remain the product baseline. As of 2026-10-06:
 
 - Research creation and title/description editing, plus Source, Finding, and Comment CRUD, are implemented.
 - Workspace Tags can be created or reused by name, attached to Research, displayed on list/detail pages, and detached without deleting the Tag. Tag renaming, Workspace-level Tag deletion, and Tag filtering are not implemented.
@@ -943,7 +943,7 @@ The intended workflows above remain the product baseline. As of 2026-10-01:
 - Comments attach to Research, not individual Findings; the UC-04 wording about selecting Findings describes discussion context, not a separate Comment relationship. Threaded replies are not modeled.
 - UC-05's broader conclusion workflow has only one optional text field in the current contract; multiple conclusion records and structured links to supporting Findings are not implemented.
 - Research-scoped AI conversations support explicit creation, streaming responses, saved history, and supporting Source links. Desktop uses a side panel; smaller screens use an Ask AI dialog. AI outputs are not automatically promoted into Findings or Conclusions.
-- UC-07 has a Phase 6 baseline: Research conversations combine current knowledge with relevant indexed Findings, Conclusions, and Research metadata from the same Workspace, including other Research items. The broader use case remains incomplete: discussions and external Source bodies are not retrieved, indexing is manual, and citation eligibility does not prove a claim. Research metadata is discovery context rather than supported evidence.
+- UC-07 has a Phase 6 baseline: Research conversations combine current knowledge with relevant indexed Findings, Conclusions, and Research metadata from the same Workspace, including other Research items. Phase 8.3 adds asynchronous background reindexing after relevant Research/Finding mutations, with best-effort enqueue and a manual maintenance path. The broader use case remains incomplete: discussions and external Source bodies are not retrieved, the derived index can be stale, and citation eligibility does not prove a claim. Research metadata is discovery context rather than supported evidence.
 - Authentication, current Workspace selection, Workspace-based Research permission enforcement, onboarding, and Research-scoped AI route authorization are implemented. Related Research discovery, read-only Demo controls, invitation and broader membership administration flows, and public AI usage controls remain pending.
 
 See the [roadmap](roadmap.md) for remaining work. These gaps do not redefine the approved product behavior.

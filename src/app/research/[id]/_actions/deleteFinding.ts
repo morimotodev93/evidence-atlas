@@ -7,6 +7,7 @@ import {
   ResearchAccessError,
 } from "@/auth/requireResearchAccess";
 import { requireUser } from "@/auth/requireUser";
+import { requestResearchIndex } from "@/inngest/request-research-index";
 import { db } from "@/prisma/db";
 
 export type DeleteFindingState = {
@@ -48,6 +49,8 @@ export async function deleteFinding(
       error: "Failed to delete finding. Please try again.",
     };
   }
+
+  await requestResearchIndex(finding.researchId);
 
   redirect(`/research/${finding.researchId}`);
 }

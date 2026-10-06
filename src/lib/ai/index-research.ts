@@ -2,6 +2,7 @@ import { db } from "@/prisma/db";
 
 import { chunkText } from "@/lib/ai/chunk-text";
 import { embedTexts } from "@/lib/ai/embed-texts";
+import { buildResearchIndexLockPlan } from "@/lib/ai/research-index-lock";
 
 type RetrievalCandidate = {
   workspaceId: string;
@@ -85,7 +86,11 @@ export async function indexResearch(researchId: string) {
     );
   }
 
+  const lockPlan = buildResearchIndexLockPlan(researchId);
+
   await db.transaction(async (tx) => {
+    await tx.query(lockPlan);
+
     await tx.orm.public.RetrievalChunk.where({
       researchId,
     }).delete();
@@ -94,15 +99,30 @@ export async function indexResearch(researchId: string) {
       const chunk = chunks[index];
       const embedding = embeddings[index];
 
-      await tx.orm.public.RetrievalChunk.create({
-        id: crypto.randomUUID(),
-        workspaceId: chunk.workspaceId,
-        researchId: chunk.researchId,
-        sourceType: chunk.sourceType,
-        sourceId: chunk.sourceId,
-        chunkIndex: chunk.chunkIndex,
-        content: chunk.content,
-        embedding,
+      await tx.orm.public.RetrievalChunk.upsert({
+        create: {
+          id: crypto.randomUUID(),
+          workspaceId: chunk.workspaceId,
+          researchId: chunk.researchId,
+          sourceType: chunk.sourceType,
+          sourceId: chunk.sourceId,
+          chunkIndex: chunk.chunkIndex,
+          content: chunk.content,
+          embedding,
+        },
+
+        update: {
+          workspaceId: chunk.workspaceId,
+          researchId: chunk.researchId,
+          content: chunk.content,
+          embedding,
+        },
+
+        conflictOn: {
+          sourceType: chunk.sourceType,
+          sourceId: chunk.sourceId,
+          chunkIndex: chunk.chunkIndex,
+        },
       });
     }
   });

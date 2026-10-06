@@ -1,6 +1,6 @@
 # evidence-atlas Roadmap
 
-> **Last Updated:** 2026-10-05
+> **Last Updated:** 2026-10-06
 
 Current stage: Phases 4–7 are complete for their stated baseline scopes. Phases 0–3 established the foundation, product direction, data contract, and design-system baseline. Checked implementation items describe code present in the repository, not a fresh runtime verification or completion of every related product requirement.
 
@@ -306,11 +306,11 @@ RAG should be introduced only after the basic AI workflow is working.
 
 **Status: Complete for the Phase 6 baseline scope.** Research-scoped conversations now combine full current Research context with same-Workspace retrieval over indexed Findings, Conclusions, and Research title/description metadata. The implementation uses 768-dimensional Gemini embeddings, pgvector cosine search, ten candidates, a maximum distance of 0.35, deduplication by knowledge item, and at most five selected items.
 
-Indexing explicitly replaces one Research's chunks and is not automatically synchronized with knowledge edits. Completed AI messages validate citation IDs against Sources linked to supplied Findings; conversation detail resolves cited Sources across the current Workspace. See [AI Architecture](../architecture/ai-architecture.md) for the indexing lifecycle, retrieval flow, citation boundaries, and remaining limitations.
+Indexing replaces one Research's chunks; Phase 8.3 adds asynchronous, best-effort background refresh after relevant Research/Finding mutations alongside the manual reindex path. Completed AI messages validate citation IDs against Sources linked to supplied Findings; conversation detail resolves cited Sources across the current Workspace. See [AI Architecture](../architecture/ai-architecture.md) for the indexing lifecycle, retrieval flow, citation boundaries, and remaining limitations.
 
 Retrieval evaluation covers direct, paraphrased, related-but-unsupported, and unrelated questions. The manual evaluation recorded in [AI Architecture](../architecture/ai-architecture.md#135-retrieval-evaluation) selected 0.35 as the initial cutoff: tested positive cases were retained and unrelated cases rejected. Separate manual chat E2E checks confirmed a supported answer with a Source and insufficient-evidence responses for related-but-unsupported and unrelated questions. These results are an existing evaluation record, not a new run during this documentation update.
 
-The inspection scripts are not an automated quality gate. The local exploratory log includes distances above the current cutoff and is not a passing regression result for the filtered configuration. Broader evaluation as the corpus grows, representative-chunk selection improvements, automatic indexing, authentication, and public usage controls remain outstanding.
+The inspection scripts are not an automated quality gate. The local exploratory log includes distances above the current cutoff and is not a passing regression result for the filtered configuration. Broader evaluation as the corpus grows, representative-chunk selection improvements, durable index reconciliation, and public Demo controls remain outstanding. Authentication and mutation-triggered background indexing are implemented in Phases 7 and 8.3 respectively.
 
 ---
 
@@ -375,13 +375,15 @@ Potential features:
 - [ ] Email infrastructure
 - [x] Rate limiting
 - [x] Usage tracking
-- [ ] Background jobs
+- [x] Background jobs
 - [ ] Error monitoring
 - [ ] Application observability
 
 **Implemented baseline:** AI chat uses an Upstash Redis sliding-window rate limit of 10 requests per minute per Workspace × User, enforced before retrieval, embedding, and generation. Chat-generation token usage and finish reason are recorded in `AiUsageEvent`, with Workspace, User, Research, and Conversation IDs stored as scalar attribution fields.
 
-This baseline does not include embedding usage tracking, monetary cost accounting, daily/monthly quotas, subscription-based limits, a usage analytics dashboard, or billing enforcement. Phase 8 remains partially complete.
+**Phase 8.3 Background Jobs:** Inngest refreshes the Research-scoped retrieval index after successful Research creation, title/description updates, Conclusion updates, and Finding creation, content updates, and deletion. Events are debounced per Research ID (`5s` period, `30s` timeout), with singleton mode `cancel` and `3` retries. A PostgreSQL advisory transaction lock and idempotent upserts protect the database write path. Enqueue is best-effort and does not fail successful CRUD operations; transactional outbox, a general-purpose job platform, and strong consistency are outside this baseline.
+
+This baseline does not include embedding usage tracking, monetary cost accounting, daily/monthly quotas, subscription-based limits, a usage analytics dashboard, or billing enforcement. Phase 8 remains partially complete; subscription, Stripe, billing, email, error monitoring, and application observability remain pending.
 
 Only features that contribute meaningfully to the portfolio should be implemented.
 

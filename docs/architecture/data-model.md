@@ -1,7 +1,7 @@
 # Data Model
 
 > Status: Core, Research-scoped conversations, Phase 6 retrieval storage, and chat-generation usage storage implemented
-> Last Updated: 2026-10-05
+> Last Updated: 2026-10-06
 
 ## 1. Overview
 
@@ -713,7 +713,9 @@ Messages store visible text with allowed `[source:<source-id>]` citation markers
 
 The contract enforces uniqueness on `(sourceType, sourceId, chunkIndex)` and ordinary indexes on `workspaceId` and `researchId`. It has no HNSW/IVFFlat vector index and no foreign keys to Workspace, Research, or Finding. Deleting original knowledge therefore does not cascade to chunks.
 
-Explicit indexing generates embeddings, then transactionally replaces all chunks for one Research. CRUD does not automatically reindex or clean up derived rows. Retrieval skips missing records but can return stale text for edited records until reindexing. The table stores neither embedding model/version metadata nor a historical snapshot of Source links. Chunking, model settings, search selection, and evaluation are defined in [AI Architecture](ai-architecture.md#13-phase-6-retrieval--rag).
+Phase 8.3 changes the application-managed indexing lifecycle without changing the RetrievalChunk schema. Successful Research creation, title/description updates, Conclusion updates, and Finding creation, content updates, and deletion request asynchronous background reindexing through a best-effort Inngest enqueue helper. Indexing generates embeddings before replacing chunks in a transaction protected by a Research-scoped PostgreSQL advisory lock, with upserts on `(sourceType, sourceId, chunkIndex)` providing an idempotent write path.
+
+A successful refresh after Finding deletion removes its stale chunks by rebuilding the Research index. This is not database FK cascade cleanup; generic Research-deletion cleanup and broader lifecycle reconciliation are not implemented. Failed enqueue does not fail the primary mutation and can leave the index stale until a later successful refresh or manual reindex. There is no transactional outbox or guaranteed immediate consistency. Retrieval skips missing records but can return stale text while refresh is pending or after a failure. The table stores neither embedding model/version metadata nor a historical snapshot of Source links. Chunking, model settings, search selection, and the manual reindex command are defined in [AI Architecture](ai-architecture.md#13-phase-6-retrieval--rag).
 
 ### 7.12 AiUsageEvent
 
@@ -851,4 +853,4 @@ Tag renaming, Workspace-level Tag deletion, and Tag filtering are also not imple
 
 Phase 5 adds required Research ownership for Conversations and persisted user/AI Messages. Phase 6 adds same-Workspace retrieval without changing Conversation ownership. A standalone Workspace conversation model is not implemented.
 
-Automatic index synchronization, vector-index tuning, richer provenance, and future storage extensions remain deferred. The existing index and retrieval pipeline are described in [AI Architecture](ai-architecture.md).
+Mutation-triggered background synchronization for the current indexed fields is implemented. Broader reconciliation, lifecycle cleanup, vector-index tuning, richer provenance, and future storage extensions remain deferred. The existing index and retrieval pipeline are described in [AI Architecture](ai-architecture.md).

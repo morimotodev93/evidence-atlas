@@ -1,6 +1,7 @@
 "use server";
 
 import { requireUser } from "@/auth/requireUser";
+import { requestResearchIndex } from "@/inngest/request-research-index";
 import { redirect } from "next/navigation";
 
 import { db } from "@/prisma/db";
@@ -29,6 +30,8 @@ export async function createResearch(formData: FormData) {
     title: result.data.title,
     description: result.data.description,
   });
+
+  await requestResearchIndex(research.id);
 
   redirect(`/research/${research.id}`);
 }

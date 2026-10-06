@@ -1,8 +1,8 @@
 # AI Architecture
 
-> **Status:** Implemented Phase 6 baseline with Phase 7 route authorization
-> **Scope:** Phase 5 AI Integration + Phase 6 Retrieval / RAG + Phase 7 AI route access control
-> **Last Updated:** 2026-10-05
+> **Status:** Implemented Phase 6 baseline with Phase 7 route authorization and Phase 8.3 background indexing
+> **Scope:** Phase 5 AI Integration + Phase 6 Retrieval / RAG + Phase 7 AI route access control + Phase 8.3 Background Jobs
+> **Last Updated:** 2026-10-06
 
 ## 1. Purpose
 
@@ -339,9 +339,9 @@ Component reuse does not mean shared live state: the desktop and dialog panels h
 
 ## 12. Current Boundaries
 
-The Phase 6 baseline does not implement:
+The current implementation does not implement:
 
-- automatic or incremental index synchronization and stale-chunk cleanup,
+- incremental change detection, durable reconciliation, and lifecycle cleanup beyond mutation-triggered reindexing,
 - query rewriting, hybrid retrieval, reranking, or adjacent-chunk expansion,
 - total context/history budgets or persisted retrieval provenance,
 - automatic external Source fetching,
@@ -397,15 +397,29 @@ For `FINDING`, `sourceId` is the Finding ID; for `CONCLUSION` and `RESEARCH`, it
 
 The contract defines uniqueness on `(sourceType, sourceId, chunkIndex)` and ordinary indexes on Workspace and Research IDs. It defines neither an HNSW/IVFFlat vector index nor foreign-key relations to the original knowledge records. Migrations exist for the vector extension and retrieval table; their presence does not verify deployment to a particular database.
 
-`indexResearch(researchId)` loads Research and Findings, builds and chunks candidates, generates document embeddings, and checks the embedding count. It then deletes that Research's old chunks and inserts the replacement set in one transaction. Embeddings are generated before deletion, so an embedding failure preserves the previous index. Missing Research returns `null`.
+`indexResearch(researchId)` loads current Research and Findings, builds and chunks candidates, generates document embeddings, and checks the embedding count. Its write transaction acquires a Research-scoped PostgreSQL advisory transaction lock, deletes that Research's old chunks, and upserts the replacement set using `(sourceType, sourceId, chunkIndex)`. The lock serializes writes for the same Research, and the idempotent write path handles duplicate or retried execution without relying solely on Inngest cancellation. Embeddings are generated before deletion, so an embedding failure preserves the previous index. Missing Research returns `null` without cleaning up existing chunks.
 
-Indexing is explicit:
+Successful Research creation, title/description updates, Conclusion updates, and Finding creation, content updates, and deletion call `requestResearchIndex(researchId)`. Source CRUD, Comments, Tags, Research status changes, and FindingSource attachment/detachment do not request reindexing; these do not change the indexed fields in Section 13.1.
+
+```text
+Relevant Research/Finding mutation
+    -> best-effort research/index.requested event enqueue
+    -> Inngest debounce/singleton
+    -> indexResearch(researchId)
+    -> transaction-protected RetrievalChunk refresh
+```
+
+The `index-research` Inngest function is served at `/api/inngest` through GET, POST, and PUT handlers. It debounces on `event.data.researchId` with a `5s` period and `30s` timeout, uses singleton key `event.data.researchId` with mode `cancel`, and configures `3` retries. Burst updates are coalesced per Research rather than indexing each mutation separately.
+
+Enqueue is best-effort: event-send errors are logged and are not thrown to the caller, so a successful primary mutation remains successful. Enqueue and the primary database mutation are not atomic; there is no transactional outbox or general reconciliation worker. Synchronization is asynchronous and eventual when background refresh succeeds, without guaranteed immediate consistency or exactly-once execution. A failed enqueue can leave the derived index stale until a later successful request or manual reindex. Reads and embedding generation occur before the write lock, so it does not guarantee that the newest snapshot writes last.
+
+A manual reindex command remains available for development and maintenance:
 
 ```sh
 pnpm exec tsx scripts/index-research.ts <research-id>
 ```
 
-This requires configured database and AI provider credentials. CRUD does not automatically invoke indexing. Edits require reindexing, and deletions do not automatically clean up chunks. Retrieval skips missing original records during hydration, but existing records can have stale indexed text until reindexed. Research titles and Source links are hydrated from current records, so they can differ from the text's original indexing state. There is no incremental change detection, embedding-version tracking, or concurrent-job coordination.
+Indexing requires configured database and AI provider credentials. A successful refresh after Finding deletion removes its stale chunks by rebuilding the Research index; this is application-managed cleanup, not foreign-key cascade cleanup. There is no generic Research-deletion cleanup. Retrieval skips missing original records during hydration, but existing records can have stale indexed text while refresh is pending or after an enqueue/job failure. Research titles and Source links are hydrated from current records, so they can differ from the text's original indexing state. Incremental change detection, embedding model/version history, and vector-index tuning remain unimplemented. RetrievalChunk remains derived data.
 
 ### 13.4 Selection and Hydration
 

@@ -1,5 +1,6 @@
 "use server";
 
+import { requestResearchIndex } from "@/inngest/request-research-index";
 import { redirect } from "next/navigation";
 
 import {
@@ -44,6 +45,8 @@ export async function updateResearch(id: string, formData: FormData) {
   if (!research) {
     throw new Error("Research not found.");
   }
+
+  await requestResearchIndex(research.id);
 
   redirect(`/research/${research.id}`);
 }

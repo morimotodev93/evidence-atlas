@@ -7,6 +7,7 @@ import {
   ResearchAccessError,
 } from "@/auth/requireResearchAccess";
 import { requireUser } from "@/auth/requireUser";
+import { requestResearchIndex } from "@/inngest/request-research-index";
 import { db } from "@/prisma/db";
 import { findingSchema } from "@/types/research/finding";
 
@@ -64,6 +65,8 @@ export async function updateFinding(
       error: "Failed to update finding. Please try again.",
     };
   }
+
+  await requestResearchIndex(finding.researchId);
 
   redirect(`/research/${finding.researchId}`);
 }

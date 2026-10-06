@@ -7,6 +7,7 @@ import {
   ResearchAccessError,
 } from "@/auth/requireResearchAccess";
 import { requireUser } from "@/auth/requireUser";
+import { requestResearchIndex } from "@/inngest/request-research-index";
 import { db } from "@/prisma/db";
 import { conclusionSchema } from "@/types/research/conclusion";
 
@@ -55,6 +56,8 @@ export async function updateConclusion(
   if (!research) {
     throw new Error("Research not found.");
   }
+
+  await requestResearchIndex(research.id);
 
   redirect(`/research/${research.id}`);
 }

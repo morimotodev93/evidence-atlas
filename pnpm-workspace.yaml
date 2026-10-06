@@ -1,5 +1,6 @@
 allowBuilds:
   esbuild: true
   msgpackr-extract: true
+  protobufjs: true
   unrs-resolver: true
   workerd: true

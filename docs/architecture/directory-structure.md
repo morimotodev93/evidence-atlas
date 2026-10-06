@@ -1,7 +1,7 @@
 # Directory Structure
 
 > **Status:** Current implementation; future areas remain provisional
-> **Last Updated:** 2026-10-05
+> **Last Updated:** 2026-10-06
 
 This document describes the implemented architecture of **Evidence Atlas**.
 The tree below highlights the application-relevant structure.
@@ -24,6 +24,7 @@ evidence-atlas/
 ├── src/
 │   ├── app/
 │   │   ├── api/auth/[...nextauth]/ # Auth.js GET/POST Route Handler
+│   │   ├── api/inngest/           # Inngest GET/POST/PUT serving endpoint
 │   │   ├── onboarding/         # Initial Organization/Workspace setup
 │   │   │   ├── _actions/
 │   │   │   └── _components/
@@ -52,8 +53,13 @@ evidence-atlas/
 │   │   ├── layout/         # Shared application header
 │   │   ├── ui/
 │   │   └── workspace/      # Workspace selector
+│   ├── inngest/            # Background job client, enqueue helper, and functions
+│   │   ├── client.ts
+│   │   ├── request-research-index.ts
+│   │   └── functions/
+│   │       └── index-research.ts
 │   ├── lib/                # Shared utilities and AI infrastructure
-│   │   └── ai/             # Models, indexing/retrieval, context, and citations
+│   │   └── ai/             # Models, indexing/retrieval, DB locking, context, and citations
 │   ├── prisma/
 │   ├── types/              # Shared types, validation, and session augmentation
 │   └── workspace/          # Current Workspace resolution and switching
@@ -86,6 +92,7 @@ Next.js App Router pages and route-local application behavior.
 | `/research`                                          | Workspace-scoped Research list with Tags, title/description search, status filtering, and sorting                                  |
 | `/research/new`                                      | Create Research                                                                                                                    |
 | `/api/auth/[...nextauth]`                            | Auth.js GET/POST handlers for Google sign-in, callbacks, sessions, and sign-out                                                    |
+| `/api/inngest`                                       | GET/POST/PUT: serve the Inngest Research indexing function                                                                           |
 | `/onboarding`                                        | Create an initial Organization, Workspace, and ADMIN memberships for a User without an accessible Workspace                        |
 | `/settings/organization`                             | Display the current Workspace's Organization and members; Organization ADMIN users can change member roles                         |
 | `/settings/workspace`                                | Display the current Workspace and members; Workspace ADMIN users can change member roles                                           |
@@ -120,6 +127,12 @@ Application pages require an authenticated User. Organization and Workspace memb
 
 Access-control Vitest tests are colocated in `auth/`. They cover Research mutations and creation-related actions, chat routes, onboarding provisioning, and Organization/Workspace role management. `vitest.config.ts` supplies the `@` source alias. Playwright is available through the package script, but no E2E test suite is currently checked in.
 
+### `src/inngest/` and `src/app/api/inngest/`
+
+`inngest/` defines the Inngest client and `research/index.requested` event, the best-effort `requestResearchIndex()` enqueue helper, and background functions. `functions/index-research.ts` debounces requests per Research ID, uses singleton cancellation and retries, and calls the shared indexer. Relevant Research/Finding Server Actions request indexing after successful mutations; enqueue errors are logged without failing the primary operation.
+
+`app/api/inngest/route.ts` serves the registered function through GET, POST, and PUT. The enqueue helper test is colocated under `app/api/inngest/`; indexing tests are under `lib/ai/`.
+
 ### `src/lib/` and `src/types/`
 
 `lib/` contains shared date and class-name utilities and a Prisma query-result compatibility helper. Database runtime configuration lives in `src/prisma/db.ts`.
@@ -127,6 +140,8 @@ Access-control Vitest tests are colocated in `auth/`. They cover Research mutati
 `lib/ai/` owns generation and embedding model configuration, text chunking, Research indexing, Workspace vector retrieval, current Research context, and citation validation/resolution. The chat Route Handler combines current Research knowledge, retrieved Workspace context, and persisted messages before streaming plain text. Completed responses are checked against a request-specific Source allowlist before persistence. Conversation detail resolves citations within the Workspace. See [AI Architecture](ai-architecture.md) for the full flow and live-versus-restored citation boundaries.
 
 `types/` contains shared application types and Zod validation schemas for Research, Sources, Findings, Comments, and Tags.
+
+`lib/ai/index-research.ts` implements the shared manual/background index refresh. `research-index-lock.ts` builds its Research-scoped PostgreSQL advisory transaction lock; the write transaction cleans up prior chunks and upserts replacements using their unique key.
 
 `next-auth.d.ts` augments the session type with the authenticated User ID. Onboarding and member-role validation schemas remain local to their Server Actions.
 
@@ -138,7 +153,7 @@ Access-control Vitest tests are colocated in `auth/`. They cover Research mutati
 
 ### `scripts/`
 
-Scripts provide explicit per-Research indexing and manual inspection of vector search, hydrated retrieval context, and citation handling. They are operational/development entry points, not application routes or an automated test suite. Indexing is not wired to knowledge CRUD; changed Research knowledge requires explicit reindexing. Commands and evaluation boundaries are documented in [AI Architecture](ai-architecture.md#13-phase-6-retrieval--rag).
+Scripts provide manual per-Research reindexing for development/maintenance and manual inspection of vector search, hydrated retrieval context, and citation handling. They are operational/development entry points, not application routes or an automated test suite. Relevant Research/Finding mutations also request background refresh through Inngest. Commands and evaluation boundaries are documented in [AI Architecture](ai-architecture.md#13-phase-6-retrieval--rag).
 
 ## Current Data Flow
 
@@ -152,7 +167,7 @@ Server-rendered pages / form Server Actions
 
 Forms use validation schemas; interactive dialogs are client components. Pages, Server Actions, and Route Handlers enforce authentication and membership checks before accessing application data on the server. Auth.js sessions use a separate Kysely connection to the same PostgreSQL database.
 
-The AI path adds document embeddings stored in PostgreSQL and query embeddings generated for each new question. Retrieval filters chunks to the current Research's Workspace, then hydrates current knowledge metadata. Conversation ownership remains Research-scoped; there is no separate Workspace chat route. Derived index content can lag behind edits because indexing is manual.
+The AI path adds document embeddings stored in PostgreSQL and query embeddings generated for each new question. Retrieval filters chunks to the current Research's Workspace, then hydrates current knowledge metadata. Conversation ownership remains Research-scoped; there is no separate Workspace chat route. Relevant mutations enqueue `research/index.requested`; Inngest coalesces requests and calls the shared indexer to refresh RetrievalChunk in a protected transaction. Derived index content can lag behind edits because refresh is asynchronous and enqueue is best-effort.
 
 The overview and Research list resolve the authenticated User's current accessible Workspace and read its Research data. The overview sorts Research by `updatedAt` and displays up to three items; its counts cover all Research in that Workspace and all of its Tags, including unattached Tags.
 
@@ -162,7 +177,7 @@ The Research list uses GET parameters: `query` searches title and description wi
 
 The earlier proposed `(public)` and `(dashboard)` route groups are not implemented. JSON and streaming APIs exist as Route Handlers under the Research chat routes; Auth.js uses a separate handler under `src/app/api/auth/`. Authenticated application navigation is implemented through the shared header. Public Demo separation remains future work.
 
-Research-scoped AI conversations and same-Workspace retrieval with pgvector are implemented. Authentication and membership-based authorization are implemented for application pages, mutations, and chat routes. Chat routes check both Workspace access and that a conversation belongs to the requested Research. Retrieval scope supplements these access checks; it is not itself an authorization boundary. Billing and background jobs remain planned. AI chat rate limiting and chat-generation usage tracking are implemented.
+Research-scoped AI conversations and same-Workspace retrieval with pgvector are implemented. Authentication and membership-based authorization are implemented for application pages, mutations, and chat routes. Chat routes check both Workspace access and that a conversation belongs to the requested Research. Retrieval scope supplements these access checks; it is not itself an authorization boundary. Billing remains planned. AI chat rate limiting, chat-generation usage tracking, and Inngest background Research indexing are implemented. Transactional outbox and general reconciliation remain future work.
 
 Workspace selection, initial Organization/Workspace provisioning, and member role management are implemented. Research creation uses the authenticated User and current accessible Workspace; new Comments use the authenticated User as their author. Workspace membership permits Research reads and writes, while Organization and Workspace ADMIN roles control their respective member role changes. Invitation flows, member removal, and advanced administration remain future work. See the [data model](data-model.md) and [Phase 7 roadmap](../planning/roadmap.md#phase-7--authentication--multi-user-architecture).
 
