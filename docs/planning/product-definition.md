@@ -682,7 +682,7 @@ The initial direction is therefore:
 - No requirement for visitors to provide personal API credentials
 - No production SaaS administration through the public Demo
 
-Curated content, public read-only access, Demo labels, and the visitor-facing SaaS write lock are implemented and locally verified. Public AI interactions, credential exposure review, production deployment verification, database-role hardening, and Inngest signing/security remain incomplete. Background writes are outside the visitor-facing lock.
+Curated content, public read-only access, Demo labels, and the visitor-facing SaaS write lock are implemented and locally verified. Public AI interactions remain intentionally disabled for the current read-only Demo scope. Credential exposure review, production deployment verification, database-role hardening, and live Inngest Cloud integration verification remain incomplete. Background writes are outside the visitor-facing lock.
 
 ---
 

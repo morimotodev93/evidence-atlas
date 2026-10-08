@@ -415,11 +415,15 @@ The `index-research` Inngest function is served at `/api/inngest` through GET, P
 
 In Public Demo mode (`PUBLIC_DEMO_MODE=true`), all three `/api/inngest` methods return 404 with `Cache-Control: no-store` before loading or dispatching the SDK, client, or indexing function. Curated read-only Demo data requires no runtime indexing, Inngest credentials, or Inngest Cloud sync/integration. Normal SaaS mode keeps the registered function and best-effort event sender unchanged; endpoint handlers are loaded once on demand after the deployment check. Auth.js is not used to authenticate Inngest.
 
-The server-only Inngest client validates production configuration at initialization. It uses installed SDK 4.21.1's resolved mode, rejecting dev mode selected by `INNGEST_DEV`, including Dev Server URLs. SDK-compatible `false` and `0` select cloud mode and remain accepted. Effective API/event endpoint overrides from `INNGEST_BASE_URL`, `INNGEST_API_BASE_URL`, and `INNGEST_EVENT_API_BASE_URL` must be valid non-local HTTPS URLs without embedded credentials in production. HTTP, loopback, `.localhost`, and Docker-host development endpoints are rejected even if SDK mode is cloud. Remote HTTPS overrides remain trusted operator configuration; this check cannot identify an arbitrary remote server's purpose. Errors name configuration only and omit keys, URLs, and credentials. Local development retains existing dev mode and endpoint override behavior.
+The server-only Inngest client exposes a runtime safety check based on the installed SDK's resolved mode. In production, resolved dev mode is rejected before serving Inngest handlers or sending indexing events. SDK-compatible `false` and `0` values remain cloud-mode configurations.
 
-Normal Cloud SaaS requires server-only `INNGEST_SIGNING_KEY` for request authentication/sync and `INNGEST_EVENT_KEY` for event sends. `INNGEST_SIGNING_KEY_FALLBACK` is for coordinated rotation; `INNGEST_ENV` selects an environment/branch. Production serving sets the supported `enableUnauthedSync: false` option, which takes precedence over `INNGEST_ENABLE_UNAUTHED_SYNC` and rejects unsigned out-of-band PUT requests. Signed Cloud/in-band sync remains supported; use Cloud UI/API/integration sync rather than an unsigned direct PUT. Development leaves the serve option unset, retaining SDK/env policy. Production must not enable `INNGEST_DEV`; no credential values belong in source or client configuration.
+The safety check intentionally does not reject endpoint overrides based on URL scheme or hostname. Self-hosted or custom endpoints remain compatible when the SDK resolves to cloud mode. In particular, production configuration such as `INNGEST_DEV=0` with a self-hosted endpoint is not treated as dev mode solely because the endpoint uses a local or HTTP URL.
 
-Local production builds/start processes must remove development overrides or set `INNGEST_DEV=false` without modifying local secret files. For PowerShell, a process-only verification/build override is `$env:INNGEST_DEV='false'` followed by `pnpm build`; it is not a persisted configuration change. Build/runtime environment settings must agree. Actual Vercel keys, Cloud integration/sync, and Preview environment/DB separation still require deployment verification.
+The check is performed at Inngest usage boundaries rather than during module initialization. This allows Next.js production builds to evaluate application modules without failing because a developer's local Inngest setting selects dev mode. `/api/inngest` checks the mode before constructing SDK handlers, and `requestResearchIndex()` checks it before creating or sending an event.
+
+Normal Cloud SaaS requires server-only `INNGEST_SIGNING_KEY` for request authentication/sync and `INNGEST_EVENT_KEY` for event sends. `INNGEST_SIGNING_KEY_FALLBACK` is for coordinated rotation; `INNGEST_ENV` selects an environment/branch. Production serving sets the supported `enableUnauthedSync: false` option, while development leaves the option unset and retains SDK/env behavior.
+
+Public Demo mode does not initialize or serve Inngest through `/api/inngest` and does not require Inngest credentials or runtime indexing. Actual Vercel configuration, signed Inngest Cloud integration/sync, Preview environment separation, and normal-SaaS telemetry handling still require deployed verification.
 
 Sentry redaction of event keys embedded in event-API URL paths remains a separate normal-SaaS hardening task when Inngest and HTTP tracing are enabled. Public Demo does not execute this event-send path. This endpoint/configuration change does not alter event payloads, indexing, embeddings, retries, debounce, singleton behavior, or background writes in normal SaaS.
 
@@ -482,20 +486,20 @@ Phase 8.5 adds targeted Sentry custom spans for operation latency and execution 
 
 `retrieveWorkspaceContext()` runs inside a span named `retrieve workspace context` with op `ai.retrieval`. Its boundary covers query embedding, vector candidate search, distance filtering, deduplication, result selection, and hydration.
 
-| Attribute | Meaning |
-| --------- | ------- |
-| `evidence_atlas.retrieval.candidate_count` | Raw vector-search candidates before filtering |
-| `evidence_atlas.retrieval.selected_count` | Items selected after distance filtering, deduplication, and the result limit |
-| `evidence_atlas.retrieval.result_count` | Results returned after hydration skips missing records |
+| Attribute                                  | Meaning                                                                      |
+| ------------------------------------------ | ---------------------------------------------------------------------------- |
+| `evidence_atlas.retrieval.candidate_count` | Raw vector-search candidates before filtering                                |
+| `evidence_atlas.retrieval.selected_count`  | Items selected after distance filtering, deduplication, and the result limit |
+| `evidence_atlas.retrieval.result_count`    | Results returned after hydration skips missing records                       |
 
 #### Indexing observability
 
 `indexResearch()` runs inside a span named `index research` with op `ai.indexing`, including when called by the Inngest background function. Its boundary covers Research/Findings reads, candidate construction, chunking, embedding, advisory-lock acquisition, and transactional cleanup/upsert.
 
-| Attribute | Meaning |
-| --------- | ------- |
+| Attribute                              | Meaning                                                        |
+| -------------------------------------- | -------------------------------------------------------------- |
 | `evidence_atlas.index.candidate_count` | Knowledge candidates constructed from non-empty indexed fields |
-| `evidence_atlas.index.chunk_count` | Chunks generated for the replacement index |
+| `evidence_atlas.index.chunk_count`     | Chunks generated for the replacement index                     |
 
 Both functions attach counts only after their pipelines complete successfully. Missing Research returns `null` before indexing counts are attached; failures can also end a span before counts are recorded.
 

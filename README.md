@@ -8,13 +8,13 @@ It helps teams collect sources, organize findings, discuss evidence, and build s
 
 ## Project Status
 
-**Status:** Early development
+**Status:** Portfolio MVP / Public Demo preparation
 
-Evidence Atlas is currently being developed as a portfolio project.
+Evidence Atlas implements its core research workflow, authentication and Workspace authorization, Research-scoped AI conversations, Workspace-level retrieval with PostgreSQL and pgvector, background indexing, and a curated read-only Public Demo.
 
-The initial focus is establishing the application foundation, data architecture, research workflow, and AI-assisted knowledge exploration.
+The Public Demo application routes and deployment safety boundaries are implemented and locally verified. Production deployment verification is still pending.
 
-The project is intentionally being developed incrementally, with the architecture evolving as the product requirements become clearer.
+The project is developed as a portfolio application with an emphasis on traceable evidence, grounded AI-assisted research, explicit authorization boundaries, and incremental architecture.
 
 ## Core Concept
 
@@ -63,11 +63,20 @@ Answer
 
 ## Demo
 
-The planned public deployment will provide a curated, read-only Demo Workspace.
+Evidence Atlas includes a curated, read-only Public Demo at `/demo`.
 
-The Demo is intended to allow visitors to explore the application's concepts and user experience without providing unrestricted access to the underlying SaaS functionality.
+The Demo presents a prepared Workspace focused on **AI-Assisted Software Development**, containing four completed Research items covering:
 
-Full application usage will be available through self-hosted development with the required database and API credentials.
+- Developer Productivity
+- Code Quality & Reliability
+- Developer Experience
+- Adoption & Organizational Impact
+
+Visitors can inspect Sources, Findings, supporting evidence links, Conclusions, Tags, and Comments without authentication.
+
+The Public Demo is intentionally separated from the authenticated SaaS application. Visitors cannot create, edit, or delete persistent research data, authenticated SaaS routes are disabled in Public Demo deployment mode, and public AI interaction is not enabled.
+
+A live deployment URL will be added after production deployment verification is complete.
 
 ## Technology Stack
 
@@ -77,6 +86,13 @@ Full application usage will be available through self-hosted development with th
 - React
 - TypeScript
 - Tailwind CSS
+
+### Application Infrastructure
+
+- Auth.js
+- Inngest
+- Upstash Redis
+- Sentry
 
 ### UI
 
@@ -94,8 +110,10 @@ Full application usage will be available through self-hosted development with th
 ### AI
 
 - AI SDK
-- Vector search
+- Google Generative AI
+- Gemini
 - Retrieval-Augmented Generation (RAG)
+- PostgreSQL + pgvector semantic retrieval
 
 ### Testing
 
@@ -112,6 +130,8 @@ Project documentation is organized under `docs/`.
 - [Usage](docs/usage/) — Usage and operational documentation
 
 ## Development
+
+Environment configuration is documented in `.env.example`. Secrets and provider credentials must remain outside the repository.
 
 ### Requirements
 
@@ -165,9 +185,31 @@ Prisma
 PostgreSQL + pgvector
 ```
 
-The architecture is currently provisional and will evolve as authentication, authorization, research workflows, AI integration, retrieval, and multi-user features are implemented.
+The architecture is intentionally incremental. The current implementation includes authentication and Workspace authorization, the core Research workflow, Research-scoped AI conversations, Workspace-level retrieval, background indexing, and a separate Public Demo boundary. Additional production and operational hardening remains tracked in the roadmap.
 
 See [Directory Structure](docs/architecture/directory-structure.md) for the current project structure.
+
+## Public Demo Safety Model
+
+The portfolio deployment is designed as a curated read-only experience rather than an unrestricted public SaaS instance.
+
+```text
+Portfolio Visitor
+       ↓
+Public Demo
+       ↓
+Curated Workspace
+       ↓
+Read-only Research Data
+```
+
+Public Demo mode disables authenticated SaaS entry points, Auth.js endpoints, Research chat endpoints, Server Action write paths, and the Inngest serving endpoint before their protected work is performed.
+
+The Demo database still requires normal infrastructure security and deployment configuration. Production deployment, final credential exposure verification, and database-role hardening are tracked separately in the project roadmap.
+
+## Repository
+
+Source code: https://github.com/morimotodev93/evidence-atlas
 
 ## License
 
