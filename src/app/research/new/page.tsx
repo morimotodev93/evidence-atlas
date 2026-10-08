@@ -1,6 +1,9 @@
 import { createResearch } from "@/app/research/_actions/createResearch";
+import { requireUser } from "@/auth/requireUser";
 
-export default function NewResearchPage() {
+export default async function NewResearchPage() {
+  await requireUser();
+
   return (
     <main className="mx-auto w-full max-w-2xl px-6 py-10">
       <div className="mb-8">

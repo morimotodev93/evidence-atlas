@@ -1,7 +1,11 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
-import { db } from "@/prisma/db";
+import {
+  requireResearchAccess,
+  ResearchAccessError,
+} from "@/auth/requireResearchAccess";
+import { requireUser } from "@/auth/requireUser";
 
 import { updateResearch } from "@/app/research/_actions/updateResearch";
 
@@ -16,12 +20,18 @@ export default async function ResearchEditPage({
 }: ResearchEditPageProps) {
   const { id } = await params;
 
-  const research = await db.orm.public.Research.where({
-    id,
-  }).first();
+  const user = await requireUser();
 
-  if (!research) {
-    notFound();
+  let research;
+
+  try {
+    research = await requireResearchAccess(user.id, id);
+  } catch (error) {
+    if (error instanceof ResearchAccessError) {
+      notFound();
+    }
+
+    throw error;
   }
 
   return (
