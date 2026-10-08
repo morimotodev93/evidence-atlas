@@ -7,6 +7,7 @@ import {
   ResearchAccessError,
 } from "@/auth/requireResearchAccess";
 import { requireUser } from "@/auth/requireUser";
+import { requireApplicationEnabled } from "@/lib/deployment-mode";
 import { db } from "@/prisma/db";
 
 export type DeleteSourceState = {
@@ -17,6 +18,8 @@ export async function deleteSource(
   sourceId: string,
   _previousState: DeleteSourceState,
 ): Promise<DeleteSourceState> {
+  requireApplicationEnabled();
+
   const source = await db.orm.public.Source.where({
     id: sourceId,
   }).first();

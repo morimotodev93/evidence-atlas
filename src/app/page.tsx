@@ -1,4 +1,6 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
+import { isPublicDemoMode } from "@/lib/deployment-mode";
 
 import { db } from "@/prisma/db";
 
@@ -11,6 +13,8 @@ import { getAccessibleWorkspaces } from "@/workspace/getAccessibleWorkspaces";
 import { requireCurrentWorkspace } from "@/workspace/requireCurrentWorkspace";
 
 export default async function Home() {
+  if (isPublicDemoMode()) redirect("/demo");
+
   const user = await requireUser();
 
   const [workspace, workspaces] = await Promise.all([

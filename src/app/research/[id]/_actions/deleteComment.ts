@@ -7,6 +7,7 @@ import {
   ResearchAccessError,
 } from "@/auth/requireResearchAccess";
 import { requireUser } from "@/auth/requireUser";
+import { requireApplicationEnabled } from "@/lib/deployment-mode";
 import { db } from "@/prisma/db";
 
 export type DeleteCommentState = {
@@ -17,6 +18,8 @@ export async function deleteComment(
   commentId: string,
   _previousState: DeleteCommentState,
 ): Promise<DeleteCommentState> {
+  requireApplicationEnabled();
+
   const comment = await db.orm.public.Comment.where({
     id: commentId,
   }).first();

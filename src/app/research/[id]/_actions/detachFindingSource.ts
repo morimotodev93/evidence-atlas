@@ -7,9 +7,12 @@ import {
   ResearchAccessError,
 } from "@/auth/requireResearchAccess";
 import { requireUser } from "@/auth/requireUser";
+import { requireApplicationEnabled } from "@/lib/deployment-mode";
 import { db } from "@/prisma/db";
 
 export async function detachFindingSource(findingId: string, sourceId: string) {
+  requireApplicationEnabled();
+
   const finding = await db.orm.public.Finding.where({
     id: findingId,
   }).first();

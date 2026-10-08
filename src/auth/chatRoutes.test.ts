@@ -1,6 +1,6 @@
 import "temporal-polyfill/full/global";
 
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { GET as getConversation } from "@/app/research/[id]/chat/conversations/[conversationId]/route";
 import {
@@ -167,6 +167,39 @@ function chatRequest() {
     }),
   });
 }
+
+describe("Public Demo deployment chat lock", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    vi.stubEnv("PUBLIC_DEMO_MODE", "true");
+    mocks.auth.mockResolvedValue({ user: { id: "existing-session-user" } });
+  });
+  afterEach(() => vi.unstubAllEnvs());
+
+  it.each([
+    { name: "chat POST", handler: sendChatMessage },
+    { name: "conversation list GET", handler: getConversations },
+    { name: "conversation create POST", handler: createConversation },
+    { name: "conversation detail GET", handler: getConversation },
+  ])("rejects $name before session, DB, rate limit, or AI work", async ({ handler }) => {
+    const response = await handler(new Request("https://example.test/research/research-id/chat"), {
+      params: Promise.resolve({ id: "research-id", conversationId: "conversation-id" }),
+    });
+    expect(response.status).toBe(404);
+    expect(mocks.auth).not.toHaveBeenCalled();
+    expect(mocks.requireResearchAccess).not.toHaveBeenCalled();
+    expect(mocks.conversationWhere).not.toHaveBeenCalled();
+    expect(mocks.conversationCreate).not.toHaveBeenCalled();
+    expect(mocks.messageWhere).not.toHaveBeenCalled();
+    expect(mocks.messageCreate).not.toHaveBeenCalled();
+    expect(mocks.aiUsageEventCreate).not.toHaveBeenCalled();
+    expect(mocks.chatRateLimit.limit).not.toHaveBeenCalled();
+    expect(mocks.buildResearchContext).not.toHaveBeenCalled();
+    expect(mocks.retrieveWorkspaceContext).not.toHaveBeenCalled();
+    expect(mocks.resolveWorkspaceSources).not.toHaveBeenCalled();
+    expect(mocks.streamText).not.toHaveBeenCalled();
+  });
+});
 
 describe("research chat route authorization", () => {
   beforeEach(() => {

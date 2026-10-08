@@ -7,6 +7,7 @@ import {
   ResearchAccessError,
 } from "@/auth/requireResearchAccess";
 import { requireUser } from "@/auth/requireUser";
+import { requireApplicationEnabled } from "@/lib/deployment-mode";
 import { requestResearchIndex } from "@/inngest/request-research-index";
 import { db } from "@/prisma/db";
 import { findingSchema } from "@/types/research/finding";
@@ -20,6 +21,8 @@ export async function updateFinding(
   _previousState: UpdateFindingState,
   formData: FormData,
 ): Promise<UpdateFindingState> {
+  requireApplicationEnabled();
+
   const content = String(formData.get("content") ?? "").replace(/\r\n?/g, "\n");
 
   const result = findingSchema.safeParse({

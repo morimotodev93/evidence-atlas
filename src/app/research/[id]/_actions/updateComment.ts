@@ -7,6 +7,7 @@ import {
   ResearchAccessError,
 } from "@/auth/requireResearchAccess";
 import { requireUser } from "@/auth/requireUser";
+import { requireApplicationEnabled } from "@/lib/deployment-mode";
 import { db } from "@/prisma/db";
 import { commentSchema } from "@/types/research/";
 
@@ -19,6 +20,8 @@ export async function updateComment(
   _previousState: UpdateCommentState,
   formData: FormData,
 ): Promise<UpdateCommentState> {
+  requireApplicationEnabled();
+
   const content = String(formData.get("content") ?? "").replace(/\r\n?/g, "\n");
 
   const result = commentSchema.safeParse({

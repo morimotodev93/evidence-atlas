@@ -7,6 +7,7 @@ import {
   ResearchAccessError,
 } from "@/auth/requireResearchAccess";
 import { requireUser } from "@/auth/requireUser";
+import { requireApplicationEnabled } from "@/lib/deployment-mode";
 import { db } from "@/prisma/db";
 
 export type AttachFindingSourceState = {
@@ -18,6 +19,8 @@ export async function attachFindingSource(
   _previousState: AttachFindingSourceState,
   formData: FormData,
 ): Promise<AttachFindingSourceState> {
+  requireApplicationEnabled();
+
   const sourceId = String(formData.get("sourceId") ?? "");
 
   if (!sourceId) {

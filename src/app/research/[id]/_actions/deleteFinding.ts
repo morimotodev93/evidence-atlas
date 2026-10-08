@@ -7,6 +7,7 @@ import {
   ResearchAccessError,
 } from "@/auth/requireResearchAccess";
 import { requireUser } from "@/auth/requireUser";
+import { requireApplicationEnabled } from "@/lib/deployment-mode";
 import { requestResearchIndex } from "@/inngest/request-research-index";
 import { db } from "@/prisma/db";
 
@@ -18,6 +19,8 @@ export async function deleteFinding(
   findingId: string,
   _previousState: DeleteFindingState,
 ): Promise<DeleteFindingState> {
+  requireApplicationEnabled();
+
   const finding = await db.orm.public.Finding.where({
     id: findingId,
   }).first();

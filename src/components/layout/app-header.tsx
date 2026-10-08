@@ -2,6 +2,7 @@ import Link from "next/link";
 import type { ReactNode } from "react";
 
 import { signOut } from "@/auth";
+import { requireApplicationEnabled } from "@/lib/deployment-mode";
 
 type AppHeaderProps = {
   children?: ReactNode;
@@ -36,6 +37,8 @@ export function AppHeader({ children }: AppHeaderProps) {
             <form
               action={async () => {
                 "use server";
+
+                requireApplicationEnabled();
 
                 await signOut({
                   redirectTo: "/api/auth/signin",

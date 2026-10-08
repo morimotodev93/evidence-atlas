@@ -1,4 +1,5 @@
 import { auth } from "@/auth";
+import { isPublicDemoMode } from "@/lib/deployment-mode";
 import {
   requireResearchAccess,
   ResearchAccessError,
@@ -12,6 +13,8 @@ type RouteContext = {
 };
 
 export async function GET(_request: Request, { params }: RouteContext) {
+  if (isPublicDemoMode()) return new Response(null, { status: 404 });
+
   const { id: researchId } = await params;
 
   const session = await auth();
@@ -58,6 +61,8 @@ export async function GET(_request: Request, { params }: RouteContext) {
 }
 
 export async function POST(_request: Request, { params }: RouteContext) {
+  if (isPublicDemoMode()) return new Response(null, { status: 404 });
+
   const { id: researchId } = await params;
 
   const session = await auth();

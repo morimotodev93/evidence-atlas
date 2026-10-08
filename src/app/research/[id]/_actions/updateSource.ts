@@ -7,6 +7,7 @@ import {
   ResearchAccessError,
 } from "@/auth/requireResearchAccess";
 import { requireUser } from "@/auth/requireUser";
+import { requireApplicationEnabled } from "@/lib/deployment-mode";
 import { db } from "@/prisma/db";
 import { sourceSchema } from "@/types/research/source";
 
@@ -19,6 +20,8 @@ export async function updateSource(
   _previousState: UpdateSourceState,
   formData: FormData,
 ): Promise<UpdateSourceState> {
+  requireApplicationEnabled();
+
   const result = sourceSchema.safeParse({
     title: String(formData.get("title") ?? ""),
     url: String(formData.get("url") ?? "").trim(),

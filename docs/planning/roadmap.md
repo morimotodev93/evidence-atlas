@@ -416,7 +416,7 @@ Only features that contribute meaningfully to the portfolio should be implemente
 - [ ] Add GitHub link
 - [ ] Add project documentation
 - [ ] Verify that no private credentials are exposed
-- [ ] Verify that arbitrary public writes are disabled
+- [x] Verify that arbitrary public writes are disabled
 
 **Phase 9.1 — Curated dataset implementation:** Seed profiles are split into `development` and `public-demo`. `src/prisma/seed.ts` dispatches the selected profile, handles errors, and closes the database runtime; omitting the profile selects `development`. `seeds/development.ts` contains local development fixtures, while `seeds/public-demo.ts` defines curated portfolio data using the existing application UI and Research models.
 
@@ -447,20 +447,41 @@ Detail reads constrain the parent query by Research ID and Demo Workspace ID bef
 
 The shell displays **Demo** and **Read-only demo** labels. Shared Research display components have no authentication, database, mutation-action, or AI imports. Authenticated pages compose their existing controls separately; Demo pages provide none. No public chat, AI panel, conversation history, or persistence is enabled. Existing membership-based mutation guards and Research new/edit page guards remain unchanged.
 
-Set server-side `DEMO_WORKSPACE_ID` to the curated Workspace ID in the intended database; `.env.example` intentionally leaves it empty. All Research in that Workspace is published, so keep it dedicated to curated public content. Authenticated members retain their existing SaaS write permissions; public visitors receive no membership or Demo User session. Vitest covers public read boundaries, related-data scope, Comment privacy, query ordering, UI/import separation, and failure propagation alongside existing authorization regressions.
+Set server-side `DEMO_WORKSPACE_ID` to the curated Workspace ID in the intended database; `.env.example` intentionally leaves it empty. All Research in that Workspace is published, so keep it dedicated to curated public content. Authenticated members retain their existing SaaS write permissions in normal mode; Public Demo deployment mode disables those entry points. Public visitors receive no membership or Demo User session. Vitest covers public read boundaries, related-data scope, Comment privacy, query ordering, UI/import separation, and failure propagation alongside existing authorization regressions.
 
-The GitHub link, final portfolio documentation, credential exposure review, arbitrary public-write verification, public AI controls, and deployed Demo verification remain pending. Phase 9 is not complete.
+The GitHub link, final portfolio documentation, credential exposure review, public AI controls, and deployed Demo verification remain pending. Phase 9 is not complete. The public-write checkbox covers visitor-originated authenticated SaaS writes as verified in Phase 9.3 below; it does not claim that infrastructure or background systems cannot write.
 
 Phase 9.2 validation passed `pnpm lint`, `pnpm test --run` (13 files, 147 tests), and `pnpm build`. Additional read-only verification against the existing isolated `evidence_atlas_demo_test` database exercised the real Prisma read helper: all four Research records returned three Sources, four Findings, a Conclusion, Comments, and Tags. A local production server using a PostgreSQL read-only connection returned HTTP 200 for the Demo list and all four details, with no mutation forms/controls or Comment emails; an unknown Demo Research returned 404. Logged-out `/research`, `/research/new`, and `/research/<id>/edit` returned sign-in redirects. No seed, reset, or database writes were performed. This does not replace authenticated browser checks or deployed verification.
 
-Manual browser verification after configuring the intended Demo database:
+Manual browser verification of the Phase 9.2 read paths and normal SaaS mode after configuring the intended Demo database:
 
 1. Log out and open `/demo`; verify the four curated Research items, statuses, Tags, and Demo/read-only labels.
 2. Open each detail; verify Sources, Findings and supporting links, Conclusion, Comments, and back navigation.
 3. Verify there are no create/edit/delete, Tag/status/Conclusion editing, settings, Workspace switcher, sign-out, or AI controls.
 4. Substitute a Research ID outside the Demo Workspace, then a nonexistent ID; both must return 404.
-5. Check `/research`, `/research/new`, and `/research/<id>/edit` while logged out; all still redirect to sign-in.
-6. Sign in as an authorized Workspace member and verify existing Research editing and authenticated controls.
+5. In normal mode (`PUBLIC_DEMO_MODE=false` or unset), check `/research`, `/research/new`, and `/research/<id>/edit` while logged out; all still redirect to sign-in.
+6. In normal mode, sign in as an authorized Workspace member and verify existing Research editing and authenticated controls.
+
+**Phase 9.3 — Public deployment write lock:** Server-only `src/lib/deployment-mode.ts` provides `isPublicDemoMode()` and `requireApplicationEnabled()`. `PUBLIC_DEMO_MODE=true` is a **required Public Demo deployment setting**, at both build and runtime. If the deployment forgets this flag, unset/empty/`false` intentionally runs the normal authenticated SaaS application. Trimmed `true`, `1`, and any other non-empty value except exact lowercase `false` lock the application; document and configure `true` or `false`. Mode changes require consistent build/runtime configuration and redeployment rather than an assumed hot switch.
+
+In Public Demo mode, `/` redirects to `/demo` before auth or database access. Research, settings, and onboarding pages return 404 through the common `requireUser()` deployment guard, which runs before `auth()`. Auth catch-all GET/POST requests return 404 with `Cache-Control: no-store` without dispatching Auth.js, including sign-in, callbacks, session, sign-out, providers, and CSRF. All four existing Research chat handler functions reject before session, DB, rate limiting, or AI work. Phase 9.2 public read paths remain available and independent of this flag; missing/incorrect `DEMO_WORKSPACE_ID` returns 404 without reopening SaaS.
+
+Server Actions also pass through the common boundary. Eight actions with pre-authentication child reads check deployment mode at entry: FindingSource attach/detach and Source/Finding/Comment update/delete. Onboarding, Research creation/updates, member roles, and Workspace switching remain protected through `requireUser()`. The inline sign-out Action checks the mode before `signOut()`. `notFound()` rejection is used for actions as well as pages; local direct POST checks confirmed the action error result and HTTP 404. Normal-mode input validation, membership checks, and ADMIN semantics are unchanged.
+
+Existing cookies do not bypass the lock: sessions are not evaluated by the protected entry points. Persisted Session rows are not revoked or deleted by enabling the mode. When normal mode is restored, still-valid sessions may work again. Public AI, global session revocation, database-role hardening, and Inngest production signing/security remain separate tasks. The lock covers visitor-originated SaaS operations, not all database or background writes.
+
+Verification passed `pnpm lint`, `pnpm test --run` (17 files, 214 tests), and `pnpm build`. Tests exercise the real User/deployment guards, all eight early-read actions, representative writes, seven SaaS pages, root redirect, catch-all dispatch, sign-out, and all four chat handlers. Local production HTTP verification against the existing isolated database confirmed five public pages, seven unavailable SaaS pages, fourteen Auth GET/POST requests, four unavailable chat handlers, and 404 rejection results from all 22 registered Server Actions. Missing and invalid Demo Workspace configuration kept SaaS closed; normal mode preserved the sign-in redirect and Google provider dispatch. Verification used process-only local Auth host trust and a read-only connection, with identical before/after fingerprints for all 18 application/auth/index tables. No seed/reset/record writes or persisted environment changes occurred. Live Google login and authenticated browser CRUD remain manual checks; Vercel deployment is not verified.
+
+Phase 9.3 manual verification:
+
+1. Set `PUBLIC_DEMO_MODE=true` in both build/runtime environments, configure the existing curated Workspace, rebuild/restart, and verify `/` redirects to `/demo`.
+2. Logged out, verify `/demo` and all four details remain readable without mutation or AI controls.
+3. Verify all Research, settings, and onboarding pages are unavailable; repeat with a browser holding an existing valid session cookie.
+4. Verify Auth sign-in/providers/session/sign-out/Google callback endpoints are unavailable; Research chat GET/POST handlers must also be unavailable.
+5. Verify representative direct Server Action requests cannot read private children, provision Organization/Workspace/memberships, mutate Research, change roles or Workspace cookies, or sign out.
+6. Remove or invalidate `DEMO_WORKSPACE_ID`: public data becomes unavailable, but SaaS and Auth endpoints remain closed.
+7. Restore `PUBLIC_DEMO_MODE=false` or unset and rebuild/restart; verify Google sign-in, onboarding, authorized Research operations, member administration, Research AI, and sign-out.
+8. Before public deployment, explicitly verify the mode flag: forgetting it opens normal SaaS mode. Credential exposure, deployed behavior, Inngest signing, and dedicated database-role review remain outstanding.
 
 Public deployment concept:
 
@@ -566,7 +587,7 @@ Authentication, billing, advanced RAG, background processing, and other infrastr
 
 The public portfolio deployment is not intended to function as an unrestricted public SaaS service.
 
-The Demo uses curated data with separate public read-only routes implemented in Phase 9.2. Deployment verification, public AI controls, and broader credential/public-write reviews remain pending.
+The Demo uses curated data with separate public read-only routes implemented in Phase 9.2 and a visitor-facing SaaS write lock in Phase 9.3. Public deployments must set `PUBLIC_DEMO_MODE=true`; deployment verification, public AI controls, credential review, and infrastructure hardening remain pending.
 
 This approach allows the project to demonstrate:
 

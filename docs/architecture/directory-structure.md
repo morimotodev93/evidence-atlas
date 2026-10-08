@@ -97,6 +97,8 @@ evidence-atlas/
 
 Next.js App Router pages and route-local application behavior.
 
+Authenticated-route responsibilities below describe normal SaaS mode. In `PUBLIC_DEMO_MODE=true`, `/` redirects to `/demo`; authenticated pages and Research chat return 404, and Auth catch-all GET/POST dispatch is disabled. Public `/demo` routes remain separate and readable with valid dataset configuration.
+
 | Route                                                | Current responsibility                                                                                                             |
 | ---------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------- |
 | `/`                                                  | Database-backed Workspace overview, three recently updated Research items, and Research/Source/Finding/Tag counts                  |
@@ -160,6 +162,10 @@ The retrieval and indexing functions in `lib/ai/` define their own Sentry custom
 
 `next-auth.d.ts` augments the session type with the authenticated User ID. Onboarding and member-role validation schemas remain local to their Server Actions.
 
+`lib/deployment-mode.ts` is the server-only deployment boundary. It parses `PUBLIC_DEMO_MODE` and rejects SaaS usage with `notFound()`. Unset/empty/exact lowercase `false` after trimming enables normal mode; every other non-empty value locks the application. Configure `true` or `false`, consistently at build and runtime, and redeploy when changing modes. A Public Demo deployment **must** set `PUBLIC_DEMO_MODE=true`; omission intentionally enables normal SaaS behavior.
+
+`requireUser()` checks this boundary before calling `auth()`, preventing even session-refresh/expiry-cleanup side effects in Demo mode. Root redirect and Auth/chat dispatch checks precede auth/database work. Eight Research Actions that previously read children before authentication check the same guard at entry; other Actions rely on the common User guard. Inline sign-out is separately guarded. Existing session cookies cannot bypass the boundary, and Session rows are not revoked: still-valid sessions may work again in normal mode. Tests and local direct POST checks cover `notFound()` rejection from Server Actions. Existing membership/ADMIN semantics are preserved.
+
 ### `src/prisma/` and `migrations/`
 
 `contract.prisma` defines the Prisma 8 data contract. `contract.json` and `contract.d.ts` are generated artifacts. `db.ts` creates the PostgreSQL runtime. `seed.ts` is the seed-profile entrypoint: it dispatches `development` (the default) or `public-demo`, handles errors, and closes the runtime. `seeds/development.ts` contains local development fixtures; `seeds/public-demo.ts` contains curated portfolio Demo data.
@@ -200,9 +206,9 @@ Workspace selection, initial Organization/Workspace provisioning, and member rol
 
 The public Demo uses server-only `src/lib/demo/read.ts` with `getDemoWorkspace()` and `getDemoResearch()`. `DEMO_WORKSPACE_ID` selects the sole published Workspace, with expected Workspace/Organization name validation. No visitor query, session, selected-Workspace cookie, or fallback selects the public scope. Both pages render dynamically to recheck configuration and current database contents. Unavailable configuration/resources return not-found; unexpected database failures propagate.
 
-Detail parent queries include both Research ID and Demo Workspace ID before child reads. The public display shape filters supporting Sources and Tags to their intended domains and strips private User/authentication metadata. Comments expose an author label, content, and dates only. `components/research/` shares list items, header, and detail content with optional controls supplied exclusively by authenticated pages. Shared display modules import no auth, DB, Server Actions, or AI. Demo pages supply no controls; existing authenticated member write permissions remain unchanged.
+Detail parent queries include both Research ID and Demo Workspace ID before child reads. The public display shape filters supporting Sources and Tags to their intended domains and strips private User/authentication metadata. Comments expose an author label, content, and dates only. `components/research/` shares list items, header, and detail content with optional controls supplied exclusively by authenticated pages. Shared display modules import no auth, DB, Server Actions, or AI. Demo pages supply no controls; normal-mode authenticated member write permissions remain unchanged. Missing/invalid Demo Workspace configuration does not disable the deployment lock or reopen SaaS.
 
-Public AI chat, deployed verification, credential exposure review, arbitrary public-write verification, and Inngest production signature/key review remain outstanding. See the [Phase 9 roadmap](../planning/roadmap.md#phase-9--public-demo) for configuration and manual checks.
+Visitor-originated SaaS write restrictions are implemented and locally verified in Phase 9.3. Public AI chat, live authenticated browser checks, deployed verification, credential exposure review, database-role hardening, and Inngest production signature/key review remain outstanding. The deployment gate does not claim to stop background or all database writes. See the [Phase 9 roadmap](../planning/roadmap.md#phase-9--public-demo) for configuration and manual checks.
 
 ## Architecture Principles
 

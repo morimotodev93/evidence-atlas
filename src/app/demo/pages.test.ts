@@ -2,7 +2,7 @@ import { readFileSync, existsSync } from "node:fs";
 import { resolve, dirname } from "node:path";
 import { createElement, type ReactNode } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import DemoPage from "./page";
 import DemoLayout from "./layout";
@@ -37,6 +37,7 @@ function expectReadOnly(html: string) {
 }
 beforeEach(() => {
   vi.resetAllMocks();
+  vi.stubEnv("PUBLIC_DEMO_MODE", undefined);
   mocks.auth.mockImplementation(() => { throw new Error("Public UI must not load a session"); });
   mocks.notFound.mockImplementation(() => { throw notFoundError; });
   mocks.getDemoWorkspace.mockResolvedValue({ ...workspace, researches: [{ ...research, tags }] });
@@ -45,9 +46,11 @@ beforeEach(() => {
     comments: [{ id: comment.id, content: comment.content, authorName: "Demo Author", createdAt: comment.createdAt }],
   });
 });
+afterEach(() => vi.unstubAllEnvs());
 
 describe("Public Demo pages", () => {
-  it("renders the Workspace and Research list without a session or mutation controls", async () => {
+  it.each([undefined, "true"])("renders the Workspace without a session or controls in deployment mode %s", async (mode) => {
+    vi.stubEnv("PUBLIC_DEMO_MODE", mode);
     const html = renderWithLayout(await DemoPage());
     expectReadOnly(html);
     for (const value of [workspace.name, workspace.description, research.title, research.description, "Completed", "Productivity"]) {
@@ -56,7 +59,8 @@ describe("Public Demo pages", () => {
     expect(html).toContain(`href="/demo/research/${research.id}"`);
   });
 
-  it("renders Research, supporting Sources, Conclusion, and Comments without a session or controls", async () => {
+  it.each([undefined, "true"])("renders Research detail without a session or controls in deployment mode %s", async (mode) => {
+    vi.stubEnv("PUBLIC_DEMO_MODE", mode);
     const html = renderWithLayout(await detailPage());
     expectReadOnly(html);
     for (const value of [research.title, research.description, research.conclusion, source.title, finding.content, comment.content, "Demo Author", "Supporting sources", "Completed"]) {

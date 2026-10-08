@@ -626,7 +626,7 @@ The public Demo has a curated, read-only implementation at `/demo` and `/demo/re
 
 Visitors can explore a prepared Demo Workspace and review its accumulated research knowledge. AI-assisted public exploration remains a later phase; Demo pages do not display AI controls or expose chat endpoints.
 
-Visitors must not be able to create, edit, or delete persistent research data. Demo pages contain no mutation controls or Server Actions, and existing authenticated mutation guards remain unchanged. This public read-only path does not remove authorized SaaS members' existing write permissions.
+Visitors must not be able to create, edit, or delete persistent research data. Demo pages contain no mutation controls or Server Actions. Phase 9.3 additionally closes visitor-facing authenticated SaaS entry points in Public Demo deployment mode while preserving membership-based permissions in normal mode.
 
 The demo is intended to communicate the product concept and demonstrate its core workflow rather than operate as a publicly available SaaS.
 
@@ -654,6 +654,10 @@ The content and data provisioning approach is defined in a dedicated `public-dem
 
 Server-only `DEMO_WORKSPACE_ID` selects the only published Workspace in the configured database. The resolver also validates the expected Workspace/Organization names without arbitrary fallback. Missing or invalid configuration disables publication. Research reads require the requested ID and Demo Workspace ID together, with related-data scope checks and public-only Comment author information. All Research in this Workspace is public, so it must contain curated content only.
 
+**Public Demo deployments must set server-side `PUBLIC_DEMO_MODE=true` at build and runtime.** Unset, empty, or trimmed exact `false` preserves the normal SaaS application; other non-empty values fail closed into Demo-only mode. If a Public Demo deployment forgets this setting, normal SaaS access remains enabled. Expected configuration values are `true` and `false`; mode changes require consistent build/runtime configuration and redeployment.
+
+Demo-only mode redirects `/` to `/demo` and makes authenticated Research/settings/onboarding pages, Auth.js GET/POST endpoints, and Research chat unavailable. Common User guards reject before session evaluation; Actions also enforce the lock before protected work, including early child reads and sign-out. Existing session cookies cannot bypass it. Persisted Session rows remain and may be usable again after returning to normal mode; this is not session revocation. Missing Demo Workspace configuration never reopens SaaS. Phase 9.2 public read routes remain independent of Auth.js and available when their dataset configuration is valid.
+
 ### 6.3 Demo Goals
 
 The Demo should allow visitors to understand:
@@ -678,7 +682,7 @@ The initial direction is therefore:
 - No requirement for visitors to provide personal API credentials
 - No production SaaS administration through the public Demo
 
-Curated content, public read-only access, and Demo labels are implemented. Public AI interactions, deployment verification, and broader credential/public-write reviews remain incomplete.
+Curated content, public read-only access, Demo labels, and the visitor-facing SaaS write lock are implemented and locally verified. Public AI interactions, credential exposure review, production deployment verification, database-role hardening, and Inngest signing/security remain incomplete. Background writes are outside the visitor-facing lock.
 
 ---
 
@@ -951,7 +955,7 @@ The intended workflows above remain the product baseline. As of 2026-10-08:
 - Research-scoped AI conversations support explicit creation, streaming responses, saved history, and supporting Source links. Desktop uses a side panel; smaller screens use an Ask AI dialog. AI outputs are not automatically promoted into Findings or Conclusions.
 - UC-07 has a Phase 6 baseline: Research conversations combine current knowledge with relevant indexed Findings, Conclusions, and Research metadata from the same Workspace, including other Research items. Phase 8.3 adds asynchronous background reindexing after relevant Research/Finding mutations, with best-effort enqueue and a manual maintenance path. The broader use case remains incomplete: discussions and external Source bodies are not retrieved, the derived index can be stale, and citation eligibility does not prove a claim. Research metadata is discovery context rather than supported evidence.
 - Authentication, current Workspace selection, Workspace-based Research permission enforcement, onboarding, and Research-scoped AI route authorization are implemented. Related Research discovery, invitation and broader membership administration flows, and public AI usage controls remain pending.
-- Curated Demo data and isolated-database indexing are verified. Public unauthenticated, read-only routes with a fixed Workspace boundary are implemented in Phase 9.2; deployed Demo, credential exposure, and arbitrary public-write verification remain pending.
+- Curated Demo data and isolated-database indexing are verified. Phase 9.2 implements fixed-Workspace public read routes, and Phase 9.3 locks visitor-originated authenticated SaaS access/writes under required `PUBLIC_DEMO_MODE=true`. Local tests and HTTP verification passed; live authenticated browser flows, deployed Demo, credential exposure, and infrastructure hardening remain pending.
 - A Sentry error-monitoring baseline, configurable sampled performance tracing, and targeted retrieval/indexing spans with count-based attributes are implemented. Broader production monitoring requirements remain open; see the [roadmap](roadmap.md#phase-8--saas-infrastructure).
 
 See the [roadmap](roadmap.md) for remaining work. These gaps do not redefine the approved product behavior.
