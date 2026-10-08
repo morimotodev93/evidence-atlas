@@ -1,8 +1,7 @@
+import { ResearchListItems } from "@/components/research/research-list-items";
 import { AppHeader } from "@/components/layout/app-header";
-import { Badge } from "@/components/ui/badge";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { formatDate } from "@/lib/date";
 import { db } from "@/prisma/db";
 import Link from "next/link";
 
@@ -197,52 +196,14 @@ export default async function Research({ searchParams }: ResearchPageProps) {
               </p>
             </div>
           ) : (
-            <div className="space-y-3">
-              {sortedResearches.map((research) => {
-                const tagsForResearch = researchTags.filter(
-                  (researchTag) => researchTag.researchId === research.id,
-                );
-
-                return (
-                  <Link
-                    key={research.id}
-                    href={`/research/${research.id}`}
-                    className="block rounded-lg border bg-card p-4 transition-colors hover:bg-accent/50 sm:p-5"
-                  >
-                    <div className="flex items-start justify-between gap-4">
-                      <div className="min-w-0">
-                        <h2 className="truncate font-medium">
-                          {research.title}
-                        </h2>
-
-                        {research.description && (
-                          <p className="mt-1 line-clamp-2 text-sm text-muted-foreground">
-                            {research.description}
-                          </p>
-                        )}
-
-                        {tagsForResearch.length > 0 && (
-                          <div className="mt-4 flex flex-wrap items-center gap-2">
-                            {tagsForResearch.map((researchTag) => (
-                              <Badge
-                                key={`${researchTag.researchId}-${researchTag.tagId}`}
-                                variant="secondary"
-                              >
-                                {researchTag.tag.name}
-                              </Badge>
-                            ))}
-                          </div>
-                        )}
-                      </div>
-
-                      <span className="shrink-0 text-xs text-muted-foreground">
-                        {formatDate(research.createdAt)}
-                      </span>
-                    </div>
-                  </Link>
-                );
-              })}
-            </div>
+            <ResearchListItems
+              items={sortedResearches.map((research) => ({
+                ...research,
+                tags: researchTags.filter((link) => link.researchId === research.id)
+                  .map(({ tag }) => ({ id: tag.id, name: tag.name })),
+              }))}
+              basePath="/research"
+            />
           )}
         </section>
       </main>

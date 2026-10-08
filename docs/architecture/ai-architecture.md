@@ -2,7 +2,7 @@
 
 > **Status:** Implemented Phase 6 baseline with Phase 7 route authorization and Phase 8.3 background indexing
 > **Scope:** Phase 5 AI Integration + Phase 6 Retrieval / RAG + Phase 7 AI route access control + Phase 8.3 Background Jobs
-> **Last Updated:** 2026-10-06
+> **Last Updated:** 2026-10-08
 
 ## 1. Purpose
 
@@ -350,7 +350,7 @@ The current implementation does not implement:
 
 Authentication and Workspace-membership enforcement are implemented for the Research-scoped AI routes. They are application authorization responsibilities and are intentionally separate from retrieval filtering.
 
-AI chat burst rate limiting and chat-generation usage tracking are implemented. Read-only public Demo controls remain absent. Workspace retrieval does not by itself establish public-demo readiness or a standalone Workspace chat workflow; Conversation ownership and routes remain Research-scoped.
+AI chat burst rate limiting and chat-generation usage tracking are implemented for authenticated routes. Phase 9.2 adds separate read-only Public Demo routes without an AI panel, chat endpoint, or conversation history. Public AI access remains pending. Workspace retrieval does not by itself establish deployed public-demo readiness or a standalone Workspace chat workflow; Conversation ownership and routes remain Research-scoped.
 
 The remaining retrieval, public-access, and operational responsibilities require additional design and belong to later phases.
 

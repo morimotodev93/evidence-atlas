@@ -1,6 +1,6 @@
 # evidence-atlas Roadmap
 
-> **Last Updated:** 2026-10-06
+> **Last Updated:** 2026-10-08
 
 Current stage: Phases 4–7 are complete for their stated baseline scopes. Phases 0–3 established the foundation, product direction, data contract, and design-system baseline. Checked implementation items describe code present in the repository, not a fresh runtime verification or completion of every related product requirement.
 
@@ -411,8 +411,8 @@ Only features that contribute meaningfully to the portfolio should be implemente
 - [x] Create Sources
 - [x] Create Findings
 - [x] Create Conclusions
-- [ ] Configure read-only Demo behavior
-- [ ] Add Demo labels
+- [x] Configure read-only Demo behavior
+- [x] Add Demo labels
 - [ ] Add GitHub link
 - [ ] Add project documentation
 - [ ] Verify that no private credentials are exposed
@@ -441,7 +441,26 @@ The verification database contains two User records in total: the expected `demo
 
 Demo Research indexing has been verified against the isolated `evidence_atlas_demo_test` database. All four Demo Research records produced the expected six retrieval chunks each—four `FINDING`, one `CONCLUSION`, and one `RESEARCH` chunk—for 24 `RetrievalChunk` records in total.
 
-Public unauthenticated access, read-only enforcement, Demo labels, the GitHub link, final Demo documentation, credential/public-write checks, and deployed Demo verification remain pending. Phase 9 is not complete.
+**Phase 9.2 — Public access and read-only boundary:** `/demo` and `/demo/research/[researchId]` provide an unauthenticated public read path separate from the authenticated SaaS routes. The server-only `src/lib/demo/read.ts` resolves only `DEMO_WORKSPACE_ID` in the database configured by `DATABASE_URL`, then verifies the expected Workspace/Organization names. Missing configuration, an unknown ID, or identity mismatch disables publication. There is no name-based lookup, selected-Workspace cookie, or arbitrary fallback.
+
+Detail reads constrain the parent query by Research ID and Demo Workspace ID before reading children. Supporting Sources must belong to the same Research; Tags must belong to the Demo Workspace. Public Comments contain only an author display label, content, and dates. Missing/inaccessible public resources use the same not-found boundary; unexpected database failures propagate normally.
+
+The shell displays **Demo** and **Read-only demo** labels. Shared Research display components have no authentication, database, mutation-action, or AI imports. Authenticated pages compose their existing controls separately; Demo pages provide none. No public chat, AI panel, conversation history, or persistence is enabled. Existing membership-based mutation guards and Research new/edit page guards remain unchanged.
+
+Set server-side `DEMO_WORKSPACE_ID` to the curated Workspace ID in the intended database; `.env.example` intentionally leaves it empty. All Research in that Workspace is published, so keep it dedicated to curated public content. Authenticated members retain their existing SaaS write permissions; public visitors receive no membership or Demo User session. Vitest covers public read boundaries, related-data scope, Comment privacy, query ordering, UI/import separation, and failure propagation alongside existing authorization regressions.
+
+The GitHub link, final portfolio documentation, credential exposure review, arbitrary public-write verification, public AI controls, and deployed Demo verification remain pending. Phase 9 is not complete.
+
+Phase 9.2 validation passed `pnpm lint`, `pnpm test --run` (13 files, 147 tests), and `pnpm build`. Additional read-only verification against the existing isolated `evidence_atlas_demo_test` database exercised the real Prisma read helper: all four Research records returned three Sources, four Findings, a Conclusion, Comments, and Tags. A local production server using a PostgreSQL read-only connection returned HTTP 200 for the Demo list and all four details, with no mutation forms/controls or Comment emails; an unknown Demo Research returned 404. Logged-out `/research`, `/research/new`, and `/research/<id>/edit` returned sign-in redirects. No seed, reset, or database writes were performed. This does not replace authenticated browser checks or deployed verification.
+
+Manual browser verification after configuring the intended Demo database:
+
+1. Log out and open `/demo`; verify the four curated Research items, statuses, Tags, and Demo/read-only labels.
+2. Open each detail; verify Sources, Findings and supporting links, Conclusion, Comments, and back navigation.
+3. Verify there are no create/edit/delete, Tag/status/Conclusion editing, settings, Workspace switcher, sign-out, or AI controls.
+4. Substitute a Research ID outside the Demo Workspace, then a nonexistent ID; both must return 404.
+5. Check `/research`, `/research/new`, and `/research/<id>/edit` while logged out; all still redirect to sign-in.
+6. Sign in as an authorized Workspace member and verify existing Research editing and authenticated controls.
 
 Public deployment concept:
 
@@ -547,7 +566,7 @@ Authentication, billing, advanced RAG, background processing, and other infrastr
 
 The public portfolio deployment is not intended to function as an unrestricted public SaaS service.
 
-The planned Demo environment will use curated data and be primarily read-only. The dataset definition is implemented; public access and read-only enforcement remain pending.
+The Demo uses curated data with separate public read-only routes implemented in Phase 9.2. Deployment verification, public AI controls, and broader credential/public-write reviews remain pending.
 
 This approach allows the project to demonstrate:
 

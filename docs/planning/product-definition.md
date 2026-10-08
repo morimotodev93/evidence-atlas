@@ -1,7 +1,7 @@
 # Product Definition
 
 > **Status:** Approved
-> **Last Updated:** 2026-10-06
+> **Last Updated:** 2026-10-08
 
 This document defines the approved product concept, target users, and primary use cases for **Evidence Atlas**.
 
@@ -622,11 +622,11 @@ This distinction is important for traceability and AI retrieval.
 
 ## 6. Demo Experience
 
-The planned public demo site is a curated, read-only portfolio experience. Public unauthenticated access and read-only enforcement remain separate Phase 9 responsibilities.
+The public Demo has a curated, read-only implementation at `/demo` and `/demo/research/[researchId]`. Phase 9.2 provides an unauthenticated public read path separate from the authenticated SaaS application; deployment verification remains pending.
 
-Visitors can explore a prepared Demo Workspace, review its accumulated research knowledge, and interact with AI-assisted knowledge exploration.
+Visitors can explore a prepared Demo Workspace and review its accumulated research knowledge. AI-assisted public exploration remains a later phase; Demo pages do not display AI controls or expose chat endpoints.
 
-The underlying demo data must be immutable to visitors: they must not be able to create, edit, or delete persistent research data. These controls are not yet implemented.
+Visitors must not be able to create, edit, or delete persistent research data. Demo pages contain no mutation controls or Server Actions, and existing authenticated mutation guards remain unchanged. This public read-only path does not remove authorized SaaS members' existing write permissions.
 
 The demo is intended to communicate the product concept and demonstrate its core workflow rather than operate as a publicly available SaaS.
 
@@ -650,7 +650,9 @@ Visitors should be able to inspect representative research data and understand h
 
 The curated Demo Workspace theme is **AI-Assisted Software Development**. Four Research items explore Developer Productivity, Code Quality & Reliability, Developer Experience, and Adoption & Organizational Impact to demonstrate evidence organization and cross-Research knowledge reuse. Representative data includes Sources, traceable Findings, Conclusions, Tags, Comments, and saved example AI conversations with Source citations.
 
-The content and data provisioning approach is defined in a dedicated `public-demo` seed profile using the existing application models. The dataset implementation exists, but seeding and indexing have not yet been run for the current database; this is not a verified public Demo deployment.
+The content and data provisioning approach is defined in a dedicated `public-demo` seed profile using the existing application models. Seeding and indexing have been verified in an isolated database, as recorded in the roadmap; this is not a verified deployed Public Demo.
+
+Server-only `DEMO_WORKSPACE_ID` selects the only published Workspace in the configured database. The resolver also validates the expected Workspace/Organization names without arbitrary fallback. Missing or invalid configuration disables publication. Research reads require the requested ID and Demo Workspace ID together, with related-data scope checks and public-only Comment author information. All Research in this Workspace is public, so it must contain curated content only.
 
 ### 6.3 Demo Goals
 
@@ -676,7 +678,7 @@ The initial direction is therefore:
 - No requirement for visitors to provide personal API credentials
 - No production SaaS administration through the public Demo
 
-Curated content and data provisioning are defined. Public access, read-only enforcement, and the remaining public Demo behavior still need to be completed.
+Curated content, public read-only access, and Demo labels are implemented. Public AI interactions, deployment verification, and broader credential/public-write reviews remain incomplete.
 
 ---
 
@@ -846,7 +848,7 @@ The public deployment will be conceptually separated from the full authenticated
 
 The public Demo is a curated, read-only experience intended to demonstrate the product safely.
 
-Visitors may explore the prepared knowledge and interact with AI-assisted features, but they cannot create, edit, or delete persistent demo data.
+Visitors can explore the prepared knowledge through the separate public read path without creating, editing, or deleting persistent Demo data. Public AI-assisted features remain planned and are not enabled by Phase 9.2.
 
 ### 9.8 Incremental Architecture
 
@@ -936,7 +938,7 @@ The document should be revised when:
 
 ### Current Implementation Gaps
 
-The intended workflows above remain the product baseline. As of 2026-10-06:
+The intended workflows above remain the product baseline. As of 2026-10-08:
 
 - Research creation and title/description editing, plus Source, Finding, and Comment CRUD, are implemented.
 - Workspace Tags can be created or reused by name, attached to Research, displayed on list/detail pages, and detached without deleting the Tag. Tag renaming, Workspace-level Tag deletion, and Tag filtering are not implemented.
@@ -948,8 +950,8 @@ The intended workflows above remain the product baseline. As of 2026-10-06:
 - UC-05's broader conclusion workflow has only one optional text field in the current contract; multiple conclusion records and structured links to supporting Findings are not implemented.
 - Research-scoped AI conversations support explicit creation, streaming responses, saved history, and supporting Source links. Desktop uses a side panel; smaller screens use an Ask AI dialog. AI outputs are not automatically promoted into Findings or Conclusions.
 - UC-07 has a Phase 6 baseline: Research conversations combine current knowledge with relevant indexed Findings, Conclusions, and Research metadata from the same Workspace, including other Research items. Phase 8.3 adds asynchronous background reindexing after relevant Research/Finding mutations, with best-effort enqueue and a manual maintenance path. The broader use case remains incomplete: discussions and external Source bodies are not retrieved, the derived index can be stale, and citation eligibility does not prove a claim. Research metadata is discovery context rather than supported evidence.
-- Authentication, current Workspace selection, Workspace-based Research permission enforcement, onboarding, and Research-scoped AI route authorization are implemented. Related Research discovery, read-only Demo controls, invitation and broader membership administration flows, and public AI usage controls remain pending.
-- Curated Demo data is defined in the `public-demo` seed profile. Creation in the current database and Demo indexing remain unverified; public unauthenticated access and read-only enforcement are still pending.
+- Authentication, current Workspace selection, Workspace-based Research permission enforcement, onboarding, and Research-scoped AI route authorization are implemented. Related Research discovery, invitation and broader membership administration flows, and public AI usage controls remain pending.
+- Curated Demo data and isolated-database indexing are verified. Public unauthenticated, read-only routes with a fixed Workspace boundary are implemented in Phase 9.2; deployed Demo, credential exposure, and arbitrary public-write verification remain pending.
 - A Sentry error-monitoring baseline, configurable sampled performance tracing, and targeted retrieval/indexing spans with count-based attributes are implemented. Broader production monitoring requirements remain open; see the [roadmap](roadmap.md#phase-8--saas-infrastructure).
 
 See the [roadmap](roadmap.md) for remaining work. These gaps do not redefine the approved product behavior.

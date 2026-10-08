@@ -1,7 +1,7 @@
 # Directory Structure
 
 > **Status:** Current implementation; future areas remain provisional
-> **Last Updated:** 2026-10-06
+> **Last Updated:** 2026-10-08
 
 This document describes the implemented architecture of **Evidence Atlas**.
 The tree below highlights the application-relevant structure.
@@ -25,6 +25,8 @@ evidence-atlas/
 │   ├── app/
 │   │   ├── api/auth/[...nextauth]/ # Auth.js GET/POST Route Handler
 │   │   ├── api/inngest/           # Inngest GET/POST/PUT serving endpoint
+│   │   ├── demo/               # Public read-only shell and fixed-Workspace Research routes
+│   │   │   └── research/[researchId]/
 │   │   ├── onboarding/         # Initial Organization/Workspace setup
 │   │   │   ├── _actions/
 │   │   │   └── _components/
@@ -51,6 +53,7 @@ evidence-atlas/
 │   ├── components/
 │   │   ├── icons/
 │   │   ├── layout/         # Shared application header
+│   │   ├── research/       # Shared display-only Research list, header, and content
 │   │   ├── ui/
 │   │   └── workspace/      # Workspace selector
 │   ├── inngest/            # Background job client, enqueue helper, and functions
@@ -60,6 +63,7 @@ evidence-atlas/
 │   │       └── index-research.ts
 │   ├── lib/                # Shared utilities, AI infrastructure, and telemetry configuration
 │   │   ├── ai/             # Models, indexing/retrieval, DB locking, context, and citations
+│   │   ├── demo/           # Server-only public read boundary and its tests
 │   │   └── observability/  # Shared Sentry tracing configuration and tests
 │   ├── prisma/
 │   │   ├── contract.prisma # Data contract; generated contract.json / contract.d.ts alongside it
@@ -98,6 +102,8 @@ Next.js App Router pages and route-local application behavior.
 | `/`                                                  | Database-backed Workspace overview, three recently updated Research items, and Research/Source/Finding/Tag counts                  |
 | `/research`                                          | Workspace-scoped Research list with Tags, title/description search, status filtering, and sorting                                  |
 | `/research/new`                                      | Create Research                                                                                                                    |
+| `/demo`                                              | Public read-only Research list for the configured Demo Workspace                                                                    |
+| `/demo/research/[researchId]`                         | Public read-only Research detail constrained to that Workspace                                                                      |
 | `/api/auth/[...nextauth]`                            | Auth.js GET/POST handlers for Google sign-in, callbacks, sessions, and sign-out                                                    |
 | `/api/inngest`                                       | GET/POST/PUT: serve the Inngest Research indexing function                                                                           |
 | `/onboarding`                                        | Create an initial Organization, Workspace, and ADMIN memberships for a User without an accessible Workspace                        |
@@ -128,7 +134,7 @@ Additional shared areas such as `common/` or `features/` may be introduced later
 
 `auth.ts` configures Auth.js with Google OAuth, database-backed sessions, and the authenticated User ID on the session. `auth/` contains the Kysely adapter database connection and table-name mapping for the existing PostgreSQL auth tables, plus server-side User, Organization, Workspace, and Research access guards. Authentication storage uses Kysely against the same database as the Prisma application runtime.
 
-Application pages require an authenticated User. Organization and Workspace memberships are independent authorization scopes. ADMIN guards protect member role changes; both role-update actions reject demotion of the final ADMIN. Research reads and mutations require membership in the Research's Workspace. Missing and inaccessible Research share an access-error boundary. Chat handlers return `401` for unauthenticated requests and `404` for missing or inaccessible Research/Conversation resources.
+Authenticated application pages require an authenticated User; `/demo` routes use a separate public read boundary without sessions. Organization and Workspace memberships are independent authorization scopes. ADMIN guards protect member role changes; both role-update actions reject demotion of the final ADMIN. Authenticated Research reads and mutations require membership in the Research's Workspace. Missing and inaccessible Research share an access-error boundary. Chat handlers return `401` for unauthenticated requests and `404` for missing or inaccessible Research/Conversation resources.
 
 `workspace/` lists accessible Workspaces, resolves the current Workspace, and switches it through a Server Action. The selected ID is stored in an HTTP-only cookie and revalidated against WorkspaceMembership. An absent, stale, or unauthorized selection falls back to an accessible Workspace; Users with none are redirected to onboarding.
 
@@ -176,7 +182,7 @@ Server-rendered pages / form Server Actions
                 PostgreSQL
 ```
 
-Forms use validation schemas; interactive dialogs are client components. Pages, Server Actions, and Route Handlers enforce authentication and membership checks before accessing application data on the server. Auth.js sessions use a separate Kysely connection to the same PostgreSQL database.
+Forms use validation schemas; interactive dialogs are client components. Authenticated pages, Server Actions, and Research Route Handlers enforce authentication and membership checks before accessing application data on the server. Public Demo pages instead use the fixed-Workspace read boundary described below. Auth.js sessions use a separate Kysely connection to the same PostgreSQL database.
 
 The AI path adds document embeddings stored in PostgreSQL and query embeddings generated for each new question. Retrieval filters chunks to the current Research's Workspace, then hydrates current knowledge metadata. Conversation ownership remains Research-scoped; there is no separate Workspace chat route. Relevant mutations enqueue `research/index.requested`; Inngest coalesces requests and calls the shared indexer to refresh RetrievalChunk in a protected transaction. Derived index content can lag behind edits because refresh is asynchronous and enqueue is best-effort.
 
@@ -186,13 +192,17 @@ The Research list uses GET parameters: `query` searches title and description wi
 
 ## Planned Architecture and Known Gaps
 
-The earlier proposed `(public)` and `(dashboard)` route groups are not implemented. JSON and streaming APIs exist as Route Handlers under the Research chat routes; Auth.js uses a separate handler under `src/app/api/auth/`. Authenticated application navigation is implemented through the shared header. Curated Public Demo data provisioning is implemented as a separate seed profile; public route/auth separation and read-only enforcement remain pending. The Demo seed has not been run against the current database.
+The earlier proposed `(public)` and `(dashboard)` route groups are not implemented. JSON and streaming APIs exist as Route Handlers under the Research chat routes; Auth.js uses a separate handler under `src/app/api/auth/`. Authenticated application navigation uses the shared application header. `/demo` has its own public read-only shell and no authenticated header, controls, or AI panel. Curated data provisioning remains a separate seed profile, verified with indexing against the isolated database as recorded in the roadmap; deployed verification remains pending.
 
 Research-scoped AI conversations and same-Workspace retrieval with pgvector are implemented. Authentication and membership-based authorization are implemented for application pages, mutations, and chat routes. Chat routes check both Workspace access and that a conversation belongs to the requested Research. Retrieval scope supplements these access checks; it is not itself an authorization boundary. Billing remains planned. AI chat rate limiting, chat-generation usage tracking, and Inngest background Research indexing are implemented. Transactional outbox and general reconciliation remain future work.
 
 Workspace selection, initial Organization/Workspace provisioning, and member role management are implemented. Research creation uses the authenticated User and current accessible Workspace; new Comments use the authenticated User as their author. Workspace membership permits Research reads and writes, while Organization and Workspace ADMIN roles control their respective member role changes. Invitation flows, member removal, and advanced administration remain future work. See the [data model](data-model.md) and [Phase 7 roadmap](../planning/roadmap.md#phase-7--authentication--multi-user-architecture).
 
-The read-only public Demo requirement in the [product definition](../planning/product-definition.md) is not implemented: the current authenticated application allows members to write Workspace knowledge and has no separate read-only Demo mode.
+The public Demo uses server-only `src/lib/demo/read.ts` with `getDemoWorkspace()` and `getDemoResearch()`. `DEMO_WORKSPACE_ID` selects the sole published Workspace, with expected Workspace/Organization name validation. No visitor query, session, selected-Workspace cookie, or fallback selects the public scope. Both pages render dynamically to recheck configuration and current database contents. Unavailable configuration/resources return not-found; unexpected database failures propagate.
+
+Detail parent queries include both Research ID and Demo Workspace ID before child reads. The public display shape filters supporting Sources and Tags to their intended domains and strips private User/authentication metadata. Comments expose an author label, content, and dates only. `components/research/` shares list items, header, and detail content with optional controls supplied exclusively by authenticated pages. Shared display modules import no auth, DB, Server Actions, or AI. Demo pages supply no controls; existing authenticated member write permissions remain unchanged.
+
+Public AI chat, deployed verification, credential exposure review, arbitrary public-write verification, and Inngest production signature/key review remain outstanding. See the [Phase 9 roadmap](../planning/roadmap.md#phase-9--public-demo) for configuration and manual checks.
 
 ## Architecture Principles
 
