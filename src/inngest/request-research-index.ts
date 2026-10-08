@@ -1,14 +1,20 @@
 import * as Sentry from "@sentry/nextjs";
 
-import { inngest, researchIndexRequested } from "@/inngest/client";
+import {
+  inngest,
+  requireProductionSafeInngestMode,
+  researchIndexRequested,
+} from "@/inngest/client";
 
-export async function requestResearchIndex(researchId: string): Promise<void> {
+export async function requestResearchIndex(researchId: string) {
   try {
-    await inngest.send(
-      researchIndexRequested.create({
-        researchId,
-      }),
-    );
+    requireProductionSafeInngestMode();
+
+    const event = researchIndexRequested.create({
+      researchId,
+    });
+
+    await inngest.send(event);
   } catch (error) {
     Sentry.captureException(error, {
       tags: {
@@ -20,7 +26,7 @@ export async function requestResearchIndex(researchId: string): Promise<void> {
       },
     });
 
-    console.error("Failed to enqueue research indexing.", {
+    console.error("Failed to enqueue research indexing", {
       researchId,
       error,
     });

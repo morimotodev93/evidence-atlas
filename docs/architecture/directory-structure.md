@@ -146,7 +146,11 @@ Access-control Vitest tests are colocated in `auth/`. They cover Research mutati
 
 `inngest/` defines the Inngest client and `research/index.requested` event, the best-effort `requestResearchIndex()` enqueue helper, and background functions. `functions/index-research.ts` debounces requests per Research ID, uses singleton cancellation and retries, and calls the shared indexer. Relevant Research/Finding Server Actions request indexing after successful mutations; enqueue errors are logged without failing the primary operation.
 
-`app/api/inngest/route.ts` serves the registered function through GET, POST, and PUT. The enqueue helper test is colocated under `app/api/inngest/`; indexing tests are under `lib/ai/`.
+`app/api/inngest/route.ts` disables GET/POST/PUT in Public Demo mode with 404 and `Cache-Control: no-store` before SDK dispatch or initialization. Normal mode lazily loads and caches the same registered SDK handlers. There is no Auth.js guard: normal Cloud requests use the Inngest signing protocol. Production uses the supported `enableUnauthedSync: false` option; development retains SDK/env sync behavior. Signed Cloud/in-band sync remains available, while unsigned direct production PUT sync is rejected.
+
+`inngest/client.ts` is server-only and rejects resolved SDK dev mode during production initialization. Effective API/event URLs must be valid, non-local HTTPS endpoints without credentials; this also covers base URL overrides that leave SDK mode set to cloud. Safe `INNGEST_DEV=false`/`0` values remain cloud-compatible. Local development can still use dev mode and local URLs. Errors omit configuration values. Production build/start must use production-safe settings even when `.env.local` contains a local Dev Server setting; temporary process overrides suffice for local verification without editing secret files.
+
+Public Demo needs no Inngest keys, Cloud sync, or runtime indexing. Normal Cloud SaaS needs signing/event keys, with optional fallback rotation and environment selection. Env placeholders/comments live in `.env.example`. Endpoint/enqueue tests are colocated under `app/api/inngest/`, configuration tests under `inngest/`, and indexing tests under `lib/ai/`.
 
 ### `src/lib/` and `src/types/`
 
@@ -208,7 +212,7 @@ The public Demo uses server-only `src/lib/demo/read.ts` with `getDemoWorkspace()
 
 Detail parent queries include both Research ID and Demo Workspace ID before child reads. The public display shape filters supporting Sources and Tags to their intended domains and strips private User/authentication metadata. Comments expose an author label, content, and dates only. `components/research/` shares list items, header, and detail content with optional controls supplied exclusively by authenticated pages. Shared display modules import no auth, DB, Server Actions, or AI. Demo pages supply no controls; normal-mode authenticated member write permissions remain unchanged. Missing/invalid Demo Workspace configuration does not disable the deployment lock or reopen SaaS.
 
-Visitor-originated SaaS write restrictions are implemented and locally verified in Phase 9.3. Public AI chat, live authenticated browser checks, deployed verification, credential exposure review, database-role hardening, and Inngest production signature/key review remain outstanding. The deployment gate does not claim to stop background or all database writes. See the [Phase 9 roadmap](../planning/roadmap.md#phase-9--public-demo) for configuration and manual checks.
+Visitor-originated SaaS write restrictions are implemented and locally verified in Phase 9.3. Public Demo Inngest endpoint/configuration hardening is implemented separately: Demo serving is disabled and normal production dev configuration is rejected. Public AI chat, live authenticated browser checks, deployed verification, normal-SaaS Sentry event-URL redaction, database-role hardening, actual Inngest Cloud key/integration verification, and Preview separation remain outstanding. The deployment gate does not claim to stop normal-SaaS background or all database writes. See the [Phase 9 roadmap](../planning/roadmap.md#phase-9--public-demo) for configuration and manual checks.
 
 ## Architecture Principles
 
