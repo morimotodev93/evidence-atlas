@@ -171,9 +171,9 @@ const demoResearches: DemoResearch[] = [
         url: "https://survey.stackoverflow.co/",
       },
       {
-        key: "jetbrains-developer-ecosystem",
-        title: "JetBrains State of Developer Ecosystem",
-        url: "https://www.jetbrains.com/lp/devecosystem/",
+        key: "jetbrains-ai-insights",
+        title: "Software Developers on AI: Insights and Opportunities",
+        url: "https://blog.jetbrains.com/research/2025/06/software-developers-on-ai/",
       },
     ],
 
@@ -185,11 +185,8 @@ const demoResearches: DemoResearch[] = [
       },
       {
         content:
-          "Developers use AI tools for a range of activities beyond generating new code, including explanation, learning, and problem solving.",
-        sourceKeys: [
-          "stackoverflow-developer-survey",
-          "jetbrains-developer-ecosystem",
-        ],
+          "Surveyed developers were more willing to delegate less enjoyable tasks to AI than core coding and code-understanding work, and many reported reduced time spent searching for information.",
+        sourceKeys: ["jetbrains-ai-insights"],
       },
       {
         content:
