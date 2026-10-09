@@ -126,6 +126,7 @@ Project documentation is organized under `docs/`.
 
 - [Architecture](docs/architecture/) — Application architecture and project structure
 - [Planning](docs/planning/) — Roadmap and development planning
+- [Research Policy](docs/planning/source-memo.md) — Source selection, freshness, and separation of facts from inference
 - [Reference](docs/reference/) — Technical specifications and reference information
 - [Usage](docs/usage/) — Usage and operational documentation
 

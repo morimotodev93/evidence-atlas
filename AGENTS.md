@@ -1,6 +1,7 @@
 ## Documentation
 
 - Treat `docs/` as the primary project specification.
+- Follow `docs/planning/source-memo.md` when researching or verifying external information.
 - When an implementation changes documented architecture, routes, data models,
   or project status, update the relevant documentation in the same task.
 - Do not update documentation merely because implementation details changed.
