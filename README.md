@@ -8,11 +8,11 @@ It helps teams collect sources, organize findings, discuss evidence, and build s
 
 ## Project Status
 
-**Status:** Portfolio MVP / Public Demo preparation
+**Status:** Portfolio MVP / Public Demo live
 
 Evidence Atlas implements its core research workflow, authentication and Workspace authorization, Research-scoped AI conversations, Workspace-level retrieval with PostgreSQL and pgvector, background indexing, and a curated read-only Public Demo.
 
-The Public Demo application routes and deployment safety boundaries are implemented and locally verified. Production deployment verification is still pending.
+The curated Public Demo is deployed on Vercel with authenticated SaaS entry points, public AI interaction, and background Inngest serving disabled for the portfolio deployment.
 
 The project is developed as a portfolio application with an emphasis on traceable evidence, grounded AI-assisted research, explicit authorization boundaries, and incremental architecture.
 
@@ -76,7 +76,7 @@ Visitors can inspect Sources, Findings, supporting evidence links, Conclusions, 
 
 The Public Demo is intentionally separated from the authenticated SaaS application. Visitors cannot create, edit, or delete persistent research data, authenticated SaaS routes are disabled in Public Demo deployment mode, and public AI interaction is not enabled.
 
-A live deployment URL will be added after production deployment verification is complete.
+**Live Demo:** https://<Production Alias>
 
 ## Technology Stack
 
@@ -205,7 +205,7 @@ Read-only Research Data
 
 Public Demo mode disables authenticated SaaS entry points, Auth.js endpoints, Research chat endpoints, Server Action write paths, and the Inngest serving endpoint before their protected work is performed.
 
-The Demo database still requires normal infrastructure security and deployment configuration. Production deployment, final credential exposure verification, and database-role hardening are tracked separately in the project roadmap.
+The Public Demo is deployed on Vercel and backed by a dedicated Prisma Postgres database containing curated portfolio data. Repository and deployment credential exposure checks are complete. Database-role hardening and normal-SaaS operational hardening remain tracked separately in the project roadmap.
 
 ## Repository
 
