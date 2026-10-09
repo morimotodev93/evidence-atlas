@@ -33,6 +33,10 @@ vi.mock("@/prisma/db", () => ({ db: { orm: { public: mocks.models } } }));
 vi.mock("@/auth/requireUser", () => ({ requireUser: mocks.requireUser }));
 vi.mock("next/navigation", () => ({ redirect: mocks.redirect }));
 
+vi.mock("@/inngest/request-research-index", () => ({
+  requestResearchIndex: vi.fn(),
+}));
+
 function form() {
   const data = new FormData();
   data.set("title", "Updated title");

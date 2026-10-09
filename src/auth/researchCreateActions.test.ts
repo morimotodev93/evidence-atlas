@@ -113,6 +113,10 @@ vi.mock("next/navigation", () => ({
   redirect: mocks.redirect,
 }));
 
+vi.mock("@/inngest/request-research-index", () => ({
+  requestResearchIndex: vi.fn(),
+}));
+
 const state = { error: null };
 const userId = "user-id";
 const researchId = "research-id";
