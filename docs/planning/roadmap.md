@@ -541,7 +541,7 @@ Users who want to operate the application themselves should use their own databa
 - [ ] Integration tests
 - [ ] Database tests
 - [ ] AI-related tests
-- [ ] End-to-end tests
+- [x] End-to-end tests — Public Demo smoke coverage; authenticated SaaS remains pending
 - [ ] Validation tests
 - [ ] Authorization tests
 - [ ] Error handling review
@@ -549,7 +549,11 @@ Users who want to operate the application themselves should use their own databa
 - [ ] Responsive UI review
 - [ ] Production build verification
 
-Vitest and Playwright dependencies and scripts are present. Phase 6 adds manual retrieval/citation inspection scripts and records manual chat E2E checks. Vitest now covers access control for the ten mutation actions described in Phase 7, using mocked authentication and database operations: missing Research, non-membership, unauthenticated requests, unexpected Research lookup failures, and authorized writes. Broader automated regression coverage, accessibility/responsive review, and production build verification remain outstanding.
+Vitest and Playwright dependencies and scripts are present. Phase 6 adds manual retrieval/citation inspection scripts and records manual chat E2E checks. Existing Vitest tests cover access control for the ten mutation actions described in Phase 7, using mocked authentication and database operations: missing Research, non-membership, unauthenticated requests, unexpected Research lookup failures, and authorized writes. Broader automated regression coverage, accessibility/responsive review, and Broader automated regression coverage, accessibility/responsive review, and comprehensive production deployment verification remain outstanding.
+
+**Phase 10 — Minimal Public Demo E2E (2026-10-09):** `playwright.config.ts` and `e2e/public-demo.spec.ts` add six Chromium smoke tests against the deployed read-only Public Demo. The default target is `https://evidence-atlas-mu.vercel.app`, overridable with `E2E_BASE_URL`; one worker runs without starting a local server or requiring a local database. Tests cover the root redirect, four current seeded Research entries and Demo links, detail sections/back navigation, absence of mutation/AI UI, unknown Research 404 without fallback, and GET-only 404 checks for `/research`, `/api/auth/session`, and `/api/inngest`. Research IDs come from list links. A preflight verifies the Demo target, browser non-GET traffic is blocked, execution stops on the first failure, and failure traces are retained. Vitest excludes `e2e/**` from its collection.
+
+Validation passed all six remote E2E tests, `pnpm lint`, `pnpm test --run` (19 files, 239 tests), and `pnpm build`. Browser installation, test subprocesses, and Google Fonts fetching required execution outside the restricted sandbox. Existing Vitest missing-Inngest-event-key diagnostics and build warnings for unconfigured Upstash credentials remain. This establishes Public Demo UI/GET regression coverage; it does not verify server-side write prevention, database integration, AI answer quality, authenticated SaaS workflows, or complete Phase 10. Follow-up E2E coverage includes the other three Research details, accessibility/responsive checks, and authenticated workflows in an isolated environment.
 
 ---
 

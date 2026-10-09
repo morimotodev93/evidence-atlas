@@ -168,6 +168,33 @@ Additional setup instructions will be documented as the application infrastructu
 | `pnpm test`     | Run unit tests               |
 | `pnpm test:e2e` | Run end-to-end tests         |
 
+### Public Demo E2E tests
+
+The Chromium smoke tests target the read-only Public Demo at
+`https://evidence-atlas-mu.vercel.app`. No local server or database is required.
+Install Chromium once, then run:
+
+```bash
+pnpm exec playwright install chromium
+pnpm test:e2e
+```
+
+To target another deployment configured in Public Demo mode:
+
+```powershell
+$env:E2E_BASE_URL = "https://your-public-demo.example"
+pnpm test:e2e
+Remove-Item Env:E2E_BASE_URL
+```
+
+In a POSIX shell, use `E2E_BASE_URL=https://your-public-demo.example pnpm test:e2e`.
+The suite checks the current curated seed, navigation, read-only UI, and GET 404
+boundaries with one worker. It stops on the first failure and retains failure
+traces in `test-results/`. The preflight requires the root to redirect to the Demo.
+Browser traffic is restricted to GET; no authentication or AI calls are made.
+These remote smoke tests do not replace database integration tests, AI answer
+quality tests, or verification of server-side write prevention.
+
 ## Architecture
 
 The application follows a layered approach built around the Next.js App Router.
