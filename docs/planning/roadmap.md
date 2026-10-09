@@ -1,6 +1,6 @@
 # evidence-atlas Roadmap
 
-> **Last Updated:** 2026-10-08
+> **Last Updated:** 2026-10-09
 
 Current stage: Phases 4–7 are complete for their stated baseline scopes. Phases 0–3 established the foundation, product direction, data contract, and design-system baseline. Checked implementation items describe code present in the repository, not a fresh runtime verification or completion of every related product requirement.
 
@@ -415,7 +415,7 @@ Only features that contribute meaningfully to the portfolio should be implemente
 - [x] Add Demo labels
 - [x] Add GitHub link
 - [x] Add project documentation
-- [ ] Verify that no private credentials are exposed
+- [x] Verify that no private credentials are exposed
 - [x] Verify that arbitrary public writes are disabled
 
 **Phase 9.1 — Curated dataset implementation:** Seed profiles are split into `development` and `public-demo`. `src/prisma/seed.ts` dispatches the selected profile, handles errors, and closes the database runtime; omitting the profile selects `development`. `seeds/development.ts` contains local development fixtures, while `seeds/public-demo.ts` defines curated portfolio data using the existing application UI and Research models.
@@ -449,11 +449,17 @@ The shell displays **Demo** and **Read-only demo** labels. Shared Research displ
 
 Set server-side `DEMO_WORKSPACE_ID` to the curated Workspace ID in the intended database; `.env.example` intentionally leaves it empty. All Research in that Workspace is published, so keep it dedicated to curated public content. Authenticated members retain their existing SaaS write permissions in normal mode; Public Demo deployment mode disables those entry points. Public visitors receive no membership or Demo User session. Vitest covers public read boundaries, related-data scope, Comment privacy, query ordering, UI/import separation, and failure propagation alongside existing authorization regressions.
 
-The GitHub link and Phase 9 portfolio documentation are implemented. Public AI remains intentionally disabled for the current read-only Demo scope. Final credential exposure review and deployed Demo verification remain pending, so Phase 9 is not complete.
+The GitHub link, Phase 9 portfolio documentation, final credential exposure review, and production deployment are complete. Public AI remains intentionally disabled for the current read-only Demo scope.
+
+The deployed Public Demo uses a dedicated Prisma Postgres database and the Public Demo deployment lock. No private credential exposure was found in the reviewed repository files, reachable Git history, or deployed Demo HTML.
+
+Database-role hardening, normal-SaaS telemetry redaction, Preview environment separation, and live Inngest Cloud integration verification remain separate later hardening tasks.
 
 The public-write checkbox covers visitor-originated authenticated SaaS writes as verified in Phase 9.3 below; it does not claim that infrastructure or background systems cannot write.
 
-Phase 9.2 validation passed `pnpm lint`, `pnpm test --run` (13 files, 147 tests), and `pnpm build`. Additional read-only verification against the existing isolated `evidence_atlas_demo_test` database exercised the real Prisma read helper: all four Research records returned three Sources, four Findings, a Conclusion, Comments, and Tags. A local production server using a PostgreSQL read-only connection returned HTTP 200 for the Demo list and all four details, with no mutation forms/controls or Comment emails; an unknown Demo Research returned 404. Logged-out `/research`, `/research/new`, and `/research/<id>/edit` returned sign-in redirects. No seed, reset, or database writes were performed. This does not replace authenticated browser checks or deployed verification.
+Phase 9.2 validation passed `pnpm lint`, `pnpm test --run` (13 files, 147 tests), and `pnpm build`. Additional read-only verification against the existing isolated `evidence_atlas_demo_test` database exercised the real Prisma read helper: all four Research records returned three Sources, four Findings, a Conclusion, Comments, and Tags. A local production server using a PostgreSQL read-only connection returned HTTP 200 for the Demo list and all four details, with no mutation forms/controls or Comment emails; an unknown Demo Research returned 404. Logged-out `/research`, `/research/new`, and `/research/<id>/edit` returned sign-in redirects. No seed, reset, or database writes were performed.
+
+These checks record the pre-deployment local verification baseline. Production behavior was verified separately after deployment.
 
 Manual browser verification of the Phase 9.2 read paths and normal SaaS mode after configuring the intended Demo database:
 
@@ -472,9 +478,17 @@ Server Actions also pass through the common boundary. Eight actions with pre-aut
 
 Existing cookies do not bypass the lock: sessions are not evaluated by the protected entry points. Persisted Session rows are not revoked or deleted by enabling the mode. When normal mode is restored, still-valid sessions may work again. Public AI remains intentionally disabled for the current read-only Demo scope. Global session revocation, database-role hardening, normal-SaaS telemetry redaction, live Inngest Cloud integration verification, and Preview environment separation remain separate tasks. The lock covers visitor-originated SaaS operations, not all database or background writes.
 
-Verification passed `pnpm lint`, `pnpm test --run` (17 files, 214 tests), and `pnpm build`. Tests exercise the real User/deployment guards, all eight early-read actions, representative writes, seven SaaS pages, root redirect, catch-all dispatch, sign-out, and all four chat handlers. Local production HTTP verification against the existing isolated database confirmed five public pages, seven unavailable SaaS pages, fourteen Auth GET/POST requests, four unavailable chat handlers, and 404 rejection results from all 22 registered Server Actions. Missing and invalid Demo Workspace configuration kept SaaS closed; normal mode preserved the sign-in redirect and Google provider dispatch. Verification used process-only local Auth host trust and a read-only connection, with identical before/after fingerprints for all 18 application/auth/index tables. No seed/reset/record writes or persisted environment changes occurred. Live Google login and authenticated browser CRUD remain manual checks; Vercel deployment is not verified.
+Verification passed `pnpm lint`, `pnpm test --run` (17 files, 214 tests), and `pnpm build`. Tests exercise the real User/deployment guards, all eight early-read actions, representative writes, seven SaaS pages, root redirect, catch-all dispatch, sign-out, and all four chat handlers. Local production HTTP verification against the existing isolated database confirmed five public pages, seven unavailable SaaS pages, fourteen Auth GET/POST requests, four unavailable chat handlers, and 404 rejection results from all 22 registered Server Actions. Missing and invalid Demo Workspace configuration kept SaaS closed; normal mode preserved the sign-in redirect and Google provider dispatch. Verification used process-only local Auth host trust and a read-only connection, with identical before/after fingerprints for all 18 application/auth/index tables. No seed/reset/record writes or persisted environment changes occurred.
 
-Phase 9.3 manual verification:
+Verification passed `pnpm lint`, `pnpm test --run` (17 files, 214 tests), and `pnpm build`. Tests exercise the real User/deployment guards, all eight early-read actions, representative writes, seven SaaS pages, root redirect, catch-all dispatch, sign-out, and all four chat handlers.
+
+Local production HTTP verification against the isolated database confirmed five public pages, seven unavailable SaaS pages, fourteen Auth GET/POST requests, four unavailable chat handlers, and 404 rejection results from all 22 registered Server Actions. Missing and invalid Demo Workspace configuration kept SaaS closed; normal mode preserved the sign-in redirect and Google provider dispatch.
+
+Verification used process-only local Auth host trust and a read-only connection, with identical before/after fingerprints for all 18 application/auth/index tables. No seed, reset, record writes, or persisted environment changes occurred.
+
+After deployment to Vercel, production checks confirmed that `/` redirects to `/demo`, `/research` is unavailable, and both `/api/auth/session` and `/api/inngest` return 404 in Public Demo mode. Live normal-SaaS Google login and authenticated CRUD remain outside the Public Demo deployment verification scope.
+
+Phase 9.3 verification checklist and deployment record:
 
 1. Set `PUBLIC_DEMO_MODE=true` in both build/runtime environments, configure the existing curated Workspace, rebuild/restart, and verify `/` redirects to `/demo`.
 2. Logged out, verify `/demo` and all four details remain readable without mutation or AI controls.
@@ -483,15 +497,23 @@ Phase 9.3 manual verification:
 5. Verify representative direct Server Action requests cannot read private children, provision Organization/Workspace/memberships, mutate Research, change roles or Workspace cookies, or sign out.
 6. Remove or invalidate `DEMO_WORKSPACE_ID`: public data becomes unavailable, but SaaS and Auth endpoints remain closed.
 7. Restore `PUBLIC_DEMO_MODE=false` or unset and rebuild/restart; verify Google sign-in, onboarding, authorized Research operations, member administration, Research AI, and sign-out.
-8. Before public deployment, explicitly verify the mode flag: forgetting it opens normal SaaS mode. Deployed behavior, actual Cloud configuration, telemetry credential handling, and dedicated database-role review remain outstanding.
+8. Before public deployment, explicitly verify the mode flag: forgetting it opens normal SaaS mode. Production deployment and the primary Public Demo route boundaries have now been verified. Database-role hardening, normal-SaaS telemetry redaction, Preview environment separation, and live Inngest Cloud integration remain separate follow-up tasks.
 
-**Public Demo Inngest hardening — repository implementation:** `/api/inngest` GET/POST/PUT are unavailable in Public Demo mode (404, `Cache-Control: no-store`) before SDK/client/function initialization. The curated read-only Demo requires no runtime indexing, Inngest keys, or Cloud sync/integration. Normal SaaS retains the existing event/function/indexing behavior and uses Inngest signing rather than Auth.js. Production serving explicitly sets `enableUnauthedSync: false`; signed Cloud/in-band sync remains available.
+**Public Demo Inngest hardening:** `/api/inngest` GET/POST/PUT are unavailable in Public Demo mode and return 404 with `Cache-Control: no-store` before SDK, client, or function initialization. The curated Demo requires no runtime indexing, Inngest credentials, or Cloud sync.
 
-The server-only Inngest client uses the installed SDK's resolved mode as the production safety boundary. Production dev mode is rejected before Inngest handlers are created or indexing events are sent. `false` and `0` remain cloud-mode values. The application does not impose additional HTTP, localhost, Docker-host, or credential-bearing endpoint restrictions; custom and self-hosted endpoints remain compatible when the SDK resolves to cloud mode.
+Normal SaaS retains the existing Inngest event and indexing behavior. Production serving sets `enableUnauthedSync: false`, and the server-only client rejects SDK-resolved dev mode before serving handlers or sending indexing events. Custom and self-hosted endpoints remain supported when the SDK resolves to cloud mode.
 
-The production safety check runs at Inngest usage boundaries rather than module initialization. This prevents production runtime use of Inngest dev mode without breaking Next.js production builds that evaluate modules under `NODE_ENV=production`. `/api/inngest` validates before `serve()`, while `requestResearchIndex()` validates before event creation and `inngest.send()`. Event enqueue remains best-effort: a rejected or failed enqueue is logged without failing the primary Research mutation.
+Hardening verification passed `pnpm lint`, `pnpm test --run` (19 files, 239 tests), `pnpm build`, and `git diff --check`. Live signed Inngest Cloud integration remains outside the Public Demo deployment scope.
 
-Prior investigation found no confirmed real credentials in tracked files, reachable Git history, or the inspected browser build. That finding has not yet been rerun as the final pre-deployment credential exposure review. Sentry/Inngest event-key URL redaction for normal SaaS, actual Vercel configuration, signed Inngest Cloud integration/sync, Preview environment separation, and database-role hardening remain separate deployment or later hardening tasks.
+Prior investigation found no confirmed real credentials in tracked files, reachable Git history, or the inspected browser build.
+
+The final credential exposure review found no confirmed private credentials in tracked files, the checked reachable Git history, or the deployed Public Demo HTML. Tracked credential-like files are limited to `.env.example`; real environment files remain ignored.
+
+The deployed Public Demo was also checked for Prisma database hostnames and sensitive environment-variable names, with no matches found in the rendered Demo response.
+
+This review covers the repository and current Public Demo exposure surfaces. Normal-SaaS telemetry redaction, Preview environment separation, database-role hardening, and live Inngest Cloud integration remain separate operational hardening tasks.
+
+Sentry/Inngest event-key URL redaction for normal SaaS, actual Vercel configuration, signed Inngest Cloud integration/sync, Preview environment separation, and database-role hardening remain separate deployment or later hardening tasks.
 
 Hardening verification passed `pnpm lint`, `pnpm test --run` (19 files, 239 tests), production `pnpm build`, and `git diff --check`. The production build succeeded without an Inngest-specific process override. Tests cover Demo dispatch/initialization blocking, normal request/context delegation, production signed-sync policy, SDK-resolved dev/cloud mode behavior, self-hosted/custom endpoint compatibility, event-send guarding, development compatibility, and secret-free configuration errors. Live signed Cloud sync/integration remains unverified.
 
@@ -535,16 +557,16 @@ Vitest and Playwright dependencies and scripts are present. Phase 6 adds manual 
 
 **Goal:** Deploy the portfolio version and verify production behavior.
 
-- [ ] Configure production environment
-- [ ] Configure production database
-- [ ] Apply production migrations
-- [ ] Seed curated Demo data
+- [x] Configure production environment
+- [x] Configure production database
+- [x] Apply production migrations
+- [x] Seed curated Demo data
 - [ ] Configure AI provider
-- [ ] Configure environment variables
-- [ ] Deploy to Vercel
-- [ ] Verify production build
-- [ ] Verify Demo Workspace
-- [ ] Verify read-only behavior
+- [x] Configure environment variables
+- [x] Deploy to Vercel
+- [x] Verify production build
+- [x] Verify Demo Workspace
+- [x] Verify read-only behavior
 - [ ] Review logs and errors
 - [ ] Perform security review
 
