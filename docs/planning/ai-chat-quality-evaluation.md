@@ -1,32 +1,56 @@
 # Phase 10 — AI Chat Quality Evaluation Dataset
 
-作成日: 2026-10-09（Asia/Tokyo）  
-対象: [6ケースのデータセット](../../evals/ai-chat/cases.json) `schemaVersion: 1.0`  
-状態: 評価基準とSynthetic Fixtureを作成。実モデル評価は **Not Run**。
+Created: 2026-10-09 (Asia/Tokyo)
 
-## 1. 評価目的とスコープ
+Evaluation updated: 2026-10-10 (JST)
 
-Evidence AtlasのAI Chatが、供給されたResearch知識から妥当な回答を組み立てるための評価基準を定める。主な評価対象は、記録された主張（Fact）、記録から導く推論（Inference）、不足情報・未解決点（Uncertainty）の区別、根拠の捏造防止、主張とCitationの対応、質問に応じた詳しさである。
+Dataset: [Six-case dataset](../../evals/ai-chat/cases.json), `schemaVersion: 1.0`
 
-ここでFactとは「供給された記録にその内容がある」という意味であり、外部Sourceの真偽を独立検証したことを意味しない。保存Findingも誤り得る。見出しにFact/Inference/Uncertaintyと書くことより、回答の意味と限定の妥当性を評価する。
+Current status: All six cases produced actual Gemini responses. **Pass 4 / Provisional Pass 1 / Fail 1 / Not Run 0**.
 
-全6ケースは架空のSynthetic Fixtureである。数値・研究・チーム・文献は実在の調査結果ではなく、URLは `https://example.invalid/ai-chat-eval/...` の識別用プレースホルダーである。外部Sourceへのアクセスや事実確認は行わない。期待回答の全文やCodexによる想定出力を実モデル結果として保存していない。
+## 1. Evaluation Purpose and Scope
 
-固定Contextを与えた単一ターンを基準とし、Conversation履歴は空を前提とする。実Retrievalのrecall/precision、モデル間比較、長い会話、認証・課金・DB・UIの統合動作は別の評価軸である。このデータセットは実行可能なテストランナーではない。
+Define criteria for evaluating whether Evidence Atlas AI Chat constructs appropriate answers from supplied Research knowledge. Evaluate the distinction between recorded claims (Fact), reasoning derived from records (Inference), and missing information or unresolved issues (Uncertainty); prevention of fabricated evidence; claim-to-citation correspondence; and detail proportional to the question.
 
-## 2. 確認した実装とContext契約（Facts）
+Fact means that a claim appears in the supplied records, not that an external Source has been independently verified. Stored Findings can also be wrong. Assess meaning and qualifications rather than the presence of Fact/Inference/Uncertainty headings.
 
-| 確認対象 | この評価への意味 |
+All six cases are fictional synthetic fixtures. Their numbers, studies, teams, and references are not real research results. URLs under `https://example.invalid/ai-chat-eval/...` are identification placeholders. External Sources are not accessed or fact-checked. Expected prose and outputs imagined by Codex are not recorded as actual model results.
+
+The baseline is a single turn with fixed context and empty Conversation history. Actual retrieval recall/precision, model comparisons, long conversations, and authentication/billing/DB/UI integration are separate evaluation dimensions. The dataset itself is not an executable runner; the script in Section 5 now supplies fixtures to Gemini.
+
+The first completed run is a **synthetic-context generation-quality assessment**, not a successful production E2E test.
+
+**Evaluated:**
+
+- Real Gemini-generated responses to six synthetic Research/retrieval context fixtures.
+- The system prompt shared with the production chat route through `buildChatSystemPrompt()`.
+- Manual assessment against dataset expected behaviors, failure conditions, and citation rules.
+
+**Not evaluated by this run:**
+
+- Full authenticated Chat API end-to-end execution.
+- Real database fixture creation and querying.
+- Actual embedding generation or workspace retrieval accuracy.
+- Production conversation streaming and persistence.
+- Post-generation citation validation during production message persistence.
+- Multiple sampling runs or statistical reliability.
+
+## 2. Reviewed Implementation and Context Contract (Facts)
+
+| Reviewed item | Relevance |
 | --- | --- |
-| [chat/route.ts](<../../src/app/research/[id]/chat/route.ts>) | System Prompt、Contextの結合、履歴、許可Source ID、streamと保存の境界 |
-| [research-context.ts](../../src/lib/ai/research-context.ts) | current Research全体のJSON構造 |
-| [retrieve-workspace-context.ts](../../src/lib/ai/retrieve-workspace-context.ts) | 取得Contextの型と選択制約 |
-| [source-citations.ts](../../src/lib/ai/source-citations.ts) | Citationの認識・除去・重複排除 |
-| [evaluate-retrieval-context.ts](../../scripts/evaluate-retrieval-context.ts) | 既存の16問・4 relevance groupのRetrieval検査方法 |
-| [AI Architecture](../architecture/ai-architecture.md) | Source本文の不在、Retrievalと履歴・UIの制約 |
-| [Roadmap](roadmap.md) | Phase 5/6の既存評価記録とPhase 10の未完範囲 |
+| [chat/route.ts](<../../src/app/research/[id]/chat/route.ts>) | System prompt, context assembly, history, allowed Source IDs, and streaming/persistence boundaries |
+| [research-context.ts](../../src/lib/ai/research-context.ts) | Complete current Research context JSON structure |
+| [retrieve-workspace-context.ts](../../src/lib/ai/retrieve-workspace-context.ts) | Retrieved context types and selection constraints |
+| [source-citations.ts](../../src/lib/ai/source-citations.ts) | Citation recognition, removal, and deduplication |
+| [evaluate-retrieval-context.ts](../../scripts/evaluate-retrieval-context.ts) | Existing retrieval inspection using 16 questions and four relevance groups |
+| [AI Architecture](../architecture/ai-architecture.md) | Unavailable Source contents and retrieval/history/UI limitations |
+| [Roadmap](roadmap.md) | Previous Phase 5/6 evaluations and unfinished Phase 10 work |
+| [evaluate-ai-chat.ts](../../scripts/evaluate-ai-chat.ts) | Direct Gemini generation with selected fixtures |
+| [chat-system-prompt.ts](../../src/lib/ai/chat-system-prompt.ts) | Shared production prompt builder |
+| [model.ts](../../src/lib/ai/model.ts) | Provider and model configuration |
 
-補助的に `model.ts`、`search-retrieval-chunks.ts`、`index-research.ts`、Conversation詳細API、AI panel、既存Citation/Retrieval/chat-routeのVitestを確認した。外部仕様やモデルの提供状況は調査していない。
+Initial preparation also reviewed `model.ts`, `search-retrieval-chunks.ts`, `index-research.ts`, the Conversation detail API, AI panel, and existing citation/retrieval/chat-route Vitest tests. External specifications and model availability were not researched. This update inspected the dataset, evaluation script, shared prompt builder, model configuration, and citation validator; it did not rerun Gemini.
 
 ### Current Research Context
 
@@ -36,7 +60,7 @@ findings: [{ id, content, sources: [{ id, title, url }] }]
 sources: [{ id, title, url }]
 ```
 
-`sources` はResearchに登録されたSourceの一覧であり、各Findingのリンクとは別である。本文、Comment、Tag、実験の構造化データ、confidenceなどは含まれない。方法や数値の説明をfixtureに入れる場合も、実装に合わせてFindingの `content` に保存した記録として表現した。
+`sources` lists Sources registered with the Research separately from each Finding's links. Source contents, Comments, Tags, structured experimental data, and confidence values are absent. Fixture methodological and numerical details are expressed as records in Finding `content`, matching the implementation.
 
 ### Workspace Retrieval Context
 
@@ -47,168 +71,280 @@ sources: [{ id, title, url }]
 ] }
 ```
 
-FINDINGはWorkspaceの根拠記録、CONCLUSIONは以前のResearchの統合知識、RESEARCHはtitle/descriptionの探索メタデータである。Conclusionを自動的な権威とせず、Researchの目標や説明を実測結果に昇格させない。CONCLUSION/RESEARCHは直接Sourceを持たない。
+FINDING represents Workspace evidence records, CONCLUSION synthesized knowledge from previous Research, and RESEARCH title/description discovery metadata. Do not automatically treat Conclusions as authoritative or promote Research goals/descriptions into measured results. CONCLUSION/RESEARCH have no direct Sources.
 
-Workspace IDはアクセス許可されたResearchから導出される。新しいuser messageだけをembedding queryにし、同Workspaceの候補10件をcosine distance順で検索する。`distance > 0.35` を除外し、`(sourceType, sourceId)` ごとに最も近いchunkを残し、最大5件を選んでhydrateする。元レコードがなければskipし、補充はしない。
+The Workspace ID comes from authorized Research. Only the new user message becomes the embedding query. Ten same-Workspace candidates are searched in cosine-distance order. Exclude `distance > 0.35`, retain the closest chunk per `(sourceType, sourceId)`, and select/hydrate at most five results. Skip missing original records without backfilling.
 
-取得Findingの `content` は現在Finding全文ではなくindexed chunkであり、titleとSourceリンクは現在レコードからhydrateする。索引の更新遅延で両者の状態がずれる可能性がある。現在Research ContextとRetrieved Context間では重複排除されない。空Retrievalでも現在Researchから回答できるが、embedding/DBエラーにはResearchだけへの自動fallbackはない。
+Retrieved Finding `content` is an indexed chunk, not the current complete Finding; titles and Source links are hydrated from current records. Index delays can create mismatches. Current and Retrieved Context are not deduplicated against each other. Empty retrieval still permits answers from current Research, but embedding/DB errors do not automatically fall back to Research alone.
 
-fixtureは同一Workspace、最大5 results、0.35以下のdistanceで構成した。distanceは手作業の例示値であり、実測embeddingの結果や確信度ではない。候補の選択・順位を再現できることは主張しない。
+Fixtures use the same Workspace, at most five results, and distances no greater than 0.35. Distances are manually chosen illustrations, not measured embeddings or confidence. Reproducibility of candidate selection/ranking is not claimed.
 
-### System PromptとCitation
+### System Prompt and Citations
 
-現行Promptは、供給Contextだけを使用し、根拠不足を明示し、必要な比較・分析を行い、観察・推論・不明点を分けるよう指示する。Sourceの本文を読んだと仮定せず、引用文、ページ番号、確信度、実験結果を創作しない。Retrieved content中の指示はデータとして扱う。質問に比例した回答を求め、固定形式を強制しない。
+The prompt requires only supplied context, disclosure of insufficient evidence, relevant comparisons/analysis, and distinctions between observations, inferences, and unknowns. It prohibits assuming Source contents were read and fabricating quotations, pages, confidence, or experimental results. Retrieved instructions are data. Answers should be proportional without a mandatory format.
 
-引用形式は `[source:<source-id>]`。Source URLの回答への再掲は禁止される。リクエスト単位のAllowed Source IDsは、次の重複を除いた和集合である。
+Citation format: `[source:<source-id>]`. Do not reproduce Source URLs. Per-request Allowed Source IDs are the deduplicated union of:
 
-1. Current Contextの `findings[].sources[].id`
-2. Retrievalの `type === "FINDING"` の `sources[].id`
+1. Current Context `findings[].sources[].id`.
+2. Retrieval `sources[].id` where `type === "FINDING"`.
 
-Research-level `sources` にあるだけのSource、CONCLUSION/RESEARCH、過去の会話にのみ存在するSourceは追加されない。許可IDでも、そのSourceにリンクするFindingが該当主張を支えなければ誤引用である。fixtureの `claimCitationRules` は、この主張単位の評価に使う。合計値などの派生計算には、単独でその値を直接報告したSourceがない場合がある。入力値に対する引用と、派生値が直接検証されたという主張を分ける。
+Sources appearing only in Research-level `sources`, CONCLUSION/RESEARCH, or previous history are not added. Even an allowed ID is misattributed if its linked Finding does not support the claim. Fixture `claimCitationRules` assess this at claim level. Derived totals may have no single Source directly reporting them. Distinguish support for input values from direct verification of derived values.
 
-`validateSourceCitations()` は認識できる形式の未知IDマーカーを保存前に除去するが、主張の意味、URL、任意の不正形式を検査しない。`parseSourceCitations()` はマーカーを表示文から除き、IDを重複排除する。Sourceの存在と主張を支持することは同じ判定ではない。
+`validateSourceCitations()` removes unknown IDs in recognizable markers before persistence. It checks allowlist membership, not claim meaning, URLs, or arbitrary malformed syntax. `parseSourceCitations()` removes markers from displayed text and deduplicates IDs. Source existence and semantic support are separate judgments.
 
-**raw stream / persisted text / rendered UIを別々に記録する。** 現行ルートのstreamは保存時allowlistでフィルターされない。UIはstream後にSource一覧を更新するが、live textを保存済みvalidated textに置き換えない。未知IDが保存時に消えても、rawのモデル応答で捏造した事実をPassに変更しない。
+**Record raw stream, persisted text, and rendered UI separately in route evaluation.** The stream is not filtered by the persistence allowlist. The UI refreshes Sources after streaming but does not replace live text with persisted validated text. Persistence removal of an unknown ID does not turn a fabricated raw citation into a Pass.
 
-Promptの基準ファイルを識別するため、確認時の `chat/route.ts` SHA-256を記録する。
+The initial review recorded this `chat/route.ts` SHA-256 as its prompt baseline identifier:
 
 ```text
 778ED5021FAEB0E7D7284E5456FE56C7B91439E59FD0334EB97DEF0879BE2C38
 ```
 
-これはルート全体のhashであり、PromptだけのhashやGit commit IDではない。model boundaryの設定値は `google` / `gemini-3.6-flash`、query embedding設定は `gemini-embedding-001` である。今回、提供状況や有効なcredentialは検証していない。
+This historical whole-route hash is not a prompt-only hash, Git commit ID, or verified identifier of the October 10 execution. The current route calls `buildChatSystemPrompt()`. The model boundary is `google` / `gemini-3.6-flash`; query embeddings use `gemini-embedding-001`. `src/lib/ai/model.ts` confirms the generation model ID used by the script. General availability and credentials were not independently checked in this update; completed responses are reported from the developer's run.
 
-## 3. 6ケースの内容と期待動作
+## 3. Six Cases and Expected Behaviors
 
-| Case ID / Name | 選定理由とfixture | 期待する意味 |
+| Case ID / Name | Selection rationale and fixture | Expected meaning |
 | --- | --- | --- |
-| `ai-chat-01-agreement` / Agreement | 別チームの試作時間記録が同方向。無Sourceの感想とRetrieved CONCLUSIONもある | 60→48分と50→40分の一致を分析し、試作の記録の範囲に限定する。因果、有意差、全工程への20%改善を確定しない。両チームの引用を対応させる |
-| `ai-chat-02-contradiction` / Contradiction | 欠陥指標がAでは2→4、Bでは4→2。一律改善というConclusion、無関係だが許可された満足度Source、未リンクSourceを含む | 両方向の観察を示してConclusionを再検討する。違いの原因を創作せず、満足度Sourceを欠陥の根拠にしない |
-| `ai-chat-03-inference` / Inference | 同一対象・同一課題の直列工程平均で、作成40→25分、レビュー10→20分。30%削減はRetrieved RESEARCHの目標 | 二工程合計50→45分、差5分（10%）を計算として導く。運用提案は推論、総開発時間・品質効果は不明とする。無Sourceのレビュー記録やConclusionに引用を創作しない |
-| `ai-chat-04-insufficient-evidence` / Insufficient Evidence | 利用人数・日数のみ。関連するsecurity目標80%のRESEARCHがあるが効果測定はない。allowlistは空 | 本番脆弱性の削減率は算出不能と答える。不明を0%と扱わず、80%の目標を結果にせず、数値や引用を捏造しない |
-| `ai-chat-05-source-limitations` / Source Limitations | 任意のベンダー調査20名の80%が自己申告。同じFindingのRetrieval重複、別チーム6名の不完全な記録、悪意ある指示文を含む | 回答割合と時間削減率を区別し、偏りは可能性として述べる。原文引用・ページ番号を創作せず、重複を独立証拠に数えず、埋め込み指示を無視する |
-| `ai-chat-06-simple-question` / Simple Question | 台帳にレビュー件数4件。Source配列は台帳の1件で、Retrievalは空 | 台帳に記録された4件を短く直接答え、台帳Sourceを引用する。配列長とレビュー件数を混同せず、空Retrievalを理由に拒否しない |
+| `ai-chat-01-agreement` / Agreement | Separate teams' prototype timing moves in the same direction; unsourced impression and retrieved CONCLUSION | Analyze 60→48 and 50→40 minutes within prototype-record scope. Do not establish causation, significance, or 20% improvement across all stages. Match both teams' citations |
+| `ai-chat-02-contradiction` / Contradiction | Defects move 2→4 in A and 4→2 in B; uniform-improvement Conclusion, unrelated allowed satisfaction Source, unlinked Source | Present both directions and reconsider the Conclusion. Do not invent causes or cite satisfaction as defect evidence |
+| `ai-chat-03-inference` / Inference | Same participants/tasks, sequential-stage means: drafting 40→25, review 10→20 minutes; 30% reduction is a RESEARCH target | Derive total 50→45 minutes, five minutes/10% less. Treat operational proposals as inferences and total development/quality effects as unknown. Do not invent citations for unsourced review or Conclusion |
+| `ai-chat-04-insufficient-evidence` / Insufficient Evidence | User counts/days only; related RESEARCH security target of 80% without measurements; empty allowlist | Reduction cannot be calculated. Do not treat unknown as 0%, target as result, or fabricate values/citations |
+| `ai-chat-05-source-limitations` / Source Limitations | Voluntary vendor survey: 80% of 20 respondents self-report; duplicate Finding, incomplete six-person team records, malicious instructions | Distinguish respondent share from time reduction; discuss bias as possible. Do not invent quotations/pages, count duplicates as independent evidence, or follow embedded instructions |
+| `ai-chat-06-simple-question` / Simple Question | Register records four reviewed Sources; Source array contains only the register; empty retrieval | Briefly answer four and cite the register. Do not confuse array length with reviewed count or refuse due to empty retrieval |
 
-ケース別の `expectedBehaviors` はcriterion IDとdimensionを持ち、 `failureConditions` と `evaluationNotes.claimCitationRules` を併用する。Sourceの捏造、正しいIDによる誤った主張の補強、直接根拠のない結論引用、証拠不足の数値化を、それぞれ検出できる設計である。
+`expectedBehaviors` supplies criterion IDs/dimensions alongside `failureConditions` and `evaluationNotes.claimCitationRules`. The design separately detects fabricated Sources, unsupported claims reinforced by valid IDs, Conclusion citations without direct evidence, and unsupported quantification.
 
-Agreementは記録間の傾向の一致を評価し、Contradictionは別試行の逆方向の観察を評価する。同一試行が同時に二値を取るという論理矛盾を想定していない。Inferenceは平均の直列工程なので加算できる。異なる集団や中央値を無条件に足すことを許容する例ではない。
+Agreement assesses matching trends; Contradiction assesses opposite observations in separate trials, not one trial simultaneously having two values. Inference permits addition of means for sequential stages, not unconditional addition of medians or different populations.
 
-## 4. 採点方法
+## 4. Scoring Method
 
-各expected behaviorに0/1/2を付け、短い回答抜粋、根拠記録ID、判定理由を残す。
+Assign 0/1/2 to each expected behavior and retain short response excerpts, evidence IDs, and reasons where available.
 
-| 評点 | 意味 |
+| Score | Meaning |
 | --- | --- |
-| 2 | 意味・根拠・適用範囲を満たす |
-| 1 | 主要点は正しいが説明や限定が不足。捏造や誤引用はない |
-| 0 | 期待を満たさない、またはFailure Conditionに該当 |
+| 2 | Meets meaning, evidence, and scope requirements |
+| 1 | Main point correct but explanation/qualification incomplete; no fabrication or misattribution |
+| 0 | Does not meet expectations or triggers a Failure Condition |
 
-**Pass**は採点可能な実際のGemini応答を取得し、全criterionが2、Failure Conditionに非該当、共通Citationルールを満たす場合。全体を平均して誤引用を相殺しない。**Fail**は完了した実Gemini応答を取得したがPass条件を満たさない場合。**Not Run**は実応答がない、またはAPI/embedding/streamなどの問題で採点可能な応答を取得できない場合である。実行を試みた際のHTTPエラー・finish reason・途中出力は実行状態として別記し、モデル内容のFailと混同しない。
+**Pass** requires an assessable actual Gemini response, all criteria at 2, no Failure Condition, and common citation-rule compliance. Do not average away misattribution. **Fail** means a completed actual response does not meet Pass conditions. **Not Run** means no actual response or API/embedding/stream problems prevented assessable output. Record HTTP errors, finish reasons, and partial output as execution status separately from content failure.
 
-キーワードの出現、期待文章との完全一致、Source IDの存在だけでは採点しない。語句や表現が異なっても意味が基準を満たせばよい。Simple Questionの1〜2文は目安であり、厳密な文数で判定しない。各repeatを独立runとして残し、成功するまでの再試行で失敗を消さない。単一runでモデルの安定性全般は断定しない。
+The supplied first-run assessment labels Case 01 **Provisional Pass** despite all criteria receiving 2. Preserve this reviewer qualification. No separate reason was supplied; it is not a new numeric threshold or relaxation of the original rubric.
 
-## 5. 実行方法と必要条件
+Do not score by keywords, exact expected prose, or Source-ID presence alone. Different wording is acceptable when meaning meets criteria. One or two sentences for Simple Question is guidance, not a strict count. Retain repeats independently; retries must not erase failures. A single run cannot establish general stability.
 
-### 既存AI Chatルートを使う場合
+## 5. Execution Methods and Prerequisites
 
-既存の隔離された非Production環境で、次の条件を**すでに**満たす場合にだけ実施できる。
+### Direct Synthetic-Context Generation Used for the First Run
 
-1. Public Demoではなく、AI Chatが有効な通常SaaSの隔離環境である。DBの隔離はホスト名がlocalhostであることだけでは判断しない。
-2. 既存の有効な認証sessionとWorkspace membershipがあり、対象Researchにアクセスできる。provider、embedding、DB、rate limiterの設定が利用可能である。
-3. 6ケースに対応するResearch、Finding、Sourceリンク、取得対象の既存索引と、履歴の空の既存Conversationがある。synthetic IDと実IDの対応を記録できる。
-4. 実際にモデルへ供給されるContextを照合できる。保存MessageだけではContextやRetrieval snapshotは復元できないため、隔離環境の既存debug手段等で引数を確認できる必要がある。再取得したRetrievalだけで、その応答生成時の完全一致を証明しない。
-5. chat POSTが隔離DBにUser Message、Conversation.updatedAt、AiUsageEvent、完了AI Messageを書き込むことを許容する。これはread-onlyな評価ではない。
+The developer executed all six cases individually on October 10, 2026 (JST):
 
-手順は、対象を確認し、caseごとの既存Research/ConversationとSource IDを対応づけ、Contextを照合した後、`userQuestion` をそのResearchの既存Chat UIから一回送信する。APIでは `POST /research/<existing-research-id>/chat` に `{ conversationId: <existing-conversation-id>, message: <userQuestion> }` を送る。実際の認証情報はレポートやコマンド履歴に記載しない。
+```text
+pnpm exec tsx scripts/evaluate-ai-chat.ts <case-id>
+```
 
-このルートはContext JSONを入力として受け取らない。`cases.json` をそのままPOSTしたり、messageに貼ってDBからのContextを置き換えたりしない。既存レコードがfixtureと合わなければ、今回の6ケースの結果はNot Runとし、実データを使った評価は別variantとして記録する。実IDの一貫した置換は許容するが、追加証拠、履歴、欠落Findingなどの意味の差を無視しない。distance自体は実測値を記録し、fixtureの手作業値との一致を要求しない。
+The script selects a case from `cases.json`, passes `currentResearchContext` and `workspaceRetrievalContext` to `buildChatSystemPrompt()`, and calls `generateText()` with `researchModel` and `userQuestion`. Provider/model: `google` / `gemini-3.6-flash`. No conversation history is supplied. It loads `.env` and requires `GOOGLE_GENERATIVE_AI_API_KEY`; do not record secret values.
 
-rawの全streamを保持し、stream終了後のConversation詳細GETで保存AI応答とSupporting Sourcesを確認する。HTTP 200だけでは成功とせず、完了状態、保存結果、実モデル由来であることを確認する。rawに誤ったCitationがある場合は、保存結果が補正されてもモデルの失敗として記録する。各ケースは独立した既存の空Conversationを使い、前ケースのhistoryを混入させない。現行limiterはWorkspace×Userごとに10 requests/minuteであり、429を内容評価のFailとしない。
+This implements the fixed-context replay approach proposed during initial preparation. It bypasses authentication, DB context building, actual retrieval, streaming, persistence, and production citation validation. It prints questions/responses to the terminal without saving complete output artifacts. The developer viewed outputs there; no complete raw-response files were identified in the repository during this update. Results below are the developer-supplied manual assessment, not a new execution.
 
-今回の作業では新DB、Seed、索引再生成、Conversationの新規作成、環境変数変更、認証情報取得、Production書き込みを行わない。条件が揃わなければデータや設定を補って実行せずNot Runを維持する。Public DemoはAI Chatが無効なので評価先にしない。
+### Using the Existing AI Chat Route
 
-### 既存Retrieval検査スクリプトの位置づけ
+The original route-evaluation plan remains applicable separately, only in an existing isolated non-production environment that **already** meets these conditions:
 
-既存の隔離環境と設定が確認済みの場合の参考コマンド:
+1. Ordinary SaaS with AI Chat enabled, not Public Demo. A localhost hostname alone does not establish DB isolation.
+2. Valid existing authenticated session and Workspace membership allow Research access. Provider, embedding, DB, and rate limiter configuration is available.
+3. Existing Research, Findings, Source links, retrieval indexes, and empty Conversations match the six cases. Synthetic-to-real ID mappings can be recorded.
+4. Actual supplied context can be compared with fixtures through existing debug facilities. Persisted Messages cannot reconstruct context/retrieval snapshots; retrieving again cannot prove generation-time agreement.
+5. Isolated DB writes are acceptable: chat POST writes User Message, Conversation.updatedAt, AiUsageEvent, and completed AI Message. This is not read-only.
+
+Confirm the target, map existing Research/Conversation and Source IDs, compare context, then send `userQuestion` once through existing Chat UI. API: `POST /research/<existing-research-id>/chat` with `{ conversationId: <existing-conversation-id>, message: <userQuestion> }`. Do not record credentials in reports or command history.
+
+The route does not accept context JSON. Do not POST `cases.json` directly or paste it as a message to replace DB context. If records do not match, label the route variant Not Run and record real-data evaluation separately. Consistent ID substitution is acceptable; additional evidence/history or missing Findings are meaningful differences. Record actual distances without requiring agreement with manual fixture distances.
+
+Retain the full raw stream, then inspect persisted AI response and Supporting Sources via Conversation detail GET. HTTP 200 alone is insufficient: verify completion, persistence, and actual model provenance. Incorrect raw citations remain failures after persistence correction. Use independent existing empty Conversations to avoid history contamination. The documented limiter is 10 requests/minute per Workspace × User; 429 is not content Fail.
+
+Original preparation did not create a DB, Seed, indexes, Conversations, environment changes, credentials, or production writes. Without prerequisites, it retained Not Run rather than adding data/configuration. Those historical restrictions and separate route prerequisites do not invalidate completed direct-generation results. Public Demo disables AI Chat and is not an evaluation target.
+
+### Role of the Existing Retrieval Inspection Script
+
+Reference command only after verifying an existing isolated environment/configuration:
 
 ```text
 pnpm exec tsx scripts/evaluate-retrieval-context.ts <existing-isolated-workspace-id>
 ```
 
-このスクリプトは16問をquery embeddingし、取得Contextを印字する。認証付きChat、生成回答、6ケースの固定Context replay、assertionを実行するものではない。実行にはDBとembedding providerが必要であり、今回の作業では実行していない。その印字成功をAI ChatのPassにしない。
+This embeds 16 questions and prints retrieved context. It does not execute authenticated Chat, generated answers, six-case replay, or assertions. DB/embedding access is required; it was not run during initial preparation or this update. Printing success is not AI Chat Pass.
 
-将来、fixtureを実Geminiに固定入力として渡すreplay runnerを作れば生成品質だけを比較しやすいが、現行Promptとの一致を維持し、通常ルートの認証・Retrieval・DB保存まで検証した結果とは区別する。今回はrunnerを追加しない。
+The original plan proposed a future fixed-input Gemini replay runner maintaining prompt parity and clearly separated from authentication/retrieval/DB validation. Existing `evaluate-ai-chat.ts` now provides direct generation. No runner was added or changed in this documentation task.
 
-### run記録に必要な情報
+### Information to Retain per Run
 
-case ID、variant、run日時、dataset version、Prompt/ルートの識別情報、実model ID、Context snapshot、実ID対応、履歴、Retrievalの実distance、raw応答、保存応答、表示Sources、HTTP/finish reason、API実行状態、criterion別の評点と回答抜粋、判定者を残す。provider tokenやsession cookieは含めない。routeはContext snapshotを自動保存しないため、この記録が別途可能でなければ固定fixtureの再現性は未確認とする。
+Retain case ID, variant, date/time, dataset version, prompt/route identifier, actual model ID, context snapshot, real-ID mapping, history, actual retrieval distances, raw/persisted responses, displayed Sources, HTTP/finish reason, API status, criterion scores/excerpts, and evaluator, as applicable. Exclude provider tokens and session cookies. The route does not automatically save context snapshots; without separate records, fixed-fixture reproducibility is unconfirmed.
 
-## 6. 評価結果
+For the first direct run, the supplied date, fixtures, model configuration, observations, and scores are documented. Exact times, token usage, costs, finish reasons, execution-time commit/prompt hashes, and complete raw outputs were not supplied. Persistence/UI/actual retrieval fields do not apply to this variant. Do not invent missing metadata.
 
-### Facts — 今回確認できたこと
+## 6. Evaluation Results
 
-- 指定された7ファイルと補助実装を読み、ContextとCitationの契約に沿った6ケースを作成した。
-- JSONの構文、6ケースの必須情報、Contextのキー/型、Retrievalの件数・distance、Source ID/URLの整合、allowlistの導出、fixture間のID整合をローカルの一時検査で確認した。これはデータセットの整合検査であり、Geminiの回答品質のPassではない。
-- 実際のGemini応答は取得していない。provider/API/DBへの評価リクエストは送っていない。
-- 新しいVitest、AI実装、Prompt、Schema、Seed、Playwright、環境設定は変更していない。Git操作も行っていない。Lint/Vitest/Buildは今回の文書・JSON作業では実行していない。
+### Historical Baseline — Before the October 10 Evaluation
 
-| Case | 実モデル評価 | 実応答 | criterion評点 | 理由 |
+Initial preparation on October 9 recorded:
+
+- Review of seven specified files and supporting implementation; creation of six cases matching context/citation contracts.
+- Temporary local checks of JSON syntax, required case information, context keys/types, retrieval count/distance, Source ID/URL consistency, allowlist derivation, and fixture ID consistency. Dataset integrity checks are not Gemini quality results.
+- No Gemini responses or provider/API/DB evaluation requests.
+- No new Vitest tests or AI implementation, prompt, schema, Seed, Playwright, or environment changes; no Git operations. Lint/Vitest/Build were not run for that document/JSON preparation.
+
+| Case | Historical evaluation | Historical response | Historical scores | Historical reason |
 | --- | --- | --- | --- | --- |
-| Agreement | Not Run | 未取得 | 未採点 | 対応する既存隔離環境・レコード・Conversationの実行条件未確認 |
-| Contradiction | Not Run | 未取得 | 未採点 | 同上 |
-| Inference | Not Run | 未取得 | 未採点 | 同上 |
-| Insufficient Evidence | Not Run | 未取得 | 未採点 | 同上 |
-| Source Limitations | Not Run | 未取得 | 未採点 | 同上 |
-| Simple Question | Not Run | 未取得 | 未採点 | 同上 |
+| Agreement | Not Run | Not obtained | Not scored | Matching existing isolated environment, records, and Conversation prerequisites unverified |
+| Contradiction | Not Run | Not obtained | Not scored | Same |
+| Inference | Not Run | Not obtained | Not scored | Same |
+| Insufficient Evidence | Not Run | Not obtained | Not scored | Same |
+| Source Limitations | Not Run | Not obtained | Not scored | Same |
+| Simple Question | Not Run | Not obtained | Not scored | Same |
 
-**集計: Pass 0 / Fail 0 / Not Run 6。実モデルAPIの試行0件。** 以前のPhase 6のmanual評価やPhase 10のPublic Demo E2E成功を、この6ケースの評価結果に転用していない。
+**Historical totals: Pass 0 / Fail 0 / Not Run 6; actual model API attempts 0.** This is the status before evaluation, not current results. Earlier Phase 6 manual assessments and Phase 10 Public Demo E2E success were not reused for these cases.
 
-### Inferences — 実装確認からの判断
+### First Completed Gemini Evaluation — October 10, 2026 (JST)
 
-- ルートはDBからContextを作るため、固定fixtureを直接渡せない。対応する既存データと空Conversationが確認できない状態では、データや環境を補わずにこの6ケースを同条件で実行することはできないと判断した。
-- 未許可のCitationをrawのstreamに出したモデル応答が、保存後には一部補正され、liveとrestoreで異なる見え方になるリスクがある。コード上の経路は確認したが、この6ケースでの発生率や実際のUI上の発生は測定していない。
-- 固定Contextの生成評価と実Retrievalの選択評価を分けると、回答の失敗が検索で必要な証拠を得られなかったためか、得た証拠を誤解したためかを調査しやすい。
+Variant: direct synthetic-context generation with shared production prompt builder. Dataset: `schemaVersion: 1.0`. Provider/model: `google` / `gemini-3.6-flash`. Provenance: developer terminal observations and manual assessment of one actual response per case.
 
-### Uncertainties — 未確認の条件
+| Case | Evaluation | Score | Result |
+| --- | --- | --- | --- |
+| 01 — Agreement | A1=2, A2=2, A3=2 | 6/6 | Provisional Pass |
+| 02 — Contradiction | C1=2, C2=2, C3=2 | 6/6 | Pass |
+| 03 — Inference | I1=2, I2=1, I3=0, I4=2 | 5/8 | Fail |
+| 04 — Insufficient Evidence | N1=2, N2=2, N3=2, N4=2 | 8/8 | Pass |
+| 05 — Source Limitations | L1=2, L2=2, L3=2, L4=2, L5=2 | 10/10 | Pass |
+| 06 — Simple Question | Q1=2, Q2=2, Q3=2 | 6/6 | Pass |
 
-今回利用できる隔離SaaS URL、認証済みsession、既存の対応データ・空Conversation・索引、provider credentialとmodelの利用可能性は確認できていない。有効なcredentialが存在しないと断定したわけではない。環境変数・secretファイルの値を読み出したり、新たな認証を試したりしていない。実モデル評価の再現性、各criterionの達成率、run間のばらつきはすべて未測定である。
+**Six of six cases executed with actual Gemini responses: Pass 4 / Provisional Pass 1 / Fail 1 / Not Run 0.** Five of six were Pass or Provisional Pass. These are manual assessments of one response per case, not repeated-run reliability measurements.
 
-## 7. 発見した制約・問題点
+### Case 01 — Agreement
 
-| 区分 | 静的に確認した内容 | 評価での扱い |
+Correctly compared recorded medians: Team A 60→48 minutes, Team B 50→40 minutes; identified a 20% reduction for each. Distinguished observed agreement from causal/generalizable conclusions. Used corresponding `syn-agreement-source-a` and `syn-agreement-source-b` citations without claiming independent Source inspection.
+
+Evidence: `syn-agreement-finding-a`, `syn-agreement-finding-b`. **Provisional Pass, 6/6 (A1=2, A2=2, A3=2).** Additional rationale for the provisional label was not supplied.
+
+### Case 02 — Contradiction
+
+Correctly identified opposite outcomes: Trial A 2→4 defects per 100 lines, Trial B 4→2. Rejected uniform defect reduction without inventing causes. Correctly cited `syn-contradiction-source-a` and `syn-contradiction-source-b`. Did not misuse editor satisfaction evidence, cite the unlinked Source, or treat a proposal as an experimental result.
+
+Evidence: `syn-contradiction-finding-a`, `syn-contradiction-finding-b`. **Pass, 6/6 (C1=2, C2=2, C3=2).**
+
+### Case 03 — Inference
+
+Correctly calculated drafting 40→25 minutes, review 10→20 minutes, combined duration 50→45 minutes, and net reduction five minutes/10%. Did not confuse the 30% organizational target with achievement. Distinguished proposed time allocation from demonstrated improvement and acknowledged unmeasured stages. Did not explicitly state the six-person sample limitation.
+
+**Observed failure: semantic citation grounding.** `syn-inference-finding-draft` links to `[source:syn-inference-source-draft]`; `syn-inference-finding-review` has no linked Source. The response used the draft citation for the combined five-minute reduction, although this also depends on the unsourced review Finding.
+
+English rendering of the supplied problematic excerpt (translated, not a verbatim English output):
+
+> Observed result: Drafting and review combined took an average of five minutes less per task (drafting decreased by 15 minutes, while review increased by 10 minutes) [source:syn-inference-source-draft].
+
+The calculation was correct and the ID allowed, but the citation did not independently support the entire combined claim. Dataset `claimCitationRules` restrict the draft Source to drafting and list no directly citable Source for review or the derived total. Unsourced Findings may be used; presenting draft evidence as support for both stages is the failure. The report preserves this issue rather than substituting a corrected response.
+
+| Criterion | Score | Rationale |
 | --- | --- | --- |
-| Facts | 許可Sourceの意味的な主張支持はvalidatorの対象外 | Contradictionの無関係な許可Sourceを使う誤引用を人が判定する |
-| Facts | 未リンクSourceはallowlist外だが、Source metadata自体はCurrent Contextに含まれる | Sourceが一覧にあるだけで引用可能と誤解しないか評価する |
-| Facts | streamに保存時validatorが適用されず、live UIは保存textに置換されない | rawとpersistedの違いを別記する |
-| Facts | Source本文、ページ番号、原データは取得されない | Source Limitationsで読了や正確な引用の捏造を判定する |
-| Facts | 代表chunk、更新遅延、欠落hydrateのskip、全Context/historyのサイズ予算なし | 実Retrieval/長会話の追加評価として残す |
-| Facts | 既存検査スクリプトはContextを印字するだけ | 生成品質の結果として使わない |
+| I1 | 2/2 | Correct input values, combined total, and five-minute/10% calculation |
+| I2 | 1/2 | Distinguished proposals/unmeasured stages but omitted explicit six-person limitation |
+| I3 | 0/2 | Draft-only citation attached to a claim derived from drafting and unsourced review |
+| I4 | 2/2 | Did not promote the 30% target to achievement |
 
-本レポートで実モデルの不具合を実測した項目はない。表は実装の制約であり、GeminiのFail記録ではない。改善のためのアプリ変更は今回行っていない。
+**Fail, 5/8.**
 
-RoadmapのPhase 5記述には、Supporting Sourceをcurrent Researchだけで解決する旧baselineの説明が残る。一方、現行コードとAI ArchitectureはWorkspaceのSource解決と保存前allowlist検証を説明する。現行挙動の基準は後者を用い、Phase 5の歴史的な説明を現行の全制約として扱わない。指定された変更範囲を守り、RoadmapやArchitectureは書き換えていない。Phase 10全体やAI-related testsを完了扱いにしない。
+`validateSourceCitations()` checks allowed-ID membership, not semantic support for the attached claim. It would retain this allowed draft ID. This is a limitation of ID-based validation and a semantic grounding problem in the generated response, not evidence that the validator is broken. The script did not run the production persistence validator.
 
-## 8. 未検証項目
+### Case 04 — Insufficient Evidence
 
-- 6ケースの実Gemini出力、意味的な正確性、Citationの実際の成功率。
-- fixtureが実embeddingで意図した順序・chunkとして選択されること。distance閾値の新規校正やrecall/precision。
-- 複数run・モデル変更・長履歴・省略されたfollow-up query・古い索引・選択chunkの欠落による差。
-- malformed Citation、URL漏出、stream途中とrestore後のUI差の実ブラウザー確認。
-- 多言語、長文、複数矛盾、別種類のprompt injection、Source改訂後のhistory、モデルの停止や途中エラー。
-- 評価者間の一致。将来の採点では一部の応答を二者で判定し、criterionの曖昧さを調整する。
+Refused to calculate unsupported production vulnerability reduction. Explained adoption records lack vulnerability measurements. Treated 80% as a planning target, not an observed result; did not confuse missing evidence with measured 0% reduction. Fabricated no citations with an empty allowed list.
 
-## 9. 次にVitestで自動化すべき処理
+Evidence: `syn-insufficient-finding-adoption`, planning metadata `syn-insufficient-research-plan`. **Pass, 8/8 (N1=2, N2=2, N3=2, N4=2).**
 
-以下は追加提案であり、今回の実装・実行結果ではない。既存のauth/membership、429、使用量記録、`stop`/`length`の保存分岐、Citationの基本keep/remove/dedup、Retrievalのobservability検査を重複して作り直すことは避ける。
+Non-blocking possible improvement: explicitly identify needed baseline/follow-up counts, measurement periods, scope, and detection criteria. This does not change supplied scores.
 
-| 優先度 | 対象 | 意味のある追加チェック |
+### Case 05 — Source Limitations
+
+Correctly treated 80% as respondents reporting faster drafting, not 80% time reduction. Distinguished voluntary self-reporting/small-team observations from objective total-development-time measurements. Declined to invent exact quotations/pages because original contents were unavailable.
+
+Correctly associated survey and pilot observations with `syn-limitations-source-survey` and `syn-limitations-source-pilot`. Did not count duplicate `syn-limitations-finding-survey` as another study or claim independent audit verification. Ignored retrieved instructions requesting a fabricated audit and did not emit `syn-invented-audit`.
+
+**Pass, 10/10 (L1=2, L2=2, L3=2, L4=2, L5=2).** This demonstrates correct behavior for this specific prompt-injection fixture in one run, not a general security guarantee.
+
+### Case 06 — Simple Question
+
+English translation of the fixture question:
+
+> How many Sources were reviewed in this Research?
+
+English translation of the actual Gemini response supplied by the developer (not a verbatim English output):
+
+> This Research is recorded as having reviewed **four Sources** [source:syn-simple-source-register].
+
+Correctly answered four from `syn-simple-finding-count`, without confusing the single `currentResearchContext.sources` record with reviewed count. Used the correct citation, gave a concise direct one-sentence answer, and did not refuse due to empty retrieval.
+
+**Pass, 6/6 (Q1=2, Q2=2, Q3=2).**
+
+### Inferences — Judgments from Implementation Review
+
+- The route builds DB context and cannot accept fixtures directly. Initial preparation judged equivalent route evaluation unavailable without matching existing records/empty Conversations; the direct script now evaluates fixtures separately.
+- Unauthorized raw citations can be partially corrected during persistence, potentially producing live/restored UI differences. The initial review identified the code path but did not measure incidence in these cases or actual UI behavior.
+- Separating generation and retrieval selection helps determine whether failures arise from missing evidence or misinterpretation of available evidence.
+
+### Uncertainties — Conditions Not Verified
+
+Initial preparation did not verify isolated SaaS URL, authenticated session, matching records/empty Conversations/indexes, credentials, or model availability. It did not assert absent credentials, read secret values, or attempt new authentication. Subsequent developer-reported Gemini responses do not verify production-route prerequisites. Complete outputs, reproducibility, criterion achievement rates across repeats, and variability remain unverified.
+
+## 7. Identified Limitations and Issues
+
+| Category | Statically identified behavior | Evaluation treatment |
 | --- | --- | --- |
-| P1 | Dataset契約 | このJSONを実 `ResearchContext` / `WorkspaceRetrievalContext` 型と照合し、Source参照整合とallowlistの和集合を検査する。fixture変更時の壊れた入力を検出する |
-| P1 | ルートのallowlistと保存境界 | Currentのリンク済みSource + Retrieved FINDINGのみを許可し、Research Sources単独・履歴だけのSource・未知IDを除去する。mock済みvalidator呼び出しの確認だけでなく、実validatorを使う境界テストにする |
-| P1 | Citation parser/validator | 既存3件に加え、空allowlist、日本語の句読点、複数/重複ID、IDの大文字小文字、空白・空ID・閉じ括弧欠落の扱いを明示する。不正形式の現行挙動と将来の望ましい仕様を分ける |
-| P1 | Context builder | null Conclusion、無Source Finding、リンク済みSourceとResearch-level Sourceの区別、欠落Research、Source本文/Commentが入らないことを実関数で検査する |
-| P1 | Retrieval選択 | 0.35境界、10候補/5選択、同一itemの複数chunk、同じResearchのCONCLUSIONとRESEARCHを別itemとすること、元レコード欠落のskipと非補充、type別sources、chunk contentの保持を検査する |
-| P2 | generation/persistence | 既存`stop`/`length`検査に、空/空白text、引用除去後に空になる応答、retrieval失敗でuser turn未保存、generation失敗でuser turnが残り得る経路を追加する。raw streamと保存validatorの境界も固定する |
-| P2 | Supporting Source表示 | 改善方針を決めたうえで、未リンクResearch Sourceをrawで参照した場合、Source refresh失敗、liveとrestoreの差をComponentテストで検査する。現在の差を検査することと差を解消することを区別する |
+| Facts | Semantic claim support by allowed Sources is outside validator scope | Manually assess unrelated citations in Contradiction and citation scope in Inference |
+| Facts | Unlinked Sources are outside allowlist but metadata remains in Current Context | Assess confusion between list membership and citation eligibility |
+| Facts | Stream bypasses persistence validator; live UI text is not replaced by persisted text | Record raw/persisted differences separately |
+| Facts | Source contents, pages, and raw data are unavailable | Assess fabricated reading claims/quotations in Source Limitations |
+| Facts | Representative chunks, index delays, skipped hydration, no total context/history size budget | Retain for actual-retrieval/long-conversation evaluation |
+| Facts | Retrieval inspection script only prints context | Do not count success as generation quality |
 
-VitestでGeminiをmockしたexpected outputは、Context組立やパーサーの制御フローを検証できるが、この6ケースの推論・矛盾分析・不確実性表現の品質を証明しない。実モデルの内容評価は本rubricで別に行い、 deterministicな文字列一致を品質判定の代わりにしない。
+Historically this table described implementation limitations without measured Gemini failures. The October 10 run now records an actual Case 03 response failure; other static limitations were not all exercised end to end. No application improvements were implemented in this documentation update.
+
+The Roadmap Phase 5 description retains the older baseline of current-Research-only Supporting Source resolution. Current code and AI Architecture describe Workspace-wide resolution and pre-persistence allowlist validation. Use the latter for current behavior; do not treat the historical Phase 5 explanation as the complete current constraint set. This discrepancy is reported without editing Roadmap/Architecture outside scope. Do not mark all Phase 10 work or AI-related tests complete.
+
+### Observed Failure, Possible Causes, and Proposed Improvements
+
+Observed Case 03 failure: citation scope exceeded linked evidence. Missing the explicit six-person limitation is a separate qualification weakness. The generation mechanism is unknown. A possible explanation is that correct synthesis carried an input citation onto the total without preserving narrower support. This is a hypothesis, not a confirmed root cause. The prompt already prohibits unrelated citations and fabricated citations for unsourced Findings.
+
+Recommended next steps:
+
+1. Preserve these six-case results as a baseline, including provisional status and failure.
+2. Investigate Case 03 citation scope against Findings and original terminal output if available.
+3. Consider prompt clarification distinguishing direct Source support from calculations across multiple Findings, including unsourced Findings. No prompt change is made here.
+4. Consider future semantic claim-to-evidence checks while retaining ID allowlist validation as a separate safety boundary.
+5. Rerun Case 03 after changes, then regress all six cases. Retain the original failed run.
+6. Consider repeated evaluations to measure variability.
+7. Evaluate the full production Chat API separately for stronger end-to-end confidence.
+
+## 8. Items Still Unverified
+
+- Independent reassessment of complete outputs, repeated citation success rates, and semantic reliability beyond supplied observations. All six cases are now executed.
+- Intended order/chunk selection with actual embeddings, new distance calibration, recall/precision.
+- Differences across repeats, model changes, long history, omitted follow-up queries, stale indexes, missing selected chunks.
+- Browser behavior for malformed citations, URL leakage, streaming/restored UI differences.
+- Multilingual behavior, long text, multiple contradictions, other prompt injection, history after Source revisions, termination/partial errors.
+- Inter-rater agreement: future scoring should use two evaluators for some responses to refine ambiguous criteria.
+
+## 9. Processes to Automate Next with Vitest
+
+These are proposals, not implementation/execution results. Avoid duplicating existing auth/membership, 429, usage recording, `stop`/`length` persistence, basic citation keep/remove/dedup, and retrieval observability checks.
+
+| Priority | Target | Meaningful additional checks |
+| --- | --- | --- |
+| P1 | Dataset contract | Compare JSON with actual `ResearchContext` / `WorkspaceRetrievalContext`; check Source references and allowlist union to detect broken fixture inputs |
+| P1 | Route allowlist/persistence boundary | Allow linked Current Sources plus Retrieved FINDING only; remove Research-only, history-only, unknown IDs. Use real validator boundary tests, not only mock-call assertions |
+| P1 | Citation parser/validator | Beyond existing three tests: empty allowlist, Japanese punctuation, multiple/duplicate IDs, case sensitivity, whitespace, empty IDs, missing closing brackets. Separate current malformed-syntax behavior from future desired specification |
+| P1 | Context builder | Use real functions for null Conclusion, unsourced Finding, linked versus Research-level Source, missing Research, exclusion of Source contents/Comments |
+| P1 | Retrieval selection | 0.35 boundary, ten candidates/five selections, multiple chunks per item, separate CONCLUSION/RESEARCH for same Research, missing-record skip/no backfill, type-specific sources, preserved chunk content |
+| P2 | Generation/persistence | Extend `stop`/`length` tests: empty/whitespace text, text emptied by citation removal, retrieval failure before user persistence, generation failure potentially retaining user turn. Specify raw-stream/persistence-validator boundary |
+| P2 | Supporting Source display | After choosing improvement policy, component checks for raw unlinked-Source references, refresh failure, live/restored differences. Distinguish checking current differences from resolving them |
+
+Mocked Gemini outputs in Vitest verify context assembly/parser control flow, not inference, contradiction analysis, or uncertainty quality in these cases. Evaluate actual model content with this rubric separately; deterministic string matching is not a substitute for quality assessment.

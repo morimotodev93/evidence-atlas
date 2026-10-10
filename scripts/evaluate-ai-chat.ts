@@ -22,14 +22,18 @@ if (!process.env.GOOGLE_GENERATIVE_AI_API_KEY?.trim()) {
   throw new Error("GOOGLE_GENERATIVE_AI_API_KEY is not loaded");
 }
 
-// Case 1を取得
-const testCase = dataset.cases.find(
-  (item) => item.caseId === "ai-chat-01-agreement",
-);
+// PowerShellからCase IDを受け取る
+const caseId = process.argv[2] ?? "ai-chat-01-agreement";
+
+// 指定されたCaseを取得
+const testCase = dataset.cases.find((item) => item.caseId === caseId);
 
 if (!testCase) {
-  throw new Error("Agreement case not found");
+  throw new Error(`Evaluation case not found: ${caseId}`);
 }
+
+console.log(`=== Evaluating: ${testCase.caseId} ===`);
+console.log(`Question: ${testCase.userQuestion}`);
 
 // 本番と同じSystem Promptを組み立てる
 const system = buildChatSystemPrompt(
