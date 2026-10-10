@@ -8,6 +8,9 @@ import {
   GET as getConversations,
 } from "@/app/research/[id]/chat/conversations/route";
 import { POST as sendChatMessage } from "@/app/research/[id]/chat/route";
+import { buildChatSystemPrompt } from "@/lib/ai/chat-system-prompt";
+import type { ResearchContext } from "@/lib/ai/research-context";
+import type { WorkspaceRetrievalContext } from "@/lib/ai/retrieve-workspace-context";
 
 const mocks = vi.hoisted(() => {
   class ResearchAccessError extends Error {
@@ -166,6 +169,18 @@ function chatRequest() {
       message: "What does the evidence show?",
     }),
   });
+}
+
+function completionCallback() {
+  expect(mocks.streamText).toHaveBeenCalledOnce();
+  const options = mocks.streamText.mock.calls[0][0] as {
+    onFinish: (result: {
+      text: string;
+      finishReason: string;
+      totalUsage: { inputTokens?: number; outputTokens?: number; totalTokens?: number };
+    }) => Promise<void>;
+  };
+  return options.onFinish;
 }
 
 describe("Public Demo deployment chat lock", () => {
@@ -637,6 +652,12 @@ describe("research chat route authorization", () => {
       authorType: "AI",
       content: "The evidence supports this conclusion.",
     });
+    expect(mocks.messageCreate.mock.invocationCallOrder[0])
+      .toBeLessThan(mocks.streamText.mock.invocationCallOrder[0]);
+    expect(mocks.aiUsageEventCreate.mock.invocationCallOrder[0])
+      .toBeLessThan(mocks.validateSourceCitations.mock.invocationCallOrder[0]);
+    expect(mocks.validateSourceCitations.mock.invocationCallOrder[0])
+      .toBeLessThan(mocks.messageCreate.mock.invocationCallOrder[1]);
   });
 
   it("records AI usage but does not persist an incomplete AI message", async () => {
@@ -688,6 +709,246 @@ describe("research chat route authorization", () => {
       authorType: "USER",
       content: "What does the evidence show?",
     });
+    expect(mocks.messageCreate.mock.invocationCallOrder[0])
+      .toBeLessThan(mocks.streamText.mock.invocationCallOrder[0]);
+    expect(mocks.streamText.mock.invocationCallOrder[0])
+      .toBeLessThan(mocks.aiUsageEventCreate.mock.invocationCallOrder[0]);
+  });
+
+  it("passes ordered history with exact role mapping and the real context-built prompt", async () => {
+    const currentContext: ResearchContext = {
+      research: {
+        id: researchId,
+        workspaceId,
+        title: "Current research",
+        description: "Current context",
+        conclusion: null,
+      },
+      findings: [{ id: "current-finding", content: "Current observation", sources: [] }],
+      sources: [],
+    };
+    const retrievalContext: WorkspaceRetrievalContext = {
+      results: [{
+        type: "CONCLUSION",
+        researchId: "earlier-research",
+        researchTitle: "Earlier research",
+        content: "Retrieved context",
+        distance: 0.2,
+        sources: [],
+      }],
+    };
+    const history = [
+      { authorType: "USER", content: "Older question", createdAt: "2026-10-10T00:00:00Z" },
+      { authorType: "AI", content: "Older answer [source:historic-source]", createdAt: "2026-10-10T00:01:00Z" },
+      { authorType: "USER", content: "Newer question", createdAt: "2026-10-10T00:02:00Z" },
+      { authorType: "AI", content: "Newer answer", createdAt: "2026-10-10T00:03:00Z" },
+    ];
+    mocks.buildResearchContext.mockResolvedValue(currentContext);
+    mocks.retrieveWorkspaceContext.mockResolvedValue(retrievalContext);
+    mocks.messageQuery.all.mockResolvedValue(history);
+
+    const response = await sendChatMessage(chatRequest(), routeContext());
+    expect(response.status).toBe(200);
+    expect(mocks.messageWhere).toHaveBeenCalledOnce();
+    expect(mocks.messageWhere).toHaveBeenCalledWith({ conversationId });
+    expect(mocks.messageQuery.orderBy).toHaveBeenCalledOnce();
+    const asc = vi.fn(() => "ascending");
+    const orderBy = mocks.messageQuery.orderBy.mock.calls[0][0];
+    expect(orderBy({ createdAt: { asc } })).toBe("ascending");
+    expect(asc).toHaveBeenCalledOnce();
+    expect(mocks.buildResearchContext).toHaveBeenCalledWith(researchId);
+    expect(mocks.retrieveWorkspaceContext).toHaveBeenCalledWith(workspaceId, "What does the evidence show?");
+    expect(mocks.streamText).toHaveBeenCalledOnce();
+    expect(mocks.streamText).toHaveBeenCalledWith(expect.objectContaining({
+      system: buildChatSystemPrompt(currentContext, retrievalContext),
+      messages: [
+        { role: "user", content: "Older question" },
+        { role: "assistant", content: "Older answer [source:historic-source]" },
+        { role: "user", content: "Newer question" },
+        { role: "assistant", content: "Newer answer" },
+        { role: "user", content: "What does the evidence show?" },
+      ],
+    }));
+    expect(mocks.messageCreate.mock.calls).toEqual([[{
+      conversationId,
+      authorType: "USER",
+      content: "What does the evidence show?",
+    }]]);
+    expect(mocks.messageQuery.all.mock.invocationCallOrder[0])
+      .toBeLessThan(mocks.messageCreate.mock.invocationCallOrder[0]);
+    expect(mocks.messageCreate.mock.invocationCallOrder[0])
+      .toBeLessThan(mocks.conversationQuery.update.mock.invocationCallOrder[0]);
+    expect(mocks.conversationQuery.update.mock.invocationCallOrder[0])
+      .toBeLessThan(mocks.streamText.mock.invocationCallOrder[0]);
+  });
+
+  it.each(["", " \t\n "])("records usage for blank stopped output %j without persisting AI text", async (text) => {
+    await sendChatMessage(chatRequest(), routeContext());
+    await completionCallback()({
+      text,
+      finishReason: "stop",
+      totalUsage: { inputTokens: 10, outputTokens: 0, totalTokens: 10 },
+    });
+
+    expect(mocks.aiUsageEventCreate.mock.calls).toEqual([[{
+      workspaceId,
+      userId,
+      researchId,
+      conversationId,
+      operation: "CHAT",
+      provider: "google",
+      model: "gemini-3.6-flash",
+      inputTokens: 10,
+      outputTokens: 0,
+      totalTokens: 10,
+      finishReason: "stop",
+    }]]);
+    expect(mocks.messageCreate.mock.calls).toEqual([[{
+      conversationId,
+      authorType: "USER",
+      content: "What does the evidence show?",
+    }]]);
+    expect(mocks.validateSourceCitations).not.toHaveBeenCalled();
+    expect(mocks.conversationQuery.update).toHaveBeenCalledOnce();
+  });
+
+  it("propagates retrieval failure before history reads, user persistence, or generation", async () => {
+    const failure = new Error("Synthetic retrieval failure");
+    mocks.retrieveWorkspaceContext.mockRejectedValueOnce(failure);
+
+    await expect(sendChatMessage(chatRequest(), routeContext())).rejects.toBe(failure);
+    expect(mocks.messageWhere).not.toHaveBeenCalled();
+    expect(mocks.messageCreate).not.toHaveBeenCalled();
+    expect(mocks.conversationQuery.update).not.toHaveBeenCalled();
+    expect(mocks.streamText).not.toHaveBeenCalled();
+    expect(mocks.aiUsageEventCreate).not.toHaveBeenCalled();
+  });
+
+  it("propagates generation startup failure after retaining the user write and conversation update", async () => {
+    const failure = new Error("Synthetic generation startup failure");
+    mocks.streamText.mockImplementationOnce(() => { throw failure; });
+
+    await expect(sendChatMessage(chatRequest(), routeContext())).rejects.toBe(failure);
+    expect(mocks.messageCreate.mock.calls).toEqual([[{
+      conversationId,
+      authorType: "USER",
+      content: "What does the evidence show?",
+    }]]);
+    expect(mocks.conversationQuery.update).toHaveBeenCalledOnce();
+    expect(mocks.messageCreate.mock.invocationCallOrder[0])
+      .toBeLessThan(mocks.streamText.mock.invocationCallOrder[0]);
+    expect(mocks.conversationQuery.update.mock.invocationCallOrder[0])
+      .toBeLessThan(mocks.streamText.mock.invocationCallOrder[0]);
+    expect(mocks.aiUsageEventCreate).not.toHaveBeenCalled();
+    expect(mocks.validateSourceCitations).not.toHaveBeenCalled();
+  });
+
+  it("propagates usage-write failure before validation and AI persistence while retaining the user write", async () => {
+    const failure = new Error("Synthetic usage write failure");
+    await sendChatMessage(chatRequest(), routeContext());
+    mocks.aiUsageEventCreate.mockRejectedValueOnce(failure);
+
+    await expect(completionCallback()({
+      text: "Completed answer",
+      finishReason: "stop",
+      totalUsage: { inputTokens: 10, outputTokens: 5, totalTokens: 15 },
+    })).rejects.toBe(failure);
+    expect(mocks.aiUsageEventCreate).toHaveBeenCalledOnce();
+    expect(mocks.validateSourceCitations).not.toHaveBeenCalled();
+    expect(mocks.messageCreate.mock.calls).toEqual([[{
+      conversationId,
+      authorType: "USER",
+      content: "What does the evidence show?",
+    }]]);
+    expect(mocks.conversationQuery.update).toHaveBeenCalledOnce();
+  });
+
+  it("records usage before an AI-message write failure without rolling back the user write", async () => {
+    const failure = new Error("Synthetic AI message write failure");
+    await sendChatMessage(chatRequest(), routeContext());
+    mocks.messageCreate.mockRejectedValueOnce(failure);
+
+    await expect(completionCallback()({
+      text: "Completed answer",
+      finishReason: "stop",
+      totalUsage: { inputTokens: 10, outputTokens: 5, totalTokens: 15 },
+    })).rejects.toBe(failure);
+    expect(mocks.aiUsageEventCreate).toHaveBeenCalledOnce();
+    expect(mocks.aiUsageEventCreate.mock.invocationCallOrder[0])
+      .toBeLessThan(mocks.messageCreate.mock.invocationCallOrder[1]);
+    expect(mocks.messageCreate.mock.calls).toEqual([
+      [{ conversationId, authorType: "USER", content: "What does the evidence show?" }],
+      [{ conversationId, authorType: "AI", content: "Completed answer" }],
+    ]);
+  });
+
+  it("currently persists empty validated AI text when the raw output contains only unauthorized citations", async () => {
+    const { validateSourceCitations } = await vi.importActual<
+      typeof import("@/lib/ai/source-citations")
+    >("@/lib/ai/source-citations");
+    mocks.validateSourceCitations.mockImplementation(validateSourceCitations);
+    await sendChatMessage(chatRequest(), routeContext());
+    await completionCallback()({
+      text: "[source:unauthorized-a][source:unauthorized-b]",
+      finishReason: "stop",
+      totalUsage: { inputTokens: 10, outputTokens: 5, totalTokens: 15 },
+    });
+
+    // Characterize the existing missing post-validation blank check; do not fix it here.
+    expect(mocks.aiUsageEventCreate).toHaveBeenCalledOnce();
+    expect(mocks.messageCreate.mock.calls).toEqual([
+      [{ conversationId, authorType: "USER", content: "What does the evidence show?" }],
+      [{ conversationId, authorType: "AI", content: "" }],
+    ]);
+  });
+
+  it("restores unchanged messages and resolves first-seen AI citations in the authorized Workspace", async () => {
+    const { parseSourceCitations } = await vi.importActual<
+      typeof import("@/lib/ai/source-citations")
+    >("@/lib/ai/source-citations");
+    mocks.parseSourceCitations.mockImplementation(parseSourceCitations);
+    const conversation = { id: conversationId, researchId, createdAt: "2026-10-10T00:00:00Z" };
+    const messages = [
+      { id: "user-1", conversationId, authorType: "USER", content: "Question [source:user-only]", createdAt: "2026-10-10T00:01:00Z" },
+      { id: "ai-1", conversationId, authorType: "AI", content: "First [source:source-b] then [source:source-a] again [source:source-b].", createdAt: "2026-10-10T00:02:00Z" },
+      { id: "user-2", conversationId, authorType: "USER", content: "Follow-up question", createdAt: "2026-10-10T00:03:00Z" },
+      { id: "ai-2", conversationId, authorType: "AI", content: "Shared [source:source-a] and 【source:source-c】.", createdAt: "2026-10-10T00:04:00Z" },
+      { id: "ai-3", conversationId, authorType: "AI", content: "Answer without citations.", createdAt: "2026-10-10T00:05:00Z" },
+    ];
+    const sources = [
+      { id: "source-b", title: "B evidence", url: "https://example.invalid/b" },
+      { id: "source-a", title: "A evidence", url: "https://example.invalid/a" },
+      { id: "source-c", title: "C evidence", url: "https://example.invalid/c" },
+    ];
+    mocks.conversationQuery.first.mockResolvedValue(conversation);
+    mocks.messageQuery.all.mockResolvedValue(messages);
+    mocks.resolveWorkspaceSources.mockResolvedValue(sources);
+
+    const response = await getConversation(
+      new Request(`http://localhost/research/${researchId}/chat/conversations/${conversationId}`),
+      conversationRouteContext(),
+    );
+    expect(response.status).toBe(200);
+    await expect(response.json()).resolves.toEqual({ ...conversation, messages, sources });
+    expect(mocks.requireResearchAccess).toHaveBeenCalledWith(userId, researchId);
+    expect(mocks.conversationWhere).toHaveBeenCalledWith({ id: conversationId, researchId });
+    expect(mocks.requireResearchAccess.mock.invocationCallOrder[0])
+      .toBeLessThan(mocks.conversationWhere.mock.invocationCallOrder[0]);
+    expect(mocks.conversationQuery.first.mock.invocationCallOrder[0])
+      .toBeLessThan(mocks.messageWhere.mock.invocationCallOrder[0]);
+    expect(mocks.messageWhere).toHaveBeenCalledOnce();
+    expect(mocks.messageWhere).toHaveBeenCalledWith({ conversationId });
+    expect(mocks.messageQuery.orderBy).toHaveBeenCalledOnce();
+    const asc = vi.fn(() => "ascending");
+    expect(mocks.messageQuery.orderBy.mock.calls[0][0]({ createdAt: { asc } })).toBe("ascending");
+    expect(asc).toHaveBeenCalledOnce();
+    expect(mocks.parseSourceCitations.mock.calls).toEqual([
+      [messages[1].content], [messages[3].content], [messages[4].content],
+    ]);
+    expect(mocks.resolveWorkspaceSources).toHaveBeenCalledOnce();
+    expect(mocks.resolveWorkspaceSources).toHaveBeenCalledWith(workspaceId, ["source-b", "source-a", "source-c"]);
+    expect(mocks.messageCreate).not.toHaveBeenCalled();
+    expect(mocks.streamText).not.toHaveBeenCalled();
   });
 
   it("persists only Current and Retrieved Finding-linked Source citations using the real validator", async () => {
