@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  normalizeSourceCitationMarkers,
   parseSourceCitations,
   validateSourceCitations,
 } from "./source-citations";
@@ -88,4 +89,63 @@ it("removes citations when the allowlist is empty", () => {
   const result = validateSourceCitations(text, allowedSourceIds);
 
   expect(result).not.toContain("[source:source-1]");
+});
+
+it("normalizes Japanese source citation brackets", () => {
+  const result = normalizeSourceCitationMarkers(
+    "結果【source:source-a】です。",
+  );
+
+  expect(result).toBe("結果[source:source-a]です。");
+});
+
+it("removes unallowed citations with Japanese brackets", () => {
+  const allowedSourceIds = new Set(["source-a"]);
+
+  const result = validateSourceCitations(
+    "結果【source:source-a】 未確認【source:source-b】",
+    allowedSourceIds,
+  );
+
+  expect(result).toBe("結果[source:source-a] 未確認");
+});
+
+it("parses both citation bracket styles", () => {
+  const result = parseSourceCitations(
+    "結果【source:source-a】と追加情報[source:source-b]",
+  );
+
+  expect(result).toEqual({
+    text: "結果と追加情報",
+    sourceIds: ["source-a", "source-b"],
+  });
+});
+
+it("normalizes non-breaking hyphens in source IDs", () => {
+  const allowed = new Set(["syn-inference-source-draft"]);
+
+  const content =
+    "作成時間が短縮【source:syn\u2011inference\u2011source\u2011draft】";
+
+  const validated = validateSourceCitations(content, allowed);
+
+  expect(validated).toBe("作成時間が短縮[source:syn-inference-source-draft]");
+
+  const parsed = parseSourceCitations(validated);
+
+  expect(parsed).toEqual({
+    text: "作成時間が短縮",
+    sourceIds: ["syn-inference-source-draft"],
+  });
+});
+
+it("rejects unallowed IDs after Unicode normalization", () => {
+  const allowed = new Set(["source-a"]);
+
+  const result = validateSourceCitations(
+    "未確認【source:unknown\u2011source】",
+    allowed,
+  );
+
+  expect(result).toBe("未確認");
 });
