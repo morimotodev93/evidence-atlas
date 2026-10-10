@@ -149,3 +149,32 @@ it("rejects unallowed IDs after Unicode normalization", () => {
 
   expect(result).toBe("未確認");
 });
+
+it("normalizes citations with spaces inside brackets", () => {
+  const allowed = new Set(["syn-agreement-source-a", "syn-agreement-source-b"]);
+
+  const raw =
+    "Team A [ source:syn-agreement-source-a ]、" +
+    "Team B [ source:syn-agreement-source-b ]";
+
+  const validated = validateSourceCitations(raw, allowed);
+
+  expect(validated).toBe(
+    "Team A [source:syn-agreement-source-a]、" +
+      "Team B [source:syn-agreement-source-b]",
+  );
+
+  expect(parseSourceCitations(validated).sourceIds).toEqual([
+    "syn-agreement-source-a",
+    "syn-agreement-source-b",
+  ]);
+});
+
+it("rejects unallowed IDs with spaces inside brackets", () => {
+  const result = validateSourceCitations(
+    "未確認 [ source:unknown-id ]",
+    new Set(["source-a"]),
+  );
+
+  expect(result).toBe("未確認 ");
+});

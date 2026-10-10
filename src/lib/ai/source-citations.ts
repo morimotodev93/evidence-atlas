@@ -4,16 +4,17 @@ const FULLWIDTH_SOURCE_CITATION_PATTERN = /【source:([^\s【】\[\]]+)】/g;
 
 const NON_BREAKING_HYPHEN_PATTERN = /\u2011/g;
 
+const NORMALIZABLE_SOURCE_CITATION_PATTERN =
+  /\[[ \t]*source:([^\]\s]+)[ \t]*\]/g;
+
 export function normalizeSourceCitationMarkers(content: string): string {
-  // 1. 日本語括弧を標準形式に変更
   const normalizedBrackets = content.replace(
     FULLWIDTH_SOURCE_CITATION_PATTERN,
     (_match, sourceId: string) => `[source:${sourceId}]`,
   );
 
-  // 2. Citation内部のNon-breaking Hyphenだけを変換
   return normalizedBrackets.replace(
-    SOURCE_CITATION_PATTERN,
+    NORMALIZABLE_SOURCE_CITATION_PATTERN,
     (_match, sourceId: string) =>
       `[source:${sourceId.replace(NON_BREAKING_HYPHEN_PATTERN, "-")}]`,
   );
