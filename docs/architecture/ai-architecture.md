@@ -2,7 +2,7 @@
 
 > **Status:** Implemented Phase 6 baseline with Phase 7 route authorization and Phase 8.3 background indexing
 > **Scope:** Phase 5 AI Integration + Phase 6 Retrieval / RAG + Phase 7 AI route access control + Phase 8.3 Background Jobs
-> **Last Updated:** 2026-10-08
+> **Last Updated:** 2026-10-10
 
 ## 1. Purpose
 
@@ -69,7 +69,9 @@ AI requests use the AI SDK.
 
 Provider-specific model configuration is isolated from the Research chat flow so that application behavior does not need to depend directly on provider-specific APIs.
 
-The current development provider uses Google Generative AI through `@ai-sdk/google`. `src/lib/ai/model.ts` configures the model ID `gemini-3.6-flash`; this is the checked-in configuration, not a provider-availability verification performed by this review.
+The production Chat configuration uses Google Generative AI through `@ai-sdk/google`. `src/lib/ai/model.ts` configures the generation model ID `gemini-3.6-flash` and embedding model `gemini-embedding-001`; these are checked-in configurations, not provider-availability verification performed by this review.
+
+Synthetic quality evaluation can additionally select Groq's `openai/gpt-oss-120b` through `scripts/evaluation-models.ts`. Groq is evaluation-only and does not replace production Chat or embeddings. The evaluator uses Vercel AI SDK 6 and `@ai-sdk/groq` 3.x (`^3.0.72`), selected after a developer-reported `LanguageModelV4` / `LanguageModelV3` compatibility issue with the newer provider generation. `scripts/evaluate-ai-chat.ts` accepts a case ID followed by `gemini` (default) or `groq`, checking `GOOGLE_GENERATIVE_AI_API_KEY` or `GROQ_API_KEY` respectively. It loads `.env`, uses `buildChatSystemPrompt()` shared with the production route, and prints raw/validated responses, parsed citations/text, and reported usage. See the [AI Chat quality evaluation report](../planning/ai-chat-quality-evaluation.md#current-multi-provider-evaluation-runner) for commands and results; the direct runner bypasses production streaming and persistence.
 
 The provider receives:
 
@@ -163,6 +165,8 @@ The model is instructed to use only Source IDs supplied in the current Research 
 
 A Source should be cited only when it is linked to a Finding that supports the relevant claim.
 
+The shared `buildChatSystemPrompt()` requires citations to remain scoped to their linked Findings, separates sourced and unsourced observations before derived calculations, and prohibits judging a total-development-time target from measurements of only some workflow stages. These are model instructions, not deterministic evidence or metric-scope validation.
+
 Findings without linked Sources may still be used as Research knowledge, but the model must not fabricate a Source citation for them.
 
 Research-level Source existence alone is not sufficient evidence for a citation.
@@ -171,14 +175,14 @@ Research-level Source existence alone is not sufficient evidence for a citation.
 
 ## 7. Citation Persistence and Presentation
 
-Before saving a completed AI answer, the server removes recognized citation markers whose IDs are outside the request's allowed Source ID set. Allowed markers remain inside `Message.content`.
+Before saving a completed AI answer, the server normalizes supported citation-marker variations and removes recognized markers whose normalized IDs are outside the request's allowed Source ID set. Allowed markers remain in standard `[source:ID]` form inside `Message.content`.
 
 ```text
 AI response
    ↓
-Raw response with [source:ID]
+Raw response with citation markers
    ↓
-validateSourceCitations() against request allowlist
+validateSourceCitations(): normalize markers, then check request allowlist
    ↓
 Message.content with allowed citation markers
 ```
@@ -211,7 +215,9 @@ Model-generated Source IDs are not trusted directly.
 
 For each request, the server builds an allowlist from Sources linked to Findings in the full current Research context and Sources linked to retrieved `FINDING` results. A Source appearing only in the Research-level Source list or previous conversation history is not automatically eligible.
 
-`validateSourceCitations()` removes recognized markers outside that set before persistence. It does not verify that an eligible Source supports a particular claim or validate arbitrary prose and links.
+`normalizeSourceCitationMarkers()` converts `【source:id】` to `[source:id]` and replaces U+2011 non-breaking hyphens with U+002D ASCII hyphens inside recognized citation IDs. Normalization is confined to citation markers, not arbitrary answer text. The prefix is case-sensitive `source:`. Japanese-bracket IDs must be nonempty and exclude whitespace and Japanese/ASCII square brackets; ASCII-bracket recognition requires a nonempty ID without whitespace or a closing `]`. Other Unicode variants and arbitrary malformed syntax are not generally repaired.
+
+Both `validateSourceCitations()` and `parseSourceCitations()` invoke this normalizer. Validation removes recognized markers outside the allowed set before persistence; parsing removes recognized markers from answer text and deduplicates IDs without independently checking an allowlist. The parser also cleans whitespace before recognized punctuation and trims the answer text. Neither function verifies that an eligible Source supports a particular claim. Normalization is format compatibility, not semantic evidence verification.
 
 Conceptually:
 
@@ -219,7 +225,7 @@ Conceptually:
 Model citation
 [source:abc123]
        ↓
-Parse Source ID
+Normalize supported marker variants and extract Source ID
        ↓
 Is abc123 linked to a Finding supplied for this request?
        ↓
@@ -241,7 +247,7 @@ Conversation detail parses persisted AI citation IDs and calls `resolveWorkspace
 
 The panel resolves citation IDs against conversation Sources first, then falls back to its current Research Sources. Repeated IDs are deduplicated and unresolved IDs are omitted. Restored transcripts resolve current Source metadata rather than a historical snapshot; history loading does not revalidate the original Finding–Source relationship or migrate older Phase 5 markers.
 
-The outgoing text stream is not filtered by the persistence allowlist. After streaming, the panel fetches conversation detail to refresh Sources, but does not replace live messages with validated persisted text. Live and restored answers can therefore differ. Live Source lookup uses conversation-level Sources and the Research fallback, not the per-request allowlist. A Source refresh failure is logged without failing the completed exchange.
+The outgoing text stream is not filtered by the persistence allowlist. The panel parses accumulated live text with the shared parser, so supported complete citation markers can be normalized for presentation. After streaming, it fetches conversation detail to refresh Sources, but does not replace live messages with validated persisted text. Live and restored answers can therefore differ. Live Source lookup uses conversation-level Sources and the Research fallback, not the per-request allowlist. A Source refresh failure is logged without failing the completed exchange. Raw output, normalized/validated output, parsed references, live rendered content, and persisted content are distinct boundaries; the direct synthetic evaluation does not fully verify streaming, partial-marker display, or persistence/UI parity.
 
 ---
 
@@ -465,8 +471,11 @@ The repository includes manual inspection scripts:
 | `scripts/evaluate-retrieval.ts`              | Inspect raw retrieval for four sample queries                 |
 | `scripts/evaluate-retrieval-context.ts`      | Inspect final context for 16 queries in four relevance groups |
 | `scripts/test-source-citations.ts`           | Print citation validation/parsing examples                    |
+| `scripts/evaluate-ai-chat.ts`               | Generate a selected synthetic quality case with Gemini or Groq; print raw, validated, parsed, and usage outputs |
 
 Context evaluation covers strong positives, weak/paraphrased positives, related-but-unsupported questions, and unrelated questions. These scripts print results for human review; they do not provide assertion-based regression tests or recall/precision metrics. End-to-end generated-answer behavior was evaluated separately through manual chat testing.
+
+The [Phase 10 AI Chat quality report](../planning/ai-chat-quality-evaluation.md) preserves the original six-case Gemini baseline and records later prompt improvements, five Gemini Case 03 repeats, Groq Case 06 **Pass, 6/6**, and qualitative Groq Case 03 citation/inference failures. Raw-model compliance is assessed separately from application normalization and ID validation. Existing citation unit tests cover the implemented bracket and U+2011 normalization paths; developer-reported test completion and terminal observations do not establish semantic grounding, full production E2E behavior, or general model reliability. No provider calls or tests were rerun for this documentation update.
 
 The initial maximum cosine distance of **0.35** was selected from the current Phase 6 evaluation set. It preserved the tested strong and weak positive cases while rejecting the tested unrelated cases. Related-but-unsupported questions can still pass the similarity threshold, which is intentional: semantic relevance is not equivalent to answer support. The threshold is an evaluation-derived initial parameter rather than a permanent confidence boundary and should be reevaluated as Workspace knowledge grows.
 

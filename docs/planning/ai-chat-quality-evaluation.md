@@ -6,7 +6,9 @@ Evaluation updated: 2026-10-10 (JST)
 
 Dataset: [Six-case dataset](../../evals/ai-chat/cases.json), `schemaVersion: 1.0`
 
-Current status: All six cases produced actual Gemini responses. **Pass 4 / Provisional Pass 1 / Fail 1 / Not Run 0**.
+Original Gemini baseline: All six cases produced actual responses on October 10, 2026 (JST). **Pass 4 / Provisional Pass 1 / Fail 1 / Not Run 0**. These results remain unchanged.
+
+Follow-up status: After prompt improvements, Gemini Case 03 was repeated five times with appropriate citation usage in all five and full marks in one. Groq evaluation support is implemented; Case 06 received **Pass, 6/6**, while multiple Case 03 responses exposed citation-format and inference problems. These observations do not establish general model reliability or complete Phase 10.
 
 ## 1. Evaluation Purpose and Scope
 
@@ -16,11 +18,11 @@ Fact means that a claim appears in the supplied records, not that an external So
 
 All six cases are fictional synthetic fixtures. Their numbers, studies, teams, and references are not real research results. URLs under `https://example.invalid/ai-chat-eval/...` are identification placeholders. External Sources are not accessed or fact-checked. Expected prose and outputs imagined by Codex are not recorded as actual model results.
 
-The baseline is a single turn with fixed context and empty Conversation history. Actual retrieval recall/precision, model comparisons, long conversations, and authentication/billing/DB/UI integration are separate evaluation dimensions. The dataset itself is not an executable runner; the script in Section 5 now supplies fixtures to Gemini.
+The baseline is a single turn with fixed context and empty Conversation history. Actual retrieval recall/precision, controlled model comparisons, long conversations, and authentication/billing/DB/UI integration are separate evaluation dimensions. The dataset itself is not an executable runner; the script in Section 5 supplies fixtures to either Gemini or Groq. Later observations are recorded separately from the original baseline in Section 6.
 
 The first completed run is a **synthetic-context generation-quality assessment**, not a successful production E2E test.
 
-**Evaluated:**
+**Evaluated by the original baseline run:**
 
 - Real Gemini-generated responses to six synthetic Research/retrieval context fixtures.
 - The system prompt shared with the production chat route through `buildChatSystemPrompt()`.
@@ -35,6 +37,8 @@ The first completed run is a **synthetic-context generation-quality assessment**
 - Post-generation citation validation during production message persistence.
 - Multiple sampling runs or statistical reliability.
 
+Subsequent developer terminal executions include repeated Gemini Case 03 responses, Groq Cases 03 and 06, and direct citation normalization/validation/parsing. They do not establish production streaming, persistence, retrieval accuracy, or full authenticated Chat API behavior. Groq is an evaluation-only provider; production Chat and embedding configurations remain Google Gemini.
+
 ## 2. Reviewed Implementation and Context Contract (Facts)
 
 | Reviewed item | Relevance |
@@ -42,15 +46,19 @@ The first completed run is a **synthetic-context generation-quality assessment**
 | [chat/route.ts](<../../src/app/research/[id]/chat/route.ts>) | System prompt, context assembly, history, allowed Source IDs, and streaming/persistence boundaries |
 | [research-context.ts](../../src/lib/ai/research-context.ts) | Complete current Research context JSON structure |
 | [retrieve-workspace-context.ts](../../src/lib/ai/retrieve-workspace-context.ts) | Retrieved context types and selection constraints |
-| [source-citations.ts](../../src/lib/ai/source-citations.ts) | Citation recognition, removal, and deduplication |
+| [source-citations.ts](../../src/lib/ai/source-citations.ts) | Citation-marker normalization, allowlist validation, extraction, and deduplication |
+| [source-citations.test.ts](../../src/lib/ai/source-citations.test.ts) | Existing normalization, validation, and parsing unit coverage |
 | [evaluate-retrieval-context.ts](../../scripts/evaluate-retrieval-context.ts) | Existing retrieval inspection using 16 questions and four relevance groups |
 | [AI Architecture](../architecture/ai-architecture.md) | Unavailable Source contents and retrieval/history/UI limitations |
 | [Roadmap](roadmap.md) | Previous Phase 5/6 evaluations and unfinished Phase 10 work |
-| [evaluate-ai-chat.ts](../../scripts/evaluate-ai-chat.ts) | Direct Gemini generation with selected fixtures |
+| [evaluate-ai-chat.ts](../../scripts/evaluate-ai-chat.ts) | Direct Gemini/Groq generation and separate raw, validated, parsed, and usage outputs |
+| [evaluation-models.ts](../../scripts/evaluation-models.ts) | Evaluation provider/model and credential-variable selection |
 | [chat-system-prompt.ts](../../src/lib/ai/chat-system-prompt.ts) | Shared production prompt builder |
 | [model.ts](../../src/lib/ai/model.ts) | Provider and model configuration |
+| [package.json](../../package.json) and [pnpm-lock.yaml](../../pnpm-lock.yaml) | AI SDK 6 and Groq Provider SDK 3.x dependency versions |
+| [.env.example](../../.env.example) | Credential-variable names, including evaluation-only `GROQ_API_KEY` |
 
-Initial preparation also reviewed `model.ts`, `search-retrieval-chunks.ts`, `index-research.ts`, the Conversation detail API, AI panel, and existing citation/retrieval/chat-route Vitest tests. External specifications and model availability were not researched. This update inspected the dataset, evaluation script, shared prompt builder, model configuration, and citation validator; it did not rerun Gemini.
+Initial preparation also reviewed `model.ts`, `search-retrieval-chunks.ts`, `index-research.ts`, the Conversation detail API, AI panel, and existing citation/retrieval/chat-route Vitest tests. External specifications and model availability were not researched. This documentation update inspected the files listed above and the production streaming/persistence path; it did not rerun either provider, unit tests, or a build. Evaluation results and prior test completion below are developer-reported observations, distinguished from behavior verified by source inspection.
 
 ### Current Research Context
 
@@ -90,7 +98,24 @@ Citation format: `[source:<source-id>]`. Do not reproduce Source URLs. Per-reque
 
 Sources appearing only in Research-level `sources`, CONCLUSION/RESEARCH, or previous history are not added. Even an allowed ID is misattributed if its linked Finding does not support the claim. Fixture `claimCitationRules` assess this at claim level. Derived totals may have no single Source directly reporting them. Distinguish support for input values from direct verification of derived values.
 
-`validateSourceCitations()` removes unknown IDs in recognizable markers before persistence. It checks allowlist membership, not claim meaning, URLs, or arbitrary malformed syntax. `parseSourceCitations()` removes markers from displayed text and deduplicates IDs. Source existence and semantic support are separate judgments.
+`validateSourceCitations()` normalizes supported markers and removes unknown IDs before persistence. It checks allowlist membership, not claim meaning, URLs, or arbitrary malformed syntax. `parseSourceCitations()` also normalizes supported markers, removes recognized markers from answer text, and deduplicates IDs. Parsing alone does not enforce an allowlist. Source existence and semantic support are separate judgments.
+
+#### Implemented Citation Normalization
+
+The direct evaluation sequence is:
+
+1. Normalize supported citation-marker variations through `validateSourceCitations()`.
+2. Validate normalized IDs against the case's `allowedSourceIds`, retaining permitted markers and removing recognized unknown-ID markers.
+3. Call `parseSourceCitations()` on the validated response to extract unique IDs and separate answer text from citation markers.
+
+`normalizeSourceCitationMarkers()` implements two specific transformations:
+
+- Convert Japanese-style brackets `【source:id】` to `[source:id]`. The prefix must be exactly lowercase `source:`; the Japanese-bracket ID must be nonempty and contain no whitespace or Japanese/ASCII square brackets.
+- Within recognized ASCII-bracket markers `[source:id]`, convert non-breaking hyphens U+2011 inside the ID to ASCII hyphens U+002D. This also applies after Japanese-bracket conversion. ASCII recognition requires a nonempty ID without whitespace or a closing `]`.
+
+Normalization is scoped to recognized citation markers. It does not rewrite arbitrary answer text, normalize all Unicode hyphen/bracket variants, repair whitespace or case variations, or verify evidence. The parser additionally removes whitespace before recognized punctuation and trims the extracted answer text; the validator otherwise retains surrounding prose.
+
+An allowed Source ID can still be attached to an unsupported claim. Normalization provides format compatibility, and allowlist validation establishes ID eligibility; neither establishes semantic claim-to-source correctness. The Groq verification record in Section 6 demonstrates the normalization/validation/extraction sequence for one observed response.
 
 **Record raw stream, persisted text, and rendered UI separately in route evaluation.** The stream is not filtered by the persistence allowlist. The UI refreshes Sources after streaming but does not replace live text with persisted validated text. Persistence removal of an unknown ID does not turn a fabricated raw citation into a Pass.
 
@@ -100,7 +125,7 @@ The initial review recorded this `chat/route.ts` SHA-256 as its prompt baseline 
 778ED5021FAEB0E7D7284E5456FE56C7B91439E59FD0334EB97DEF0879BE2C38
 ```
 
-This historical whole-route hash is not a prompt-only hash, Git commit ID, or verified identifier of the October 10 execution. The current route calls `buildChatSystemPrompt()`. The model boundary is `google` / `gemini-3.6-flash`; query embeddings use `gemini-embedding-001`. `src/lib/ai/model.ts` confirms the generation model ID used by the script. General availability and credentials were not independently checked in this update; completed responses are reported from the developer's run.
+This historical whole-route hash is not a prompt-only hash, Git commit ID, or verified identifier of the October 10 execution. The current route calls `buildChatSystemPrompt()`. The production model boundary remains `google` / `gemini-3.6-flash`; query embeddings use `gemini-embedding-001`. The evaluator reuses this generation model for Gemini and selects `openai/gpt-oss-120b` separately for Groq. General availability and credentials were not independently checked in this update; completed responses are reported from the developer's runs.
 
 ## 3. Six Cases and Expected Behaviors
 
@@ -127,11 +152,26 @@ Assign 0/1/2 to each expected behavior and retain short response excerpts, evide
 | 1 | Main point correct but explanation/qualification incomplete; no fabrication or misattribution |
 | 0 | Does not meet expectations or triggers a Failure Condition |
 
-**Pass** requires an assessable actual Gemini response, all criteria at 2, no Failure Condition, and common citation-rule compliance. Do not average away misattribution. **Fail** means a completed actual response does not meet Pass conditions. **Not Run** means no actual response or API/embedding/stream problems prevented assessable output. Record HTTP errors, finish reasons, and partial output as execution status separately from content failure.
+**Pass** requires an assessable actual response from the selected provider, all criteria at 2, no Failure Condition, and common citation-rule compliance. Do not average away misattribution. **Fail** means a completed actual response does not meet Pass conditions. **Not Run** means no actual response or API/embedding/stream problems prevented assessable output. Record HTTP errors, finish reasons, and partial output as execution status separately from content failure. Qualitative observations without formal criterion scoring must remain labeled as such; do not invent numerical scores.
+
+The dataset's `evaluationProtocol.verdictRules` still names Gemini explicitly. This report applies the same expected behaviors, failure conditions, and scoring criteria to Groq; the fixture wording has not been updated in this documentation-only task.
 
 The supplied first-run assessment labels Case 01 **Provisional Pass** despite all criteria receiving 2. Preserve this reviewer qualification. No separate reason was supplied; it is not a new numeric threshold or relaxation of the original rubric.
 
 Do not score by keywords, exact expected prose, or Source-ID presence alone. Different wording is acceptable when meaning meets criteria. One or two sentences for Simple Question is guidance, not a strict count. Retain repeats independently; retries must not erase failures. A single run cannot establish general stability.
+
+### Shared Inputs and Separate Evaluation Dimensions
+
+Provider comparisons can use the same synthetic Research Context, Workspace Retrieval Context, `buildChatSystemPrompt()` builder, user question, expected behaviors, and failure conditions. Retain the prompt version per run: sharing the builder does not make an earlier prompt revision identical to a later one. Model identity, generation settings, and repetition counts also need to be recorded before drawing comparative conclusions.
+
+| Dimension | Assess separately |
+| --- | --- |
+| Raw model compliance | Citation syntax/ID fidelity, numerical correctness, grounding, inference quality, retrieval semantics, and uncertainty handling in the original response |
+| Application-level behavior | Citation normalization, allowed-ID validation, citation extraction, and persistence behavior; direct script output covers the first three, not production persistence |
+
+A citation that becomes parseable after normalization is evidence of application compatibility, not automatically a Pass for raw-model citation compliance. Evaluate semantic support against the Findings even when parsing and allowlist validation succeed.
+
+Record reported token usage for comparison where available. Token accounting and reasoning-token reporting may differ by provider and model, and reasoning tokens may be included in output tokens rather than additive. Token totals alone measure neither response quality nor monetary cost.
 
 ## 5. Execution Methods and Prerequisites
 
@@ -143,9 +183,40 @@ The developer executed all six cases individually on October 10, 2026 (JST):
 pnpm exec tsx scripts/evaluate-ai-chat.ts <case-id>
 ```
 
-The script selects a case from `cases.json`, passes `currentResearchContext` and `workspaceRetrievalContext` to `buildChatSystemPrompt()`, and calls `generateText()` with `researchModel` and `userQuestion`. Provider/model: `google` / `gemini-3.6-flash`. No conversation history is supplied. It loads `.env` and requires `GOOGLE_GENERATIVE_AI_API_KEY`; do not record secret values.
+For the original Gemini run, the script selected a case from `cases.json`, passed `currentResearchContext` and `workspaceRetrievalContext` to `buildChatSystemPrompt()`, and called `generateText()` with `researchModel` and `userQuestion`. Provider/model: `google` / `gemini-3.6-flash`. No conversation history was supplied. It loaded `.env` and required `GOOGLE_GENERATIVE_AI_API_KEY`; do not record secret values.
 
 This implements the fixed-context replay approach proposed during initial preparation. It bypasses authentication, DB context building, actual retrieval, streaming, persistence, and production citation validation. It prints questions/responses to the terminal without saving complete output artifacts. The developer viewed outputs there; no complete raw-response files were identified in the repository during this update. Results below are the developer-supplied manual assessment, not a new execution.
+
+### Current Multi-Provider Evaluation Runner
+
+The Vercel AI SDK integration now selects an evaluation model through `scripts/evaluation-models.ts`. The CLI is `pnpm exec tsx scripts/evaluate-ai-chat.ts [case-id] [gemini|groq]`. With omitted arguments it selects `ai-chat-01-agreement` and `gemini`; an unsupported provider or missing case is rejected. Provider is the second positional argument, after the case ID.
+
+| CLI provider | Model | Required environment variable |
+| --- | --- | --- |
+| `gemini` (default) | `gemini-3.6-flash`, using production `researchModel` | `GOOGLE_GENERATIVE_AI_API_KEY` |
+| `groq` | `openai/gpt-oss-120b` | `GROQ_API_KEY` |
+
+`package.json` declares `ai: ^6` and evaluation-only dev dependency `@ai-sdk/groq: ^3.0.72`; the lockfile resolves Groq SDK 3.0.72. The developer reported selecting Groq Provider SDK 3.x to resolve a `LanguageModelV4` / `LanguageModelV3` TypeScript incompatibility encountered with the newer provider generation. The current locked Groq SDK and AI SDK both depend on provider 3.x; the earlier compiler failure is integration history supplied by the developer, not a failure reproduced by this documentation review.
+
+```powershell
+# Default Gemini evaluation
+pnpm exec tsx scripts/evaluate-ai-chat.ts ai-chat-01-agreement
+
+# Explicit Gemini selection
+pnpm exec tsx scripts/evaluate-ai-chat.ts ai-chat-01-agreement gemini
+
+# Explicit Groq evaluation
+pnpm exec tsx scripts/evaluate-ai-chat.ts ai-chat-06-simple-question groq
+
+# Groq inference evaluation
+pnpm exec tsx scripts/evaluate-ai-chat.ts ai-chat-03-inference groq
+```
+
+The script requires successful `.env` loading and checks that the selected provider's credential variable is nonblank. `.env.example` documents `GROQ_API_KEY` as evaluation-only. Configure credentials through environment variables without including secret values in documentation or evaluation records.
+
+Both providers receive the shared production System Prompt builder's output and the fixture question via `generateText()`, with no conversation history. The script does not supply explicit temperature, seed, or output-token limits. It prints provider, model, case ID, question, **Raw Response**, **Validated Response**, **Parsed Citations**, **Parsed Text**, and **Token Usage** (`result.usage`). Validation uses the fixture's `allowedSourceIds`; it does not derive the production request allowlist from a database. Output is printed to the terminal, not automatically retained as complete response files or scored by the script.
+
+This exercises the shared citation helpers directly after generation. It still bypasses the authenticated Chat API, actual retrieval/embeddings, live streaming, usage-event writes, and Message persistence. Groq has not replaced the production Chat model and is not used for embeddings.
 
 ### Using the Existing AI Chat Route
 
@@ -179,7 +250,7 @@ The original plan proposed a future fixed-input Gemini replay runner maintaining
 
 ### Information to Retain per Run
 
-Retain case ID, variant, date/time, dataset version, prompt/route identifier, actual model ID, context snapshot, real-ID mapping, history, actual retrieval distances, raw/persisted responses, displayed Sources, HTTP/finish reason, API status, criterion scores/excerpts, and evaluator, as applicable. Exclude provider tokens and session cookies. The route does not automatically save context snapshots; without separate records, fixed-fixture reproducibility is unconfirmed.
+Retain case ID, variant, date/time, dataset version, prompt/route identifier, provider and actual model ID, generation settings, context snapshot, real-ID mapping, history, actual retrieval distances, raw response, normalized/validated response, parsed citation IDs/text, persisted response, displayed Sources, reported token usage, HTTP/finish reason, API status, criterion scores/excerpts, and evaluator, as applicable. Exclude API credentials and session cookies. The route does not automatically save context snapshots; without separate records, fixed-fixture reproducibility is unconfirmed.
 
 For the first direct run, the supplied date, fixtures, model configuration, observations, and scores are documented. Exact times, token usage, costs, finish reasons, execution-time commit/prompt hashes, and complete raw outputs were not supplied. Persistence/UI/actual retrieval fields do not apply to this variant. Do not invent missing metadata.
 
@@ -253,7 +324,7 @@ The calculation was correct and the ID allowed, but the citation did not indepen
 
 **Fail, 5/8.**
 
-`validateSourceCitations()` checks allowed-ID membership, not semantic support for the attached claim. It would retain this allowed draft ID. This is a limitation of ID-based validation and a semantic grounding problem in the generated response, not evidence that the validator is broken. The script did not run the production persistence validator.
+`validateSourceCitations()` checks allowed-ID membership, not semantic support for the attached claim. It would retain this allowed draft ID. This is a limitation of ID-based validation and a semantic grounding problem in the generated response, not evidence that the validator is broken. The original run did not exercise production persistence; the current evaluator calls the shared validator directly as described in Section 5.
 
 ### Case 04 — Insufficient Evidence
 
@@ -285,6 +356,83 @@ Correctly answered four from `syn-simple-finding-count`, without confusing the s
 
 **Pass, 6/6 (Q1=2, Q2=2, Q3=2).**
 
+### Follow-Up — Prompt Improvements and Gemini Repeats, October 10, 2026 (JST)
+
+After the original Case 03 failure, the developer strengthened `buildChatSystemPrompt()`. Source inspection confirms that the current prompt:
+
+- Limits each citation to the claim supported by its linked Finding.
+- Requires separate statements for sourced and unsourced observations before a derived conclusion.
+- Distinguishes input observations from calculations across Findings; the drafting Source must not be attached to the combined drafting-plus-review result.
+- Requires comparable metrics, scopes, and denominators when assessing goals.
+- States that measurements for only some workflow stages cannot determine attainment of a total development-time target. A 10% reduction in drafting-plus-review time cannot establish whether the 30% overall target was achieved or missed.
+
+These clarifications are implemented, rather than future proposals. They are prompt instructions, not deterministic semantic checks.
+
+The developer then executed Case 03 **five times with Gemini**. Citation usage was appropriate in all five responses. **One response received full marks under the previous manual assessment**; the remaining four handled limitations or qualifications less strongly. Complete per-run scores and outputs were not supplied, so the report does not assign them all perfect scores or replace the original **Fail, 5/8**. The observations support improvement on this case but do not establish general reliability.
+
+### Follow-Up — Groq Evaluation, October 10, 2026 (JST)
+
+Provider: `groq`. Model: `openai/gpt-oss-120b`. Provenance: developer observations from actual terminal executions using the synthetic dataset and shared System Prompt builder. The records below are not new executions performed for this documentation update or production Chat API results.
+
+#### Case 06 — Simple Question
+
+English translation of the fixture question:
+
+> How many Sources were reviewed in this Research?
+
+English translation of the observed Groq response (not a verbatim English output):
+
+> There were **four Sources** reviewed in this Research. [source:syn-simple-source-register]
+
+| Criterion | Score | Assessment |
+| --- | --- | --- |
+| Q1 | 2/2 | Correctly answered four reviewed Sources |
+| Q2 | 2/2 | Responded directly and concisely |
+| Q3 | 2/2 | Used the correct citation ID and standard marker format |
+
+**Pass, 6/6.** This is a single-response observation, not a statistical performance measurement.
+
+| Reported usage | Tokens |
+| --- | --- |
+| Input | 1,160 |
+| Output | 177 |
+| Reasoning | 146 |
+| Total | 1,337 |
+
+The reported total equals input plus output. Reasoning tokens are reported separately within that usage record; do not add them again to the total or infer quality or cost from these counts alone.
+
+#### Case 03 — Inference: Qualitative Observations Across Multiple Runs
+
+Groq was tested multiple times with the same synthetic context and shared System Prompt. The exact execution count and complete per-run scoring were not supplied. No numerical quality score or overall Pass is assigned to these runs.
+
+Observed strengths included correct drafting **40→25 minutes**, review **10→20 minutes**, combined **50→45 minutes**, and net **five-minute/10% reduction** calculations. Responses generally distinguished recorded observations from proposed actions. Some correctly recognized that partial workflow measurements cannot determine attainment of the overall 30% development-time goal. These observations must not be read as universal behavior across runs.
+
+Observed problems:
+
+1. **Raw citation formatting:** An initial response used `【source:syn-inference-source-draft】` rather than the required `[source:syn-inference-source-draft]`. This violated raw-model format requirements and was not recognized by the earlier citation parser.
+2. **Source ID Unicode fidelity:** Another response used U+2011 non-breaking hyphens in place of U+002D ASCII hyphens inside Source IDs. Otherwise recognizable references failed exact ID matching before the implemented normalization.
+3. **Inference error:** One later response suggested the review stage had gained ten minutes of spare capacity, although review duration increased from 10 to 20 minutes. This reversed the practical meaning of the time change; successful arithmetic elsewhere or parseable citations do not correct it.
+4. **Unsupported operational assumptions:** Some responses proposed hypothetical productivity improvements or extrapolated savings. Such content must remain explicitly identified as assumptions or proposals, rather than observed outcomes.
+5. **Metric scope:** The observed 10% reduction applies only to drafting plus review. Total development time was not measured, so the 30% overall target cannot be declared achieved or missed from these records.
+
+Bracket and hyphen outputs are raw-model compliance problems that also exposed application compatibility limitations. Normalization addresses recognition and ID matching. Inference, grounding, and metric-scope errors remain model-content problems requiring separate manual assessment; the citation helper cannot repair them.
+
+#### Observed Citation Normalization Verification
+
+A later Groq Case 03 execution produced the following citation flow:
+
+| Stage | Observed value |
+| --- | --- |
+| Raw response citation | `【source:syn-inference-source-draft】` |
+| Normalized and validated response citation | `[source:syn-inference-source-draft]` |
+| Parsed citation IDs | `["syn-inference-source-draft"]` |
+
+This verifies normalization, allowed-ID validation, and extraction for the observed response. It does not demonstrate raw-model syntax compliance or semantic support for every attached claim. Parsed Text is the validated response with recognized markers removed; it is a separate output from both the raw and validated responses.
+
+The developer also reported updating and completing citation normalization/validation unit tests. Source inspection confirms coverage for Japanese bracket conversion, both bracket styles in parsing, U+2011 ID normalization, rejection of unknown IDs after normalization, empty allowlists, and ID deduplication. No exact test totals or build result are asserted here.
+
+Production streaming remains a separate boundary: the route returns the generated text stream before persistence validation, while the panel parses accumulated text with the shared parser. The persisted AI Message retains normalized permitted markers after `validateSourceCitations()`; the live UI refreshes Sources without replacing live text with persisted text. This code review and direct terminal observation do not fully verify live streaming behavior, partial-marker display, or restored-UI parity.
+
 ### Inferences — Judgments from Implementation Review
 
 - The route builds DB context and cannot accept fixtures directly. Initial preparation judged equivalent route evaluation unavailable without matching existing records/empty Conversations; the direct script now evaluates fixtures separately.
@@ -293,40 +441,43 @@ Correctly answered four from `syn-simple-finding-count`, without confusing the s
 
 ### Uncertainties — Conditions Not Verified
 
-Initial preparation did not verify isolated SaaS URL, authenticated session, matching records/empty Conversations/indexes, credentials, or model availability. It did not assert absent credentials, read secret values, or attempt new authentication. Subsequent developer-reported Gemini responses do not verify production-route prerequisites. Complete outputs, reproducibility, criterion achievement rates across repeats, and variability remain unverified.
+Initial preparation did not verify isolated SaaS URL, authenticated session, matching records/empty Conversations/indexes, credentials, or model availability. It did not assert absent credentials, read secret values, or attempt new authentication. Subsequent developer-reported Gemini and Groq responses do not verify production-route prerequisites. Complete outputs, exact prompt/version identifiers, reproducibility, broader criterion achievement rates across repeats, and variability remain unverified.
 
 ## 7. Identified Limitations and Issues
 
 | Category | Statically identified behavior | Evaluation treatment |
 | --- | --- | --- |
 | Facts | Semantic claim support by allowed Sources is outside validator scope | Manually assess unrelated citations in Contradiction and citation scope in Inference |
+| Facts | Supported marker normalization improves parseability but not raw-model compliance | Record bracket/ID variations in raw output separately from normalized results |
 | Facts | Unlinked Sources are outside allowlist but metadata remains in Current Context | Assess confusion between list membership and citation eligibility |
 | Facts | Stream bypasses persistence validator; live UI text is not replaced by persisted text | Record raw/persisted differences separately |
 | Facts | Source contents, pages, and raw data are unavailable | Assess fabricated reading claims/quotations in Source Limitations |
 | Facts | Representative chunks, index delays, skipped hydration, no total context/history size budget | Retain for actual-retrieval/long-conversation evaluation |
 | Facts | Retrieval inspection script only prints context | Do not count success as generation quality |
 
-Historically this table described implementation limitations without measured Gemini failures. The October 10 run now records an actual Case 03 response failure; other static limitations were not all exercised end to end. No application improvements were implemented in this documentation update.
+Historically this table described implementation limitations without measured Gemini failures. The original October 10 run records an actual Case 03 semantic-grounding failure; subsequent Groq executions exposed format and inference problems. Prompt clarifications and citation normalization were implemented before this documentation update. Other static limitations were not all exercised end to end, and no application improvements were implemented by this documentation task.
 
-The Roadmap Phase 5 description retains the older baseline of current-Research-only Supporting Source resolution. Current code and AI Architecture describe Workspace-wide resolution and pre-persistence allowlist validation. Use the latter for current behavior; do not treat the historical Phase 5 explanation as the complete current constraint set. This discrepancy is reported without editing Roadmap/Architecture outside scope. Do not mark all Phase 10 work or AI-related tests complete.
+The Roadmap Phase 5 description intentionally retains the older baseline of current-Research-only Supporting Source resolution. Current code and AI Architecture describe Workspace-wide resolution and pre-persistence allowlist validation. Use the latter for current behavior; do not treat the historical Phase 5 explanation as the complete current constraint set. The formerly Gemini-only runner description, proposed prompt clarifications, and outdated citation-test description have been updated here; the fixture's Gemini-specific verdict wording remains a documentation/fixture discrepancy. Phase 10 progress is summarized in the Roadmap without marking all Phase 10 work or AI-related tests complete.
 
 ### Observed Failure, Possible Causes, and Proposed Improvements
 
-Observed Case 03 failure: citation scope exceeded linked evidence. Missing the explicit six-person limitation is a separate qualification weakness. The generation mechanism is unknown. A possible explanation is that correct synthesis carried an input citation onto the total without preserving narrower support. This is a hypothesis, not a confirmed root cause. The prompt already prohibits unrelated citations and fabricated citations for unsourced Findings.
+Original Gemini Case 03 failure: citation scope exceeded linked evidence. Missing the explicit six-person limitation is a separate qualification weakness. The generation mechanism is unknown. A possible explanation is that correct synthesis carried an input citation onto the total without preserving narrower support. This is a hypothesis, not a confirmed root cause. Subsequent prompt clarifications and citation normalization are implemented, with limited observations of improvement; Groq's reversal of review-time meaning remains a separate inference failure.
 
 Recommended next steps:
 
-1. Preserve these six-case results as a baseline, including provisional status and failure.
-2. Investigate Case 03 citation scope against Findings and original terminal output if available.
-3. Consider prompt clarification distinguishing direct Source support from calculations across multiple Findings, including unsourced Findings. No prompt change is made here.
-4. Consider future semantic claim-to-evidence checks while retaining ID allowlist validation as a separate safety boundary.
-5. Rerun Case 03 after changes, then regress all six cases. Retain the original failed run.
-6. Consider repeated evaluations to measure variability.
-7. Evaluate the full production Chat API separately for stronger end-to-end confidence.
+1. Preserve the original six-case Gemini baseline, including provisional status and failure, for before/after comparisons.
+2. Evaluate Groq on remaining synthetic Cases 01, 02, 04, and 05; no results are recorded for them here.
+3. Perform regression evaluations across all six cases after System Prompt changes, retaining each response and its prompt version independently.
+4. Compare Gemini and Groq using shared inputs and criteria, with separate raw-model and application-level assessments and recorded generation settings/repetition counts.
+5. Investigate Groq Case 03 inference failures, especially the reversal of review-time meaning and unsupported productivity extrapolations.
+6. Continue improving semantic citation grounding and qualifications; consider claim-to-evidence checks separately from the existing ID allowlist.
+7. Extend automated citation-format and normalization regression coverage beyond the implemented unit cases, while preserving raw-model compliance assessment.
+8. Use repeated evaluations to characterize variability without treating the five Gemini citation observations or one Groq Case 06 Pass as general reliability evidence.
+9. Validate the production Chat API end to end separately from direct synthetic-context generation, including raw streaming, persistence, and rendered/restored Source behavior.
 
 ## 8. Items Still Unverified
 
-- Independent reassessment of complete outputs, repeated citation success rates, and semantic reliability beyond supplied observations. All six cases are now executed.
+- Independent reassessment of complete outputs, repeated citation success rates, and semantic reliability beyond supplied observations. All six Gemini baseline cases were executed; Groq coverage remains partial.
 - Intended order/chunk selection with actual embeddings, new distance calibration, recall/precision.
 - Differences across repeats, model changes, long history, omitted follow-up queries, stale indexes, missing selected chunks.
 - Browser behavior for malformed citations, URL leakage, streaming/restored UI differences.
@@ -335,16 +486,16 @@ Recommended next steps:
 
 ## 9. Processes to Automate Next with Vitest
 
-These are proposals, not implementation/execution results. Avoid duplicating existing auth/membership, 429, usage recording, `stop`/`length` persistence, basic citation keep/remove/dedup, and retrieval observability checks.
+The table lists additional proposals, not implementation/execution results. Existing citation tests already cover supported bracket normalization, U+2011 ID normalization, validation after normalization, empty allowlists, and parsing/deduplication. Their developer-reported completion is recorded in Section 6. Avoid duplicating those tests or existing auth/membership, 429, usage recording, `stop`/`length` persistence, and retrieval observability checks.
 
 | Priority | Target | Meaningful additional checks |
 | --- | --- | --- |
 | P1 | Dataset contract | Compare JSON with actual `ResearchContext` / `WorkspaceRetrievalContext`; check Source references and allowlist union to detect broken fixture inputs |
 | P1 | Route allowlist/persistence boundary | Allow linked Current Sources plus Retrieved FINDING only; remove Research-only, history-only, unknown IDs. Use real validator boundary tests, not only mock-call assertions |
-| P1 | Citation parser/validator | Beyond existing three tests: empty allowlist, Japanese punctuation, multiple/duplicate IDs, case sensitivity, whitespace, empty IDs, missing closing brackets. Separate current malformed-syntax behavior from future desired specification |
+| P1 | Citation parser/validator | Extend normalization regression coverage for U+2011 in ASCII markers and preservation of hyphens outside markers; cover case sensitivity, whitespace, empty IDs, unsupported Unicode variants, and missing closing brackets. Separate current malformed-syntax behavior from future desired specification |
 | P1 | Context builder | Use real functions for null Conclusion, unsourced Finding, linked versus Research-level Source, missing Research, exclusion of Source contents/Comments |
 | P1 | Retrieval selection | 0.35 boundary, ten candidates/five selections, multiple chunks per item, separate CONCLUSION/RESEARCH for same Research, missing-record skip/no backfill, type-specific sources, preserved chunk content |
 | P2 | Generation/persistence | Extend `stop`/`length` tests: empty/whitespace text, text emptied by citation removal, retrieval failure before user persistence, generation failure potentially retaining user turn. Specify raw-stream/persistence-validator boundary |
 | P2 | Supporting Source display | After choosing improvement policy, component checks for raw unlinked-Source references, refresh failure, live/restored differences. Distinguish checking current differences from resolving them |
 
-Mocked Gemini outputs in Vitest verify context assembly/parser control flow, not inference, contradiction analysis, or uncertainty quality in these cases. Evaluate actual model content with this rubric separately; deterministic string matching is not a substitute for quality assessment.
+Mocked model outputs in Vitest verify context assembly/parser control flow, not inference, contradiction analysis, or uncertainty quality in these cases. Evaluate actual Gemini and Groq content with this rubric separately; deterministic string matching is not a substitute for quality assessment.
