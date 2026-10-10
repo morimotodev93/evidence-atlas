@@ -690,6 +690,108 @@ describe("research chat route authorization", () => {
     });
   });
 
+  it("persists only Current and Retrieved Finding-linked Source citations using the real validator", async () => {
+    const { validateSourceCitations } = await vi.importActual<
+      typeof import("@/lib/ai/source-citations")
+    >("@/lib/ai/source-citations");
+    mocks.validateSourceCitations.mockImplementation(validateSourceCitations);
+
+    const currentSource = {
+      id: "current-source",
+      title: "Current evidence",
+      url: "https://example.invalid/current",
+    };
+    const unlinkedSource = {
+      id: "research-only-source",
+      title: "Unlinked proposal",
+      url: "https://example.invalid/unlinked",
+    };
+    const retrievedSource = {
+      id: "retrieved-source",
+      title: "Retrieved evidence",
+      url: "https://example.invalid/retrieved",
+    };
+    mocks.buildResearchContext.mockResolvedValue({
+      research: { id: researchId, workspaceId, title: "Research", description: null, conclusion: null },
+      findings: [
+        { id: "current-finding", content: "Sourced observation", sources: [currentSource] },
+        { id: "unsourced-finding", content: "Unsourced observation", sources: [] },
+      ],
+      sources: [currentSource, unlinkedSource],
+    });
+    mocks.retrieveWorkspaceContext.mockResolvedValue({
+      results: [
+        {
+          type: "FINDING",
+          researchId: "other-research",
+          researchTitle: "Other Research",
+          findingId: "retrieved-finding",
+          content: "Retrieved observation",
+          distance: 0.1,
+          sources: [retrievedSource],
+        },
+        {
+          type: "RESEARCH",
+          researchId: "metadata-research",
+          researchTitle: "Research plan",
+          content: "Plan referencing [source:metadata-source]",
+          distance: 0.2,
+          sources: [],
+        },
+        {
+          type: "CONCLUSION",
+          researchId: "conclusion-research",
+          researchTitle: "Earlier conclusion",
+          content: "Summary referencing [source:conclusion-source]",
+          distance: 0.25,
+          sources: [],
+        },
+      ],
+    });
+    mocks.messageQuery.all.mockResolvedValue([
+      { authorType: "AI", content: "Historical answer [source:history-only-source]" },
+    ]);
+
+    const raw =
+      "Current 【source:current-source】. Retrieved [ source:retrieved-source ]. " +
+      "Unlinked [source:research-only-source]. Metadata [source:metadata-source]. " +
+      "Conclusion [source:conclusion-source]. History [source:history-only-source]. " +
+      "Finding [source:current-finding]. Research [source:research-id]. " +
+      "Unknown [source:invented-source].";
+    mocks.streamText.mockImplementation(() => ({
+      toTextStreamResponse: () => new Response(raw),
+    }));
+
+    const response = await sendChatMessage(chatRequest(), routeContext());
+    expect(response.status).toBe(200);
+    // The response is still the mocked raw stream; validation occurs on persistence.
+    await expect(response.text()).resolves.toBe(raw);
+    expect(mocks.messageCreate).toHaveBeenCalledTimes(1);
+    expect(mocks.validateSourceCitations).not.toHaveBeenCalled();
+
+    const streamOptions = mocks.streamText.mock.calls[0]?.[0] as {
+      onFinish: (result: {
+        text: string;
+        finishReason: string;
+        totalUsage: { inputTokens?: number; outputTokens?: number; totalTokens?: number };
+      }) => Promise<void>;
+    };
+    await streamOptions.onFinish({ text: raw, finishReason: "stop", totalUsage: {} });
+
+    expect(mocks.validateSourceCitations).toHaveBeenCalledWith(
+      raw,
+      new Set(["current-source", "retrieved-source"]),
+    );
+    expect(mocks.messageCreate).toHaveBeenCalledTimes(2);
+    expect(mocks.messageCreate).toHaveBeenNthCalledWith(2, {
+      conversationId,
+      authorType: "AI",
+      content:
+        "Current [source:current-source]. Retrieved [source:retrieved-source]. " +
+        "Unlinked . Metadata . Conclusion . History . Finding . Research . Unknown .",
+    });
+  });
+
   it("stores null for unavailable token usage values", async () => {
     await sendChatMessage(chatRequest(), routeContext());
 

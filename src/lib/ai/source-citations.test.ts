@@ -178,3 +178,96 @@ it("rejects unallowed IDs with spaces inside brackets", () => {
 
   expect(result).toBe("未確認 ");
 });
+
+describe("Source citation boundaries", () => {
+  it.each([
+    "syn-inference-finding-review",
+    "syn-inference-research-target",
+  ])("rejects internal identifier %s unless independently allowed as a Source ID", (id) => {
+    const raw = `Supported [source:source-a]. Internal [source:${id}].`;
+    const validated = validateSourceCitations(raw, new Set(["source-a"]));
+
+    expect(validated).toBe("Supported [source:source-a]. Internal .");
+    expect(parseSourceCitations(validated)).toEqual({
+      text: "Supported. Internal.",
+      sourceIds: ["source-a"],
+    });
+    // The validator uses exact membership, not an ID prefix or inferred entity type.
+    expect(validateSourceCitations(raw, new Set(["source-a", id]))).toBe(raw);
+  });
+
+  it("normalizes U+2011 in ASCII markers while preserving ordinary text and hyphens", () => {
+    const raw = "Pre-existing non\u2011citation [source:source\u2011a] and source-a text.";
+    const normalized = "Pre-existing non\u2011citation [source:source-a] and source-a text.";
+
+    expect(normalizeSourceCitationMarkers(raw)).toBe(normalized);
+    expect(validateSourceCitations(raw, new Set(["source-a"]))).toBe(normalized);
+    expect(parseSourceCitations(normalized)).toEqual({
+      text: "Pre-existing non\u2011citation  and source-a text.",
+      sourceIds: ["source-a"],
+    });
+  });
+
+  it("normalizes tab-padded markers without changing surrounding tabs", () => {
+    const raw = "Before\t[\tsource:source-a\t]\tAfter [\tsource:unknown\t]";
+
+    expect(normalizeSourceCitationMarkers(raw)).toBe(
+      "Before\t[source:source-a]\tAfter [source:unknown]",
+    );
+    const validated = validateSourceCitations(raw, new Set(["source-a"]));
+    expect(validated).toBe("Before\t[source:source-a]\tAfter ");
+    expect(parseSourceCitations(validated)).toEqual({
+      text: "Before\t\tAfter",
+      sourceIds: ["source-a"],
+    });
+  });
+
+  it("matches Source IDs case-sensitively without lowercasing markers", () => {
+    const raw = "Exact [source:Source-A]. Different [source:source-a] [source:SOURCE-A].";
+    expect(normalizeSourceCitationMarkers(raw)).toBe(raw);
+
+    const validated = validateSourceCitations(raw, new Set(["Source-A"]));
+    expect(validated).toBe("Exact [source:Source-A]. Different  .");
+    expect(parseSourceCitations(validated).sourceIds).toEqual(["Source-A"]);
+  });
+
+  it("validates mixed markers before parsing unique allowed IDs in first-seen order", () => {
+    const raw =
+      "Second 【source:source-b】. Unknown [source:unknown]. " +
+      "First [ source:source-a ]. Again [source:source-b]. " +
+      "Unlinked 【source:unlinked】. Again [\tsource:source-a\t].";
+    const allowed = new Set(["source-a", "source-b"]);
+    const validated = validateSourceCitations(raw, allowed);
+
+    expect(validated).toBe(
+      "Second [source:source-b]. Unknown . First [source:source-a]. " +
+      "Again [source:source-b]. Unlinked . Again [source:source-a].",
+    );
+    expect(parseSourceCitations(validated)).toEqual({
+      text: "Second. Unknown. First. Again. Unlinked. Again.",
+      sourceIds: ["source-b", "source-a"],
+    });
+  });
+
+  it.each([
+    "【syn-limitations-finding-availability】",
+    "【type:RESEARCH, researchId:syn-inference-research-target】",
+  ])("leaves unsupported pseudo-citation %s visible without recognizing a Source", (marker) => {
+    const raw = `Metadata ${marker} and allowed [source:source-a].`;
+    const validated = validateSourceCitations(raw, new Set(["source-a"]));
+
+    // Unsupported metadata is not sanitized or mapped to a Source by these helpers.
+    expect(normalizeSourceCitationMarkers(raw)).toBe(raw);
+    expect(validated).toBe(raw);
+    expect(parseSourceCitations(validated)).toEqual({
+      text: `Metadata ${marker} and allowed.`,
+      sourceIds: ["source-a"],
+    });
+    // Empty allowlists remove recognized markers, while leaving pseudo-citations visible.
+    expect(validateSourceCitations(raw, new Set())).toBe(`Metadata ${marker} and allowed .`);
+    expect(parseSourceCitations(validateSourceCitations(raw, new Set()))).toEqual({
+      text: `Metadata ${marker} and allowed.`,
+      sourceIds: [],
+    });
+  });
+});
