@@ -192,7 +192,7 @@ This implements the fixed-context replay approach proposed during initial prepar
 
 ### Current Multi-Provider Evaluation Runner
 
-The Vercel AI SDK integration now selects an evaluation model through `scripts/evaluation-models.ts`. The CLI is `pnpm exec tsx scripts/evaluate-ai-chat.ts [case-id] [gemini|groq]`. With omitted arguments it selects `ai-chat-01-agreement` and `gemini`; an unsupported provider or missing case is rejected. Provider is the second positional argument, after the case ID.
+The Vercel AI SDK integration now selects an evaluation model through `scripts/evaluation-models.ts`. The CLI is `pnpm exec tsx scripts/evaluate-ai-chat.ts [case-id] [gemini|groq] [--save]`. With omitted arguments it selects `ai-chat-01-agreement` and `gemini`; an unsupported provider, option, or missing case is rejected. Provider is the second positional argument, after the case ID.
 
 | CLI provider | Model | Required environment variable |
 | --- | --- | --- |
@@ -217,9 +217,38 @@ pnpm exec tsx scripts/evaluate-ai-chat.ts ai-chat-03-inference groq
 
 The script requires successful `.env` loading and checks that the selected provider's credential variable is nonblank. `.env.example` documents `GROQ_API_KEY` as evaluation-only. Configure credentials through environment variables without including secret values in documentation or evaluation records.
 
-Both providers receive the shared production System Prompt builder's output and the fixture question via `generateText()`, with no conversation history. The script does not supply explicit temperature, seed, or output-token limits. It prints provider, model, case ID, question, **Raw Response**, **Validated Response**, **Parsed Citations**, **Parsed Text**, and **Token Usage** (`result.usage`). Validation uses the fixture's `allowedSourceIds`; it does not derive the production request allowlist from a database. Output is printed to the terminal, not automatically retained as complete response files or scored by the script.
+Both providers receive the shared production System Prompt builder's output and the fixture question via `generateText()`, with no conversation history. The script does not supply explicit temperature, seed, or output-token limits. It prints provider, model, case ID, question, **Raw Response**, **Validated Response**, **Parsed Citations**, **Parsed Text**, and **Token Usage** (`result.usage`). Validation uses the fixture's `allowedSourceIds`; it does not derive the production request allowlist from a database. Without `--save`, output remains console-only. The script does not score responses.
 
 This exercises the shared citation helpers directly after generation. It still bypasses the authenticated Chat API, actual retrieval/embeddings, live streaming, usage-event writes, and Message persistence. Groq has not replaced the production Chat model and is not used for embeddings.
+
+### Optional Local JSON Run Storage
+
+Add `--save` to retain one observation from the normal evaluation request:
+
+```powershell
+pnpm exec tsx scripts/evaluate-ai-chat.ts ai-chat-03-inference groq --save
+```
+
+The runner creates `evals/ai-chat/runs/` if needed and prints the saved absolute path only after a successful write. Filenames contain the UTC recording timestamp, provider, case ID, and a random UUID suffix, for example `2026-10-10T01-02-03-456Z_groq_ai-chat-03-inference_<uuid>.json`. Exclusive file creation (`wx`) rejects collisions without overwriting; persistence failure reports an error and exits nonzero. Files use UTF-8, two-space JSON indentation, and a trailing newline. The run directory is excluded from Git by default; `cases.json` remains tracked.
+
+`scripts/evaluation-run-storage.ts` separates typed record construction from filesystem writes. Run schema `1.0` contains:
+
+| Fields | Meaning |
+| --- | --- |
+| `schemaVersion`, `recordedAt` | Run format version and ISO-8601 UTC recording time |
+| `datasetId`, `datasetSchemaVersion`, `caseId` | Dataset and selected fixture identity |
+| `provider`, `modelId`, `question`, `allowedSourceIds` | Actual evaluation configuration and citation allowlist |
+| `systemPromptSha256` | Node SHA-256 of the exact constructed System Prompt passed to generation, encoded as UTF-8 |
+| `fixtureSha256` | Node SHA-256 of the entire selected case serialized with compact `JSON.stringify(testCase)`, preserving the JSON fixture's property and array order |
+| `response.raw`, `response.validated` | Original model response and the separate citation-normalized, allowlist-validated response |
+| `response.parsedText`, `response.parsedSourceIds` | Existing citation parser output from the validated response |
+| `usage.inputTokens`, `usage.outputTokens`, `usage.totalTokens`, `usage.reasoningTokens`, `usage.cachedInputTokens` | Reported counts only; missing counts are `null`, including optional reasoning/cache counts |
+
+Reasoning and cache counts use the SDK's normalized token details, with legacy normalized fields as fallback. Reasoning tokens are not added to output or total tokens. The record excludes unrestricted provider usage payloads, environment variables, API keys, authorization headers, and provider credentials. It does not retain full prompt/context snapshots or assign Pass/Fail scores.
+
+Hashes distinguish prompt and fixture revisions for future comparisons; fixture property order is part of the hash, so reordering can change it. Matching hashes do not guarantee deterministic model output. Saved responses are model observations requiring separate manual assessment against the rubric. Storage does not establish model quality, production Chat integration coverage, or completion of Phase 10, and it leaves historical Gemini/Groq results unchanged.
+
+`--save` adds no model requests for storage, scoring, or summarization and does not change generation or citation handling. Test record construction and file persistence with synthetic observations and temporary directories; do not execute provider requests merely to test storage or spend API quota. Unit tests require no Gemini/Groq credentials or calls. Actual model-backed `--save` execution remains a later manual check when quota is available.
 
 ### Using the Existing AI Chat Route
 
@@ -707,12 +736,12 @@ The Roadmap Phase 5 description intentionally retains the older baseline of curr
 
 Original Gemini Case 03 failure: citation scope exceeded linked evidence. Missing the explicit six-person limitation is a separate qualification weakness. The generation mechanism is unknown. A possible explanation is that correct synthesis carried an input citation onto the total without preserving narrower support. This is a hypothesis, not a confirmed root cause. Subsequent prompt clarifications and citation normalization are implemented, including the latest uncommitted local instructions documented in Section 6. The latest Gemini Case 03 handled citations correctly but retained qualification/allocation weaknesses; Groq's reversal of review-time meaning remains a separate historical inference failure.
 
-Recommended next steps (proposals, not improvements implemented by this task):
+Recommended next steps, with the implemented storage improvement noted in item 4:
 
 1. Preserve the original Gemini baseline, earlier repetitions, Groq runs, and latest Gemini regression independently, including every supplied failure and qualification.
 2. Freeze the currently evaluated System Prompt version and record a verifiable commit identifier or prompt hash for future runs. The local additions exist, but no execution-time identifier was supplied for this regression.
 3. Calibrate C2, I2, and N2 interpretation, including causal wording, inferred allocation, sample scope, and additional measurement guidance.
-4. Consider durable evaluation-run artifacts containing raw/validated responses, parsed citations/text, model settings, token usage, manual scores, evaluator, and timestamps; the current runner only prints output.
+4. Optional `--save` now retains local run artifacts containing raw/validated responses, parsed citations/text, provider/model identity, reported token usage, timestamps, and prompt/fixture hashes (Section 5). Manual scores, evaluator identity, and additional generation settings remain separate follow-up work.
 5. Run repeated Gemini/Groq evaluations with identical fixtures, prompt version, rubric, and controlled generation settings. Preserve raw-output scoring separately from application normalization results.
 6. Keep deterministic citation-processing tests separate from actual model-quality evaluations; investigate pseudo-citation handling without treating internal IDs or metadata as authorized Source references.
 7. Continue investigating Case 03 inference consistency, unsupported extrapolation, and semantic citation grounding beyond allowlist membership.

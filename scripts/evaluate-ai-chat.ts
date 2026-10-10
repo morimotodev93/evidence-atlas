@@ -5,10 +5,12 @@ import dataset from "../evals/ai-chat/cases.json";
 
 import { buildChatSystemPrompt } from "../src/lib/ai/chat-system-prompt";
 
+import { getEvaluationModel } from "./evaluation-models";
+import { parseEvaluationCliOptions } from "./evaluation-cli-options";
 import {
-  getEvaluationModel,
-  type EvaluationProvider,
-} from "./evaluation-models";
+  buildEvaluationRunRecord,
+  writeEvaluationRunRecord,
+} from "./evaluation-run-storage";
 
 import type { WorkspaceRetrievalContext } from "../src/lib/ai/retrieve-workspace-context";
 
@@ -16,6 +18,8 @@ import {
   parseSourceCitations,
   validateSourceCitations,
 } from "../src/lib/ai/source-citations";
+
+const { caseId, provider, save } = parseEvaluationCliOptions(process.argv.slice(2));
 
 // .env を読み込む
 const envResult = config({
@@ -26,17 +30,6 @@ const envResult = config({
 if (envResult.error) {
   throw new Error(`Failed to load .env: ${envResult.error.message}`);
 }
-
-// コマンドライン引数
-const caseId = process.argv[2] ?? "ai-chat-01-agreement";
-const providerArg = process.argv[3] ?? "gemini";
-
-// 不正なProvider名を拒否
-if (providerArg !== "gemini" && providerArg !== "groq") {
-  throw new Error(`Unsupported evaluation provider: ${providerArg}`);
-}
-
-const provider: EvaluationProvider = providerArg;
 
 // モデルを選択
 const { model, modelId, apiKeyName } = getEvaluationModel(provider);
@@ -94,3 +87,24 @@ console.log(parsed.text);
 
 console.log("=== Token Usage ===");
 console.log(result.usage);
+
+if (save) {
+  const record = buildEvaluationRunRecord({
+    dataset,
+    testCase,
+    provider,
+    modelId,
+    systemPrompt: system,
+    rawResponse: result.text,
+    validatedResponse: validated,
+    parsed,
+    usage: result.usage,
+  });
+
+  try {
+    const filePath = await writeEvaluationRunRecord(record);
+    console.log(`Saved evaluation run: ${filePath}`);
+  } catch (error) {
+    throw new Error("Failed to save evaluation run", { cause: error });
+  }
+}
