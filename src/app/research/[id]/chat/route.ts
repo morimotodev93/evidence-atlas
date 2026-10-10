@@ -7,7 +7,7 @@ import {
 } from "@/auth/requireResearchAccess";
 import { isPublicDemoMode } from "@/lib/deployment-mode";
 
-import { chatRateLimit } from "@/lib/ai/chat-rate-limit";
+import { getChatRateLimit } from "@/lib/ai/chat-rate-limit";
 import {
   RESEARCH_MODEL_ID,
   RESEARCH_MODEL_PROVIDER,
@@ -79,7 +79,7 @@ export async function POST(request: Request, { params }: RouteContext) {
     return Response.json({ error: "Conversation not found." }, { status: 404 });
   }
 
-  const rateLimit = await chatRateLimit.limit(
+  const rateLimit = await getChatRateLimit().limit(
     `${research.workspaceId}:${session.user.id}`,
   );
 

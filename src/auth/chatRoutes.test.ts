@@ -103,7 +103,7 @@ vi.mock("@/prisma/db", () => ({
 }));
 
 vi.mock("@/lib/ai/chat-rate-limit", () => ({
-  chatRateLimit: mocks.chatRateLimit,
+  getChatRateLimit: () => mocks.chatRateLimit,
 }));
 
 vi.mock("@/lib/ai/model", () => ({
@@ -181,24 +181,33 @@ describe("Public Demo deployment chat lock", () => {
     { name: "conversation list GET", handler: getConversations },
     { name: "conversation create POST", handler: createConversation },
     { name: "conversation detail GET", handler: getConversation },
-  ])("rejects $name before session, DB, rate limit, or AI work", async ({ handler }) => {
-    const response = await handler(new Request("https://example.test/research/research-id/chat"), {
-      params: Promise.resolve({ id: "research-id", conversationId: "conversation-id" }),
-    });
-    expect(response.status).toBe(404);
-    expect(mocks.auth).not.toHaveBeenCalled();
-    expect(mocks.requireResearchAccess).not.toHaveBeenCalled();
-    expect(mocks.conversationWhere).not.toHaveBeenCalled();
-    expect(mocks.conversationCreate).not.toHaveBeenCalled();
-    expect(mocks.messageWhere).not.toHaveBeenCalled();
-    expect(mocks.messageCreate).not.toHaveBeenCalled();
-    expect(mocks.aiUsageEventCreate).not.toHaveBeenCalled();
-    expect(mocks.chatRateLimit.limit).not.toHaveBeenCalled();
-    expect(mocks.buildResearchContext).not.toHaveBeenCalled();
-    expect(mocks.retrieveWorkspaceContext).not.toHaveBeenCalled();
-    expect(mocks.resolveWorkspaceSources).not.toHaveBeenCalled();
-    expect(mocks.streamText).not.toHaveBeenCalled();
-  });
+  ])(
+    "rejects $name before session, DB, rate limit, or AI work",
+    async ({ handler }) => {
+      const response = await handler(
+        new Request("https://example.test/research/research-id/chat"),
+        {
+          params: Promise.resolve({
+            id: "research-id",
+            conversationId: "conversation-id",
+          }),
+        },
+      );
+      expect(response.status).toBe(404);
+      expect(mocks.auth).not.toHaveBeenCalled();
+      expect(mocks.requireResearchAccess).not.toHaveBeenCalled();
+      expect(mocks.conversationWhere).not.toHaveBeenCalled();
+      expect(mocks.conversationCreate).not.toHaveBeenCalled();
+      expect(mocks.messageWhere).not.toHaveBeenCalled();
+      expect(mocks.messageCreate).not.toHaveBeenCalled();
+      expect(mocks.aiUsageEventCreate).not.toHaveBeenCalled();
+      expect(mocks.chatRateLimit.limit).not.toHaveBeenCalled();
+      expect(mocks.buildResearchContext).not.toHaveBeenCalled();
+      expect(mocks.retrieveWorkspaceContext).not.toHaveBeenCalled();
+      expect(mocks.resolveWorkspaceSources).not.toHaveBeenCalled();
+      expect(mocks.streamText).not.toHaveBeenCalled();
+    },
+  );
 });
 
 describe("research chat route authorization", () => {
