@@ -1,0 +1,27 @@
+name: evidence-atlas-c2
+
+services:
+  postgres-c2:
+    image: pgvector/pgvector:pg18-trixie
+    container_name: evidence-atlas-c2-postgres
+    restart: "no"
+    environment:
+      POSTGRES_USER: c2_local
+      POSTGRES_DB: evidence_atlas_c2
+      POSTGRES_PASSWORD: ${C2_POSTGRES_PASSWORD:?Set a dedicated C2 password in .env.c2.local}
+    ports:
+      - "127.0.0.1:5433:5432"
+    volumes:
+      - c2_postgres_data:/var/lib/postgresql
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "c2_local", "-d", "evidence_atlas_c2"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+
+volumes:
+  c2_postgres_data:
+    name: evidence-atlas-c2-postgres-data
+
+# Compose creates a separate evidence-atlas-c2_default network.

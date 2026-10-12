@@ -567,6 +567,8 @@ Developer-provided terminal observations now cover all six Groq cases. Case 01 f
 
 ---
 
+**C2 environment preparation — Step 1 (2026-10-12, JST):** A standalone Compose configuration now defines a dedicated PostgreSQL/pgvector container, persistent volume, network and loopback-only port 5433. An explicit C2 environment template and offline-tested connection-target guard prevent the C2 Prisma wrapper from falling back to development `DATABASE_URL`. [Local C2 PostgreSQL setup](c2-local-postgres.md) documents later schema replay, genuine OAuth-linked fixtures and safe teardown. No Docker resources were activated, no database was connected or initialized, and no migrations, seeds, OAuth or browser tests were executed. This completes configuration preparation only; authenticated C2 execution and Phase 10 remain incomplete.
+
 ### Phase 11 — Deployment
 
 **Goal:** Deploy the portfolio version and verify production behavior.
