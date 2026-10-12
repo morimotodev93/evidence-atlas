@@ -1,4 +1,3 @@
-import { withSentryConfig } from "@sentry/nextjs/config";
 import type { NextConfig } from "next";
 import { resolve } from "node:path";
 import { isC2Runtime } from "./src/lib/c2/service-policy.ts";
@@ -12,37 +11,48 @@ const c2Aliases = {
 
 const nextConfig: NextConfig = {
   reactCompiler: true,
-  ...(c2 ? {
-    distDir: ".next-c2",
-    typescript: { tsconfigPath: "tsconfig.c2.json" },
-    turbopack: { resolveAlias: c2Aliases },
-    webpack(config) {
-      config.resolve ??= {};
-      config.resolve.alias = { ...config.resolve.alias,
-        ...Object.fromEntries(Object.entries(c2Aliases).map(([key, file]) => [`${key}$`, resolve(file)])),
-      };
-      return config;
-    },
-  } satisfies Partial<NextConfig> : {}),
+  ...(c2
+    ? ({
+        distDir: ".next-c2",
+        typescript: { tsconfigPath: "tsconfig.c2.json" },
+        turbopack: { resolveAlias: c2Aliases },
+        webpack(config) {
+          config.resolve ??= {};
+          config.resolve.alias = {
+            ...config.resolve.alias,
+            ...Object.fromEntries(
+              Object.entries(c2Aliases).map(([key, file]) => [
+                `${key}$`,
+                resolve(file),
+              ]),
+            ),
+          };
+          return config;
+        },
+      } satisfies Partial<NextConfig>)
+    : {}),
 };
 
-export default c2 ? nextConfig : withSentryConfig(nextConfig, {
-  org: process.env.SENTRY_ORG,
-  project: process.env.SENTRY_PROJECT,
-  authToken: process.env.SENTRY_AUTH_TOKEN,
+const sentryModule = c2 ? null : await import("@sentry/nextjs/config");
 
-  buildTimeInstrumentation: false,
-  telemetry: false,
+export default sentryModule
+  ? sentryModule.withSentryConfig(nextConfig, {
+      org: process.env.SENTRY_ORG,
+      project: process.env.SENTRY_PROJECT,
+      authToken: process.env.SENTRY_AUTH_TOKEN,
 
-  silent: !process.env.CI,
+      buildTimeInstrumentation: false,
+      telemetry: false,
 
-  widenClientFileUpload: true,
+      silent: !process.env.CI,
 
-  webpack: {
-    automaticVercelMonitors: false,
+      widenClientFileUpload: true,
 
-    treeshake: {
-      removeDebugLogging: true,
-    },
-  },
-});
+      webpack: {
+        automaticVercelMonitors: false,
+        treeshake: {
+          removeDebugLogging: true,
+        },
+      },
+    })
+  : nextConfig;
