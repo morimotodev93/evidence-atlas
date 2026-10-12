@@ -1,12 +1,6 @@
 import type { Metadata } from "next";
-import { IBM_Plex_Sans } from "next/font/google";
+import { appFontClassName } from "@/lib/app-font";
 import "./globals.css";
-
-const ibmPlexSans = IBM_Plex_Sans({
-  variable: "--font-ibm-plex-sans",
-  subsets: ["latin"],
-  weight: ["400", "500", "600", "700"],
-});
 
 export const metadata: Metadata = {
   title: {
@@ -19,7 +13,7 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
-    <html lang="en" className={`${ibmPlexSans.variable} antialiased`}>
+    <html lang="en" className={`${appFontClassName} antialiased`}>
       <body className="min-h-screen bg-background text-foreground">
         {children}
       </body>

@@ -5,6 +5,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
+    "dev:c2": "node scripts/c2-app.ts",
     "build": "next build",
     "start": "next start",
     "lint": "eslint",

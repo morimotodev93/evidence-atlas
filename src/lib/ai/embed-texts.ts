@@ -2,10 +2,12 @@ import type { GoogleEmbeddingModelOptions } from "@ai-sdk/google";
 import { embed, embedMany } from "ai";
 
 import { embeddingModel } from "@/lib/ai/model";
+import { requireExternalServiceEnabled } from "@/lib/c2/service-policy";
 
 const EMBEDDING_DIMENSIONS = 768;
 
 export async function embedTexts(texts: string[]): Promise<number[][]> {
+  requireExternalServiceEnabled();
   if (texts.length === 0) {
     return [];
   }
@@ -25,6 +27,7 @@ export async function embedTexts(texts: string[]): Promise<number[][]> {
 }
 
 export async function embedQuery(text: string): Promise<number[]> {
+  requireExternalServiceEnabled();
   const { embedding } = await embed({
     model: embeddingModel,
     value: text,

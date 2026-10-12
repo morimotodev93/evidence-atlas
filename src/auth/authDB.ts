@@ -6,11 +6,14 @@ import { PostgresDialect } from "kysely";
 import { Pool } from "pg";
 
 import { AuthTableNamePlugin } from "./authTableNamePlugin";
+import { resolveRuntimeDatabaseUrl } from "../lib/c2/runtime-database.ts";
+
+const databaseUrl = resolveRuntimeDatabaseUrl(process.env);
 
 export const authDb = new KyselyAuth<AuthDatabase>({
   dialect: new PostgresDialect({
     pool: new Pool({
-      connectionString: process.env["DATABASE_URL"]!,
+      connectionString: databaseUrl,
     }),
   }),
   plugins: [new AuthTableNamePlugin()],

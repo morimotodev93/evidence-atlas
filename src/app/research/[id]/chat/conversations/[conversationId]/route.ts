@@ -1,4 +1,5 @@
 import { auth } from "@/auth";
+import { c2ServiceResponse } from "@/lib/c2/service-policy";
 import { isPublicDemoMode } from "@/lib/deployment-mode";
 import {
   requireResearchAccess,
@@ -17,6 +18,8 @@ type RouteContext = {
 };
 
 export async function GET(_request: Request, { params }: RouteContext) {
+  const blocked = c2ServiceResponse();
+  if (blocked) return blocked;
   if (isPublicDemoMode()) return new Response(null, { status: 404 });
 
   const { id: researchId, conversationId } = await params;

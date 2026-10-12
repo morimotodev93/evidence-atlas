@@ -1,4 +1,5 @@
 import { db } from "@/prisma/db";
+import { requireExternalServiceEnabled } from "@/lib/c2/service-policy";
 
 import { chunkText } from "@/lib/ai/chunk-text";
 import { embedTexts } from "@/lib/ai/embed-texts";
@@ -19,6 +20,7 @@ type RetrievalChunkInput = RetrievalCandidate & {
 };
 
 export async function indexResearch(researchId: string) {
+  requireExternalServiceEnabled();
   return await Sentry.startSpan(
     {
       name: "index research",

@@ -1,4 +1,5 @@
 import { embedQuery } from "@/lib/ai/embed-texts";
+import { requireExternalServiceEnabled } from "@/lib/c2/service-policy";
 import { searchRetrievalChunks } from "@/lib/ai/search-retrieval-chunks";
 import { db } from "@/prisma/db";
 import * as Sentry from "@sentry/nextjs";
@@ -11,6 +12,7 @@ export async function retrieveWorkspaceContext(
   workspaceId: string,
   query: string,
 ) {
+  requireExternalServiceEnabled();
   return await Sentry.startSpan(
     {
       name: "retrieve workspace context",

@@ -2,6 +2,7 @@ import type { serve } from "inngest/next";
 import type { NextRequest } from "next/server";
 
 import { isPublicDemoMode } from "@/lib/deployment-mode";
+import { c2ServiceResponse } from "@/lib/c2/service-policy";
 
 let handlers: Promise<ReturnType<typeof serve>> | undefined;
 
@@ -36,6 +37,8 @@ async function dispatch(
   request: NextRequest,
   context: unknown,
 ) {
+  const blocked = c2ServiceResponse();
+  if (blocked) return blocked;
   if (isPublicDemoMode()) {
     return new Response(null, {
       status: 404,

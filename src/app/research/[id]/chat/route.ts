@@ -1,4 +1,5 @@
 import { streamText, type ModelMessage } from "ai";
+import { c2ServiceResponse } from "@/lib/c2/service-policy";
 
 import { auth } from "@/auth";
 import {
@@ -27,6 +28,8 @@ type RouteContext = {
 };
 
 export async function POST(request: Request, { params }: RouteContext) {
+  const blocked = c2ServiceResponse();
+  if (blocked) return blocked;
   if (isPublicDemoMode()) return new Response(null, { status: 404 });
 
   const { id: researchId } = await params;

@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { populate } from "dotenv";
 import {
   parseC2Command,
   prepareC2Prisma,
@@ -111,9 +112,6 @@ describe("C2 target safeguards (no database connection)", () => {
       DOTENV_PATH: "/project/.env.c2.local",
       DOTENV_CONFIG_PATH: "/project/.env.c2.local",
 
-      DOTENV_OVERRIDE: "false",
-      DOTENV_CONFIG_OVERRIDE: "false",
-
       DOTENV_QUIET: "true",
       DOTENV_CONFIG_QUIET: "true",
     });
@@ -130,6 +128,27 @@ describe("C2 target safeguards (no database connection)", () => {
         DATABASE_URL: config.C2_DATABASE_URL,
       }),
     ).toThrow();
+  });
+
+  it.each(["DATABASE_URL", "DOTENV_CONFIG_OVERRIDE", "AUTH_SECRET", "EXTRA"])(
+    "rejects unexpected dedicated DB config keys (%s)", (key) => {
+      expect(() => validateC2Target({ ...config, [key]: "synthetic-secret" })).toThrow("Unexpected keys");
+    },
+  );
+
+  it("removes literal false overrides and preserves the validated URL with installed dotenv", () => {
+    const vulnerable = { DATABASE_URL: config.C2_DATABASE_URL };
+    populate(vulnerable, { DATABASE_URL: "synthetic-other" }, { override: "false" as unknown as boolean });
+    expect(vulnerable.DATABASE_URL).toBe("synthetic-other");
+    const fixed = prepareC2Prisma("verify", config, "explicit-file", {
+      NODE_ENV: "test", DOTENV_CONFIG_OVERRIDE: "false", DOTENV_OVERRIDE: "false",
+      DOTENV_KEY: "synthetic-key", PGHOST: "remote.example",
+    }).env;
+    expect(fixed.DOTENV_CONFIG_OVERRIDE).toBeUndefined();
+    expect(fixed.DOTENV_OVERRIDE).toBeUndefined();
+    expect(fixed.DOTENV_KEY).toBeUndefined();
+    populate(fixed, { DATABASE_URL: "synthetic-other" });
+    expect(fixed.DATABASE_URL).toBe(config.C2_DATABASE_URL);
   });
 
   it.each(["show", "verify"] as const)(

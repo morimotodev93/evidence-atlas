@@ -2,7 +2,22 @@
 
 > **Status:** Implemented Phase 6 baseline with Phase 7 route authorization and Phase 8.3 background indexing
 > **Scope:** Phase 5 AI Integration + Phase 6 Retrieval / RAG + Phase 7 AI route access control + Phase 8.3 Background Jobs
-> **Last Updated:** 2026-10-10
+> **Last Updated:** 2026-10-12
+
+## C2 browser-test runtime boundary
+
+The opt-in validated C2 runtime keeps real Google OAuth and the isolated application
+database, but disables real Chat endpoints with 503 responses before authentication,
+data operations, Redis, retrieval or generation. Embedding, retrieval and indexing
+also reject direct invocation; Inngest enqueue is a no-op and its endpoint/worker
+are guarded. Browser tests must mock the entire conversation/Chat contract.
+
+C2 builds replace Sentry and Google font modules with inert/system-font alternatives
+and use dedicated Next artifacts. Normal SaaS and Public Demo retain their existing
+boundaries, model IDs, prompts, citation validation and retrieval behavior.
+See [C2 runtime isolation](../planning/c2-local-runtime.md) for offline evidence and
+the required later compiler/network verification. No runtime or provider validation
+is implied by these implementation checks.
 
 ## 1. Purpose
 

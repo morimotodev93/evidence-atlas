@@ -1,4 +1,5 @@
 import * as Sentry from "@sentry/nextjs";
+import { isC2Runtime } from "@/lib/c2/service-policy";
 
 import {
   inngest,
@@ -7,6 +8,8 @@ import {
 } from "@/inngest/client";
 
 export async function requestResearchIndex(researchId: string) {
+  // Expected C2 no-op, before the error-reporting path and event creation.
+  if (isC2Runtime()) return;
   try {
     requireProductionSafeInngestMode();
 

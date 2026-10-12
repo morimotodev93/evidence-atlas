@@ -15,9 +15,14 @@
 /playwright-report/
 /test-results/
 /evals/ai-chat/runs/
+/playwright/.auth/
+/.c2-browser/
+/test-results-c2/
+/playwright-report-c2/
 
 # next.js
 /.next/
+/.next-c2/
 /out/
 
 # production
@@ -37,6 +42,7 @@ yarn-error.log*
 .env*
 !.env.example
 !.env.c2.example
+!.env.c2.auth.example
 
 # vercel
 .vercel

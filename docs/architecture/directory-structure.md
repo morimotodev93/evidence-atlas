@@ -1,7 +1,7 @@
 # Directory Structure
 
 > **Status:** Current implementation; future areas remain provisional
-> **Last Updated:** 2026-10-08
+> **Last Updated:** 2026-10-12
 
 This document describes the implemented architecture of **Evidence Atlas**.
 The tree below highlights the application-relevant structure.
@@ -20,7 +20,7 @@ evidence-atlas/
 │   ├── pgvector/           # Vector extension migration
 │   └── snapshots/          # Contract snapshots used by migrations
 ├── public/
-├── scripts/               # Explicit Research indexing and manual AI evaluation
+├── scripts/               # Research indexing, AI evaluation, and opt-in C2 launch tooling
 ├── src/
 │   ├── app/
 │   │   ├── api/auth/[...nextauth]/ # Auth.js GET/POST Route Handler
@@ -155,6 +155,8 @@ Public Demo needs no Inngest keys, Cloud sync, or runtime indexing. Normal Cloud
 ### `src/lib/` and `src/types/`
 
 `lib/` contains shared date and class-name utilities and a Prisma query-result compatibility helper. Database runtime configuration lives in `src/prisma/db.ts`.
+
+`lib/c2/` contains pure connection validation, the opt-in database/service policy, and inert build-selected font/telemetry modules. Dedicated C2 launch tooling lives under `scripts/`; normal SaaS and Public Demo keep their existing connection behavior. [C2 runtime setup](../planning/c2-local-runtime.md) describes environment isolation, service guards, bundler aliases and the remaining compiler/runtime verification.
 
 `lib/ai/` owns generation and embedding model configuration, text chunking, Research indexing, Workspace vector retrieval, current Research context, and citation validation/resolution. The chat Route Handler combines current Research knowledge, retrieved Workspace context, and persisted messages before streaming plain text. Completed responses are checked against a request-specific Source allowlist before persistence. Conversation detail resolves citations within the Workspace. See [AI Architecture](ai-architecture.md) for the full flow and live-versus-restored citation boundaries.
 

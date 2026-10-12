@@ -4,6 +4,12 @@ Status: configuration and offline safeguards only. No container, volume, databas
 schema, fixture, or authenticated session has been created or verified by this step.
 C2 browser tests remain pending. All commands below run from the repository root.
 
+Step 2-B1 adds a [dedicated app launcher and DB initialization guards](c2-local-runtime.md).
+Its runtime remains unapproved until B2 external-service and artifact safeguards.
+The DB config now strictly allows only its three documented C2 keys. The Prisma
+wrapper removes dotenv override settings entirely, including the unsafe string
+`"false"`; it retains the explicit dotenv file path and validated child DATABASE_URL.
+
 ## Architecture and prerequisites
 
 | | Existing development | C2 |

@@ -1,9 +1,10 @@
 import { getSentryTracesSampleRate } from "@/lib/observability/sentry-config";
 import * as Sentry from "@sentry/nextjs";
+import { isC2Runtime } from "@/lib/c2/service-policy";
 
 const dsn = process.env.NEXT_PUBLIC_SENTRY_DSN;
 
-Sentry.init({
+if (!isC2Runtime()) Sentry.init({
   dsn,
   enabled: Boolean(dsn),
   environment: process.env.NODE_ENV,
