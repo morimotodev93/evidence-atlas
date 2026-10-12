@@ -575,6 +575,8 @@ Developer-provided terminal observations now cover all six Groq cases. Case 01 f
 
 **C2 Step 2-C startup repair (2026-10-12, JST):** A top-level await in Next config failed the installed default TypeScript/CommonJS loader after Next's early Ready log. Moving the lazy Sentry import into an exported async config function fixed the failure without changing stdio or service/DB guards. The temporary Webpack switch was removed. Offline regression passed 438 tests and TypeScript; lint passed after excluding generated `.next-c2` output. One separately authorized bounded C2 startup stayed running, listened on `127.0.0.1:3001`, created dedicated artifacts, and served anonymous session 200 and Inngest 503 before being stopped. Ordinary `.next` file metadata remained unchanged. Observed external established TCP connections were zero at two checks, not an exhaustive traffic audit. OAuth, fixtures, root/font/client compilation and browser E2E remain unverified. See [runtime verification record](c2-local-runtime.md#step-2-c-startup-failure-and-controlled-verification-2026-10-12-jst).
 
+**C2 Step 2-C OAuth verification (2026-10-12, JST):** Dedicated Google OAuth login succeeded and redirected to `/onboarding`. C2 PostgreSQL User, Google Account, and Session counts increased from 0/0/0 to 1/1/1. The authenticated browser User ID matched the database User ID. The C2 container identity and isolated port were confirmed, and Inngest returned HTTP 503. No workspace or test fixture was created. Next: guarded C2 fixture implementation and authenticated Playwright E2E.
+
 ### Phase 11 — Deployment
 
 **Goal:** Deploy the portfolio version and verify production behavior.

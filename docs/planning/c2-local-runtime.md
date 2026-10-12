@@ -186,3 +186,17 @@ was v24.16.0, differing from the task's reported v24.19.0; Next was v16.3.8.
 First post-start lint exposed a missing `.next-c2` ignore rule and linted generated
 code. The dedicated output is now excluded, without deleting artifacts or disabling
 source checks. This preserves lint behavior after actual C2 startup.
+
+## Step 2-C Google OAuth verification (2026-10-12, JST)
+
+- Confirmed the dedicated Google OAuth Client ID, callback URL, and test-user configuration.
+- Verified C2 PostgreSQL identity: `evidence_atlas_c2`, role `c2_local`, isolated container on `127.0.0.1:5433`.
+- Completed real Google OAuth login using a private browser session.
+- Authenticated user was redirected to `/onboarding`.
+- Browser `/api/auth/session` returned a valid authenticated session.
+- C2 database User / Google Account / Session counts changed from 0 / 0 / 0 to 1 / 1 / 1.
+- Confirmed the browser session User ID matched the C2 database User ID.
+- Inngest GET returned HTTP 503 as expected.
+- No workspace creation, fixture seeding, migration, or external AI invocation was performed.
+
+Step 2-C OAuth and database session verification passed. C2 fixture implementation and authenticated Playwright E2E remain pending. Comprehensive outbound-traffic isolation has not been established.
