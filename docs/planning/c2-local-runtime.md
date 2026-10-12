@@ -1,8 +1,10 @@
 # C2 runtime isolation — Steps 2-B1 and 2-B2
 
 Status: launcher, environment isolation, database initialization and B2 service/build
-guards implemented and tested offline. **Not approved for startup or OAuth.** Actual
-Next compiler resolution, runtime binding and outbound traffic remain unverified.
+guards implemented and tested offline. A separately authorized bounded Step 2-C
+startup check verified the C2 listener and two anonymous/read-only endpoints.
+**OAuth and fixture creation remain unapproved/unverified.** Full client/font
+compiler resolution and exhaustive outbound-traffic isolation remain unverified.
 No application startup, OAuth login, database operation or external service call
 was performed for B1. Previously completed C2 schema initialization is a separately
 reported operation, not re-verified by these offline checks.
@@ -10,8 +12,8 @@ reported operation, not re-verified by these offline checks.
 ## Configuration and future command
 
 The dedicated command is `pnpm dev:c2` (`node scripts/c2-app.ts`, Node.js 24).
-It accepts no additional arguments. **NOT EXECUTED; do not run without separately
-approved runtime verification.** It invokes the installed Next binary without a shell:
+It accepts no additional arguments. **Do not run without separate approval beyond
+the recorded bounded Step 2-C check.** It invokes the installed Next binary without a shell:
 `dev --hostname 127.0.0.1 --port 3001`. The fixed browser/OAuth origin is
 `http://localhost:3001`; callback is `/api/auth/callback/google`. There is no
 automatic alternative host, port, credential source, or normal-dev fallback.
@@ -140,3 +142,47 @@ resolution, no unintended outbound traffic, true Google login and C2 DB session
 identity. Dedicated browser profile, cookie isolation, guarded fixture creation,
 and Playwright configuration remain later stages. No runtime-readiness claim is
 made by offline B1/B2 tests.
+
+## Step 2-C startup failure and controlled verification (2026-10-12, JST)
+
+The Ready → exit 1 failure came from a top-level dynamic-import `await` in
+`next.config.ts`. Installed Next 16's default TS config loader transforms the
+module to CommonJS and evaluates it with `requireFromString`; top-level await is
+invalid in that path, even though a direct native ESM import probe succeeds.
+Next's start-server implementation deliberately prints Ready before configuration
+and request-handler initialization, so that message was not startup confirmation.
+
+The import is now inside the supported exported async config function. C2 returns
+its configuration before importing Sentry; normal SaaS/Demo still wrap the config.
+The temporary Webpack CLI switch was removed: it did not address configuration
+loading and was not retained as a workaround. Other pre-existing formatting edits
+were preserved. The launcher retains private stdout/stderr pipes and ignored stdin;
+these stdio settings worked with the fixed configuration and were not changed.
+Safe diagnostic categories now include config/async-loader, filesystem and module
+resolution errors; exit after Ready explicitly refuses a startup-success claim.
+Exit and stream-close events are distinguished without emitting raw output.
+
+Offline tests use locally installed synchronous Next/SWC transforms and an isolated
+CommonJS evaluation with mocked service imports. They reproduce the old syntax
+failure and verify actual fixed config loading in both C2 and normal modes, without
+starting a compiler server or taking an SWC download fallback.
+
+After successful offline target validation, C2 container identity/health/port checks,
+empty port 3001 and guard tests, one corrected `pnpm dev:c2` attempt ran with default
+Turbopack. It remained running beyond initial Ready, listened only on
+`127.0.0.1:3001`, created `.next-c2`, and returned anonymous HTTP 200 from
+`GET /api/auth/session` and HTTP 503 from `GET /api/inngest`.
+The process was then stopped; port 3001 no longer listened. No OAuth, mutations,
+seeds, migrations, Docker changes or AI calls were performed.
+
+Metadata-only snapshots of all 1,081 ordinary `.next` files (paths, sizes and
+timestamps, including five event files) were identical before/after this attempt.
+No diagnostic contents were printed or saved. Two established-TCP observations
+for the C2 Node process chain saw no non-loopback connections; these snapshots
+are **not proof of zero transient outbound traffic**. The root page/font/client
+bundle was not verified by these two endpoint checks. Runtime check Node version
+was v24.16.0, differing from the task's reported v24.19.0; Next was v16.3.8.
+
+First post-start lint exposed a missing `.next-c2` ignore rule and linted generated
+code. The dedicated output is now excluded, without deleting artifacts or disabling
+source checks. This preserves lint behavior after actual C2 startup.

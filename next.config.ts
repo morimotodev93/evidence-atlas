@@ -33,10 +33,12 @@ const nextConfig: NextConfig = {
     : {}),
 };
 
-const sentryModule = c2 ? null : await import("@sentry/nextjs/config");
-
-export default sentryModule
-  ? sentryModule.withSentryConfig(nextConfig, {
+// Next's default TS config loader transpiles to CommonJS. Keep dynamic imports
+// inside its supported async config function, never at module top level.
+export default async function configureNext() {
+  if (c2) return nextConfig;
+  const sentryModule = await import("@sentry/nextjs/config");
+  return sentryModule.withSentryConfig(nextConfig, {
       org: process.env.SENTRY_ORG,
       project: process.env.SENTRY_PROJECT,
       authToken: process.env.SENTRY_AUTH_TOKEN,
@@ -54,5 +56,5 @@ export default sentryModule
           removeDebugLogging: true,
         },
       },
-    })
-  : nextConfig;
+    });
+}

@@ -90,6 +90,9 @@ describe("launcher orchestration without starting Next", () => {
       "synthetic-private-secret",
     );
     child.emit("exit", 2, null);
+    expect(console.error).toHaveBeenCalledWith("C2: Ready was reported but startup did not remain running. Startup is not verified.");
+    child.emit("close", 2, null);
+    expect(console.log).toHaveBeenCalledWith("C2 child streams closed: code=2 signal=none (raw output suppressed).");
     expect(console.log).toHaveBeenCalledWith(
       "C2 child exited: code=2 signal=none (raw output suppressed).",
     );

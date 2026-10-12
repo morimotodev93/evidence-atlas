@@ -2,12 +2,20 @@ export type C2Diagnostic =
   | "ready"
   | "port-conflict"
   | "compile-error"
-  | "font-network-error";
+  | "font-network-error"
+  | "config-error"
+  | "config-await-error"
+  | "filesystem-error"
+  | "module-resolution-error";
 
 const checks: ReadonlyArray<{
   kind: C2Diagnostic;
   pattern: RegExp;
 }> = [
+  { kind: "config-await-error", pattern: /await is only valid in async functions|\bERR_REQUIRE_ASYNC_MODULE\b/i },
+  { kind: "config-error", pattern: /failed to (?:load|transpile).*next\.config|invalid next\.config/i },
+  { kind: "filesystem-error", pattern: /\b(?:EACCES|EPERM|EROFS|ENOSPC)\b/ },
+  { kind: "module-resolution-error", pattern: /\b(?:MODULE_NOT_FOUND|ERR_MODULE_NOT_FOUND)\b|cannot find module/i },
   {
     kind: "port-conflict",
     pattern: /\bEADDRINUSE\b|port\s+\d+\s+is in use/i,

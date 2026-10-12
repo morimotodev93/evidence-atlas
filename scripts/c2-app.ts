@@ -44,6 +44,10 @@ try {
     "port-conflict": "C2: Port conflict detected.",
     "compile-error": "C2: Compile or module error detected.",
     "font-network-error": "C2: Font network error detected.",
+    "config-error": "C2: Configuration loading error detected.",
+    "config-await-error": "C2: Async configuration loader incompatibility detected.",
+    "filesystem-error": "C2: Filesystem error detected.",
+    "module-resolution-error": "C2: Module resolution error detected.",
   };
 
   const reported = new Set<C2Diagnostic>();
@@ -68,10 +72,16 @@ try {
     process.exitCode = 1;
   });
   child.on("exit", (code, signal) => {
+    if (reported.has("ready") && code !== 0 && !signal) {
+      console.error("C2: Ready was reported but startup did not remain running. Startup is not verified.");
+    }
     console.log(
       `C2 child exited: code=${code ?? "none"} signal=${signal ?? "none"} (raw output suppressed).`,
     );
     process.exitCode = code ?? (signal ? 1 : 0);
+  });
+  child.on("close", (code, signal) => {
+    console.log(`C2 child streams closed: code=${code ?? "none"} signal=${signal ?? "none"} (raw output suppressed).`);
   });
   for (const signal of ["SIGINT", "SIGTERM"] as const) {
     process.once(signal, () => {

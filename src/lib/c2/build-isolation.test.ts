@@ -16,7 +16,8 @@ afterEach(() => vi.unstubAllEnvs());
 
 describe("C2 build-time module substitution without compiling Next", () => {
   it("uses dedicated artifacts/type config, skips Sentry wrapper, aliases both bundlers", async () => {
-    const { default: config } = await import("../../../next.config");
+    const { default: configure } = await import("../../../next.config");
+    const config = await configure();
     expect(config.distDir).toBe(".next-c2");
     expect(config.typescript?.tsconfigPath).toBe("tsconfig.c2.json");
     expect(mocks.sentryConfig).not.toHaveBeenCalled();
@@ -50,7 +51,8 @@ describe("C2 build-time module substitution without compiling Next", () => {
   });
   it.each(["false", "true"])("normal SaaS/Demo retains Sentry wrapper and default artifacts (Demo=%s)", async (demo) => {
     vi.stubEnv("C2_RUNTIME_MODE", undefined); vi.stubEnv("PUBLIC_DEMO_MODE", demo);
-    const { default: config } = await import("../../../next.config");
+    const { default: configure } = await import("../../../next.config");
+    const config = await configure();
     expect(mocks.sentryConfig).toHaveBeenCalledOnce();
     expect(config.distDir).toBeUndefined(); expect(config.turbopack).toBeUndefined();
     expect(readFileSync("src/lib/app-font.ts", "utf8")).toContain("next/font/google");
