@@ -1,4 +1,4 @@
-# C2 runtime isolation — Steps 2-B through 4-B2
+# C2 runtime isolation — Steps 2-B through 4-B3
 
 Status: launcher, environment isolation, database initialization and B2 service/build
 guards implemented and tested offline. Separately authorized Step 2-C checks
@@ -6,9 +6,10 @@ verified the C2 listener, endpoints, real Google OAuth and matching database-bac
 session identity (record below). Step 3-A fixture implementation is offline-tested;
 Steps 3-B/3-C fixture insertion and manual browser checks are developer-reported
 below. Step 4-A adds the offline-tested Playwright foundation.
-The first two bootstraps reached the sign-in page; the third reached a Google
-main-frame request but stalled without an observed commit. All were stopped without
-saved state according to developer reports; Step 4-B2 offline triage is below.
+The first two bootstraps reached the sign-in page; the third and fourth reached a
+Google main-frame request but stalled without an observed response/commit. All were
+stopped without saved state according to developer reports. Step 4-B3 adds a
+standalone, offline-tested native Chromium HTTPS probe; it has not been executed.
 **Cleanup and live authenticated Playwright remain unexecuted.** Full client/font
 compiler resolution and exhaustive outbound-traffic isolation remain unverified.
 No application startup, OAuth login, database operation or external service call
@@ -946,3 +947,157 @@ Enter while on a blank/provider page; stop the unsuccessful attempt. Press Enter
 only after genuine fixture Workspace return. A pending code is not a network
 timeout diagnosis and will not initiate an automatic retry. No further app server,
 fixture operation or networking/security change is required or authorized here.
+
+## Step 4-B3 — isolated Chromium HTTPS probe (2026-10-13, JST)
+
+Baseline `7b3f84d` on `main`, clean at task start. Implementation/source inspection,
+mocked regression and offline verification only. No probe/Chromium/live HTTP,
+Google OAuth, DB, Docker, app-server or fixture operation was performed. No real
+auth-state file was accessed or created. No commit or push was made.
+
+### Fourth Bootstrap attempt — developer report
+
+The reported sequence was AUTH_BROWSER_POST, AUTH_SUBMIT, AUTH_REDIRECT,
+AUTH_FULFILL_STARTED, AUTH_FULFILL_COMPLETED, AUTH_BROWSER_REDIRECT,
+GOOGLE_NAV_REQUEST, GOOGLE_NAV_PENDING_NO_RESPONSE and
+GOOGLE_NAV_ROUTE_NOT_OBSERVED. Chromium remained blank/loading. After stopping,
+MANUAL_WAIT_FAILED, BOOTSTRAP_SHUTDOWN_STARTED, GOOGLE_NAV_UNCOMMITTED and
+GOOGLE_NAV_CANCELED_DURING_SHUTDOWN appeared. Saved state was reported absent.
+No Google response was observed before the 20-second observation deadline;
+shutdown cancellation is not an independent Google network failure diagnosis.
+Separately Windows TCP reachability to `accounts.google.com:443` was reported
+True. Chromium DNS/TLS/HTTPS reachability and the OAuth stall's root cause remain
+unestablished. These observations were not repeated by this task.
+
+### Dedicated command and native transport
+
+The new entry point is `scripts/c2-browser-https-probe.ts`; its standalone policy,
+runtime and offline tests are in `c2-browser-https-probe-{policy,runtime}.ts` and
+`c2-browser-https-probe.test.ts`. Bootstrap/E2E do not import or auto-run it.
+It requires only the exact `--allow-c2-network-probe` flag and accepts no additional
+arguments, URL, profile, proxy or authentication options. It neither requires nor
+accesses a User ID/email, Auth.js session, C2 database or running Evidence Atlas app.
+
+The sole target is the literal `https://accounts.google.com/robots.txt`. Measurement
+uses native `page.goto`, with no APIRequestContext/Node HTTP/route.fetch substitute.
+Headless mode with the explicit `chromium` channel selects the same installed full
+Chromium binary as headed Bootstrap (not chromium-headless-shell), per installed
+1.63.0 executable selection. Mode differs from Bootstrap; this is a basic native
+HTTPS diagnostic, not an exact reproduction of headed OAuth/challenge behavior.
+
+Each invocation creates a fresh non-persistent browser/context. No storageState,
+existing profile, cookies, credentials or private browser state are imported.
+Service workers, JavaScript and downloads are disabled; TLS errors are not ignored,
+no certificate/security flags or proxy overrides are supplied, and cache is disabled.
+The Chromium child receives only an OS environment allowlist, excluding database,
+OAuth, fixture User and provider credentials. Node preload/debug, Playwright/remote
+browser overrides and inherited proxy settings refuse before driver import/launch.
+The script does not load standard/C2 dotenv files, seed or app DB/auth modules.
+
+No remote body is fetched through the protocol or rendered. No storage/cookie
+export, trace, screenshot, HAR, video, network dump or report is created. Installed
+Playwright documents newContext as non-persistent, with no browsing-data disk
+persistence; ordinary temporary browser-process directories are owned and cleaned
+by Playwright. The probe never prints those paths. This is not an assertion that
+Chromium performs no temporary process/filesystem operations internally.
+
+### Redirect containment: installed protocol evidence and enforcement
+
+Installed `playwright-core/types/protocol.d.ts` defines Fetch Request stage before
+sending and Response stage after response arrival but before receiving body. It
+states that the request remains paused until an explicit continue/fail/fulfill
+command, and that redirect responses and subsequent requests are also reported.
+`Fetch.failRequest` fails the paused request. The implementation relies on this
+Response-stage pause contract, not Playwright's ordinary redirect route callbacks.
+
+Before navigation, the probe obtains the fresh main-frame ID and requires successful
+Network/cache/Fetch setup. Fetch captures all Request and Response stages; matching
+all traffic enables inspection/refusal, not outbound permission. The Request gate
+allows one exact GET Document from that frame, rejects redirected/duplicate
+requests, subframes/subresources and alternate destinations, and explicitly sets
+interceptResponse=true on its sole continuation. Response events must correlate
+to the approved Fetch/network request and retain the exact URL/method/frame.
+
+At Response pause, **every response is failed before continuation**, including all
+3xx. No Location is followed/read for navigation, no response/body/headers are
+forwarded, and no Fetch.continueResponse, Fetch.disable or CDP detach releases the
+paused response. All 300–399 statuses are classified HTTPS_REDIRECT_REFUSED. Any
+ordinary 200–299 or 400–599 status can establish response-header receipt, so 200 is
+not required. Status outside these ranges or mismatched metadata refuses. HTTP/
+proxy authentication challenges receive CancelAuth, never credentials.
+
+The safe terminal classification is produced only after the response-abort command
+acknowledges. Setup/abort-command failure refuses and starts browser/context
+closure; no insecure continuation fallback exists. CDP .send uses the direct
+session command path, not RouteImpl's catchDisallowedErrors helper. Intentional
+abort events are suppressed as measurement failures. Offline protocol-source and
+mock tests establish this control logic; **actual live Chromium containment has
+not been executed or independently packet-audited**. Containment is for the fresh
+page's traffic, not proof about all browser-internal background networking.
+
+### Deadlines, cleanup and privacy
+
+A fixed 15-second measurement deadline covers launch/setup/native observation.
+Startup/goto also receive bounded remaining time. It performs no authentication
+retry or additional navigation. A late-created browser after timeout is immediately
+closed and cannot begin a context/navigation. Success, refusal, cancellation and
+timeout all call context.close/browser.close. Fetch stays active until the page
+is destroyed. Cleanup waiting has a separate 5-second budget; lack of acknowledgement
+or a rejected close produces HTTPS_CLEANUP_FAILED and overall refusal, never a claim
+that closure completed. A stuck driver/OS cleanup cannot be guaranteed away by the
+public browser API; that limitation is reported rather than changing security or
+force-killing unrelated processes. The usual total bounded wait is at most about
+20 seconds, excluding initial module loading and exceptional process teardown.
+
+Output is runtime-allowlisted fixed codes only. URLs/queries, headers, cookies,
+tokens, bodies, identities, profile paths and arbitrary exception text are never
+printed. Exact known native/Fetch failure values map to DNS/TLS/NETWORK/CANCELED;
+unknown or insufficient error data remains HTTPS_FAILURE_UNCLASSIFIED. A local
+deadline is HTTPS_TIMEOUT and does not prove a TLS problem. Generic CDP failures
+can lack enough data to distinguish TLS; no such diagnosis is invented.
+
+| Code | Interpretation of a future live result |
+| --- | --- |
+| CHROMIUM_STARTED | Installed browser launch returned; no HTTPS proof yet |
+| HTTPS_REQUEST_STARTED | Exact native request was approved; no response proof yet |
+| HTTPS_RESPONSE_RECEIVED | Ordinary HTTPS response headers arrived and the response was terminated; no OAuth proof |
+| HTTPS_REDIRECT_REFUSED | 3xx headers arrived and were terminated before following; transport responded but target changed |
+| HTTPS_DNS_FAILURE / HTTPS_TLS_FAILURE / HTTPS_NETWORK_FAILURE | Exact correlated native failure class; underlying cause still needs review |
+| HTTPS_TIMEOUT | Measurement deadline elapsed; pending startup/setup/request is not conclusive TLS evidence |
+| HTTPS_FAILURE_UNCLASSIFIED | Available error data does not support a narrower cause |
+| HTTPS_AUTH_CHALLENGE_REFUSED | Credentials/challenge handling was refused; proxy challenge may precede origin TLS |
+| HTTPS_CANCELED | Context/browser or correlated navigation was canceled; not independent connectivity failure proof |
+| HTTPS_PROBE_REFUSED | Invocation, metadata, containment or overall safety failed; no success claimed |
+| HTTPS_CLEANUP_FAILED | Closure was not acknowledged; overall exit fails even if earlier headers were received |
+
+Exit succeeds only for HTTPS_RESPONSE_RECEIVED with acknowledged cleanup; all other
+terminal results fail. Intermediate fixed facts can precede a cleanup refusal.
+For example, redirect refusal demonstrates headers arrived but still exits failed.
+
+### Offline verification and proposed command — NOT EXECUTED
+
+Full Vitest passed **751 tests across 40 files**, including 67 new probe cases.
+TypeScript, full ESLint and `git diff --check` passed. Coverage includes exact opt-in,
+fixed target/env gating, fresh context/binary selection, native transport, pre-hop
+Response-stage 3xx refusal, command failure, unexpected traffic, auth cancellation,
+correlated error classification, timeout/late creation, closure/cleanup budgets,
+redaction and Bootstrap/E2E independence. Browser/CDP interfaces were mocked;
+source-contract tests inspected the installed package without constructing a
+browser/session. Four C2 and six Demo scenarios, existing OAuth/session/fixture/DB
+guards, credentials and secret-exclusion rules are unchanged.
+
+After separate developer approval, from a trusted Node environment without
+debug/preload/proxy/browser overrides, run the independent probe only:
+
+```powershell
+# Native HTTPS probe — NOT EXECUTED in Step 4-B3
+node .\scripts\c2-browser-https-probe.ts --allow-c2-network-probe
+```
+
+No app-server startup, User selection, auth-state file or DB setup is needed for
+this utility. Report only fixed codes. Header receipt would narrow the investigation
+toward OAuth/redirect/endpoint/mode-specific behavior, without establishing a
+successful login. A probe failure does not by itself identify Windows networking
+or Google as its cause. Do not change certificates, security flags or proxy settings
+to force success, and do not automatically retry OAuth/fixtures/E2E. No probe or
+fifth OAuth attempt was executed in this task; the stall root cause remains unknown.
