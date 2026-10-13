@@ -41,7 +41,14 @@ export async function runProbe(engine: Pick<BrowserType, "launch">, env: Record<
         return;
       }
       if (!responseStage) {
-        if (approvedId) { if (await abort(event.requestId)) finish("HTTPS_DUPLICATE_REQUEST"); return; }
+        if (approvedId) {
+          // IDs are compared only; never log identifiers or relax the one-request gate.
+          const code: ProbeCode = event.requestId === approvedId ? "HTTPS_REPAUSED_FETCH_ID"
+            : networkId && event.networkId === networkId ? "HTTPS_SECOND_FETCH_SAME_NETWORK"
+            : "HTTPS_SECOND_FETCH_UNLINKED";
+          if (await abort(event.requestId)) finish(code);
+          return;
+        }
         approvedId = event.requestId; networkId = event.networkId;
         report("HTTPS_REQUEST_STARTED");
         // The only continuation is one reviewed request, before native Chromium
