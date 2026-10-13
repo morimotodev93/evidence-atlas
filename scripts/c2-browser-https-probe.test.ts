@@ -191,13 +191,25 @@ describe("Native Chromium/CDP probe orchestration (all browser/protocol calls mo
     expect(await running).toBe("HTTPS_TIMEOUT"); expect(s.browser.close).toHaveBeenCalledOnce();
     expect(s.browser.newContext).not.toHaveBeenCalled(); expect(s.goto).not.toHaveBeenCalled();
   });
-  it("redirected and duplicate request-stage events are never granted another continuation", async () => {
-    for (const [redirectedRequestId, expected] of [[undefined, "HTTPS_DUPLICATE_REQUEST"], ["fetch-root", "HTTPS_REQUEST_METADATA_MISMATCH"]] as const) {
+  it("classifies repeated Fetch pause and distinct Fetch IDs without granting another continuation", async () => {
+    for (const [requestId, secondNetworkId, expected] of [
+      ["fetch-root", "network-root", "HTTPS_REPAUSED_FETCH_ID"],
+      ["second", "network-root", "HTTPS_SECOND_FETCH_SAME_NETWORK"],
+      ["second", "other-network", "HTTPS_SECOND_FETCH_UNLINKED"],
+      ["second", undefined, "HTTPS_SECOND_FETCH_UNLINKED"],
+    ] as const) {
       const s = setup(); const running = s.run(); await vi.waitFor(() => expect(s.goto).toHaveBeenCalled());
-      s.cdpEvents.get("Fetch.requestPaused")!(event({ requestId: "second", redirectedRequestId }));
+      s.cdpEvents.get("Fetch.requestPaused")!(event({ requestId, networkId: secondNetworkId }));
       expect(await running).toBe(expected);
       expect(s.send.mock.calls.filter(([method]) => method === "Fetch.continueRequest")).toHaveLength(1);
+      expect(s.send).toHaveBeenCalledWith("Fetch.failRequest", { requestId, errorReason: "Aborted" });
     }
+  });
+  it("never follows a redirected request-stage event", async () => {
+    const s = setup(); const running = s.run(); await vi.waitFor(() => expect(s.goto).toHaveBeenCalled());
+    s.cdpEvents.get("Fetch.requestPaused")!(event({ requestId: "second", redirectedRequestId: "fetch-root" }));
+    expect(await running).toBe("HTTPS_REQUEST_METADATA_MISMATCH");
+    expect(s.send.mock.calls.filter(([method]) => method === "Fetch.continueRequest")).toHaveLength(1);
   });
   it("an early user browser closure is cancellation, not a claimed TLS failure", async () => {
     const s = setup(); const running = s.run(); await vi.waitFor(() => expect(s.goto).toHaveBeenCalled()); s.browserEvents.get("disconnected")!();
