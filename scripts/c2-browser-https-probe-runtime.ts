@@ -101,10 +101,11 @@ export async function runProbe(engine: Pick<BrowserType, "launch">, env: Record<
     if (stopped) return;
     await cdp.send("Network.setCacheDisabled", { cacheDisabled: true });
     if (stopped) return;
-    // No context.route: Playwright's normal route manager enables Request stage
-    // only and could overwrite the CDP Response-stage containment.
+    // Intercept every outgoing request before it is sent. The one approved GET
+    // explicitly opts into Response interception via continueRequest below.
+    // No context.route: Playwright routing may replace this CDP Fetch controller.
     await cdp.send("Fetch.enable", { handleAuthRequests: true, patterns: [
-      { urlPattern: "*", requestStage: "Request" }, { urlPattern: "*", requestStage: "Response" },
+      { urlPattern: "*", requestStage: "Request" },
     ] });
     if (stopped) return;
     // Browser-native navigation. Expected rejection follows our response abort;
