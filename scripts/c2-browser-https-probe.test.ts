@@ -110,8 +110,26 @@ describe("Native Chromium/CDP probe orchestration (all browser/protocol calls mo
     const s = setup(); const running = s.run();
     await vi.waitFor(() => expect(s.goto).toHaveBeenCalled());
     s.cdpEvents.get("Fetch.requestPaused")!(event({ requestId: "unexpected", request: { url: "https://evil.invalid/", method: "GET" }, resourceType: "Image" }));
-    expect(await running).toBe("HTTPS_PROBE_REFUSED");
+    expect(await running).toBe("HTTPS_REQUEST_MISMATCH");
     expect(s.send.mock.calls.filter(([method]) => method === "Fetch.continueRequest")).toHaveLength(1);
+  });
+  it("classifies a rejected continuation without exposing exception text", async () => {
+    const s = setup(); const original = s.send.getMockImplementation()!;
+    s.send.mockImplementation((method, params) => method === "Fetch.continueRequest" ? Promise.reject(new Error("synthetic-cookie private")) : original(method, params));
+    expect(await s.run()).toBe("HTTPS_CONTINUE_FAILED");
+    expect(s.codes.map(probeDiagnostic).join("\n")).not.toContain("synthetic-cookie");
+  });
+  it("classifies navigation rejection separately from transport failure", async () => {
+    const s = setup(); s.goto.mockRejectedValueOnce(new Error("synthetic-private navigation"));
+    expect(await s.run()).toBe("HTTPS_NAVIGATION_FAILED");
+    expect(s.codes.map(probeDiagnostic).join("\n")).not.toContain("synthetic-private");
+  });
+  it("never claims request mismatch when failing the unexpected request fails", async () => {
+    const s = setup(); const original = s.send.getMockImplementation()!;
+    s.send.mockImplementation((method, params) => method === "Fetch.failRequest" ? Promise.reject(new Error("synthetic-private abort")) : original(method, params));
+    const running = s.run(); await vi.waitFor(() => expect(s.goto).toHaveBeenCalled());
+    s.cdpEvents.get("Fetch.requestPaused")!(event({ requestId: "unapproved", request: { url: "https://evil.invalid/", method: "GET" } }));
+    expect(await running).toBe("HTTPS_ABORT_FAILED");
   });
   it("does not navigate if CDP containment setup is rejected", async () => {
     const s = setup(200); const original = s.send.getMockImplementation()!;
@@ -122,13 +140,13 @@ describe("Native Chromium/CDP probe orchestration (all browser/protocol calls mo
   it("does not report safe response success when the response abort command is rejected", async () => {
     const s = setup(302); const original = s.send.getMockImplementation()!;
     s.send.mockImplementation((method, params) => method === "Fetch.failRequest" ? Promise.reject(new Error("synthetic-cookie command rejection")) : original(method, params));
-    expect(await s.run()).toBe("HTTPS_PROBE_REFUSED");
+    expect(await s.run()).toBe("HTTPS_ABORT_FAILED");
     expect(s.codes).not.toContain("HTTPS_REDIRECT_REFUSED"); expect(s.browser.close).toHaveBeenCalledOnce();
   });
   it("refuses mismatched Response request identity even if URL matches", async () => {
     const s = setup(); const running = s.run(); await vi.waitFor(() => expect(s.goto).toHaveBeenCalled());
     s.cdpEvents.get("Fetch.requestPaused")!(event({ requestId: "other", networkId: "other", responseStatusCode: 200 }));
-    expect(await running).toBe("HTTPS_PROBE_REFUSED");
+    expect(await running).toBe("HTTPS_REQUEST_MISMATCH");
   });
   it("never supplies credentials to an HTTP/proxy auth challenge", async () => {
     const s = setup(); const running = s.run(); await vi.waitFor(() => expect(s.goto).toHaveBeenCalled());
@@ -171,7 +189,7 @@ describe("Native Chromium/CDP probe orchestration (all browser/protocol calls mo
     for (const redirectedRequestId of [undefined, "fetch-root"]) {
       const s = setup(); const running = s.run(); await vi.waitFor(() => expect(s.goto).toHaveBeenCalled());
       s.cdpEvents.get("Fetch.requestPaused")!(event({ requestId: "second", redirectedRequestId }));
-      expect(await running).toBe("HTTPS_PROBE_REFUSED");
+      expect(await running).toBe("HTTPS_REQUEST_MISMATCH");
       expect(s.send.mock.calls.filter(([method]) => method === "Fetch.continueRequest")).toHaveLength(1);
     }
   });
