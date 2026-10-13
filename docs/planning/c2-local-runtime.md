@@ -1,10 +1,12 @@
-# C2 runtime isolation — Steps 2-B through 3-A
+# C2 runtime isolation — Steps 2-B through 4-A
 
 Status: launcher, environment isolation, database initialization and B2 service/build
 guards implemented and tested offline. Separately authorized Step 2-C checks
 verified the C2 listener, endpoints, real Google OAuth and matching database-backed
 session identity (record below). Step 3-A fixture implementation is offline-tested;
-**fixture insertion/cleanup and authenticated Playwright remain unexecuted.** Full client/font
+Steps 3-B/3-C fixture insertion and manual browser checks are developer-reported
+below. Step 4-A adds the offline-tested Playwright foundation.
+**Cleanup and live authenticated Playwright remain unexecuted.** Full client/font
 compiler resolution and exhaustive outbound-traffic isolation remain unverified.
 No application startup, OAuth login, database operation or external service call
 was performed for B1. Previously completed C2 schema initialization is a separately
@@ -314,6 +316,206 @@ tested without any OAuth request. Tests cover target/client-construction orderin
 identity ambiguity, ownership/collisions, idempotence, simulated insert/delete
 rollback, read-only paths and cleanup/auth boundaries. Vitest's esbuild child
 initially hit sandbox EPERM; the offline suite passed after approved escalation.
-Next approval gate: re-confirm C2 service identity and privately select the existing
+Gate at the Step 3-A handoff: re-confirm C2 service identity and privately select the existing
 User, authorize read-only dry-run, review its counts, then authorize fixture writes.
 Cleanup and authenticated Playwright require their own explicit approval.
+
+## Steps 3-B and 3-C — developer-reported runtime observations
+
+These observations were supplied with the Step 4-A request on 2026-10-13 (JST).
+They were not re-executed in Step 4-A and are not Playwright automation results.
+
+- The guarded fixture `insert` succeeded for eight records. Real DB `verify`
+  returned `{"mode":"verify","present":8,"plannedInserts":0,"plannedDeletes":8}`.
+- The authenticated Workspace overview loaded and displayed 1 Research,
+  1 Source, 1 Finding and 0 Tags.
+- Research detail loaded; the expected Source and Finding were visible.
+  No UI mutations were performed.
+- The real Google Auth.js User/Account/Session were preserved according to the
+  implemented fixture mutation scope. **No separate before/after auth-row
+  integrity audit is claimed.**
+
+Fixture runtime insertion/verification and manual read-only UX verification have
+therefore been reported as complete. Cleanup and automated authenticated E2E
+remain pending. Earlier Step 3-A offline results retain their historical meaning.
+
+## Step 4-A isolated authenticated Playwright foundation (2026-10-13, JST)
+
+Implementation and offline verification only: no browser launch, HTTP request,
+server start/stop, Docker operation, Google login, actual cookie acquisition/export,
+fixture operation or database connection was performed for this step. Baseline:
+`5ae04c7` on `main`. Phase 10 remains incomplete.
+
+### Configuration, preflight and browser network boundary
+
+`playwright.c2.config.ts` selects only `e2e-c2/authenticated-smoke.spec.ts`, Chromium,
+one worker, zero retries and maxFailures=1, with bounded action/navigation/test/
+suite timeouts. It has no webServer or automatic app startup. C2 origin is fixed
+at `http://localhost:3001`; `E2E_BASE_URL` is rejected, including an override that
+happens to match. Production/preview/Demo, other host/port, remote browser,
+proxy/preload and debug settings are refused. The approved command wrapper
+accepts no arbitrary extra CLI flags and starts Playwright's installed CLI directly
+through Node with an OS allowlist plus explicit C2 test settings/user selection;
+ordinary dotenv files and provider/DB credentials are not loaded or forwarded.
+
+Global setup validates the resolved config, including origin, browser, recordings,
+reporter, output, worker/failure limits, storage overrides and absence of webServer.
+It requires the separate read-only opt-in before any live preflight. Preflight uses
+GET requests with maxRedirects=0, exact response URLs and no Location headers:
+
+1. `/api/inngest`: 503, the existing fixed C2-disabled error and no-store.
+2. `/api/auth/providers`: only the configured Google OIDC provider and exact C2
+   signin/callback URLs. This reads indicators and never invokes signin.
+3. `/api/auth/session`: selected existing User ID/email and future session expiry.
+4. `/`: 200, expected fixture Workspace and no Public Demo marker.
+
+Each browser test revalidates session/preflight in a fresh context. HTTP indicators
+are independent checks but **do not prove PostgreSQL container identity, server
+session strategy or comprehensive outbound isolation**. Database-backed strategy
+is established by the existing Auth.js source and previously reported Step 2-C
+verification. Container/DB identity verification remains a separate authorized
+runtime operation. GET-only client policy is not a proof that server-side code
+performs no writes; Auth.js session reads can refresh session lifetime.
+
+The browser boundary permits only GET for root, fixture Research list/detail,
+session/provider/Inngest checks, favicon and Next static assets. Only Next's `_rsc`
+query parameter is allowed. Signin/callback, onboarding, edits, Chat and all other
+paths or methods are blocked. Service workers are blocked. All cross-origin
+browser requests fail the scenario. The only websocket exception is C2's local
+`ws://localhost:3001/_next/webpack-hmr`; other sockets are blocked and fail.
+
+Playwright does not route later hops of an HTTP redirect. The harness therefore
+uses `route.fetch({ maxRedirects: 0 })`, inspects the response and fulfills it;
+ordinary tests reject redirects before any hop is sent. Network failures produce
+fixed redacted diagnostics, never raw URLs/headers/bodies. Browser interception
+does not establish absence of server or browser-background outbound traffic.
+
+### Manual authentication bootstrap and private state
+
+`scripts/c2-playwright.ts bootstrap --allow-c2-auth-bootstrap` is a future manual,
+headed operation. It requires an interactive terminal and the privately supplied
+existing fixture User ID/email. Before opening Chromium it checks Inngest/Auth
+indicators with an empty cookie context and requires anonymous session state.
+It then creates a fresh ephemeral browser/context and opens only the fixed C2
+origin. It never imports cookies from a private browser or ordinary persistent
+profile, enters credentials, bypasses MFA or clicks through Google automatically.
+The developer completes Google login and presses Enter after returning to the
+fixture Workspace; incomplete login, wrong User, wrong return route, unexpected
+origin or network violations refuse persistence. The browser closes afterwards.
+
+Only this bootstrap permits the C2 Auth.js signin/callback paths and required
+HTTPS GET/POST to `google.com`, `gstatic.com`, `googleusercontent.com` and their
+subdomains. Redirect destinations are checked before following them. Regional or
+additional authentication domains are deliberately refused until separately
+reviewed; real manual compatibility with Google challenges/redirects remains
+unverified. Bootstrap never enables app mutation or AI endpoints.
+
+Capture filters in memory to exactly one `authjs.session-token` cookie for
+`localhost`, path `/`, HttpOnly, SameSite=Lax, non-secure (fixed local HTTP) and
+future expiration. All Google/unrelated cookies, localStorage and IndexedDB are
+discarded. No User ID/email or callback URL is saved. State is a versioned envelope
+at the fixed ignored `playwright/.auth/c2-user.json`, containing origin, capture/
+session expiry and the minimal storageState. Loading requires a valid envelope,
+no extra cookies/origins, future cookie/session expiry and capture age <=12 hours.
+Server preflight also validates that the token authenticates the selected User.
+Absent/invalid/stale/untrusted state fails; no replacement login/session is created.
+
+The storage layer rejects symlinked parents/files, non-files, hardlinks, oversized
+files and files changed between stat/open. Parent creation is sequential after
+checking each parent, never recursive through an unchecked symlink. New directories
+use mode 0700 and the state file uses exclusive creation with mode 0600; an existing
+state file is never silently overwritten. POSIX permissions are checked. Windows
+does not enforce these modes as POSIX permissions: **review the local directory's
+Windows ACL privately before bootstrap**. Windows ACL/provenance and races caused
+by another process with access to the same trusted directory are not independently
+verified. Renewal requires private review/removal of the prior state and a new
+explicitly approved bootstrap; no automatic cleanup command is supplied.
+
+Cookies are not port-scoped. Fresh Playwright contexts plus exact origin/port
+request enforcement isolate this state from `localhost:3000`. These controls do
+not repair or authorize ordinary development browser profiles.
+
+### Read-only scenarios and artifact protections
+
+Four scenarios follow the actual accessible UI:
+
+- A: authenticated root and fixture Workspace heading; the existing named
+  Workspace Summary region shows Research=1, Sources=1, Findings=1, Tags=0.
+- B: the named Research list region contains the fixture Research; its exact
+  `/research/c2-e2e-v1-research` link opens the expected detail heading.
+- C: Research title, Source heading, Finding article/supporting-source link,
+  Conclusion/Sources/Findings/Discussion headings and empty conclusion/discussion
+  render; the actual Back to Research link returns to the list. External Source
+  links and mutation/AI controls are never clicked.
+- D: session remains valid across local navigation; Inngest is still 503 and
+  origin/network checks hold. No identity fields are passed to assertion output.
+
+Existing Public Demo config and all six specs remain untouched. Vitest excludes
+the separate `e2e-c2/` runtime specs; offline coverage stays under `scripts/`.
+No full Chat E2E is implemented. A later Step 4-C can extend the context fixture
+with explicit exact-contract browser mocks registered after the boundary, fully
+fulfilling requests locally. C2 server Chat 503/service guards must remain intact.
+Streaming, citations, restoration, Supporting Sources and mobile coverage remain
+future work; current desktop tests only inspect existing evidence.
+
+Trace, screenshot and video are off; HAR is not enabled. The existing ignored
+`test-results-c2/` is separate from Demo output; authenticated HTML reports are not
+enabled (`playwright-report-c2/` remains reserved/ignored). Raw worker stdout/stderr,
+errors and attachments are not forwarded by the custom reporter; the wrapper also
+suppresses raw subprocess output. Assertion errors are replaced with fixed messages.
+Output preservation is `never`. Installed Playwright 1.63.0 otherwise captures an
+ARIA failure snapshot even when recordings are off; `PLAYWRIGHT_NO_COPY_PROMPT=1`
+suppresses that snapshot. Offline tests pin this installed implementation so an
+upgrade requires review. Generic error-context text may be generated internally
+but contains redacted errors and no page snapshot. No OAuth callback URLs, state,
+cookies, provider metadata, session headers or private identity are logged.
+Any future authenticated debug capture needs separate explicit review.
+
+### Proposed runtime commands — NOT EXECUTED
+
+All commands below require separate authorization. The existing C2 app must be
+running and its service/DB identity independently confirmed; these commands never
+start/restart servers, Docker, migrations or fixtures. Supply
+`C2_FIXTURE_USER_ID` and `C2_FIXTURE_USER_EMAIL` privately via process environment
+without placing real values in tracked files, command arguments/history or logs.
+Use a trusted environment without proxy/debug/preload/target overrides.
+
+```powershell
+# C2-only HTTP/session preflight; requires previously saved valid C2 state
+node scripts/c2-playwright.ts preflight --allow-c2-readonly
+# Fresh headed browser, manual Google login, minimal private state persistence
+node scripts/c2-playwright.ts bootstrap --allow-c2-auth-bootstrap
+# Authenticated read-only automation; preflight runs again before tests
+node scripts/c2-playwright.ts run --allow-c2-readonly
+# Separately authorized post-test fixture verification (no fixture writes)
+node scripts/c2-fixture.ts verify
+```
+
+For the first run, approve bootstrap first because preflight/run require saved
+state. Then authorize standalone preflight and authenticated read-only execution.
+The `run` wrapper does not accept reporter/trace/baseURL/startup overrides.
+`pnpm exec playwright` on Windows adds NODE_PATH through its shim and is refused;
+the supported Node wrapper calls the installed CLI without that shim.
+Live bootstrap/preflight/E2E and post-test DB verification have **not** run in
+Step 4-A. Cleanup is neither needed nor authorized by these commands.
+
+### Step 4-A offline verification
+
+`pnpm exec vitest run` passed **607 tests across 36 files**, including 105 new
+C2 Playwright policy/network/config/reporter/filesystem tests. TypeScript
+(`pnpm exec tsc --noEmit`), full ESLint (`pnpm exec eslint .`) and
+`git diff --check` passed. Source comparison confirms the Public Demo config,
+its six specs, package/credentials and secret-exclusion rules were unchanged.
+Offline checks use synthetic identities/cookies and mocked HTTP, Playwright and
+filesystem interfaces; they never read/write actual saved browser state.
+
+Node's installed Playwright CLI with `--list` collected four C2 cases without
+global setup, browser launch, authentication-state access or HTTP requests.
+This is configuration/discovery evidence only, **not an E2E pass**. The C2 pnpm
+shim invocation was intentionally refused because it injects NODE_PATH; clean
+process environment plus direct installed Node CLI resolved discovery without
+relaxing the guard. Live cookie format, Windows ACL, manual Google bootstrap,
+redirect interception, HMR compatibility and actual UI locators remain runtime
+verification items. The next approval gate is the manual bootstrap (including its
+OAuth/session writes and private file creation), then read-only preflight and the
+four-scenario run; post-test fixture verification needs separate DB-read approval.
