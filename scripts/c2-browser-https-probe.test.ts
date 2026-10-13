@@ -91,10 +91,10 @@ describe("Native Chromium/CDP probe orchestration (all browser/protocol calls mo
     expect(s.browser.newContext).toHaveBeenCalledWith({ serviceWorkers: "block", javaScriptEnabled: false, acceptDownloads: false, ignoreHTTPSErrors: false });
     expect(s.goto).toHaveBeenCalledWith(PROBE_TARGET, { waitUntil: "commit", timeout: expect.any(Number) });
   });
-  it("enables Response interception before native navigation and never uses route.fetch/APIRequestContext", async () => {
+  it("gates all requests before navigation and arms Response interception only for the approved GET", async () => {
     const s = setup(200); await s.run();
     const enable = s.send.mock.calls.findIndex(([method]) => method === "Fetch.enable");
-    expect(s.send.mock.calls[enable]).toEqual(["Fetch.enable", { handleAuthRequests: true, patterns: [{ urlPattern: "*", requestStage: "Request" }, { urlPattern: "*", requestStage: "Response" }] }]);
+    expect(s.send.mock.calls[enable]).toEqual(["Fetch.enable", { handleAuthRequests: true, patterns: [{ urlPattern: "*", requestStage: "Request" }] }]);
     expect(s.send.mock.invocationCallOrder[enable]).toBeLessThan(s.goto.mock.invocationCallOrder[0]);
     expect(s.send.mock.calls.filter(([method]) => method === "Fetch.continueRequest")).toEqual([["Fetch.continueRequest", { requestId: "fetch-root", interceptResponse: true }]]);
     expect(s.send.mock.calls.some(([method]) => ["Fetch.disable", "Fetch.continueResponse", "Fetch.fulfillRequest", "Fetch.getResponseBody"].includes(method))).toBe(false);
