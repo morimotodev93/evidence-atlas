@@ -1197,3 +1197,50 @@ Vitest, TypeScript, targeted ESLint and `git diff --check`. Keep the
 PR Draft and do not automatically execute another native HTTPS probe,
 OAuth Bootstrap, C2 E2E, or the protected eight-row fixture. Any later
 single live probe requires separate developer-controlled authorization.
+
+## Step 4-B6 — Request-only live probe reproduction and investigation pause (2026-10-13 JST)
+
+After the Step 4-B5 revision, the developer reported the following **offline**
+checks passing on the actual Windows checkout: focused Vitest **72/72**,
+`pnpm exec tsc --noEmit`, targeted ESLint and `git diff --check`.
+These are user-reported results, not CI verification.
+
+The developer then approved and ran one native standalone probe under the
+**Request-only Fetch pattern with per-request `interceptResponse: true`**.
+Its complete fixed-code output was:
+
+```text
+CHROMIUM_STARTED
+HTTPS_REQUEST_STARTED
+HTTPS_SECOND_FETCH_SAME_NETWORK
+ExitCode=1
+```
+
+This reproduces the previous fixed-code result even though the universal
+Response-stage pattern was removed. Therefore **the overlapping Request/Response
+Fetch.enable configuration is not a sufficient explanation or solution**.
+The Request gate still aborts the second matching paused event instead of
+continuing it. There is no observed response-header receipt, and the root
+cause of the original OAuth blank/loading navigation is still unproven.
+
+CDP Fetch.pdl states that `Fetch.RequestId` does not uniquely identify
+individual HTTP requests within a network request. Puppeteer's NetworkManager
+source explicitly anticipates multiple `Fetch.requestPaused` events for the
+same `Network.requestWillBeSent`; Puppeteer issue #7475 also records an
+older similar trace, but neither proves the precise origin of these particular
+Chromium events.
+
+Source context:
+- https://github.com/ChromeDevTools/devtools-protocol/blob/master/pdl/domains/Fetch.pdl
+- https://github.com/puppeteer/puppeteer/blob/main/packages/puppeteer-core/src/cdp/NetworkManager.ts
+- https://github.com/puppeteer/puppeteer/issues/7475
+
+**Decision:** Pause further retries and diagnostic-code proliferation.
+Do not automatically continue a second Fetch pause merely because its
+networkId matches: matching IDs do not authorize another wire request.
+Do not relax TLS, proxy, response/redirect containment or credential policy
+to force a successful response. Preserve this PR as a Draft and the one-GET
+gate unchanged. Any alternate probe design would need a **separate safety
+review of the redirect/no-second-request guarantee** before a live run.
+No OAuth Bootstrap, E2E, app, C2 fixture (8 rows) or database operation
+is authorized by this observation.
