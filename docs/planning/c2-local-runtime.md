@@ -1244,3 +1244,24 @@ gate unchanged. Any alternate probe design would need a **separate safety
 review of the redirect/no-second-request guarantee** before a live run.
 No OAuth Bootstrap, E2E, app, C2 fixture (8 rows) or database operation
 is authorized by this observation.
+
+## Step 4-B7 — out-of-process HTTPS egress isolation design review (2026-10-13 JST)
+
+See [C2 native Chromium HTTPS probe — out-of-process egress isolation design review](./c2-https-egress-isolation-review.md).
+
+No alternate browser probe was implemented or executed. The review distinguishes
+**destination-level outbound enforcement** (potentially achievable with a
+credential-free disposable VM, verified default-deny network policy and a
+fixed-policy CONNECT gateway) from the **strict original exact-URL and
+at-most-one-on-wire-GET requirement**. HTTPS CONNECT preserves native
+Chromium-to-Google TLS, but cannot inspect the encrypted URL path, method
+or number of HTTP requests on one tunnel. A single tunnel is **not** a
+single HTTP GET, and a same-host redirect cannot be excluded by the gateway
+alone. TLS MITM/certificate overrides are not accepted as a workaround.
+
+**Decision: NO-GO** for a new live probe under unchanged strict requirements.
+A narrower destination-isolation/TLS-reachability experiment would be a
+different explicitly approved test with an independently reviewed VM and
+gateway implementation; no such approval or environment inspection exists.
+Keep PR #1 Draft. Preserve the eight-row C2 fixture and OAuth/E2E/DB stop
+conditions. This is a documentation-only design/safety review.
