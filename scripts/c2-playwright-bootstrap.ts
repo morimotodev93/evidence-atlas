@@ -45,7 +45,10 @@ export async function bootstrapAuth() {
     const timer = setTimeout(() => terminal.close(), 10 * 60 * 1000);
     try {
       await phase("MANUAL_WAIT_FAILED", () => terminal.question("Complete Google sign-in manually in this fresh C2 window, return to the Workspace, then press Enter. Do not enter credentials here.\n"));
-    } finally { clearTimeout(timer); terminal.close(); }
+    } finally {
+      assertNetwork.reportProgress?.(); // Summarize observations before closing Chromium.
+      clearTimeout(timer); terminal.close();
+    }
     checkNetwork(assertNetwork);
     const url = await phase("RETURN_INVALID", async () => {
       const url = await safePageUrl(context);

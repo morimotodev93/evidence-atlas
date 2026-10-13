@@ -179,14 +179,14 @@ describe("C2 browser request interception with offline Playwright doubles", () =
   async function boundary(bootstrap = false, report?: (code: BootstrapCode) => void) {
     let handler!: (route: Route) => Promise<void>;
     let socketHandler!: (socket: WebSocketRoute) => void;
-    const context = { route: async (_pattern: string, callback: typeof handler) => { handler = callback; }, routeWebSocket: async (_pattern: RegExp, callback: typeof socketHandler) => { socketHandler = callback; }, on: vi.fn() } as unknown as BrowserContext;
+    const context = { route: async (_pattern: string, callback: typeof handler) => { handler = callback; }, routeWebSocket: async (_pattern: RegExp, callback: typeof socketHandler) => { socketHandler = callback; }, on: vi.fn(), pages: () => [] } as unknown as BrowserContext;
     const assert = await installNetworkBoundary(context, bootstrap, report);
     return { handler, socketHandler, assert };
   }
   function route(url = `${C2_ORIGIN}/`, method = "GET", location?: string, redirectStatus = 302) {
     const fetch = vi.fn(async () => ({ status: () => location ? redirectStatus : 200, headers: () => location ? { location } : {} }));
     const abort = vi.fn(async () => {}); const fulfill = vi.fn(async () => {});
-    return { fake: { request: () => ({ url: () => url, method: () => method, resourceType: () => "document", isNavigationRequest: () => true }), fetch, abort, fulfill } as unknown as Route, fetch, abort, fulfill };
+    return { fake: { request: () => ({ url: () => url, method: () => method, resourceType: () => "document", isNavigationRequest: () => true, frame: () => ({ parentFrame: () => null }) }), fetch, abort, fulfill } as unknown as Route, fetch, abort, fulfill };
   }
   it("never dispatches blocked writes/cross-origin requests, and fails instead of silently ignoring", async () => {
     for (const [url, method] of [[`${C2_ORIGIN}/`, "POST"], ["https://ai.invalid", "GET"], [`${C2_ORIGIN}/api/auth/signin`, "GET"]]) {
@@ -234,7 +234,7 @@ describe("C2 browser request interception with offline Playwright doubles", () =
     await manual.handler(auth.fake);
     expect(auth.fulfill).toHaveBeenCalledWith({ response: upstream });
     expect(auth.fetch).toHaveBeenCalledWith({ maxRedirects: 0, timeout: 15_000 });
-    manual.assert(); expect(report.mock.calls.map(([code]) => code)).toEqual(["AUTH_SUBMIT", "AUTH_REDIRECT"]);
+    manual.assert(); expect(report.mock.calls.map(([code]) => code)).toEqual(["AUTH_SUBMIT", "AUTH_REDIRECT", "AUTH_FULFILL_STARTED", "AUTH_FULFILL_COMPLETED"]);
   });
   it.each([301, 302, 303, 307, 308])("classifies redirect method transitions for %s", (status) => {
     expect(redirectMethod(status, "POST")).toBe(status === 307 || status === 308 ? "POST" : "GET");

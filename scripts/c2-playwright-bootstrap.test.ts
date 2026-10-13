@@ -8,11 +8,12 @@ const fake = vi.hoisted(() => {
   const request = { get: vi.fn(async () => ({ status: () => 200, url: () => "http://localhost:3001/api/auth/session", headers: () => ({}), json: async () => session })), dispose: vi.fn(async () => {}) };
   const context = { request, newPage: vi.fn(async () => page), pages: () => [page], storageState: vi.fn(async () => ({ cookies: [{ name: "authjs.session-token", value: "synthetic-local-session", domain: "localhost", path: "/", httpOnly: true, secure: false, sameSite: "Lax", expires: Date.parse("2099-01-01") / 1000 }, { name: "SID", value: "synthetic-google-session", domain: ".google.com" }], origins: [{ origin: "https://accounts.google.com" }] })) };
   const browser = { newContext: vi.fn(async () => context), close: vi.fn(async () => {}) };
+  const assertNetwork = Object.assign(vi.fn(), { reportProgress: vi.fn() });
   return { user, session, button, page, request, context, browser,
     stdin: { isTTY: true }, stdout: { isTTY: true },
     launch: vi.fn(async () => browser), newRequest: vi.fn(async () => request),
     question: vi.fn(async () => ""), terminalClose: vi.fn(),
-    preflight: vi.fn(async () => {}), assertNetwork: vi.fn(), save: vi.fn<(state: import("./c2-playwright-policy.ts").SavedState) => Promise<void>>(async () => {}),
+    preflight: vi.fn(async () => {}), assertNetwork, save: vi.fn<(state: import("./c2-playwright-policy.ts").SavedState) => Promise<void>>(async () => {}),
   };
 });
 vi.mock("@playwright/test", () => ({ chromium: { launch: fake.launch }, request: { newContext: fake.newRequest } }));
@@ -75,6 +76,13 @@ describe("Bootstrap lifecycle (all browser, HTTP, terminal and persistence depen
     await expect(bootstrapAuth()).rejects.toThrow();
     expect(fake.save).not.toHaveBeenCalled(); expect(fake.browser.close).toHaveBeenCalledOnce();
     expect(log.mock.calls.flat().join("\n")).toContain("MANUAL_WAIT_FAILED");
+  });
+  it("summarizes the network observations after a stopped manual wait and before Chromium closes", async () => {
+    fake.question.mockRejectedValueOnce(new Error("synthetic cancellation"));
+    await expect(bootstrapAuth()).rejects.toThrow();
+    expect(fake.assertNetwork.reportProgress).toHaveBeenCalledOnce();
+    expect(fake.assertNetwork.reportProgress.mock.invocationCallOrder[0]).toBeLessThan(fake.browser.close.mock.invocationCallOrder[0]);
+    expect(fake.save).not.toHaveBeenCalled();
   });
   it("fatal network violations stop before the manual prompt and persistence", async () => {
     fake.assertNetwork.mockImplementation(() => { throw new Error("private-url?code=synthetic"); });

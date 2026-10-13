@@ -6,8 +6,8 @@ verified the C2 listener, endpoints, real Google OAuth and matching database-bac
 session identity (record below). Step 3-A fixture implementation is offline-tested;
 Steps 3-B/3-C fixture insertion and manual browser checks are developer-reported
 below. Step 4-A adds the offline-tested Playwright foundation.
-The first Step 4-B1 bootstrap reached the sign-in page but was aborted without
-saved state, according to the developer report; offline triage is recorded below.
+The first two Step 4-B1 bootstraps reached the sign-in page but were stopped without
+saved state, according to developer reports; offline triage is recorded below.
 **Cleanup and live authenticated Playwright remain unexecuted.** Full client/font
 compiler resolution and exhaustive outbound-traffic isolation remain unverified.
 No application startup, OAuth login, database operation or external service call
@@ -669,3 +669,125 @@ did not inspect or change the developer's protected authentication directory.
 The second live attempt, saved-state creation and authenticated E2E remain
 **NOT EXECUTED**. Fixture verify/cleanup and the four-scenario run are not included
 in this next bootstrap step.
+
+## Bootstrap OAuth navigation follow-up — second attempt (2026-10-13, JST)
+
+The developer reported `SIGNIN_READY`, `COSMETIC_ICON_LOCAL`, `AUTH_SUBMIT`,
+`AUTH_REDIRECT`, then `MANUAL_WAIT_FAILED` after stopping the unsuccessful attempt.
+Chromium remained on the Evidence Atlas sign-in page; no successful Google
+navigation was observed. The reported state-file existence check returned False.
+No real auth state was inspected in this follow-up. The current checkout at task
+start was clean on `971f342`, containing the earlier diagnostics, rather than
+uncommitted changes over `2ba7620`. This task made no commit or push.
+
+### What the reported codes establish
+
+`AUTH_REDIRECT` was emitted **before** `await route.fulfill({ response })`. It
+establishes only that the API client received a redirect status and a Location
+allowed by the bootstrap policy. It does not establish fulfillment completion,
+browser receipt, a Google request, navigation commit, or authentication.
+`MANUAL_WAIT_FAILED` identifies the ended manual wait, not the OAuth root cause.
+
+The previous `GOOGLE_NAVIGATION` listener used `framenavigated`, which fires on
+commit rather than initial navigation attempt. Failed/blocked/pending requests
+can therefore occur without that code. It also examined all frames, so an allowed
+Google subframe could previously produce a misleading navigation-stage code.
+Listeners were registered only for future context pages; existing pages were
+not observed. The fresh bootstrap registers its boundary before newPage, but
+request observation at context level is still needed for pre-commit requests.
+
+Installed Auth.js `0.41.3` / NextAuth `5.0.0-beta.32` continue to render the native
+CSRF POST and produce 302 Location/Set-Cookie responses. Installed Playwright
+`1.63.0` copies status, headers and body from APIResponse, and Chromium delegates
+fulfillment through `Fetch.fulfillRequest` with split Set-Cookie headers. This
+establishes the intended data path, not actual browser acceptance in the attempt.
+Its `catchDisallowedErrors` helper suppresses some command failures, so even a
+resolved fulfill Promise is not conclusive evidence that Chromium received or
+honored the redirect. The installed helper's suppression was reproduced offline
+with a mocked protocol predicate; no CDP session/browser was constructed.
+
+Chromium's installed `_onRequest` auto-continues redirected requests rather than
+creating another user Route, while BrowserContext request/response/requestfailed
+events remain available. A missing route diagnostic does not prove Google was
+never requested or was blocked by our route policy. Context request observation
+does not itself prevent a native hop from being sent. Repository source inspection
+found no configured CSP form-action restriction; actual browser response policy
+was not read and cannot be ruled out. No redirect/cookie/security-header bypass
+or change to production authentication was justified.
+
+**The direct cause of this second attempt's navigation stop is still unresolved.**
+Only the diagnostic ordering/coverage gaps are established and corrected offline.
+No successful Google redirect/navigation fix is claimed.
+
+### Narrow diagnostic additions
+
+Response forwarding remains `route.fetch({ maxRedirects: 0, timeout: 15_000 })`
+plus `route.fulfill({ response })`; original redirect status, Location, cookie and
+body handling remain intact. No automatic page.goto to Google, manual redirect
+rewrite, extra destination/method permission or credential automation was added.
+
+The diagnostic stages now distinguish:
+
+| Fixed code | Evidence, and its limit |
+| --- | --- |
+| AUTH_REDIRECT | Policy-approved API redirect response, before fulfillment |
+| AUTH_FULFILL_STARTED | Driver fulfillment call started |
+| AUTH_FULFILL_COMPLETED | Fulfill Promise returned; not proof of browser receipt |
+| AUTH_FULFILL_PENDING | At manual-wait end, call started but had not returned/failed |
+| AUTH_BROWSER_POST | Browser-context POST event observed |
+| AUTH_BROWSER_REDIRECT | Browser-context response event has a redirect status |
+| GOOGLE_NAV_REQUEST | Allowed main-frame provider navigation request observed, even without a Route |
+| GOOGLE_NAV_ROUTE | Such a request additionally reached the route handler |
+| GOOGLE_NAV_RESPONSE / GOOGLE_NAV_HTTP_ERROR | Browser-context provider response class observed |
+| GOOGLE_NAVIGATION | Allowed provider URL committed to the main frame; not auth success |
+| GOOGLE_SUBFRAME_NAV_REQUEST | Provider subframe request, distinct from main-frame navigation |
+| GOOGLE_NAV_NOT_OBSERVED | Fulfill returned but no main-frame provider request/commit was observed by manual-wait end |
+| GOOGLE_NAV_UNCOMMITTED | Main-frame provider request observed, without commit by manual-wait end |
+
+Browser failed requests use only fixed BLOCKED/CANCELED/NETWORK/OTHER categories
+under `AUTH_BROWSER_FAILED_*` or `GOOGLE_NAV_FAILED_*`. The classifier compares
+against exact known Chromium error strings and never prints failure text.
+Cancellation during developer stop/browser closure is not evidence of the
+original failure. `AUTH_BROWSER_RESPONSE_OTHER` identifies a non-redirect browser
+response; `SIGNIN_CSP_FORM_ACTION` reports directive presence only, without
+logging its value or asserting it caused a block. `OBSERVATION_UNAVAILABLE`
+reports missing/closed frame data without exposing exceptions.
+
+Bootstrap context observers cover requests, responses and failures before frame
+commit, including native redirected requests. They do not enable any request.
+An observed request outside the existing policy latches fatal refusal with
+`REQUEST_OBSERVED_REFUSED`; this protects final persistence, and is not a claim
+that the observer prevented transmission. Existing route checks remain in place.
+Main-frame commit codes are emitted only for the main frame, while origin checks
+still cover every frame. Both existing and future pages are observed once.
+At manual wait completion/failure, observations are summarized before Chromium
+closes. Ordinary E2E does not install these bootstrap-only observers or emit codes.
+No full URL/query, response body, cookie/header/token, User ID/email, screenshots,
+traces, HAR, videos or browser dumps are exposed or persisted.
+
+### Offline verification and next attempt — NOT EXECUTED
+
+Full Vitest passed **662 tests across 38 files**, including 18 new regressions:
+pending/rejected/returned fulfillment, browser response versus API validation,
+redirect requests observed without route/commit, fixed failure categories,
+subframe distinction, existing/future page listeners, unknown-hop refusal, CSP
+presence classification, normal-E2E isolation, unavailable frame data, installed
+helper suppression and the pre-close stopped-wait summary. TypeScript, full ESLint
+and `git diff --check` passed. Mocked event/source tests are not browser navigation
+or OAuth integration results. Four C2 and six Demo scenarios, cookie capture,
+fixture/DB guards and production configuration are unchanged.
+
+After separate approval, the developer-controlled **third** bootstrap attempt is:
+
+```powershell
+# Third real-browser attempt — NOT EXECUTED in this offline follow-up
+node .\scripts\c2-playwright.ts bootstrap --allow-c2-auth-bootstrap
+```
+
+Privately retain the selected User environment fields and existing C2 identity/
+ACL checks. Manually click Google once. If navigation stops, stop the attempt and
+report only the fixed codes: whether fulfillment returned, whether a browser
+redirect response/provider request/failure appeared, and the pre-close summary.
+Do not send OAuth URLs, session data or artifacts. Press Enter only after genuine
+return to the fixture Workspace. No third bootstrap, live HTTP/preflight, Chromium,
+OAuth, DB/fixture operation or real state-file creation was executed here.
