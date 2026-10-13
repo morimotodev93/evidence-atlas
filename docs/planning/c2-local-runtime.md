@@ -1,4 +1,4 @@
-# C2 runtime isolation — Steps 2-B through 4-B1
+# C2 runtime isolation — Steps 2-B through 4-B2
 
 Status: launcher, environment isolation, database initialization and B2 service/build
 guards implemented and tested offline. Separately authorized Step 2-C checks
@@ -6,8 +6,9 @@ verified the C2 listener, endpoints, real Google OAuth and matching database-bac
 session identity (record below). Step 3-A fixture implementation is offline-tested;
 Steps 3-B/3-C fixture insertion and manual browser checks are developer-reported
 below. Step 4-A adds the offline-tested Playwright foundation.
-The first two Step 4-B1 bootstraps reached the sign-in page but were stopped without
-saved state, according to developer reports; offline triage is recorded below.
+The first two bootstraps reached the sign-in page; the third reached a Google
+main-frame request but stalled without an observed commit. All were stopped without
+saved state according to developer reports; Step 4-B2 offline triage is below.
 **Cleanup and live authenticated Playwright remain unexecuted.** Full client/font
 compiler resolution and exhaustive outbound-traffic isolation remain unverified.
 No application startup, OAuth login, database operation or external service call
@@ -791,3 +792,157 @@ redirect response/provider request/failure appeared, and the pre-close summary.
 Do not send OAuth URLs, session data or artifacts. Press Enter only after genuine
 return to the fixture Workspace. No third bootstrap, live HTTP/preflight, Chromium,
 OAuth, DB/fixture operation or real state-file creation was executed here.
+
+## Step 4-B2 — third attempt's uncommitted Google navigation (2026-10-13, JST)
+
+Baseline `ae2596de51bbb40a90cf40e4b8c5a7aefc7df258`, `main`, clean at task start.
+This step inspected source, added minimal bounded diagnostics, ran offline tests
+and updated documentation only. No browser, live HTTP, OAuth, database, Docker,
+migration, fixture or authentication-state operation was executed. No commit/push
+or Windows networking/proxy/certificate/security setting change was performed.
+
+### Developer-reported evidence and its limits
+
+The Windows TCP check for `accounts.google.com:443` returned True. The third
+bootstrap reported COSMETIC_ICON_LOCAL, SIGNIN_READY, AUTH_BROWSER_POST,
+AUTH_SUBMIT, AUTH_REDIRECT, AUTH_FULFILL_STARTED, AUTH_FULFILL_COMPLETED,
+AUTH_BROWSER_REDIRECT and GOOGLE_NAV_REQUEST. Chromium then displayed a blank/
+loading page. No GOOGLE_NAV_ROUTE, GOOGLE_NAV_RESPONSE or successful main-frame
+GOOGLE_NAVIGATION was observed. After the developer waited and stopped the
+attempt, MANUAL_WAIT_FAILED, GOOGLE_NAV_UNCOMMITTED and
+GOOGLE_NAV_FAILED_CANCELED appeared. The reported state-file existence check was
+False. These are developer observations, not a runtime retest by this task.
+
+The browser response event corroborates receipt of a redirect status, and the
+request event establishes that Chromium initiated a provider main-frame request.
+Neither demonstrates successful DNS/TCP/TLS negotiation, response headers, commit
+or authentication. The final canceled event arrived during stopping/closure and
+**is not evidence that Google's request independently failed beforehand**. Live
+authenticated E2E remains unexecuted and no saved state is claimed.
+
+### Installed-source conclusions versus unresolved hypotheses
+
+Auth.js `0.41.3` / NextAuth `5.0.0-beta.32` generate native CSRF POST and 302
+Location/Set-Cookie. Playwright `1.63.0` forwards original status, headers and body
+through Chromium Fetch.fulfillRequest with duplicate-cookie splitting. Fulfill
+Promise completion is an API-stage result; its command-error suppression prevents
+a universal browser-acceptance guarantee. In this particular reported attempt,
+the browser redirect response and next request provide additional evidence.
+The task did not demonstrate cookie acceptance or complete OAuth semantics live.
+
+Chromium's `_onRequest` auto-continues redirected requests instead of creating a
+new user Route. Consequently GOOGLE_NAV_REQUEST without GOOGLE_NAV_ROUTE is
+consistent with installed behavior and does not establish that the policy blocked
+it. Context request events precede response/commit; requestfailed comes from
+Chromium Network.loadingFailed. Missing response/commit events mean those stages
+were not observed, not that no network activity happened. A pending redirect or
+navigation transition can coexist with a blank/loading UI. No source evidence
+established the reason this particular request remained pending.
+
+The code keeps 301/302 POST-to-GET, 303-to-GET except HEAD, and 307/308 method
+preservation checks, with original response forwarding. It does not substitute
+unconditional route.continue(), change Location/cookies, bypass headers/security
+or automatically navigate to Google. Native later hops can still bypass routing;
+observation can latch refusal to persist but cannot prove the hop was never sent.
+
+Windows TCP reachability is narrower than Chromium HTTPS/OAuth reachability.
+Windows's check, Node's route.fetch/APIRequestContext and Chromium's native
+redirect use distinct execution/network paths. DNS address selection, IPv4/IPv6,
+system proxy/PAC behavior, TLS negotiation, certificate validation and internal
+redirect/interception behavior remain hypotheses. No host networking settings or
+actual socket/TLS data were inspected. Node's successful retrieval of the local
+Auth.js redirect does not test the external Chromium request.
+
+Installed Chromium launch construction applies proxy flags only when configured
+proxy options are supplied; bootstrap supplies only headed launch and blocked
+service workers. This does not prove absence of system proxy behavior. The
+installed context defaults include ignoreHTTPSErrors=false and bypassCSP=false;
+the API client's TLS rejectUnauthorized bypass is opt-in. No proxy override,
+certificate bypass, DNS/IP forcing or Chrome security flag was added. A
+security-preserving navigation fix is **not established offline**.
+
+### Bounded observations and shutdown-aware cancellation
+
+`c2-playwright-navigation-watch.ts` is a state-only observer with a fixed
+**20,000 ms** deadline for each observed allowed provider main-frame request.
+It never sends a request, aborts navigation, retries authentication or writes state.
+At the deadline it emits:
+
+- GOOGLE_NAV_PENDING_NO_RESPONSE: no response event observed for this request.
+- GOOGLE_NAV_PENDING_AFTER_RESPONSE: response observed, but no main-frame commit.
+- GOOGLE_NAV_ROUTE_NOT_OBSERVED: the pending request had no observed user Route;
+  this is not a statement that interception caused or prevented the stall.
+
+Each observation timer fires at most once and does not extend on duplicate events.
+A native redirect retires the previous hop's timer and watches the next request.
+Commit or a failure clears timers; shutdown/disposal clear all timers and schedule
+no new work. The pending-only pre-close summary now excludes known failed requests
+and late events from retired hops. Frame classification is cached at request time
+so cancellation remains observable even if the frame detaches during browser close.
+
+BOOTSTRAP_SHUTDOWN_STARTED marks the harness's deliberate shutdown phase, before
+browser.close, including rejection of the manual wait. Failure classification is:
+
+- GOOGLE_NAV_FAILED_BEFORE_SHUTDOWN plus a fixed BLOCKED/TLS/DNS/NETWORK/OTHER
+  category for failures observed before the marker.
+- GOOGLE_NAV_CANCELED_BEFORE_SHUTDOWN for a canceled event before the marker;
+  this does not identify developer intent or independent connectivity failure.
+- GOOGLE_NAV_CANCELED_DURING_SHUTDOWN for cancellation observed after the marker.
+- GOOGLE_NAV_FAILED_DURING_SHUTDOWN for other errors during the shutdown phase,
+  without presenting them as earlier independent failures.
+
+TLS/certificate and DNS categories compare exact known Chromium error strings;
+unknown text becomes OTHER. Raw text is never logged. Shutdown classification is
+timing relative to the explicit marker, not a claim about what caused cancellation.
+If a developer closes a window before the harness marks shutdown, the event may
+still be classified BEFORE_SHUTDOWN and cannot be attributed automatically.
+
+Normal read-only E2E installs no bootstrap observers. The origin/host/method
+allowlists, service/fixture/database guards, Public Demo independence, minimal
+application cookie capture, Git-ignore and Windows ACL protections are unchanged.
+No traces, HAR, screenshots, videos, storage dumps, headers, bodies, OAuth URLs/
+queries, User ID/email or credentials are emitted or persisted by the diagnostics.
+
+### Optional non-authenticated probe — design only, NOT EXECUTED
+
+A separate fresh Chromium check of the fixed candidate
+`https://accounts.google.com/robots.txt` could remove Auth.js, application DB,
+OAuth parameters and the Node route.fetch/fulfill path from the experiment. It
+could compare same-host Chromium HTTPS response availability against the OAuth
+stall, but would not prove OAuth authorization endpoints or challenge handling.
+The endpoint's current response/status/redirect behavior was not verified offline.
+
+No probe CLI was implemented or executed. Its safe implementation needs separate
+review of pre-hop redirect containment: ordinary context.route alone cannot
+guarantee redirect-hop blocking. Any later design must use a fixed exact target,
+fresh ephemeral context, no imported state/credential entry/app request, strict
+deadline (e.g. 15 seconds), certificate verification, no proxy/security override,
+no automatic OAuth fallback, and only fixed response/failure classes. It must
+reject redirects before following them, close its ephemeral context and produce
+no cookie/profile export or logs/artifacts. The source-reviewed response-stage
+containment would be additional implementation scope. A live probe requires
+separate explicit approval and is never automatic in bootstrap/E2E.
+
+### Offline verification and next safe action
+
+Full Vitest passed **684 tests across 39 files**, including 22 new cases for fake-
+clock deadlines, pending versus failed/committed/redirected requests, disposal,
+shutdown timing, detached-frame cancellation and TLS/DNS redaction. TypeScript,
+full ESLint and `git diff --check` passed. Tests used synthetic data and mocked
+browser/HTTP interfaces; no Chromium, TCP/HTTPS check or OAuth was performed.
+The original four C2 and six Demo scenarios remain unchanged.
+
+The next bounded developer-controlled bootstrap, after separate approval and
+existing C2 identity/private User/ACL checks, is **NOT EXECUTED**:
+
+```powershell
+# Fourth bootstrap attempt — NOT EXECUTED in Step 4-B2
+node .\scripts\c2-playwright.ts bootstrap --allow-c2-auth-bootstrap
+```
+
+Manually click once, allow the 20-second diagnostic observation, then report only
+fixed response/pending/failure/shutdown codes if it stalls. Do not retry or press
+Enter while on a blank/provider page; stop the unsuccessful attempt. Press Enter
+only after genuine fixture Workspace return. A pending code is not a network
+timeout diagnosis and will not initiate an automatic retry. No further app server,
+fixture operation or networking/security change is required or authorized here.

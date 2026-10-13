@@ -2,13 +2,15 @@ import { readFileSync } from "node:fs";
 import { createRequire } from "node:module";
 import { dirname, join } from "node:path";
 import { runInNewContext } from "node:vm";
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import type { BrowserContext, Page, Request, Route } from "@playwright/test";
 import { installNetworkBoundary, navigationFailureCategory } from "./c2-playwright-network.ts";
 import { bootstrapDiagnostic, type BootstrapCode } from "./c2-playwright-diagnostics.ts";
 import { C2_ORIGIN } from "./c2-playwright-policy.ts";
 
 const google = "https://accounts.google.com/o/oauth2/v2/auth?code=synthetic-private&state=synthetic-private";
+const disposers: (() => void)[] = [];
+afterEach(() => { for (const dispose of disposers.splice(0)) dispose(); });
 function request(url = google, method = "GET", subframe = false, error = "") {
   return { url: () => url, method: () => method, isNavigationRequest: () => true, resourceType: () => "document", frame: () => ({ parentFrame: () => subframe ? {} : null }), failure: () => ({ errorText: error }) } as unknown as Request;
 }
@@ -23,6 +25,7 @@ async function setup(bootstrap = true, existing = [] as Page[]) {
   let routeHandler!: (route: Route) => Promise<void>;
   const context = { route: async (_pattern: string, callback: typeof routeHandler) => { routeHandler = callback; }, routeWebSocket: async () => {}, on: (event: string, callback: (value: unknown) => void) => handlers.set(event, callback), pages: () => existing } as unknown as BrowserContext;
   const boundary = await installNetworkBoundary(context, bootstrap, (code) => codes.push(code));
+  disposers.push(() => boundary.dispose());
   const post = request(`${C2_ORIGIN}/api/auth/signin/google`, "POST");
   const response = { status: () => 302, headers: () => ({ location: google, "set-cookie": "csrf=synthetic; Path=/\npkce=synthetic; Path=/" }) };
   const fetch = vi.fn(async () => response);
@@ -71,11 +74,11 @@ describe("OAuth browser navigation observations (offline event/route doubles)", 
   });
   it.each([
     ["net::ERR_BLOCKED_BY_CLIENT", "BLOCKED"], ["net::ERR_UNSAFE_REDIRECT", "BLOCKED"], ["net::ERR_ABORTED", "CANCELED"],
-    ["net::ERR_NAME_NOT_RESOLVED", "NETWORK"], ["private-cookie code=synthetic-private", "OTHER"],
+    ["net::ERR_NAME_NOT_RESOLVED", "DNS"], ["private-cookie code=synthetic-private", "OTHER"],
   ])("classifies failed navigation without logging raw text: %s", async (error, category) => {
     const s = await setup();
     s.handlers.get("requestfailed")!(request(google, "GET", false, error));
-    expect(s.codes).toContain(`GOOGLE_NAV_FAILED_${category}`);
+    expect(s.codes).toContain(category === "CANCELED" ? "GOOGLE_NAV_CANCELED_BEFORE_SHUTDOWN" : `GOOGLE_NAV_FAILED_${category}`);
     expect(s.codes.map(bootstrapDiagnostic).join("\n")).not.toContain("code=synthetic-private");
     expect(navigationFailureCategory(error)).toBe(category);
   });
@@ -117,6 +120,24 @@ describe("OAuth browser navigation observations (offline event/route doubles)", 
     vi.spyOn(req, "frame").mockImplementation(() => { throw new Error("private callback?code=secret"); });
     s.handlers.get("request")!(req); expect(s.codes).toContain("OBSERVATION_UNAVAILABLE");
     expect(s.codes.map(bootstrapDiagnostic).join("\n")).not.toMatch(/callback|code=/);
+  });
+  it("shutdown cancellation is classified even after the cached main frame detaches", async () => {
+    const s = await setup(); const req = request(google, "GET", false, "net::ERR_ABORTED");
+    s.handlers.get("request")!(req);
+    s.boundary.beginShutdown();
+    vi.spyOn(req, "frame").mockImplementation(() => { throw new Error("closed frame synthetic-secret"); });
+    s.handlers.get("requestfailed")!(req); s.boundary.reportProgress();
+    expect(s.codes).toContain("BOOTSTRAP_SHUTDOWN_STARTED");
+    expect(s.codes).toContain("GOOGLE_NAV_CANCELED_DURING_SHUTDOWN");
+    expect(s.codes).not.toContain("GOOGLE_NAV_FAILED_BEFORE_SHUTDOWN");
+    expect(s.codes).not.toContain("GOOGLE_NAV_UNCOMMITTED");
+    expect(s.codes).not.toContain("OBSERVATION_UNAVAILABLE");
+  });
+  it("known pre-stop failure is not later summarized as pending", async () => {
+    const s = await setup(); const req = request(google, "GET", false, "net::ERR_SSL_PROTOCOL_ERROR");
+    s.handlers.get("request")!(req); s.handlers.get("requestfailed")!(req); s.boundary.reportProgress();
+    expect(s.codes).toContain("GOOGLE_NAV_FAILED_BEFORE_SHUTDOWN"); expect(s.codes).toContain("GOOGLE_NAV_FAILED_TLS");
+    expect(s.codes).not.toContain("GOOGLE_NAV_UNCOMMITTED");
   });
 });
 

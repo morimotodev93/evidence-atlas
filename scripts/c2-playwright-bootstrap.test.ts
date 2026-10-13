@@ -8,7 +8,7 @@ const fake = vi.hoisted(() => {
   const request = { get: vi.fn(async () => ({ status: () => 200, url: () => "http://localhost:3001/api/auth/session", headers: () => ({}), json: async () => session })), dispose: vi.fn(async () => {}) };
   const context = { request, newPage: vi.fn(async () => page), pages: () => [page], storageState: vi.fn(async () => ({ cookies: [{ name: "authjs.session-token", value: "synthetic-local-session", domain: "localhost", path: "/", httpOnly: true, secure: false, sameSite: "Lax", expires: Date.parse("2099-01-01") / 1000 }, { name: "SID", value: "synthetic-google-session", domain: ".google.com" }], origins: [{ origin: "https://accounts.google.com" }] })) };
   const browser = { newContext: vi.fn(async () => context), close: vi.fn(async () => {}) };
-  const assertNetwork = Object.assign(vi.fn(), { reportProgress: vi.fn() });
+  const assertNetwork = Object.assign(vi.fn(), { reportProgress: vi.fn(), beginShutdown: vi.fn(), dispose: vi.fn() });
   return { user, session, button, page, request, context, browser,
     stdin: { isTTY: true }, stdout: { isTTY: true },
     launch: vi.fn(async () => browser), newRequest: vi.fn(async () => request),
@@ -44,6 +44,8 @@ describe("Bootstrap lifecycle (all browser, HTTP, terminal and persistence depen
     expect(fake.page.getByRole).toHaveBeenCalledWith("button", { name: "Sign in with Google", exact: true });
     expect(fake.button.waitFor).toHaveBeenCalledWith({ state: "visible", timeout: 10_000 });
     expect(fake.button.evaluate).toHaveBeenCalledOnce(); expect(fake.question).toHaveBeenCalledOnce();
+    expect(fake.launch).toHaveBeenCalledWith({ headless: false });
+    expect(fake.browser.newContext).toHaveBeenCalledWith({ serviceWorkers: "block" });
     expect(fake.browser.close).toHaveBeenCalledOnce();
   });
   it("successful validated return saves only the application Session cookie", async () => {
@@ -83,6 +85,9 @@ describe("Bootstrap lifecycle (all browser, HTTP, terminal and persistence depen
     expect(fake.assertNetwork.reportProgress).toHaveBeenCalledOnce();
     expect(fake.assertNetwork.reportProgress.mock.invocationCallOrder[0]).toBeLessThan(fake.browser.close.mock.invocationCallOrder[0]);
     expect(fake.save).not.toHaveBeenCalled();
+    expect(fake.assertNetwork.beginShutdown).toHaveBeenCalled();
+    expect(fake.assertNetwork.beginShutdown.mock.invocationCallOrder[0]).toBeLessThan(fake.browser.close.mock.invocationCallOrder[0]);
+    expect(fake.assertNetwork.dispose).toHaveBeenCalledOnce();
   });
   it("fatal network violations stop before the manual prompt and persistence", async () => {
     fake.assertNetwork.mockImplementation(() => { throw new Error("private-url?code=synthetic"); });

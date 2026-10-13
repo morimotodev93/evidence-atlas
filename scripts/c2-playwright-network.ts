@@ -1,6 +1,7 @@
 import type { BrowserContext, Page, Request as BrowserRequest } from "@playwright/test";
 import { C2_ORIGIN, bootstrapRequestAllowed, requireC2Url, refuse, testRequestDecision } from "./c2-playwright-policy.ts";
 import type { BootstrapCode } from "./c2-playwright-diagnostics.ts";
+import { createNavigationWatch, type NavigationFailure } from "./c2-playwright-navigation-watch.ts";
 
 export function redirectMethod(status: number, method: string): string | undefined {
   if (![301, 302, 303, 307, 308].includes(status)) return;
@@ -11,11 +12,13 @@ export function isBootstrapIcon(method: string, rawUrl: string, resource: string
   // Serve an inert local image instead of requesting/authenticating to authjs.dev.
   return method === "GET" && resource === "image" && rawUrl === "https://authjs.dev/img/providers/google.svg";
 }
-export function navigationFailureCategory(value: unknown): "BLOCKED" | "CANCELED" | "NETWORK" | "OTHER" {
+export function navigationFailureCategory(value: unknown): NavigationFailure {
   if (typeof value !== "string") return "OTHER";
   if (["net::ERR_BLOCKED_BY_CLIENT", "net::ERR_BLOCKED_BY_RESPONSE", "net::ERR_BLOCKED_BY_CSP", "net::ERR_UNSAFE_REDIRECT"].includes(value)) return "BLOCKED";
   if (value === "net::ERR_ABORTED") return "CANCELED";
-  if (["net::ERR_CONNECTION_CLOSED", "net::ERR_CONNECTION_REFUSED", "net::ERR_CONNECTION_RESET", "net::ERR_TIMED_OUT", "net::ERR_NAME_NOT_RESOLVED", "net::ERR_SSL_PROTOCOL_ERROR", "net::ERR_CERT_AUTHORITY_INVALID"].includes(value)) return "NETWORK";
+  if (["net::ERR_SSL_PROTOCOL_ERROR", "net::ERR_SSL_VERSION_OR_CIPHER_MISMATCH", "net::ERR_CERT_AUTHORITY_INVALID", "net::ERR_CERT_DATE_INVALID", "net::ERR_CERT_COMMON_NAME_INVALID"].includes(value)) return "TLS";
+  if (value === "net::ERR_NAME_NOT_RESOLVED") return "DNS";
+  if (["net::ERR_CONNECTION_CLOSED", "net::ERR_CONNECTION_REFUSED", "net::ERR_CONNECTION_RESET", "net::ERR_TIMED_OUT"].includes(value)) return "NETWORK";
   return "OTHER";
 }
 function authPost(request: BrowserRequest) {
@@ -47,6 +50,8 @@ export async function installNetworkBoundary(context: BrowserContext, bootstrap 
     if (bootstrap && !seen.has(code)) { seen.add(code); report?.(code); }
   };
   const violation = () => { failed = true; };
+  const navigationWatch = createNavigationWatch(diagnostic);
+  const mainRequests = new WeakSet<BrowserRequest>();
   if (bootstrap) {
     // Context events also cover requests that Chromium auto-continues after a
     // redirect, before frame commit and before a new page's listeners exist.
@@ -57,7 +62,10 @@ export async function installNetworkBoundary(context: BrowserContext, bootstrap 
         }
         if (authPost(request)) diagnostic("AUTH_BROWSER_POST");
         const navigation = providerNavigation(request);
-        if (navigation === "main") { googleRequested = true; diagnostic("GOOGLE_NAV_REQUEST"); }
+        if (navigation === "main") {
+          mainRequests.add(request); googleRequested = true; googleCommitted = false; diagnostic("GOOGLE_NAV_REQUEST");
+          navigationWatch.requested(request, request.redirectedFrom?.());
+        }
         if (navigation === "subframe") diagnostic("GOOGLE_SUBFRAME_NAV_REQUEST");
       } catch { diagnostic("OBSERVATION_UNAVAILABLE"); }
     });
@@ -65,7 +73,10 @@ export async function installNetworkBoundary(context: BrowserContext, bootstrap 
       try {
         const request = response.request();
         if (authPost(request)) diagnostic([301, 302, 303, 307, 308].includes(response.status()) ? "AUTH_BROWSER_REDIRECT" : "AUTH_BROWSER_RESPONSE_OTHER");
-        if (providerNavigation(request) === "main") diagnostic(response.status() >= 400 ? "GOOGLE_NAV_HTTP_ERROR" : "GOOGLE_NAV_RESPONSE");
+        if (mainRequests.has(request) || providerNavigation(request) === "main") {
+          navigationWatch.responded(request);
+          diagnostic(response.status() >= 400 ? "GOOGLE_NAV_HTTP_ERROR" : "GOOGLE_NAV_RESPONSE");
+        }
         const url = new URL(request.url());
         if (url.origin === C2_ORIGIN && url.pathname === "/api/auth/signin" && /(?:^|;)\s*form-action\s/i.test(response.headers()["content-security-policy"] ?? "")) diagnostic("SIGNIN_CSP_FORM_ACTION");
       } catch { diagnostic("OBSERVATION_UNAVAILABLE"); }
@@ -73,8 +84,10 @@ export async function installNetworkBoundary(context: BrowserContext, bootstrap 
     context.on("requestfailed", (request) => {
       try {
         const category = navigationFailureCategory(request.failure()?.errorText);
-        if (authPost(request)) diagnostic(`AUTH_BROWSER_FAILED_${category}`);
-        if (providerNavigation(request) === "main") diagnostic(`GOOGLE_NAV_FAILED_${category}`);
+        if (authPost(request)) diagnostic(navigationWatch.isShuttingDown() ? "AUTH_BROWSER_FAILED_DURING_SHUTDOWN" : `AUTH_BROWSER_FAILED_${category}`);
+        // A failed request's frame can already be detached during close. Cache
+        // classification from request time rather than losing cancellation data.
+        if (mainRequests.has(request) || providerNavigation(request) === "main") navigationWatch.failed(request, category);
       } catch { diagnostic("OBSERVATION_UNAVAILABLE"); }
     });
   }
@@ -96,7 +109,11 @@ export async function installNetworkBoundary(context: BrowserContext, bootstrap 
     }
     const authSubmit = bootstrap && authPost(request);
     if (authSubmit) diagnostic("AUTH_SUBMIT");
-    try { if (bootstrap && providerNavigation(request) === "main") diagnostic("GOOGLE_NAV_ROUTE"); }
+    try {
+      if (bootstrap && (mainRequests.has(request) || providerNavigation(request) === "main")) {
+        mainRequests.add(request); navigationWatch.routed(request); diagnostic("GOOGLE_NAV_ROUTE");
+      }
+    }
     catch { diagnostic("OBSERVATION_UNAVAILABLE"); }
     let fetched = false;
     try {
@@ -147,7 +164,7 @@ export async function installNetworkBoundary(context: BrowserContext, bootstrap 
         else {
           const parsed = new URL(url);
           if (frame === page.mainFrame()) {
-            if (parsed.origin !== C2_ORIGIN) { googleCommitted = true; diagnostic("GOOGLE_NAVIGATION"); }
+            if (parsed.origin !== C2_ORIGIN) { googleCommitted = true; navigationWatch.committed(); diagnostic("GOOGLE_NAVIGATION"); }
             else if (["/", "/research"].includes(parsed.pathname)) diagnostic("LOCAL_RETURN");
           }
         }
@@ -162,8 +179,10 @@ export async function installNetworkBoundary(context: BrowserContext, bootstrap 
       if (!bootstrap || !authRedirect) return;
       if (fulfillStarted && !fulfillCompleted && !fulfillFailed) diagnostic("AUTH_FULFILL_PENDING");
       if (fulfillCompleted && !googleRequested && !googleCommitted) diagnostic("GOOGLE_NAV_NOT_OBSERVED");
-      if (googleRequested && !googleCommitted) diagnostic("GOOGLE_NAV_UNCOMMITTED");
+      if (googleRequested && !googleCommitted && navigationWatch.hasPending()) diagnostic("GOOGLE_NAV_UNCOMMITTED");
     },
+    beginShutdown() { if (bootstrap && !navigationWatch.isShuttingDown()) diagnostic("BOOTSTRAP_SHUTDOWN_STARTED"); navigationWatch.beginShutdown(); },
+    dispose() { navigationWatch.dispose(); },
   });
 }
 

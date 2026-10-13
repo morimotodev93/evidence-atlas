@@ -23,9 +23,11 @@ export async function bootstrapAuth() {
   finally { await client.dispose(); }
   // Fresh ephemeral context: no private-browser/profile import or reuse.
   const browser = await phase("BROWSER_START_FAILED", () => chromium.launch({ headless: false }));
+  let boundary: Awaited<ReturnType<typeof installNetworkBoundary>> | undefined;
   try {
     const context = await browser.newContext({ serviceWorkers: "block" });
     const assertNetwork = await installNetworkBoundary(context, true, report);
+    boundary = assertNetwork;
     const page = await context.newPage();
     page.setDefaultNavigationTimeout(20_000);
     await phase("APP_NAVIGATION_FAILED", () => page.goto(C2_ORIGIN, { waitUntil: "domcontentloaded" }));
@@ -45,6 +47,11 @@ export async function bootstrapAuth() {
     const timer = setTimeout(() => terminal.close(), 10 * 60 * 1000);
     try {
       await phase("MANUAL_WAIT_FAILED", () => terminal.question("Complete Google sign-in manually in this fresh C2 window, return to the Workspace, then press Enter. Do not enter credentials here.\n"));
+    } catch (error) {
+      // Mark our deliberate stop before closing the terminal/browser. This marks
+      // lifecycle timing, not the intent behind a previously observed cancellation.
+      assertNetwork.beginShutdown?.();
+      throw error;
     } finally {
       assertNetwork.reportProgress?.(); // Summarize observations before closing Chromium.
       clearTimeout(timer); terminal.close();
@@ -65,5 +72,8 @@ export async function bootstrapAuth() {
     report("STATE_SAVED");
     console.log("C2 application-only authentication state saved privately. No provider state exported.");
   } catch { refuse("bootstrap-incomplete-or-unsafe"); }
-  finally { await browser.close(); }
+  finally {
+    boundary?.beginShutdown?.();
+    try { await browser.close(); } finally { boundary?.dispose?.(); }
+  }
 }
