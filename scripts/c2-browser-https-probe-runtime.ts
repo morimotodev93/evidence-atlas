@@ -35,10 +35,13 @@ export async function runProbe(engine: Pick<BrowserType, "launch">, env: Record<
   const paused = async (event: PausedRequest) => {
     try {
       if (stopped) { await abort(event.requestId); return; }
-      if (!exactProbeRequest(event, rootFrame)) { if (await abort(event.requestId)) finish("HTTPS_REQUEST_MISMATCH"); return; }
       const responseStage = event.responseStatusCode !== undefined || event.responseErrorReason !== undefined;
+      if (!exactProbeRequest(event, rootFrame)) {
+        if (await abort(event.requestId)) finish(responseStage ? "HTTPS_RESPONSE_METADATA_MISMATCH" : "HTTPS_REQUEST_METADATA_MISMATCH");
+        return;
+      }
       if (!responseStage) {
-        if (approvedId) { if (await abort(event.requestId)) finish("HTTPS_REQUEST_MISMATCH"); return; }
+        if (approvedId) { if (await abort(event.requestId)) finish("HTTPS_DUPLICATE_REQUEST"); return; }
         approvedId = event.requestId; networkId = event.networkId;
         report("HTTPS_REQUEST_STARTED");
         // The only continuation is one reviewed request, before native Chromium
@@ -51,7 +54,7 @@ export async function runProbe(engine: Pick<BrowserType, "launch">, env: Record<
         return;
       }
       if (!approvedId || (event.requestId !== approvedId && (!networkId || event.networkId !== networkId))) {
-        if (await abort(event.requestId)) finish("HTTPS_REQUEST_MISMATCH"); return;
+        if (await abort(event.requestId)) finish("HTTPS_RESPONSE_ID_MISMATCH"); return;
       }
       let code: ProbeCode;
       if (event.responseErrorReason) code = probeFailure(event.responseErrorReason);
