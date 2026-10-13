@@ -1101,3 +1101,44 @@ successful login. A probe failure does not by itself identify Windows networking
 or Google as its cause. Do not change certificates, security flags or proxy settings
 to force success, and do not automatically retry OAuth/fixtures/E2E. No probe or
 fifth OAuth attempt was executed in this task; the stall root cause remains unknown.
+
+## Step 4-B4 — developer-reported live HTTPS probe observations (2026-10-13 JST)
+
+This section updates the historical *not executed* statement in Step 4-B3.
+The four native Chromium executions below were performed locally by the
+developer, not by this code-review task. All were standalone Probe invocations
+against the fixed `https://accounts.google.com/robots.txt` target; the
+developer shared only fixed diagnostic codes and exit status, not raw network
+logs, IDs, headers, cookies or authenticated state.
+
+| Revision | Developer-reported codes | Exit status |
+| --- | --- | --- |
+| Baseline `6d2179c` | `CHROMIUM_STARTED → HTTPS_REQUEST_STARTED → HTTPS_PROBE_REFUSED` | Failure |
+| First refusal-classification revision | `CHROMIUM_STARTED → HTTPS_REQUEST_STARTED → HTTPS_REQUEST_MISMATCH` | `1` |
+| Request/response mismatch split | `CHROMIUM_STARTED → HTTPS_REQUEST_STARTED → HTTPS_DUPLICATE_REQUEST` | `1` |
+| Fetch/network identity split | `CHROMIUM_STARTED → HTTPS_REQUEST_STARTED → HTTPS_SECOND_FETCH_SAME_NETWORK` | `1` |
+
+The latest fixed code establishes: after a matching Request-stage pause was
+approved, a second matching Request-stage pause had a **different Fetch requestId**
+but the **same present networkId**. The second pause was **aborted**, not
+continued. This does **not** prove two HTTP GETs were transmitted, that a
+Google HTTPS response was received, or that DNS/TLS failed. In particular,
+CDP Fetch request IDs do not identify individual HTTP requests by themselves;
+the network ID correlates to a Network.requestWillBeSent ID. Chrome/Fetch
+interception can report distinct Fetch IDs for one Network ID; the underlying
+cause in this particular execution remains unknown.
+
+After the first refusal split, the developer ran the focused mocked Vitest
+suite (**70/70**), TypeScript, targeted ESLint and git diff check successfully.
+After the mismatch split, the same checks passed (**71/71**). After the
+Fetch/network identity split, the developer again reported passing offline
+checks (**72/72**), then performed the single fourth live probe listed above.
+These are developer reports, not an independent CI or live-browser re-test.
+
+**Current stop condition:** Do not grant an additional Fetch.continueRequest
+on the strength of a shared networkId, allow a redirect, change browser/TLS
+security settings, or diagnose OAuth from these results. Preserve the one-GET
+gate and response-stage abort, and keep PR #1 Draft/unmerged while reviewing
+whether Chromium internally re-pauses or restarts the same network request.
+No further repeat Probe, fifth OAuth Bootstrap, C2 E2E or fixture/DB mutation
+is authorized by these observations. C2 fixture 8 rows remain protected.
