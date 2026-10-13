@@ -8,6 +8,10 @@ import {
   type Cookie, type ReadRequest, type ReadResponse,
 } from "./c2-playwright-policy.ts";
 import { hmrAllowed, installNetworkBoundary } from "./c2-playwright-network.ts";
+import { isBootstrapIcon, redirectMethod } from "./c2-playwright-network.ts";
+import { bootstrapDiagnostic, type BootstrapCode } from "./c2-playwright-diagnostics.ts";
+import { pathToFileURL } from "node:url";
+import Google from "next-auth/providers/google";
 import type { BrowserContext, FullConfig, Route, WebSocketRoute } from "@playwright/test";
 import { requireC2Config } from "../e2e-c2/global-setup.ts";
 import RedactedReporter from "../e2e-c2/redacted-reporter.ts";
@@ -172,17 +176,17 @@ describe("C2 Playwright pure/offline safety", () => {
 });
 
 describe("C2 browser request interception with offline Playwright doubles", () => {
-  async function boundary(bootstrap = false) {
+  async function boundary(bootstrap = false, report?: (code: BootstrapCode) => void) {
     let handler!: (route: Route) => Promise<void>;
     let socketHandler!: (socket: WebSocketRoute) => void;
     const context = { route: async (_pattern: string, callback: typeof handler) => { handler = callback; }, routeWebSocket: async (_pattern: RegExp, callback: typeof socketHandler) => { socketHandler = callback; }, on: vi.fn() } as unknown as BrowserContext;
-    const assert = await installNetworkBoundary(context, bootstrap);
+    const assert = await installNetworkBoundary(context, bootstrap, report);
     return { handler, socketHandler, assert };
   }
   function route(url = `${C2_ORIGIN}/`, method = "GET", location?: string, redirectStatus = 302) {
     const fetch = vi.fn(async () => ({ status: () => location ? redirectStatus : 200, headers: () => location ? { location } : {} }));
     const abort = vi.fn(async () => {}); const fulfill = vi.fn(async () => {});
-    return { fake: { request: () => ({ url: () => url, method: () => method }), fetch, abort, fulfill } as unknown as Route, fetch, abort, fulfill };
+    return { fake: { request: () => ({ url: () => url, method: () => method, resourceType: () => "document", isNavigationRequest: () => true }), fetch, abort, fulfill } as unknown as Route, fetch, abort, fulfill };
   }
   it("never dispatches blocked writes/cross-origin requests, and fails instead of silently ignoring", async () => {
     for (const [url, method] of [[`${C2_ORIGIN}/`, "POST"], ["https://ai.invalid", "GET"], [`${C2_ORIGIN}/api/auth/signin`, "GET"]]) {
@@ -221,6 +225,108 @@ describe("C2 browser request interception with offline Playwright doubles", () =
     const converted = route("https://accounts.google.com/signin", "POST", `${C2_ORIGIN}/`, 303);
     await returnGet.handler(converted.fake);
     expect(converted.fulfill).toHaveBeenCalledOnce(); returnGet.assert();
+  });
+  it.each([301, 302, 303, 307, 308])("preserves the original response status/Location/Set-Cookie/body when fulfilling %s", async (status) => {
+    const report = vi.fn(); const manual = await boundary(true, report);
+    const auth = route(`${C2_ORIGIN}/api/auth/signin/google`, "POST", "https://accounts.google.com/o/oauth2/v2/auth?state=synthetic-private", status);
+    const upstream = { status: () => status, headers: () => ({ location: "https://accounts.google.com/o/oauth2/v2/auth?state=synthetic-private", "set-cookie": "csrf=synthetic; Path=/\npkce=synthetic; Path=/", "content-type": "text/html" }), body: async () => Buffer.from("synthetic-body") };
+    auth.fetch.mockResolvedValue(upstream);
+    await manual.handler(auth.fake);
+    expect(auth.fulfill).toHaveBeenCalledWith({ response: upstream });
+    expect(auth.fetch).toHaveBeenCalledWith({ maxRedirects: 0, timeout: 15_000 });
+    manual.assert(); expect(report.mock.calls.map(([code]) => code)).toEqual(["AUTH_SUBMIT", "AUTH_REDIRECT"]);
+  });
+  it.each([301, 302, 303, 307, 308])("classifies redirect method transitions for %s", (status) => {
+    expect(redirectMethod(status, "POST")).toBe(status === 307 || status === 308 ? "POST" : "GET");
+    expect(redirectMethod(status, "GET")).toBe("GET");
+    expect(redirectMethod(status, "HEAD")).toBe("HEAD");
+  });
+  it("refuses unsupported redirects and a sign-in response without an authorization redirect", async () => {
+    for (const [status, location] of [[304, "https://accounts.google.com/signin"], [200, undefined]] as const) {
+      const codes: BootstrapCode[] = []; const manual = await boundary(true, (code) => codes.push(code));
+      const auth = route(`${C2_ORIGIN}/api/auth/signin/google`, "POST", location, status);
+      await manual.handler(auth.fake); expect(auth.fulfill).not.toHaveBeenCalled();
+      expect(codes).toContain("AUTH_RESPONSE_INVALID"); expect(() => manual.assert()).toThrow();
+    }
+    expect(redirectMethod(305, "GET")).toBeUndefined();
+  });
+  it.each(["https://evil.invalid/?code=synthetic-private", "https://accounts.google.co.jp/signin", "https://google.com.evil.invalid/auth", "http://localhost:3000/", "https://preview.invalid/", "https://accounts.google.com:8443/auth"])("rejects unsupported/malicious redirect %s", async (destination) => {
+    const codes: BootstrapCode[] = []; const manual = await boundary(true, (code) => codes.push(code));
+    const auth = route(`${C2_ORIGIN}/api/auth/signin/google`, "POST", destination);
+    await manual.handler(auth.fake); expect(auth.fulfill).not.toHaveBeenCalled();
+    expect(codes).toContain("REDIRECT_REFUSED"); expect(() => manual.assert()).toThrow();
+  });
+  it("distinguishes local Auth.js error redirects from approved Google redirects", async () => {
+    const codes: BootstrapCode[] = []; const manual = await boundary(true, (code) => codes.push(code));
+    const auth = route(`${C2_ORIGIN}/api/auth/signin/google`, "POST", `${C2_ORIGIN}/api/auth/signin?error=synthetic-private`);
+    await manual.handler(auth.fake); expect(codes).toContain("AUTH_LOCAL_REDIRECT"); expect(codes).not.toContain("AUTH_REDIRECT");
+  });
+  it("handles only the proven cosmetic Google icon locally during bootstrap without outbound fetch or a fatal violation", async () => {
+    const codes: BootstrapCode[] = []; const manual = await boundary(true, (code) => codes.push(code));
+    const icon = route("https://authjs.dev/img/providers/google.svg");
+    vi.spyOn(icon.fake, "request").mockReturnValue({ url: () => "https://authjs.dev/img/providers/google.svg", method: () => "GET", resourceType: () => "image", isNavigationRequest: () => false } as never);
+    await manual.handler(icon.fake);
+    expect(icon.fetch).not.toHaveBeenCalled(); expect(icon.fulfill).toHaveBeenCalledWith(expect.objectContaining({ status: 200, contentType: "image/svg+xml" }));
+    expect(codes).toEqual(["COSMETIC_ICON_LOCAL"]); manual.assert();
+    const normal = await boundary(false); const normalIcon = route("https://authjs.dev/img/providers/google.svg");
+    await normal.handler(normalIcon.fake); expect(normalIcon.fetch).not.toHaveBeenCalled(); expect(() => normal.assert()).toThrow();
+  });
+  it("does not widen the icon exception to scripts, queries, alternate domains or POST", () => {
+    expect(isBootstrapIcon("GET", "https://authjs.dev/img/providers/google.svg", "image")).toBe(true);
+    expect(isBootstrapIcon("GET", "https://authjs.dev/img/providers/google.svg?code=synthetic", "image")).toBe(false);
+    expect(isBootstrapIcon("GET", "https://authjs.dev/img/providers/google.svg", "script")).toBe(false);
+    expect(isBootstrapIcon("POST", "https://authjs.dev/img/providers/google.svg", "image")).toBe(false);
+    expect(isBootstrapIcon("GET", "https://authjs.dev.evil.invalid/img/providers/google.svg", "image")).toBe(false);
+    expect(bootstrapRequestAllowed("GET", "https://authjs.dev/img/providers/google.svg")).toBe(false);
+  });
+  it("emits safe different codes for fetch vs fulfillment failures, without upstream details", async () => {
+    for (const stage of ["fetch", "fulfill"] as const) {
+      const codes: BootstrapCode[] = []; const manual = await boundary(true, (code) => codes.push(code));
+      const auth = route(`${C2_ORIGIN}/api/auth/signin/google`, "POST", "https://accounts.google.com/auth");
+      auth[stage].mockRejectedValueOnce(new Error("synthetic-cookie offline@example.invalid code=synthetic"));
+      await manual.handler(auth.fake); expect(codes).toContain(stage === "fetch" ? "FETCH_FAILED" : "FULFILL_FAILED");
+      expect(codes.map(bootstrapDiagnostic).join("\n")).not.toMatch(/synthetic-cookie|offline@example|code=/);
+      expect(() => manual.assert()).toThrow();
+    }
+  });
+});
+
+describe("Installed Auth.js default form and Playwright source evidence (offline only)", () => {
+  async function coreModule(path: string) {
+    const require = createRequire(import.meta.url);
+    const nextRequire = createRequire(require.resolve("next-auth/package.json"));
+    return import(pathToFileURL(join(dirname(nextRequire.resolve("@auth/core")), path)).href);
+  }
+  it("renders the actual Google native POST form with CSRF preparation and the exact cosmetic icon, without Next hydration", async () => {
+    const { default: parseProviders } = await coreModule("lib/utils/providers.js");
+    const { default: renderPage } = await coreModule("lib/pages/index.js");
+    const parsed = parseProviders({ url: new URL(C2_ORIGIN), config: { basePath: "/api/auth", providers: [Google({ clientId: "synthetic", clientSecret: "synthetic" })] } });
+    const html = renderPage({ url: new URL(`${C2_ORIGIN}/api/auth/signin`), providers: parsed.providers, csrfToken: "synthetic-csrf", callbackUrl: `${C2_ORIGIN}/`, theme: {}, cookies: [], query: {} }).signin().body;
+    expect(html).toContain(`action="${C2_ORIGIN}/api/auth/signin/google" method="POST"`);
+    expect(html).toContain('type="hidden" name="csrfToken" value="synthetic-csrf"');
+    expect(html).toContain('type="submit"'); expect(html).toContain("Sign in with Google");
+    expect(html).toContain('src="https://authjs.dev/img/providers/google.svg"');
+    expect(html).not.toContain("<script"); expect(html).not.toContain("/_next/");
+  });
+  it("Auth.js toResponse generates 302 Location and preserves multiple authentication cookies", async () => {
+    const { toResponse } = await coreModule("lib/utils/web.js");
+    const response = toResponse({ redirect: "https://accounts.google.com/o/oauth2/v2/auth?state=synthetic", cookies: [{ name: "authjs.csrf-token", value: "synthetic-csrf", options: { path: "/", httpOnly: true } }, { name: "authjs.pkce.code_verifier", value: "synthetic-pkce", options: { path: "/", httpOnly: true } }] });
+    expect(response.status).toBe(302); expect(response.headers.get("location")).toContain("https://accounts.google.com/");
+    expect(response.headers.getSetCookie()).toHaveLength(2);
+  });
+  it("installed Playwright copies request body and response status/headers and Chromium splits Set-Cookie", () => {
+    const require = createRequire(import.meta.url);
+    const core = readFileSync(join(dirname(require.resolve("playwright-core/package.json")), "lib/coreBundle.js"), "utf8");
+    expect(core).toContain("postDataBuffer = options.request?.postDataBuffer()");
+    expect(core).toContain("statusOption ??= options.response.status()");
+    expect(core).toContain("headersOption ??= options.response.headers()");
+    expect(core).toContain("splitSetCookieHeader(response2.headers)");
+  });
+  it("diagnostic formatting rejects arbitrary values rather than emitting private data", () => {
+    expect(bootstrapDiagnostic("AUTH_SUBMIT")).toBe("C2 bootstrap [AUTH_SUBMIT].");
+    for (const value of [user.email, "callback?code=synthetic-secret", { cookie: "synthetic-token" }, new Error("private")]) {
+      expect(bootstrapDiagnostic(value)).toBe("C2 bootstrap [UNKNOWN].");
+    }
   });
 });
 

@@ -1,4 +1,4 @@
-# C2 runtime isolation — Steps 2-B through 4-A
+# C2 runtime isolation — Steps 2-B through 4-B1
 
 Status: launcher, environment isolation, database initialization and B2 service/build
 guards implemented and tested offline. Separately authorized Step 2-C checks
@@ -6,6 +6,8 @@ verified the C2 listener, endpoints, real Google OAuth and matching database-bac
 session identity (record below). Step 3-A fixture implementation is offline-tested;
 Steps 3-B/3-C fixture insertion and manual browser checks are developer-reported
 below. Step 4-A adds the offline-tested Playwright foundation.
+The first Step 4-B1 bootstrap reached the sign-in page but was aborted without
+saved state, according to the developer report; offline triage is recorded below.
 **Cleanup and live authenticated Playwright remain unexecuted.** Full client/font
 compiler resolution and exhaustive outbound-traffic isolation remain unverified.
 No application startup, OAuth login, database operation or external service call
@@ -519,3 +521,151 @@ redirect interception, HMR compatibility and actual UI locators remain runtime
 verification items. The next approval gate is the manual bootstrap (including its
 OAuth/session writes and private file creation), then read-only preflight and the
 four-scenario run; post-test fixture verification needs separate DB-read approval.
+
+## Step 4-B1 — bootstrap navigation failure, offline triage (2026-10-13, JST)
+
+Baseline `2ba7620` on `main`. This task performed source inspection, minimal
+bootstrap correction, offline regression and documentation only. No real browser,
+HTTP, OAuth, database, Docker, fixture or authentication-state operation was
+performed, and no commit/push was made. Historical Step 4-A results above were
+not rewritten as new evidence.
+
+### Developer-reported first attempt
+
+The developer invoked the manually approved bootstrap with both selected User
+environment fields. Fresh Chromium launched and rendered the default Auth.js
+sign-in page at the fixed C2 origin. The Google button was visible, its icon
+appeared broken, and the tab continued showing a loading indicator. One click
+produced no visible navigation; Google account selection and a Workspace return
+were not observed. The developer aborted without pressing Enter. The reported
+`Test-Path` check for `playwright/.auth/c2-user.json` returned `False`; no saved
+state was found. The fixture was not intentionally changed. Windows ACLs had
+reportedly been limited to owner, SYSTEM and Administrators. These observations
+and ACL/state-file claims were not independently rechecked during this task.
+No successful Playwright authentication or E2E is claimed.
+
+### Established source behavior and remaining hypotheses
+
+Installed versions inspected: NextAuth `5.0.0-beta.32`, `@auth/core` `0.41.3`,
+Playwright `1.63.0`, Next.js `16.3.8`. Evidence comes from local installed source:
+
+- Auth core `lib/utils/providers.js` constructs `/api/auth/signin/google`.
+  `lib/pages/signin.js` renders a native POST form with hidden csrfToken and
+  callbackUrl fields. Google is OIDC; its default page is Preact SSR with inline
+  styling and no Next client/hydration script. The existing local POST allowlist
+  is correct; no additional signin POST endpoint is justified.
+- Auth core init/CSRF logic prepares the signed double-submit cookie; POST signin
+  checks cookie/body token agreement. `lib/actions/signin/authorization-url.js`
+  may perform server-side issuer discovery before returning an authorization
+  URL and PKCE/check cookies. `lib/utils/web.js` converts the redirect into 302
+  with Location and multiple Set-Cookie headers. The task did not call discovery.
+- The default Google icon is a lazy image at exactly
+  `https://authjs.dev/img/providers/google.svg`. That host is outside the bootstrap
+  outbound allowlist. Previously its rejection latched a fatal network violation,
+  guaranteeing refusal to persist state if it was requested. **This explains a
+  cosmetic failure/persistence blocker, not the observed button navigation stop.**
+  The previous boundary did not automatically reject every later allowed request
+  merely because its failure flag was set.
+- Playwright's installed `Route.fetch` delegates to the browser context's API
+  request context and copies the original request body. With maxRedirects=0 it
+  returns the redirect response without following it. `Route._innerFulfill`
+  inherits status/headers and body; Chromium splits multiple Set-Cookie headers
+  before fulfillment. Static inspection found no demonstrated loss of the native
+  form body or response status/cookies. Their actual CSRF/cookie/Google behavior
+  still requires a real-browser retest.
+- The method rule is POST-to-GET for 301/302, GET for 303 except HEAD, and original
+  method for 307/308. The method/status classifier now explicitly limits redirects
+  to these statuses. Native redirect hops may bypass later Playwright route
+  interception; validating one Location is not evidence that every browser/provider
+  hop has been inspected. Existing first-response validation and navigation checks
+  remain in place; this task does not claim an exhaustive redirect audit.
+- Next static assets and local HMR are already permitted. The inspected Google
+  default sign-in page requires neither Next hydration nor an extra development
+  endpoint to submit its native form. No dev-resource allowlist expansion was
+  justified. Failures on other application pages/resources remain distinguishable
+  by safe blocked-resource/navigation codes, pending a real observation.
+
+**The exact cause of the no-navigation observation is unresolved offline.**
+Possible stages include a stalled/failed server authorization/discovery request,
+an Auth.js local error redirect, fetch/fulfillment failure, or a blocked request.
+The loading spinner and broken icon do not establish which stage failed. No
+navigation fix or successful Google transition is claimed by static/mocked tests.
+
+### Minimal correction and fixed diagnostics
+
+During bootstrap only, the exact known icon GET of resource type `image` is
+fulfilled with an inert locally generated SVG and no-store. No request is sent
+to authjs.dev; it does not become an allowed outbound host. Script/document/POST,
+alternate paths/hosts and query variants receive no exception. Ordinary E2E still
+rejects the icon's cross-origin request. All other policy violations remain fatal.
+Cookie capture/persistence, selected User/session checks, C2 target, Google domain
+allowlist, normal E2E GET rules and fixture/production code are unchanged.
+
+Bootstrap initial navigation waits for DOMContentLoaded, then verifies the visible
+Google button, exact native form action/method and presence of a nonempty hidden
+CSRF field, without exposing its value. It checks fatal network state before
+presenting the manual prompt. It never clicks the button or enters credentials.
+Final return route, session and network checks still precede state persistence.
+
+Fixed diagnostic codes are printed without raw URLs/query/body/headers/error
+messages, cookies, codes, PKCE/state, User ID/email or session data:
+
+- `SIGNIN_READY` / `SIGNIN_UNAVAILABLE`: form readiness.
+- `COSMETIC_ICON_LOCAL`: proven cosmetic image handled without outbound traffic.
+- `AUTH_SUBMIT`: permitted native local POST reached interception.
+- `AUTH_REDIRECT`: permitted external authorization redirect response;
+  `AUTH_LOCAL_REDIRECT`: local Auth.js return/error class (no error query logged).
+- `AUTH_RESPONSE_INVALID`, `REDIRECT_REFUSED`, `REDIRECT_STATUS_UNSUPPORTED`:
+  missing/unsupported/refused redirect response or target.
+- `FETCH_FAILED` / `FULFILL_FAILED`: distinct interception stages. The code does
+  not assert whether a fetch failure was timeout, server or provider failure.
+- `BLOCKED_C2_RESOURCE`, `BLOCKED_C2_NAVIGATION`, `BLOCKED_EXTERNAL_RESOURCE`,
+  `BLOCKED_EXTERNAL_NAVIGATION`: denied request class; all remain fatal.
+- `GOOGLE_NAVIGATION` / `LOCAL_RETURN`: navigation class observed, not proof of
+  authentication. `RETURN_INVALID`, `SESSION_VERIFICATION_FAILED`,
+  `NETWORK_REFUSED`, `MANUAL_WAIT_FAILED`, `STATE_SAVE_FAILED` identify later
+  refusal; `STATE_SAVED` follows successful private persistence only.
+
+The formatter runtime-allowlists codes and substitutes UNKNOWN for arbitrary
+values. Network codes are deduplicated; phase failures have fixed codes. The CLI's
+existing generic final error remains, with these safe codes available beforehand.
+No screenshots/traces/HAR/video/browser dumps or persistent diagnostics were added.
+
+### Offline regression and next controlled attempt — NOT EXECUTED
+
+Offline regression uses real installed Auth.js page rendering/toResponse with
+synthetic fields and mocked Playwright/browser/HTTP/terminal/persistence objects.
+It checks the form/CSRF field/icon, original response forwarding, 301/302/303/307/
+308 methods, malicious/unsupported destinations, cosmetic handling versus fatal
+violations, fetch/fulfillment diagnostics, form readiness, abort/network/return/
+identity failures never saving state, and successful synthetic capture excluding
+Google state. Existing normal E2E/Demo restrictions remain covered. These are
+source/mocked results, not a Chromium/OAuth integration pass.
+
+Full verification passed **644 tests across 37 files**, including 37 new cases;
+TypeScript, full ESLint and `git diff --check` passed. The original four C2 and six
+Demo scenarios are unchanged. Cookie/state/credential/secret-exclusion settings and
+Windows ACL guidance were preserved.
+Browser-free `--list` discovery again collected four C2 and six Demo cases; global
+setup, HTTP preflight and browser execution were not run by discovery.
+
+After separate approval and the developer's existing C2 identity/configuration
+checks, privately supply the same selected User fields and run only the second
+manual bootstrap attempt:
+
+```powershell
+# Second real-browser attempt — NOT EXECUTED in Step 4-B1
+node .\scripts\c2-playwright.ts bootstrap --allow-c2-auth-bootstrap
+```
+
+Observe fixed codes, manually click Google once, and distinguish AUTH_SUBMIT,
+AUTH_REDIRECT/AUTH_LOCAL_REDIRECT and GOOGLE_NAVIGATION from cosmetic handling or
+an explicit failure. If navigation stops, report only these codes and broad UI
+state; do not export URLs, headers, page contents or auth artifacts. Abort on a
+failure. Press Enter only after successful return to the fixture Workspace; state
+is saved only after the selected session and strict capture contract validate.
+Then check file existence privately without reading/printing contents. This task
+did not inspect or change the developer's protected authentication directory.
+The second live attempt, saved-state creation and authenticated E2E remain
+**NOT EXECUTED**. Fixture verify/cleanup and the four-scenario run are not included
+in this next bootstrap step.
