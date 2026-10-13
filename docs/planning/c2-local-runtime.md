@@ -1,9 +1,10 @@
-# C2 runtime isolation — Steps 2-B1 and 2-B2
+# C2 runtime isolation — Steps 2-B through 3-A
 
 Status: launcher, environment isolation, database initialization and B2 service/build
-guards implemented and tested offline. A separately authorized bounded Step 2-C
-startup check verified the C2 listener and two anonymous/read-only endpoints.
-**OAuth and fixture creation remain unapproved/unverified.** Full client/font
+guards implemented and tested offline. Separately authorized Step 2-C checks
+verified the C2 listener, endpoints, real Google OAuth and matching database-backed
+session identity (record below). Step 3-A fixture implementation is offline-tested;
+**fixture insertion/cleanup and authenticated Playwright remain unexecuted.** Full client/font
 compiler resolution and exhaustive outbound-traffic isolation remain unverified.
 No application startup, OAuth login, database operation or external service call
 was performed for B1. Previously completed C2 schema initialization is a separately
@@ -137,11 +138,10 @@ Fonts/Sentry path. **Before OAuth**, separately approved runtime verification mu
 check the actual compiler's alias resolution, font fallback, generated files and
 absence of unintended outgoing requests. No Next dev/build was run for B2.
 
-Later separately authorized checks must establish actual bind/origin, localhost
-resolution, no unintended outbound traffic, true Google login and C2 DB session
-identity. Dedicated browser profile, cookie isolation, guarded fixture creation,
-and Playwright configuration remain later stages. No runtime-readiness claim is
-made by offline B1/B2 tests.
+Step 2-C subsequently established bind/origin, true Google login and C2 DB session
+identity as recorded below. Exhaustive outbound-traffic verification, persistent
+browser profile/cookie isolation and Playwright configuration remain later stages.
+No runtime-readiness claim is made by offline B1/B2 tests.
 
 ## Step 2-C startup failure and controlled verification (2026-10-12, JST)
 
@@ -199,4 +199,121 @@ source checks. This preserves lint behavior after actual C2 startup.
 - Inngest GET returned HTTP 503 as expected.
 - No workspace creation, fixture seeding, migration, or external AI invocation was performed.
 
-Step 2-C OAuth and database session verification passed. C2 fixture implementation and authenticated Playwright E2E remain pending. Comprehensive outbound-traffic isolation has not been established.
+Step 2-C OAuth and database session verification passed. Step 3-A implementation
+is recorded below; fixture execution and authenticated Playwright E2E remain
+pending. Comprehensive outbound-traffic isolation has not been established.
+
+## Step 3-A safe fixture implementation (2026-10-13, JST)
+
+Implementation and offline verification only. No fixture command, database
+connection, insertion, cleanup, migration, app startup, OAuth login or external
+service call was performed for this step. The real User, Google Account and
+Session from Step 2-C must be preserved. Existing AI/embedding/Redis/indexing,
+Inngest and Sentry protections remain intact. Phase 10 is incomplete.
+
+The dedicated Node.js 24 entry point is `scripts/c2-fixture.ts`, separate from
+development/public-demo seeds. Its pure plan, runner and SQL adapter live in
+`scripts/c2-fixture-{plan,runner,store}.ts`; app/demo code does not import them.
+The existing Prisma 8 contract, runtime and development seed were inspected.
+The adapter uses the installed `pg` driver directly for explicit read-only
+transactions, server identity queries, table locks and parameterized SQL without
+loading the normal Prisma singleton, dotenv/config or migration configuration.
+No schema/contract change or new ownership table is needed.
+
+### Target and identity gates
+
+- Read only `.env.c2.local` with the existing strict dedicated-file parser; reject
+  missing, malformed, duplicate or extra keys. Reuse `validateC2Target` before
+  driver import/client construction. No normal dotenv or inherited DB credential
+  fallback. Host, port, database, role and decoded password are explicitly passed;
+  SSL/options and timeouts are explicit too. Reject Demo/runtime conflicts and
+  Node preload settings. A preload already executed before the script cannot be
+  undone; use a trusted Node environment.
+- `validate` is offline and never constructs a DB client. All other modes require
+  both `C2_FIXTURE_USER_ID` and `C2_FIXTURE_USER_EMAIL` in the process environment,
+  never in command arguments or tracked files. Query User by ID **or** email and
+  require exactly one matching pair; never guess the first/only User. Require
+  exactly one Account for this User, of provider `google`, type `oidc` (the installed
+  Auth.js Google provider's account type for this OAuth login), with a
+  nonempty providerAccountId, and at least one unexpired database Session.
+  Missing/ambiguous/inconsistent identity refuses all operations, including cleanup.
+  This confirms persisted evidence, not a fresh Google/browser identity exchange.
+  Google Auth.js does not require a non-null User.emailVerified here.
+- Before graph checks, confirm `current_database() = evidence_atlas_c2` and
+  `current_user = c2_local`. URL/server identity checks do not independently prove
+  which container owns port 5433; re-confirm Step 2-C container/port identity at
+  the next approved runtime gate. Do not start the ordinary development app.
+- `dry-run` and `verify` use repeatable-read **READ ONLY** transactions. `insert`
+  and `cleanup` require the exact separate flag `--allow-c2-write`, use serializable
+  transactions, and lock fixture plus dependency tables in SHARE ROW EXCLUSIVE
+  mode before graph inspection. This serializes concurrent fixture operations and
+  prevents app graph mutations racing with ownership checks. Auth tables are not
+  locked or mutated. Lock/statement timeouts fail with rollback; no automatic retry.
+
+### Ownership, idempotence and cleanup
+
+One versioned graph contains exactly eight records: Organization, Membership,
+Workspace, WorkspaceMembership, Research, Source, Finding and FindingSource.
+Entity IDs are fixed `c2-e2e-v1-*`; titles/names/descriptions/content carry
+`[C2 E2E fixture v1]`. Source uses `https://example.invalid/c2-e2e-v1` and is never
+fetched. Timestamps and content are deterministic; only references to the selected
+existing User vary. No Account, Session, token, embeddings or AI data is created.
+
+All existing scoped rows must exactly match the manifest, including IDs, parent
+links, roles, content and timestamps. Prefix matching alone is insufficient.
+Junction ownership requires verified parent records since junctions have no
+marker fields. This is a reserved-ID/content ownership convention, not
+cryptographic provenance: an independently created identical graph is
+indistinguishable. Reserve this namespace exclusively for C2.
+
+Insertion creates only missing records, in dependency order; matching records are
+left untouched. Repeated execution creates no duplicates. Collisions, modified
+records, another selected User, extra memberships/descendants, or references from
+Tags, ResearchTags, Comments, Conversations, RetrievalChunks or AiUsageEvents
+refuse before mutation. Cleanup deletes only pre-verified exact keys in reverse
+dependency order, without relying on cascades; repeated cleanup is a no-op.
+User/Account/Session and unrelated graphs are preserved. Errors roll back the
+whole operation. UI edits or added children intentionally block cleanup; reviewing
+those changes requires a later task, never broad deletion or forced reset.
+
+Output is only mode/counts or generic refusal; raw driver errors, User identifiers,
+email, OAuth tokens and session cookies are never printed. Auth reads project only
+identity/account metadata and Session.userId, not provider tokens/sessionToken.
+No artifact or private identity file is generated and secret-exclusion rules are
+unchanged. Failure diagnostics intentionally require private local inspection in
+a separately authorized task rather than exposing driver error text.
+
+### Proposed commands — NOT EXECUTED
+
+Run from the repository root only after the next appropriate approval. Supply
+the verified existing User ID/email through a private process environment; do not
+paste real values into tracked scripts, logs, terminal history or reports. The
+commands intentionally contain no identity or credential values.
+
+```powershell
+# Offline target validation (no DB client)
+node scripts/c2-fixture.ts validate
+# Read-only identity/ownership checks and planned insert/delete counts
+node scripts/c2-fixture.ts dry-run
+# Explicit authorized insert only
+node scripts/c2-fixture.ts insert --allow-c2-write
+# Read-only verification of the complete exact manifest
+node scripts/c2-fixture.ts verify
+# Separately authorized cleanup only
+node scripts/c2-fixture.ts cleanup --allow-c2-write
+```
+
+Dry-run requires a DB connection and active real Session; it is distinct from
+offline `validate`. No fixture command above was run in Step 3-A. Offline tests
+simulate SQL execution and transactions; they do not establish real PostgreSQL
+locking, commit/rollback, runtime schema compatibility or authenticated E2E.
+Offline verification passed **502 tests across 34 files**, including 64 dedicated
+fixture tests, plus `pnpm exec tsc --noEmit`, `pnpm exec eslint .` and
+`git diff --check`. The installed Google provider configuration was inspected and
+tested without any OAuth request. Tests cover target/client-construction ordering,
+identity ambiguity, ownership/collisions, idempotence, simulated insert/delete
+rollback, read-only paths and cleanup/auth boundaries. Vitest's esbuild child
+initially hit sandbox EPERM; the offline suite passed after approved escalation.
+Next approval gate: re-confirm C2 service identity and privately select the existing
+User, authorize read-only dry-run, review its counts, then authorize fixture writes.
+Cleanup and authenticated Playwright require their own explicit approval.

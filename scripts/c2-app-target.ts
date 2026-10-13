@@ -39,7 +39,7 @@ type Inputs = {
   readText: (path: string) => string | undefined;
 };
 
-function parseDedicated(text: string | undefined): Record<string, string> {
+export function parseDedicated(text: string | undefined): Record<string, string> {
   if (text === undefined)
     throw new Error("Required dedicated C2 configuration file is missing.");
   const seen = new Set<string>();

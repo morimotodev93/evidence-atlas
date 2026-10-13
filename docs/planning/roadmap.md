@@ -577,6 +577,8 @@ Developer-provided terminal observations now cover all six Groq cases. Case 01 f
 
 **C2 Step 2-C OAuth verification (2026-10-12, JST):** Dedicated Google OAuth login succeeded and redirected to `/onboarding`. C2 PostgreSQL User, Google Account, and Session counts increased from 0/0/0 to 1/1/1. The authenticated browser User ID matched the database User ID. The C2 container identity and isolated port were confirmed, and Inngest returned HTTP 503. No workspace or test fixture was created. Next: guarded C2 fixture implementation and authenticated Playwright E2E.
 
+**C2 Step 3-A fixture implementation (2026-10-13, JST):** A dedicated fixture CLI now validates the strict C2 target before client construction, selects an explicit existing Google-authenticated User with an active database-backed Session, and defines a deterministic eight-record graph. Read-only dry-run/verify, explicit write opt-in, transactional insertion/cleanup, exact ownership/collision checks and dependency boundaries are covered offline. Verification passed 502 tests across 34 files (64 fixture tests), TypeScript, ESLint and diff checks. User/Account/Session are never mutated; regular development/public-demo seeds and external-service protections remain unchanged. No fixture command or real DB operation, app startup, OAuth or Playwright test ran for this step. Implementation is complete; runtime dry-run, fixture insertion/verification and separately approved cleanup/E2E remain pending. See [Step 3-A design and proposed commands](c2-local-runtime.md#step-3-a-safe-fixture-implementation-2026-10-13-jst). Phase 10 remains incomplete.
+
 ### Phase 11 — Deployment
 
 **Goal:** Deploy the portfolio version and verify production behavior.
