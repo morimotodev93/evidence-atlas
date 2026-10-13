@@ -1142,3 +1142,58 @@ gate and response-stage abort, and keep PR #1 Draft/unmerged while reviewing
 whether Chromium internally re-pauses or restarts the same network request.
 No further repeat Probe, fifth OAuth Bootstrap, C2 E2E or fixture/DB mutation
 is authorized by these observations. C2 fixture 8 rows remain protected.
+
+## Step 4-B5 — minimal CDP interception configuration review (2026-10-13 JST)
+
+### Reason for the change
+
+The latest developer-reported standalone run returned
+`CHROMIUM_STARTED → HTTPS_REQUEST_STARTED → HTTPS_SECOND_FETCH_SAME_NETWORK`
+and exit 1 after all 72 focused mocked tests and targeted TypeScript, lint
+and diff checks had passed. That demonstrates two matching Request-stage
+Fetch pauses with distinct Fetch IDs and a shared Network ID. It does **not**
+prove that two outbound HTTP GETs were transmitted, or establish DNS/TLS,
+Chromium behavior, Google reachability or OAuth root cause.
+
+Review of the Chrome DevTools Protocol `Fetch.pdl` and Chromium's
+`DevToolsURLLoaderInterceptor::InnerContinueRequest` establishes that
+`Fetch.continueRequest({ interceptResponse: true })` enables the response
+stage **for the paused request** even if `Fetch.enable` initially selected
+only the Request stage. The old probe specified universal Request *and*
+Response patterns and also set the per-request response override.
+That is overlapping configuration, not evidence of the observed duplicate
+pause's root cause.
+
+Reference implementations:
+- https://github.com/ChromeDevTools/devtools-protocol/blob/master/pdl/domains/Fetch.pdl
+- https://chromium.googlesource.com/chromium/src/+/lkgr/content/browser/devtools/devtools_url_loader_interceptor.cc
+- https://github.com/puppeteer/puppeteer/issues/7475 (historic similar identity pattern, not proof of the same cause)
+
+### Revised minimal configuration and boundaries
+
+The probe now uses **one wildcard Request-stage Fetch pattern** before any
+navigation. Every page request is still paused before sending and must pass
+the exact fixed GET, Document, main-frame and no-redirect metadata gate.
+The sole permitted `Fetch.continueRequest` still supplies
+`interceptResponse: true` and no URL/method/headers modifications.
+The response is therefore still intercepted before body forwarding and must
+be aborted before an HTTP response is reported. All unexpected or repeated
+Request-stage pauses remain aborted without a second continuation.
+`Fetch.authRequired` still cancels authorization; no credentials are used.
+
+No Playwright route manager, Node HTTP fallback, state or browser-profile reuse,
+security/proxy override, redirect follow, response-body read, app access, OAuth
+or DB interaction was added. Fixed target and opt-in, 15-second measurement
+and 5-second cleanup are unchanged. This change is a smaller CDP policy
+configuration, **not a proven fix** for a second Fetch pause.
+
+### Validation and execution gate
+
+The existing mock contract now asserts the single universal Request
+pattern and verifies the sole continuation has `interceptResponse: true`.
+Older test and live evidence above applies to the previous revision;
+the changed files have **not yet** been retested locally. First run focused
+Vitest, TypeScript, targeted ESLint and `git diff --check`. Keep the
+PR Draft and do not automatically execute another native HTTPS probe,
+OAuth Bootstrap, C2 E2E, or the protected eight-row fixture. Any later
+single live probe requires separate developer-controlled authorization.
