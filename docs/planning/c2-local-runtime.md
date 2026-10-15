@@ -1517,3 +1517,20 @@ Chromium paths before authorizing further live tests. Do not rerun OAuth,
 start new browsers/probes, modify authentication state, perform DB reads
 or writes, reset or re-seed the eight-row fixture, relax TLS/network
 guards, or change the status of Draft PR #1 based on this observation.
+
+## Step 4-D2 — offline Edge/Playwright Chromium comparison (2026-10-15 JST)
+
+See [Step 4-D2 offline comparison](./c2-edge-playwright-offline-comparison.md).
+Source review at `46ea97f` compared the successful manual Edge login against
+the stalled Playwright Chromium Bootstrap. Unlike Edge's existing normal
+profile and direct `/api/auth/signin` navigation, Bootstrap uses a fresh
+Chromium context, starts at `/`, and intercepts browser traffic with
+`route.fetch` and `route.fulfill`. The interception difference is a
+**priority hypothesis**, not a proven cause. The lack of Google response or
+navigation commit, earlier private-browser success, and separate duplicate
+CDP Fetch pause must not be conflated.
+
+**Decision:** D2 analysis complete, root cause unresolved. Next produce a
+review-only D3 experiment/approval gate. No browser, OAuth, DB, proxy, probe,
+credential/state operation or C2 fixture mutation was performed. Keep PR #1
+Draft and the eight protected fixture rows unchanged.
