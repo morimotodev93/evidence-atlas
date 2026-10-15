@@ -1336,3 +1336,54 @@ it must not enable a real Chat endpoint or expand the normal smoke suite.
 Do not automatically run the authenticated browser suites, OAuth Bootstrap,
 native HTTPS Probe, C2 app, or database. Preserve the eight-row C2 fixture,
 security/recording restrictions and Draft PR status.
+
+## Step 4-C2 — deterministic Chat History restoration (2026-10-15 JST)
+
+The developer committed and pushed the History restoration increment as
+`b0ed398` (`test(c2): add mocked Chat history restoration`). This adds a
+locally seeded conversation with fixed synthetic USER and AI messages, an
+exact in-memory conversation-detail GET, and Chat-only scenario G that
+selects the History entry and checks the restored text. The original
+four authenticated smoke cases remain separate. No actual Chat API,
+provider or database write is needed for the synthetic response.
+
+Developer-reported Windows offline checks passed: focused Vitest
+**142/142 across 3 files**, `pnpm exec tsc --noEmit`, targeted ESLint,
+and `git diff --check`. Playwright `--list` collected **4 smoke** and
+**3 Chat** cases. These collection checks did not execute browser E2E.
+
+## Step 4-C3 — deterministic local Chat text response (2026-10-15 JST)
+
+After `b0ed398`, the developer applied an additional local-only change
+to `e2e-c2/chat.spec.ts`, `e2e-c2/conversation-mocks.ts`, and
+`scripts/c2-playwright-conversation-mocks.test.ts`. Scenario H exercises
+the UI's Send action using one fixed synthetic prompt. The Chat-only
+mock permits a narrowly checked POST to the exact fixture Chat URL only
+after explicit per-test enablement; it fulfills a fixed `text/plain`
+response locally and records synthetic messages for the mock detail GET.
+Unknown IDs, unexpected methods, request metadata or message bodies
+are refused. Existing service-policy 503 behavior is unchanged.
+
+The browser UI uses `response.body.getReader()` to consume the text,
+but Playwright `route.fulfill` supplies a complete body. This verifies
+a stream-compatible text-reading path, **not** timed multi-chunk
+delivery, real model inference, or actual streamed browser E2E success.
+
+Developer-reported Windows offline validation after this patch:
+- Focused Vitest: **159/159 passed across 3 files** (38 Chat mock,
+  5 suite-selection, 116 existing C2 checks).
+- `pnpm exec tsc --noEmit`, targeted ESLint and `git diff --check`:
+  no errors reported.
+- Playwright `--list`: **4 smoke cases** and **4 Chat cases** collected,
+  with runner status `passed` for discovery only.
+
+At the time of these checks the three stream-mock files were modified
+locally and not yet reported committed. This section records the
+reported verification, not a subsequent commit, CI run, or live
+authenticated E2E pass.
+
+**Decision:** Proceed with the documentation and a reviewable commit
+for this offline-tested increment. Do not automatically run real
+browser E2E, OAuth Bootstrap, the native HTTPS Probe, the C2 app,
+database or external AI calls. Preserve the protected eight-row C2
+fixture, strict recording/network guards and Draft PR status.

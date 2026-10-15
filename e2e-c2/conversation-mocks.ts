@@ -5,6 +5,9 @@ import { C2_ORIGIN, RESEARCH_PATH, fixture, refuse } from "../scripts/c2-playwri
 // the normal fail-closed network boundary and never call route.fetch/continue.
 export const CONVERSATIONS_URL = `${C2_ORIGIN}${RESEARCH_PATH}/chat/conversations`;
 export const CONVERSATION_DETAIL_PATTERN = `${CONVERSATIONS_URL}/*`;
+export const CHAT_URL = `${C2_ORIGIN}${RESEARCH_PATH}/chat`;
+export const STREAM_USER_MESSAGE = "Summarize the synthetic research fixture.";
+export const STREAM_AI_REPLY = "This is a deterministic local test response.";
 export const HISTORY_CONVERSATION_ID = "c2-mock-history-1";
 export const HISTORY_PREVIEW = "Synthetic fixture question";
 export const HISTORY_USER_MESSAGE = "What does this synthetic fixture show?";
@@ -30,6 +33,7 @@ type ConversationRecord = { summary: ConversationSummary; messages: Conversation
 
 export type ConversationMocks = {
   seedHistory: () => void;
+  enableStreaming: () => void;
   assert: () => void;
   dispose: () => Promise<void>;
 };
@@ -38,6 +42,7 @@ export async function installConversationMocks(context: BrowserContext): Promise
   const conversations: ConversationRecord[] = [];
   let sequence = 0;
   let refused = false;
+  let streamEnabled = false;
   const json = (body: unknown, status = 200) => ({
     status, contentType: "application/json", headers: { "cache-control": "no-store" }, body: JSON.stringify(body),
   });
@@ -92,13 +97,77 @@ export async function installConversationMocks(context: BrowserContext): Promise
     }
   };
 
+  // Playwright's route.fulfill supplies a complete text/plain body. Browser
+  // fetch exposes it through response.body.getReader(), but chunk boundaries
+  // and progressive delivery are not guaranteed by this mock.
+  const chatHandler = async (route: Route) => {
+    try {
+      const request = route.request();
+      if (!streamEnabled || request.url() !== CHAT_URL || request.method() !== "POST" ||
+          !isFetch(route) || request.headers()["content-type"] !== "application/json") {
+        await abort(route, "blockedbyclient");
+        return;
+      }
+      const raw = request.postData();
+      if (!raw || raw.length > 512) { await abort(route, "blockedbyclient"); return; }
+      let body: unknown;
+      try { body = JSON.parse(raw); }
+      catch { await abort(route, "blockedbyclient"); return; }
+      if (!body || typeof body !== "object" || Array.isArray(body)) {
+        await abort(route, "blockedbyclient"); return;
+      }
+      const fields = body as Record<string, unknown>;
+      if (Object.keys(fields).length !== 2 || typeof fields.conversationId !== "string" ||
+          fields.message !== STREAM_USER_MESSAGE ||
+          raw !== JSON.stringify({ conversationId: fields.conversationId, message: STREAM_USER_MESSAGE })) {
+        await abort(route, "blockedbyclient"); return;
+      }
+      const conversation = conversations.find((entry) => entry.summary.id === fields.conversationId);
+      // One synthetic response per fresh conversation. No arbitrary user text,
+      // unknown ID, provider request or database mutation is allowed.
+      if (!conversation || conversation.messages.length !== 0) {
+        await abort(route, "blockedbyclient"); return;
+      }
+      const messages: ConversationMessage[] = [
+        { id: `c2-mock-stream-user-${sequence}`, conversationId: conversation.summary.id,
+          authorType: "USER", content: STREAM_USER_MESSAGE, createdAt: CREATED_AT },
+        { id: `c2-mock-stream-ai-${sequence}`, conversationId: conversation.summary.id,
+          authorType: "AI", content: STREAM_AI_REPLY, createdAt: CREATED_AT },
+      ];
+      const oldPreview = conversation.summary.preview;
+      // Populate before fulfillment so the UI's immediate detail GET sees the
+      // response. Roll back the in-memory change if fulfillment fails.
+      conversation.messages.push(...messages);
+      conversation.summary.preview = STREAM_USER_MESSAGE;
+      try {
+        await route.fulfill({
+          status: 200, contentType: "text/plain; charset=utf-8",
+          headers: { "cache-control": "no-store", "x-content-type-options": "nosniff" },
+          body: STREAM_AI_REPLY,
+        });
+      } catch {
+        conversation.messages.splice(0, conversation.messages.length);
+        conversation.summary.preview = oldPreview;
+        throw new Error("Local mock fulfillment failed");
+      }
+    } catch {
+      await abort(route, "failed");
+    }
+  };
+
   await context.route(CONVERSATIONS_URL, collectionHandler);
-  try { await context.route(CONVERSATION_DETAIL_PATTERN, detailHandler); }
-  catch {
+  let detailInstalled = false;
+  try {
+    await context.route(CONVERSATION_DETAIL_PATTERN, detailHandler);
+    detailInstalled = true;
+    await context.route(CHAT_URL, chatHandler);
+  } catch {
+    if (detailInstalled) await context.unroute(CONVERSATION_DETAIL_PATTERN, detailHandler).catch(() => {});
     await context.unroute(CONVERSATIONS_URL, collectionHandler).catch(() => {});
     refuse("chat-mock-setup");
   }
   return {
+    enableStreaming() { streamEnabled = true; },
     seedHistory() {
       if (conversations.some((item) => item.summary.id === HISTORY_CONVERSATION_ID)) refuse("chat-mock-seed");
       conversations.unshift({
@@ -113,8 +182,11 @@ export async function installConversationMocks(context: BrowserContext): Promise
     async dispose() {
       // Remove the later (more specific) intercept first. Context closes after
       // the test, but both handlers must be cleaned up explicitly.
-      try { await context.unroute(CONVERSATION_DETAIL_PATTERN, detailHandler); }
-      finally { await context.unroute(CONVERSATIONS_URL, collectionHandler); }
+      try { await context.unroute(CHAT_URL, chatHandler); }
+      finally {
+        try { await context.unroute(CONVERSATION_DETAIL_PATTERN, detailHandler); }
+        finally { await context.unroute(CONVERSATIONS_URL, collectionHandler); }
+      }
     },
   };
 }

@@ -2,7 +2,7 @@ import { readFileSync } from "node:fs";
 import { describe, expect, it, vi } from "vitest";
 import type { BrowserContext, Request, Route } from "@playwright/test";
 import {
-  CONVERSATIONS_URL, CONVERSATION_DETAIL_PATTERN, HISTORY_CONVERSATION_ID,
+  CONVERSATIONS_URL, CONVERSATION_DETAIL_PATTERN, CHAT_URL, STREAM_USER_MESSAGE, STREAM_AI_REPLY, HISTORY_CONVERSATION_ID,
   HISTORY_PREVIEW, HISTORY_USER_MESSAGE, HISTORY_AI_MESSAGE, installConversationMocks,
 } from "../e2e-c2/conversation-mocks.ts";
 import { RESEARCH_PATH, C2_ORIGIN, fixture } from "./c2-playwright-policy.ts";
@@ -14,8 +14,13 @@ function fakeContext() {
     if (handlers.get(pattern) === listener) handlers.delete(pattern);
   });
   const context = { route: register, unroute: unregister } as unknown as BrowserContext;
-  function send(method: string, url = CONVERSATIONS_URL, resource = "fetch", navigation = false) {
-    const request = { url: () => url, method: () => method, resourceType: () => resource, isNavigationRequest: () => navigation } as unknown as Request;
+  function send(method: string, url = CONVERSATIONS_URL, resource = "fetch", navigation = false,
+    data?: unknown, contentType = "application/json", forcePattern?: string) {
+    const request = {
+      url: () => url, method: () => method, resourceType: () => resource, isNavigationRequest: () => navigation,
+      headers: () => ({ "content-type": contentType }),
+      postData: () => data === undefined ? null : typeof data === "string" ? data : JSON.stringify(data),
+    } as unknown as Request;
     const fulfill = vi.fn(async (_options: unknown) => {});
     const abort = vi.fn(async (_reason: string) => {});
     const fetch = vi.fn(async () => { throw new Error("Forbidden outbound fetch"); });
@@ -24,7 +29,7 @@ function fakeContext() {
       // Exercise the exact collection or detail handler without a browser.
       // Explicitly invoke the detail handler for malformed URLs so its
       // metadata gate is tested even when Playwright would not match them.
-      const pattern = url === CONVERSATIONS_URL ? CONVERSATIONS_URL : CONVERSATION_DETAIL_PATTERN;
+      const pattern = forcePattern ?? (url === CONVERSATIONS_URL ? CONVERSATIONS_URL : url === CHAT_URL ? CHAT_URL : CONVERSATION_DETAIL_PATTERN);
       const handler = handlers.get(pattern);
       if (!handler) throw new Error("No route installed");
       return handler(route);
@@ -38,16 +43,16 @@ function payload(options: unknown): { status: number; contentType: string; heade
 }
 
 describe("C2 Chat conversation mocks (offline only)", () => {
-  it("installs only the exact fixture URL, separately from normal smoke tests", async () => {
+  it("installs only the exact fixture Chat endpoints, separately from normal smoke tests", async () => {
     const h = fakeContext();
     const mock = await installConversationMocks(h.context);
     expect(CONVERSATIONS_URL).toBe(`${C2_ORIGIN}${RESEARCH_PATH}/chat/conversations`);
-    expect(h.register).toHaveBeenCalledTimes(2);
-    expect(h.register.mock.calls.map(([pattern]) => pattern)).toEqual([CONVERSATIONS_URL, CONVERSATION_DETAIL_PATTERN]);
+    expect(h.register).toHaveBeenCalledTimes(3);
+    expect(h.register.mock.calls.map(([pattern]) => pattern)).toEqual([CONVERSATIONS_URL, CONVERSATION_DETAIL_PATTERN, CHAT_URL]);
     mock.assert();
     await mock.dispose();
-    expect(h.unregister).toHaveBeenCalledTimes(2);
-    expect(h.unregister.mock.calls.map(([pattern]) => pattern)).toEqual([CONVERSATION_DETAIL_PATTERN, CONVERSATIONS_URL]);
+    expect(h.unregister).toHaveBeenCalledTimes(3);
+    expect(h.unregister.mock.calls.map(([pattern]) => pattern)).toEqual([CHAT_URL, CONVERSATION_DETAIL_PATTERN, CONVERSATIONS_URL]);
   });
 
   it("returns a local empty list, creates synthetic conversations, then lists newest first", async () => {
@@ -197,6 +202,110 @@ describe("C2 Chat conversation mocks (offline only)", () => {
     await attempt.invoke();
     expect(attempt.fetch).not.toHaveBeenCalled();
     expect(attempt.abort).toHaveBeenCalledWith("failed");
+    expect(() => mock.assert()).toThrow("chat-mock");
+    await mock.dispose();
+  });
+
+  it("returns one synthetic stream-compatible text reply and stores it for the local detail GET", async () => {
+    const h = fakeContext();
+    const mock = await installConversationMocks(h.context);
+    const create = h.send("POST");
+    await create.invoke();
+    const id = (JSON.parse(payload(create.fulfill.mock.calls[0][0]).body) as { id: string }).id;
+    mock.enableStreaming();
+    const reply = h.send("POST", CHAT_URL, "fetch", false, { conversationId: id, message: STREAM_USER_MESSAGE });
+    await reply.invoke();
+    const result = payload(reply.fulfill.mock.calls[0][0]);
+    expect(result.status).toBe(200);
+    expect(result.contentType).toBe("text/plain; charset=utf-8");
+    expect(result.headers).toMatchObject({ "cache-control": "no-store", "x-content-type-options": "nosniff" });
+    // Reproduce the UI's getReader()/TextDecoder consumption. This checks the
+    // stream API path, not controlled network chunk timing in Chromium.
+    const reader = new Response(result.body).body!.getReader();
+    const decoder = new TextDecoder();
+    let responseText = "";
+    for (;;) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      responseText += decoder.decode(value, { stream: true });
+    }
+    responseText += decoder.decode();
+    expect(responseText).toBe(STREAM_AI_REPLY);
+    expect(reply.fetch).not.toHaveBeenCalled();
+    expect(reply.abort).not.toHaveBeenCalled();
+    const detail = h.send("GET", `${CONVERSATIONS_URL}/${id}`);
+    await detail.invoke();
+    const messages = (JSON.parse(payload(detail.fulfill.mock.calls[0][0]).body) as { messages: { content: string; authorType: string }[] }).messages;
+    expect(messages.map((m) => [m.authorType, m.content])).toEqual([["USER", STREAM_USER_MESSAGE], ["AI", STREAM_AI_REPLY]]);
+    const list = h.send("GET");
+    await list.invoke();
+    expect((JSON.parse(payload(list.fulfill.mock.calls[0][0]).body) as { preview: string }[])[0].preview).toBe(STREAM_USER_MESSAGE);
+    mock.assert();
+    await mock.dispose();
+  });
+
+  it.each([
+    ["POST", CHAT_URL, "fetch", false, { conversationId: "c2-mock-conversation-1", message: STREAM_USER_MESSAGE }, "application/json", false],
+    ["GET", CHAT_URL, "fetch", false, {}, "application/json", true],
+    ["POST", `${CHAT_URL}?other=1`, "fetch", false, {}, "application/json", true],
+    ["POST", CHAT_URL.replace("localhost:3001", "localhost:3000"), "fetch", false, {}, "application/json", true],
+    ["POST", CHAT_URL, "xhr", false, {}, "application/json", true],
+    ["POST", CHAT_URL, "document", true, {}, "application/json", true],
+    ["POST", CHAT_URL, "fetch", false, {}, "text/plain", true],
+    ["POST", CHAT_URL, "fetch", false, "{bad", "application/json", true],
+    ["POST", CHAT_URL, "fetch", false, undefined, "application/json", true],
+    ["POST", CHAT_URL, "fetch", false, '{"conversationId":"c2-mock-conversation-1", "message":"Summarize the synthetic research fixture."}', "application/json", true],
+    ["POST", CHAT_URL, "fetch", false, { conversationId: "unknown", message: STREAM_USER_MESSAGE }, "application/json", true],
+    ["POST", CHAT_URL, "fetch", false, { conversationId: "c2-mock-conversation-1", message: "arbitrary private message" }, "application/json", true],
+    ["POST", CHAT_URL, "fetch", false, { conversationId: "c2-mock-conversation-1", message: STREAM_USER_MESSAGE, extra: "unsafe" }, "application/json", true],
+    ["POST", CHAT_URL, "fetch", false, { conversationId: "c2-mock-conversation-1", message: "x".repeat(1024) }, "application/json", true],
+  ] as const)("blocks an unexpected Chat send locally without ever fetching upstream", async (method, url, resource, navigation, data, contentType, enabled) => {
+    const h = fakeContext();
+    const mock = await installConversationMocks(h.context);
+    const create = h.send("POST");
+    await create.invoke();
+    if (enabled) mock.enableStreaming();
+    const reply = h.send(method, url, resource, navigation, data, contentType, CHAT_URL);
+    await reply.invoke();
+    expect(reply.fulfill).not.toHaveBeenCalled();
+    expect(reply.fetch).not.toHaveBeenCalled();
+    expect(reply.abort).toHaveBeenCalled();
+    expect(() => mock.assert()).toThrow("chat-mock");
+    await mock.dispose();
+  });
+
+  it("rolls back synthetic messages if local response fulfillment fails", async () => {
+    const h = fakeContext();
+    const mock = await installConversationMocks(h.context);
+    const create = h.send("POST");
+    await create.invoke();
+    const id = (JSON.parse(payload(create.fulfill.mock.calls[0][0]).body) as { id: string }).id;
+    mock.enableStreaming();
+    const reply = h.send("POST", CHAT_URL, "fetch", false, { conversationId: id, message: STREAM_USER_MESSAGE });
+    reply.fulfill.mockRejectedValueOnce(new Error("Synthetic private token"));
+    await reply.invoke();
+    expect(reply.fetch).not.toHaveBeenCalled();
+    expect(reply.abort).toHaveBeenCalledWith("failed");
+    const detail = h.send("GET", `${CONVERSATIONS_URL}/${id}`);
+    await detail.invoke();
+    expect((JSON.parse(payload(detail.fulfill.mock.calls[0][0]).body) as { messages: unknown[] }).messages).toEqual([]);
+    expect(() => mock.assert()).toThrow("chat-mock");
+    await mock.dispose();
+  });
+
+  it("refuses a duplicate response for the same context-local conversation", async () => {
+    const h = fakeContext();
+    const mock = await installConversationMocks(h.context);
+    const create = h.send("POST");
+    await create.invoke();
+    const id = (JSON.parse(payload(create.fulfill.mock.calls[0][0]).body) as { id: string }).id;
+    mock.enableStreaming();
+    const send = () => h.send("POST", CHAT_URL, "fetch", false, { conversationId: id, message: STREAM_USER_MESSAGE });
+    const first = send(); await first.invoke();
+    const second = send(); await second.invoke();
+    expect(second.fulfill).not.toHaveBeenCalled();
+    expect(second.fetch).not.toHaveBeenCalled();
+    expect(second.abort).toHaveBeenCalledWith("blockedbyclient");
     expect(() => mock.assert()).toThrow("chat-mock");
     await mock.dispose();
   });

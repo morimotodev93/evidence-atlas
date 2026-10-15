@@ -1,6 +1,9 @@
 import { expect, type Locator, type Page } from "@playwright/test";
 import { chatTest as test } from "./fixtures.ts";
-import { HISTORY_AI_MESSAGE, HISTORY_PREVIEW, HISTORY_USER_MESSAGE } from "./conversation-mocks.ts";
+import {
+  HISTORY_AI_MESSAGE, HISTORY_PREVIEW, HISTORY_USER_MESSAGE,
+  STREAM_USER_MESSAGE, STREAM_AI_REPLY,
+} from "./conversation-mocks.ts";
 import { C2_ORIGIN, fixture, RESEARCH_PATH } from "../scripts/c2-playwright-policy.ts";
 
 // The Chat-specific fixture installs exact, in-memory conversation routes before
@@ -82,4 +85,27 @@ test("G: restore synthetic messages from a selected History conversation", async
   await expect(panel.getByText("No conversation yet", { exact: true })).toHaveCount(0);
   await expect(composer).toBeEnabled();
   await expect(panel.getByRole("button", { name: "Send", exact: true })).toBeDisabled();
+});
+
+// The real C2 Chat POST remains disabled. Only this test enables an exact,
+// deterministic text/plain route fulfilled entirely in memory.
+test("H: display a locally mocked AI text response after sending a fixed prompt", async ({ page, conversationMocks }) => {
+  conversationMocks.enableStreaming();
+  const panel = await openResearchChat(page);
+  const composer = panel.getByPlaceholder("Ask about this research...", { exact: true });
+  const send = panel.getByRole("button", { name: "Send", exact: true });
+
+  await panel.getByRole("button", { name: "New", exact: true }).click();
+  await expect(panel.getByText("Conversation started", { exact: true })).toBeVisible();
+  await composer.fill(STREAM_USER_MESSAGE);
+  await expect(send).toBeEnabled();
+  await send.click();
+
+  // The panel consumes response.body.getReader() and appends decoded text.
+  // route.fulfill does not establish incremental on-wire chunk delivery.
+  await expect(panel.getByText(STREAM_USER_MESSAGE, { exact: true })).toBeVisible();
+  await expect(panel.getByText(STREAM_AI_REPLY, { exact: true })).toBeVisible();
+  await expect(composer).toBeEnabled();
+  await expect(send).toBeDisabled();
+  await expect(panel.getByRole("alert")).toHaveCount(0);
 });
