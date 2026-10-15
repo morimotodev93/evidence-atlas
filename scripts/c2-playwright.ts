@@ -20,7 +20,7 @@ try {
     try { await preflight(client, expected); }
     finally { await client.dispose(); }
     console.log("C2 HTTP/session preflight passed. PostgreSQL container identity is not proven.");
-  } else {
+  } else { // Fixed smoke and Chat-mock suites share preflight and storage-state guards.
     const { loadC2State } = await import("./c2-playwright-state.ts");
     await loadC2State();
     const root = fileURLToPath(new URL("../", import.meta.url));
@@ -34,11 +34,16 @@ try {
       C2_E2E_ALLOW_READONLY: "1", PLAYWRIGHT_NO_COPY_PROMPT: "1", NEXT_TELEMETRY_DISABLED: "1",
       C2_FIXTURE_USER_ID: expected.id, C2_FIXTURE_USER_EMAIL: expected.email,
     });
-    const result = spawnSync(process.execPath, [cli, "test", "--config", join(root, "playwright.c2.config.ts")], {
+    const chat = mode === "chat";
+    if (chat) env.C2_E2E_ALLOW_CHAT_MOCK = "1";
+    const config = chat ? "playwright.c2.chat.config.ts" : "playwright.c2.config.ts";
+    const result = spawnSync(process.execPath, [cli, "test", "--config", join(root, config)], {
       cwd: root, env, shell: false, stdio: "ignore", timeout: 300_000,
     });
     if (result.error || result.status !== 0) refuse("suite-failed-or-timed-out");
-    console.log("C2 authenticated read-only suite passed (raw runner output suppressed).");
+    console.log(chat
+      ? "C2 Chat mock-only suite passed (raw runner output suppressed)."
+      : "C2 authenticated read-only suite passed (raw runner output suppressed).");
   }
 } catch {
   console.error("C2 E2E command refused or failed; sensitive details suppressed.");

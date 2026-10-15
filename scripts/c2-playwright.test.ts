@@ -59,6 +59,10 @@ describe("C2 Playwright pure/offline safety", () => {
     expect(parseHarnessCommand(["bootstrap", "--allow-c2-auth-bootstrap"])).toBe("bootstrap");
     expect(parseHarnessCommand(["run", "--allow-c2-readonly"])).toBe("run");
     expect(parseHarnessCommand(["preflight", "--allow-c2-readonly"])).toBe("preflight");
+    expect(parseHarnessCommand(["chat", "--allow-c2-chat-mock"])).toBe("chat");
+    expect(() => parseHarnessCommand(["chat", "--allow-c2-readonly"])).toThrow("command-opt-in");
+    expect(() => parseHarnessCommand(["run", "--allow-c2-chat-mock"])).toThrow("command-opt-in");
+    expect(() => parseHarnessCommand(["chat", "--allow-c2-chat-mock", "--grep=Chat"])).toThrow("command-opt-in");
   });
   it("requires private explicit fixture user selection", () => {
     expect(() => requireExpectedUser({})).toThrow("user-selection");
@@ -336,6 +340,7 @@ describe("C2 configuration and secret-free reporting", () => {
     for (const key of Object.keys(process.env)) {
       if (/^(E2E_BASE_URL|NODE_OPTIONS|NODE_PATH|DEBUG|PWDEBUG|PW_TEST_.*|HTTPS?_PROXY|ALL_PROXY|PUBLIC_DEMO_MODE|C2_RUNTIME_MODE|AUTH_URL)$/i.test(key)) vi.stubEnv(key, undefined);
     }
+    vi.stubEnv("C2_E2E_ALLOW_CHAT_MOCK", undefined);
   });
   afterEach(() => vi.unstubAllEnvs());
   it("configures an isolated, fixed, non-recording suite without app startup", async () => {
@@ -351,7 +356,7 @@ describe("C2 configuration and secret-free reporting", () => {
   });
   it("rejects resolved config/CLI overrides before browser startup", () => {
     vi.stubEnv("C2_E2E_ALLOW_READONLY", "1"); vi.stubEnv("PLAYWRIGHT_NO_COPY_PROMPT", "1");
-    const config = { workers: 1, maxFailures: 1, webServer: null, preserveOutput: "never", reporter: [["C:/repo/e2e-c2/redacted-reporter.ts"]], projects: [{ name: "c2-chromium", testDir: "C:/repo/e2e-c2", outputDir: "C:/repo/test-results-c2", retries: 0, use: { baseURL: C2_ORIGIN, browserName: "chromium", trace: "off", screenshot: "off", video: "off", serviceWorkers: "block" } }] } as unknown as FullConfig;
+    const config = { workers: 1, maxFailures: 1, webServer: null, preserveOutput: "never", reporter: [["C:/repo/e2e-c2/redacted-reporter.ts"]], projects: [{ name: "c2-chromium", testMatch: "authenticated-smoke.spec.ts", testDir: "C:/repo/e2e-c2", outputDir: "C:/repo/test-results-c2", retries: 0, use: { baseURL: C2_ORIGIN, browserName: "chromium", trace: "off", screenshot: "off", video: "off", serviceWorkers: "block" } }] } as unknown as FullConfig;
     try {
       expect(() => requireC2Config(config)).not.toThrow();
       for (const use of [{ baseURL: "https://production.invalid" }, { trace: "on" }, { storageState: "other.json" }, { connectOptions: { wsEndpoint: "wss://remote.invalid" } }, { contextOptions: { recordHar: { path: "secret.har" } } }]) {

@@ -8,8 +8,17 @@ export function requireC2Config(config: FullConfig) {
     config.workers !== 1 || config.maxFailures !== 1 || config.webServer || config.projects.length !== 1 ||
     config.preserveOutput !== "never" || config.reporter.length !== 1 || !config.reporter[0][0].endsWith("redacted-reporter.ts")) refuse("configuration-or-opt-in");
   const project = config.projects[0];
+  const chat = process.env.C2_E2E_ALLOW_CHAT_MOCK === "1";
+  // A Chat config needs a separate explicit capability. The smoke command may
+  // not accidentally select Chat, and the Chat command may not select smoke.
+  if (process.env.C2_E2E_ALLOW_CHAT_MOCK && !chat) refuse("configuration-or-opt-in");
+  const expectedName = chat ? "c2-chat-chromium" : "c2-chromium";
+  const expectedMatch = chat ? "chat.spec.ts" : "authenticated-smoke.spec.ts";
+  if (project.name !== expectedName || project.testMatch !== expectedMatch ||
+    (Array.isArray(project.testIgnore) ? project.testIgnore.length !== 0 : !!project.testIgnore) ||
+    project.dependencies?.length || project.teardown) refuse("suite-selection");
   const use = project.use;
-  if (project.name !== "c2-chromium" || !project.testDir.endsWith("e2e-c2") || project.retries !== 0 ||
+  if (!project.testDir.endsWith("e2e-c2") || project.retries !== 0 ||
     use.baseURL !== C2_ORIGIN || use.browserName !== "chromium" || use.trace !== "off" || use.screenshot !== "off" || use.video !== "off" ||
     use.serviceWorkers !== "block" || use.storageState || use.connectOptions || use.contextOptions?.recordHar || use.contextOptions?.recordVideo ||
     use.launchOptions?.proxy || use.contextOptions?.proxy || use.launchOptions?.args?.length || use.launchOptions?.executablePath ||

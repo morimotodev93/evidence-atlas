@@ -8,9 +8,10 @@ export const fixture = Object.fromEntries(fixtureEntries("unused-offline-identit
 
 export function parseHarnessCommand(args: readonly string[]) {
   const mode = args[0];
-  if (!["preflight", "bootstrap", "run"].includes(mode) || args.length !== 2 ||
-    args[1] !== (mode === "bootstrap" ? "--allow-c2-auth-bootstrap" : "--allow-c2-readonly")) refuse("command-opt-in");
-  return mode as "preflight" | "bootstrap" | "run";
+  if (!["preflight", "bootstrap", "run", "chat"].includes(mode) || args.length !== 2 ||
+    args[1] !== (mode === "bootstrap" ? "--allow-c2-auth-bootstrap" :
+      mode === "chat" ? "--allow-c2-chat-mock" : "--allow-c2-readonly")) refuse("command-opt-in");
+  return mode as "preflight" | "bootstrap" | "run" | "chat";
 }
 
 export function refuse(code: string): never {

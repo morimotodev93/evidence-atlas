@@ -3,6 +3,7 @@ import { preflight, requireExpectedUser, refuse } from "../scripts/c2-playwright
 import { loadC2State } from "../scripts/c2-playwright-state.ts";
 import { installNetworkBoundary } from "../scripts/c2-playwright-network.ts";
 import { requireC2Config } from "./global-setup.ts";
+import { installConversationMocks, type ConversationMocks } from "./conversation-mocks.ts";
 
 export const test = base.extend<{ assertNetwork: () => void }>({
   context: async ({ browser }, provide, testInfo) => {
@@ -38,4 +39,19 @@ test.afterEach(async ({ assertNetwork }, testInfo) => {
     testInfo.errors.splice(0, testInfo.errors.length,
       ...testInfo.errors.map(() => ({ message: "C2 assertion failed; details suppressed." })));
   }
+});
+
+// Explicitly opt in with `chatTest` in a future Chat-only spec. The original
+// four authenticated smoke cases continue importing `test` and cannot use these
+// routes. The shared C2 request boundary is installed before these mocks.
+export const chatTest = test.extend<{ conversationMocks: ConversationMocks }>({
+  conversationMocks: [async ({ context }, provide) => {
+    const mock = await installConversationMocks(context);
+    try { await provide(mock); }
+    finally {
+      try { await mock.dispose(); }
+      catch { refuse("chat-mock-cleanup"); }
+      mock.assert();
+    }
+  }, { auto: true }],
 });
