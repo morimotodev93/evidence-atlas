@@ -1467,3 +1467,53 @@ chunk timing, or a successful authenticated browser E2E. Do not start
 C2 app, OAuth Bootstrap, browser suites, native Chromium HTTPS Probe,
 or DB operations. Preserve the protected eight-row fixture, strict
 network/recording guards and Draft PR status.
+
+## Step 4-D1 — manual Edge normal-profile OAuth observation (2026-10-15 JST)
+
+This entry records a **developer-reported manual browser result**, supported
+by a screenshot of the resulting Workspace page. It does not report a
+Playwright run, a fresh automated bootstrap, or independently verified
+database/session state. The Step 4-C5 changes and validation record were
+committed and pushed as `1fe1228` before this observation was documented.
+
+- The developer used **Microsoft Edge in an existing ordinary profile**,
+  without a newly created C2-specific profile or special browser settings.
+  This was not a Playwright-controlled browser session.
+- The developer visited `http://localhost:3001/api/auth/signin`, saw the
+  Google account chooser, selected the **previously used C2 test Google
+  account** (not their ordinary personal Google account), completed the
+  interactive login, and reached the Evidence Atlas Workspace at
+  `http://localhost:3001/`.
+- The supplied screenshot shows a visible **Sign out** control, the selected
+  `[C2 E2E fixture v1] Workspace`, a matching recent Research card, and
+  summary counts of **Research 1, Sources 1, Findings 1, Tags 0**.
+  These are visible UI observations, **not** a verification of all eight
+  protected C2 database fixture rows or the underlying session identity.
+- No account email address, OAuth code, state parameter, browser cookie,
+  access token, browser-profile contents, or screenshot is stored in this
+  Git documentation record.
+
+**Interpretation:** A normal, manually operated Edge browser successfully
+completed a C2 test-account login flow and rendered the expected Workspace.
+The previous Playwright-controlled Chromium OAuth navigation remained
+stalled before an observed Google response/commit. This contrast is useful
+for investigating differences in automation, browser configuration,
+profile state, and network interception, but **does not identify any of
+those factors as the root cause**. In particular, it does not prove
+that InPrivate/incognito mode caused the earlier failures.
+
+**Still unverified:** whether this manual attempt inserted or updated any
+C2 authentication rows; the complete eight-row fixture count; direct
+`/api/auth/session` identity validation; the exact browser network exchange;
+and creation of `playwright/.auth/c2-user.json`. Prior authenticated
+Playwright smoke/Chat suites remain **unexecuted**. An existing normal
+profile can contain personal cookies or settings, so it must not be copied
+or imported into automated browser tests.
+
+**Decision:** Record the result as **manual Edge OAuth/Workspace success,
+reported and visually corroborated; not automated E2E success**. Next,
+perform **offline-only** comparison of the Edge manual and Playwright
+Chromium paths before authorizing further live tests. Do not rerun OAuth,
+start new browsers/probes, modify authentication state, perform DB reads
+or writes, reset or re-seed the eight-row fixture, relax TLS/network
+guards, or change the status of Draft PR #1 based on this observation.
