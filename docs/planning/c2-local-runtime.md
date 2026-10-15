@@ -1593,3 +1593,26 @@ C2 database on the strength of these results. Preserve the existing
 network fail-closed rules, private browser state, the protected eight
 fixture rows, and Draft PR #1. Live testing still requires a separate
 safety and database-effect decision.
+
+## Step 4-D5 — Playwright Edge OAuth live-run safety review (2026-10-15 JST)
+
+See [D5 one-run OAuth review](./c2-playwright-edge-oauth-live-gate.md).
+After Step 4-D4 (`4339c77`), code review confirmed the new Edge selection
+uses a fresh Playwright browser context, separate exact CLI opt-in,
+the existing network interception and validated C2-only session
+persistence. Developer-reported Windows offline checks passed **172/172**.
+The original C2 fixture eight-row graph remains protected.
+
+A real OAuth flow requires multiple HTTPS requests and may update
+C2 Auth User/Account/Session rows. The Playwright Route guard does
+not independently prove host-wide outbound containment. The isolated
+one-GET Chromium probe remains under its **separate NO-GO** decision.
+The 20-second Google navigation timer is an observation, not a hard
+automatic abort; a bounded, supervised attempt needs a cleanup review.
+
+**Decision:** D5 source/documentation review complete. A live Edge
+OAuth attempt is **not yet authorized**: it requires an explicit
+decision on network residual risk, allowed C2 Auth-side DB effects,
+separately authorized read-only fixture verification, a finite operator
+stop/cleanup plan, and the one-attempt scope. No browser, app, OAuth,
+database or network probe was run for this review. Keep Draft PR #1.
