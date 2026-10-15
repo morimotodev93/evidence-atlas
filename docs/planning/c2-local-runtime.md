@@ -730,21 +730,21 @@ rewrite, extra destination/method permission or credential automation was added.
 
 The diagnostic stages now distinguish:
 
-| Fixed code | Evidence, and its limit |
-| --- | --- |
-| AUTH_REDIRECT | Policy-approved API redirect response, before fulfillment |
-| AUTH_FULFILL_STARTED | Driver fulfillment call started |
-| AUTH_FULFILL_COMPLETED | Fulfill Promise returned; not proof of browser receipt |
-| AUTH_FULFILL_PENDING | At manual-wait end, call started but had not returned/failed |
-| AUTH_BROWSER_POST | Browser-context POST event observed |
-| AUTH_BROWSER_REDIRECT | Browser-context response event has a redirect status |
-| GOOGLE_NAV_REQUEST | Allowed main-frame provider navigation request observed, even without a Route |
-| GOOGLE_NAV_ROUTE | Such a request additionally reached the route handler |
-| GOOGLE_NAV_RESPONSE / GOOGLE_NAV_HTTP_ERROR | Browser-context provider response class observed |
-| GOOGLE_NAVIGATION | Allowed provider URL committed to the main frame; not auth success |
-| GOOGLE_SUBFRAME_NAV_REQUEST | Provider subframe request, distinct from main-frame navigation |
-| GOOGLE_NAV_NOT_OBSERVED | Fulfill returned but no main-frame provider request/commit was observed by manual-wait end |
-| GOOGLE_NAV_UNCOMMITTED | Main-frame provider request observed, without commit by manual-wait end |
+| Fixed code                                  | Evidence, and its limit                                                                    |
+| ------------------------------------------- | ------------------------------------------------------------------------------------------ |
+| AUTH_REDIRECT                               | Policy-approved API redirect response, before fulfillment                                  |
+| AUTH_FULFILL_STARTED                        | Driver fulfillment call started                                                            |
+| AUTH_FULFILL_COMPLETED                      | Fulfill Promise returned; not proof of browser receipt                                     |
+| AUTH_FULFILL_PENDING                        | At manual-wait end, call started but had not returned/failed                               |
+| AUTH_BROWSER_POST                           | Browser-context POST event observed                                                        |
+| AUTH_BROWSER_REDIRECT                       | Browser-context response event has a redirect status                                       |
+| GOOGLE_NAV_REQUEST                          | Allowed main-frame provider navigation request observed, even without a Route              |
+| GOOGLE_NAV_ROUTE                            | Such a request additionally reached the route handler                                      |
+| GOOGLE_NAV_RESPONSE / GOOGLE_NAV_HTTP_ERROR | Browser-context provider response class observed                                           |
+| GOOGLE_NAVIGATION                           | Allowed provider URL committed to the main frame; not auth success                         |
+| GOOGLE_SUBFRAME_NAV_REQUEST                 | Provider subframe request, distinct from main-frame navigation                             |
+| GOOGLE_NAV_NOT_OBSERVED                     | Fulfill returned but no main-frame provider request/commit was observed by manual-wait end |
+| GOOGLE_NAV_UNCOMMITTED                      | Main-frame provider request observed, without commit by manual-wait end                    |
 
 Browser failed requests use only fixed BLOCKED/CANCELED/NETWORK/OTHER categories
 under `AUTH_BROWSER_FAILED_*` or `GOOGLE_NAV_FAILED_*`. The classifier compares
@@ -1056,19 +1056,19 @@ unknown or insufficient error data remains HTTPS_FAILURE_UNCLASSIFIED. A local
 deadline is HTTPS_TIMEOUT and does not prove a TLS problem. Generic CDP failures
 can lack enough data to distinguish TLS; no such diagnosis is invented.
 
-| Code | Interpretation of a future live result |
-| --- | --- |
-| CHROMIUM_STARTED | Installed browser launch returned; no HTTPS proof yet |
-| HTTPS_REQUEST_STARTED | Exact native request was approved; no response proof yet |
-| HTTPS_RESPONSE_RECEIVED | Ordinary HTTPS response headers arrived and the response was terminated; no OAuth proof |
-| HTTPS_REDIRECT_REFUSED | 3xx headers arrived and were terminated before following; transport responded but target changed |
-| HTTPS_DNS_FAILURE / HTTPS_TLS_FAILURE / HTTPS_NETWORK_FAILURE | Exact correlated native failure class; underlying cause still needs review |
-| HTTPS_TIMEOUT | Measurement deadline elapsed; pending startup/setup/request is not conclusive TLS evidence |
-| HTTPS_FAILURE_UNCLASSIFIED | Available error data does not support a narrower cause |
-| HTTPS_AUTH_CHALLENGE_REFUSED | Credentials/challenge handling was refused; proxy challenge may precede origin TLS |
-| HTTPS_CANCELED | Context/browser or correlated navigation was canceled; not independent connectivity failure proof |
-| HTTPS_PROBE_REFUSED | Invocation, metadata, containment or overall safety failed; no success claimed |
-| HTTPS_CLEANUP_FAILED | Closure was not acknowledged; overall exit fails even if earlier headers were received |
+| Code                                                          | Interpretation of a future live result                                                            |
+| ------------------------------------------------------------- | ------------------------------------------------------------------------------------------------- |
+| CHROMIUM_STARTED                                              | Installed browser launch returned; no HTTPS proof yet                                             |
+| HTTPS_REQUEST_STARTED                                         | Exact native request was approved; no response proof yet                                          |
+| HTTPS_RESPONSE_RECEIVED                                       | Ordinary HTTPS response headers arrived and the response was terminated; no OAuth proof           |
+| HTTPS_REDIRECT_REFUSED                                        | 3xx headers arrived and were terminated before following; transport responded but target changed  |
+| HTTPS_DNS_FAILURE / HTTPS_TLS_FAILURE / HTTPS_NETWORK_FAILURE | Exact correlated native failure class; underlying cause still needs review                        |
+| HTTPS_TIMEOUT                                                 | Measurement deadline elapsed; pending startup/setup/request is not conclusive TLS evidence        |
+| HTTPS_FAILURE_UNCLASSIFIED                                    | Available error data does not support a narrower cause                                            |
+| HTTPS_AUTH_CHALLENGE_REFUSED                                  | Credentials/challenge handling was refused; proxy challenge may precede origin TLS                |
+| HTTPS_CANCELED                                                | Context/browser or correlated navigation was canceled; not independent connectivity failure proof |
+| HTTPS_PROBE_REFUSED                                           | Invocation, metadata, containment or overall safety failed; no success claimed                    |
+| HTTPS_CLEANUP_FAILED                                          | Closure was not acknowledged; overall exit fails even if earlier headers were received            |
 
 Exit succeeds only for HTTPS_RESPONSE_RECEIVED with acknowledged cleanup; all other
 terminal results fail. Intermediate fixed facts can precede a cleanup refusal.
@@ -1104,19 +1104,19 @@ fifth OAuth attempt was executed in this task; the stall root cause remains unkn
 
 ## Step 4-B4 — developer-reported live HTTPS probe observations (2026-10-13 JST)
 
-This section updates the historical *not executed* statement in Step 4-B3.
+This section updates the historical _not executed_ statement in Step 4-B3.
 The four native Chromium executions below were performed locally by the
 developer, not by this code-review task. All were standalone Probe invocations
 against the fixed `https://accounts.google.com/robots.txt` target; the
 developer shared only fixed diagnostic codes and exit status, not raw network
 logs, IDs, headers, cookies or authenticated state.
 
-| Revision | Developer-reported codes | Exit status |
-| --- | --- | --- |
-| Baseline `6d2179c` | `CHROMIUM_STARTED → HTTPS_REQUEST_STARTED → HTTPS_PROBE_REFUSED` | Failure |
-| First refusal-classification revision | `CHROMIUM_STARTED → HTTPS_REQUEST_STARTED → HTTPS_REQUEST_MISMATCH` | `1` |
-| Request/response mismatch split | `CHROMIUM_STARTED → HTTPS_REQUEST_STARTED → HTTPS_DUPLICATE_REQUEST` | `1` |
-| Fetch/network identity split | `CHROMIUM_STARTED → HTTPS_REQUEST_STARTED → HTTPS_SECOND_FETCH_SAME_NETWORK` | `1` |
+| Revision                              | Developer-reported codes                                                     | Exit status |
+| ------------------------------------- | ---------------------------------------------------------------------------- | ----------- |
+| Baseline `6d2179c`                    | `CHROMIUM_STARTED → HTTPS_REQUEST_STARTED → HTTPS_PROBE_REFUSED`             | Failure     |
+| First refusal-classification revision | `CHROMIUM_STARTED → HTTPS_REQUEST_STARTED → HTTPS_REQUEST_MISMATCH`          | `1`         |
+| Request/response mismatch split       | `CHROMIUM_STARTED → HTTPS_REQUEST_STARTED → HTTPS_DUPLICATE_REQUEST`         | `1`         |
+| Fetch/network identity split          | `CHROMIUM_STARTED → HTTPS_REQUEST_STARTED → HTTPS_SECOND_FETCH_SAME_NETWORK` | `1`         |
 
 The latest fixed code establishes: after a matching Request-stage pause was
 approved, a second matching Request-stage pause had a **different Fetch requestId**
@@ -1159,12 +1159,13 @@ Review of the Chrome DevTools Protocol `Fetch.pdl` and Chromium's
 `DevToolsURLLoaderInterceptor::InnerContinueRequest` establishes that
 `Fetch.continueRequest({ interceptResponse: true })` enables the response
 stage **for the paused request** even if `Fetch.enable` initially selected
-only the Request stage. The old probe specified universal Request *and*
+only the Request stage. The old probe specified universal Request _and_
 Response patterns and also set the per-request response override.
 That is overlapping configuration, not evidence of the observed duplicate
 pause's root cause.
 
 Reference implementations:
+
 - https://github.com/ChromeDevTools/devtools-protocol/blob/master/pdl/domains/Fetch.pdl
 - https://chromium.googlesource.com/chromium/src/+/lkgr/content/browser/devtools/devtools_url_loader_interceptor.cc
 - https://github.com/puppeteer/puppeteer/issues/7475 (historic similar identity pattern, not proof of the same cause)
@@ -1231,6 +1232,7 @@ older similar trace, but neither proves the precise origin of these particular
 Chromium events.
 
 Source context:
+
 - https://github.com/ChromeDevTools/devtools-protocol/blob/master/pdl/domains/Fetch.pdl
 - https://github.com/puppeteer/puppeteer/blob/main/packages/puppeteer-core/src/cdp/NetworkManager.ts
 - https://github.com/puppeteer/puppeteer/issues/7475
@@ -1265,3 +1267,33 @@ different explicitly approved test with an independently reviewed VM and
 gateway implementation; no such approval or environment inspection exists.
 Keep PR #1 Draft. Preserve the eight-row C2 fixture and OAuth/E2E/DB stop
 conditions. This is a documentation-only design/safety review.
+
+## Step 4-B8 — Chromium 153 static source review (2026-10-15 JST)
+
+A read-only investigation confirmed that Playwright 1.63.0
+specifies Chromium revision 1243, version 153.0.8010.12.
+The installed Windows chrome.exe reports the same version.
+
+Chromium 153 passes ResourceRequest.devtools_request_id
+to newly created InterceptionJob instances, while each
+InterceptionJob receives its own Fetch interception ID.
+
+NavigationURLLoaderImpl can recreate loaders while preserving
+the ResourceRequest and its DevTools request ID.
+Potential restart paths include Client Hints handling,
+redirect processing, and ThrottlingURLLoader behavior.
+
+This mechanism is consistent with the observed
+HTTPS_SECOND_FETCH_SAME_NETWORK result.
+
+However, the actual restart path, the number of HTTP GETs
+sent on the wire, and the original OAuth navigation failure
+remain unproven.
+
+Decision: Record this as a plausible internal Chromium
+restart mechanism, not a confirmed root cause.
+
+Keep the existing one-request safety gate unchanged.
+Do not automatically rerun the native probe, OAuth Bootstrap,
+or private C2 E2E. Preserve the eight-row C2 fixture and DB.
+Keep PR #1 Draft.
