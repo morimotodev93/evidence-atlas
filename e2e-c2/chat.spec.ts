@@ -2,7 +2,7 @@ import { expect, type Locator, type Page } from "@playwright/test";
 import { chatTest as test } from "./fixtures.ts";
 import {
   HISTORY_AI_MESSAGE, HISTORY_PREVIEW, HISTORY_USER_MESSAGE,
-  STREAM_USER_MESSAGE, STREAM_AI_REPLY,
+  STREAM_USER_MESSAGE, STREAM_AI_REPLY, CITATION_AI_TEXT, CITATION_AI_REPLY, CITATION_SOURCE,
 } from "./conversation-mocks.ts";
 import { C2_ORIGIN, fixture, RESEARCH_PATH } from "../scripts/c2-playwright-policy.ts";
 
@@ -138,4 +138,32 @@ test("I: show a send error and restore the idle composer after a synthetic local
   await expect(panel.getByRole("alert")).toHaveCount(0);
   await expect(panel.getByText("Conversation started", { exact: true })).toBeVisible();
   await expect(composer).toBeEnabled();
+});
+
+// The source URL is a non-resolving .invalid test value. Check its anchor
+// attributes only; do not click or navigate to any external destination.
+test("J: display a synthetic supporting-source link after a locally cited AI reply", async ({ page, conversationMocks }) => {
+  conversationMocks.enableCitations();
+  const panel = await openResearchChat(page);
+  const composer = panel.getByPlaceholder("Ask about this research...", { exact: true });
+  const send = panel.getByRole("button", { name: "Send", exact: true });
+
+  await panel.getByRole("button", { name: "New", exact: true }).click();
+  await expect(panel.getByText("Conversation started", { exact: true })).toBeVisible();
+  await composer.fill(STREAM_USER_MESSAGE);
+  await send.click();
+
+  // The answer contains a [source:id] marker, while detail GET supplies a
+  // matching synthetic source. The panel strips the marker from visible text.
+  await expect(panel.getByText(CITATION_AI_TEXT, { exact: true })).toBeVisible();
+  await expect(panel.getByText(CITATION_AI_REPLY, { exact: true })).toHaveCount(0);
+  await expect(panel.getByText("Supporting sources", { exact: true })).toBeVisible();
+  const sourceLink = panel.getByRole("link", { name: CITATION_SOURCE.title, exact: true });
+  await expect(sourceLink).toHaveCount(1);
+  await expect(sourceLink).toHaveAttribute("href", CITATION_SOURCE.url);
+  await expect(sourceLink).toHaveAttribute("target", "_blank");
+  await expect(sourceLink).toHaveAttribute("rel", "noreferrer");
+  await expect(composer).toBeEnabled();
+  await expect(send).toBeDisabled();
+  await expect(panel.getByRole("alert")).toHaveCount(0);
 });

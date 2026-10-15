@@ -1428,3 +1428,42 @@ of actual C2 Chat service behavior. Do not automatically run the private
 browser suites, OAuth Bootstrap, Chromium HTTPS Probe, app startup,
 external AI calls or database operations. Preserve the eight-row C2
 fixture, fail-closed network boundary, redacted reporter, and Draft PR.
+
+## Step 4-C5 — synthetic AI citation display (2026-10-15 JST)
+
+The Step 4-C4 send-error UI increment and its validation record were
+committed and pushed as `b1a1ba4` (`test(c2): covermocked Chat send error UI`).
+The next local-only increment adds an isolated citation-display mode to
+`e2e-c2/conversation-mocks.ts`, scenario **J** in `e2e-c2/chat.spec.ts`,
+and focused offline regressions in
+`scripts/c2-playwright-conversation-mocks.test.ts`.
+
+- The Chat mock returns a fixed synthetic AI answer containing a
+  `[source:c2-mock-citation-1]` marker, then serves its matching local
+  source metadata through the exact conversation-detail GET. Existing
+  collection, History, successful-send and send-failure modes remain
+  separate, with no upstream forwarding or database access.
+- Scenario J checks the stripped answer text, `Supporting sources` label,
+  exactly one link, and its `href`, `target` and `rel` attributes. The URL
+  uses a non-resolving `example.invalid` hostname and is **not clicked**.
+- Offline regressions use the application's actual citation parser and
+  cover matching response/metadata, mode exclusivity, duplicate-send
+  refusal and rollback on failed local fulfillment.
+
+Developer-reported Windows **offline** checks after applying the patch:
+- Focused Vitest: **167/167 passed across 3 files** (46 Chat mock,
+  5 suite-selection, 116 existing C2 tests).
+- `pnpm exec tsc --noEmit`, targeted ESLint and `git diff --check`:
+  no errors reported.
+- Playwright `--list`: **4 authenticated smoke** cases and **6 Chat-only**
+  cases (E–J) collected; `passed` means discovery only, not browser execution.
+- `git status --short` reported changes to only the three Chat test/mock
+  files above. This increment was not yet committed at verification time.
+
+**Decision:** Treat Step 4-C5 as implemented and offline-checked, ready
+for a separate documented commit. This does **not** establish live UI
+behavior, real source URL reachability, provider inference, streaming
+chunk timing, or a successful authenticated browser E2E. Do not start
+C2 app, OAuth Bootstrap, browser suites, native Chromium HTTPS Probe,
+or DB operations. Preserve the protected eight-row fixture, strict
+network/recording guards and Draft PR status.

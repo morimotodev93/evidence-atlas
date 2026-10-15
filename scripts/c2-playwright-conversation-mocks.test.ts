@@ -3,9 +3,10 @@ import { describe, expect, it, vi } from "vitest";
 import type { BrowserContext, Request, Route } from "@playwright/test";
 import {
   CONVERSATIONS_URL, CONVERSATION_DETAIL_PATTERN, CHAT_URL, STREAM_USER_MESSAGE, STREAM_AI_REPLY, HISTORY_CONVERSATION_ID,
-  HISTORY_PREVIEW, HISTORY_USER_MESSAGE, HISTORY_AI_MESSAGE, installConversationMocks,
+  HISTORY_PREVIEW, HISTORY_USER_MESSAGE, HISTORY_AI_MESSAGE, CITATION_SOURCE, CITATION_AI_TEXT, CITATION_AI_REPLY, installConversationMocks,
 } from "../e2e-c2/conversation-mocks.ts";
 import { RESEARCH_PATH, C2_ORIGIN, fixture } from "./c2-playwright-policy.ts";
+import { parseSourceCitations } from "../src/lib/ai/source-citations.ts";
 
 function fakeContext() {
   const handlers = new Map<string, (route: Route) => Promise<void>>();
@@ -378,6 +379,82 @@ describe("C2 Chat conversation mocks (offline only)", () => {
     expect(second.fulfill).not.toHaveBeenCalled();
     expect(second.fetch).not.toHaveBeenCalled();
     expect(second.abort).toHaveBeenCalledWith("blockedbyclient");
+    expect(() => mock.assert()).toThrow("chat-mock");
+    await mock.dispose();
+  });
+
+  it("parses exactly one citation marker using the application's actual citation parser", () => {
+    expect(parseSourceCitations(CITATION_AI_REPLY)).toEqual({
+      text: CITATION_AI_TEXT, sourceIds: [CITATION_SOURCE.id],
+    });
+    expect(CITATION_SOURCE.url).toBe("https://example.invalid/c2-synthetic-evidence");
+  });
+
+  it("serves a citation reply and matching metadata only through the synthetic conversation detail", async () => {
+    const h = fakeContext();
+    const mock = await installConversationMocks(h.context);
+    const create = h.send("POST");
+    await create.invoke();
+    const id = (JSON.parse(payload(create.fulfill.mock.calls[0][0]).body) as { id: string }).id;
+    mock.enableCitations();
+    const post = h.send("POST", CHAT_URL, "fetch", false, { conversationId: id, message: STREAM_USER_MESSAGE });
+    await post.invoke();
+    const result = payload(post.fulfill.mock.calls[0][0]);
+    expect(result.status).toBe(200);
+    expect(result.contentType).toBe("text/plain; charset=utf-8");
+    expect(result.body).toBe(CITATION_AI_REPLY);
+    expect(post.fetch).not.toHaveBeenCalled();
+    expect(post.abort).not.toHaveBeenCalled();
+
+    const detail = h.send("GET", `${CONVERSATIONS_URL}/${id}`);
+    await detail.invoke();
+    const body = JSON.parse(payload(detail.fulfill.mock.calls[0][0]).body) as {
+      messages: { authorType: string; content: string }[]; sources: { id: string; title: string; url: string }[];
+    };
+    expect(body.messages.map(({ authorType, content }) => [authorType, content])).toEqual([
+      ["USER", STREAM_USER_MESSAGE], ["AI", CITATION_AI_REPLY],
+    ]);
+    expect(body.sources).toEqual([CITATION_SOURCE]);
+    expect(detail.fetch).not.toHaveBeenCalled();
+    mock.assert();
+    await mock.dispose();
+  });
+
+  it("keeps citation mode exclusive with success and failure and refuses repeated sends", async () => {
+    const h = fakeContext();
+    const mock = await installConversationMocks(h.context);
+    const create = h.send("POST"); await create.invoke();
+    const id = (JSON.parse(payload(create.fulfill.mock.calls[0][0]).body) as { id: string }).id;
+    mock.enableCitations();
+    expect(() => mock.enableStreaming()).toThrow("chat-mock-mode");
+    expect(() => mock.enableSendFailure()).toThrow("chat-mock-mode");
+    expect(() => mock.enableCitations()).toThrow("chat-mock-mode");
+    const post = () => h.send("POST", CHAT_URL, "fetch", false, { conversationId: id, message: STREAM_USER_MESSAGE });
+    await post().invoke();
+    const duplicate = post(); await duplicate.invoke();
+    expect(duplicate.fulfill).not.toHaveBeenCalled();
+    expect(duplicate.fetch).not.toHaveBeenCalled();
+    expect(duplicate.abort).toHaveBeenCalledWith("blockedbyclient");
+    expect(() => mock.assert()).toThrow("chat-mock");
+    await mock.dispose();
+  });
+
+  it("removes citation state if the locally fulfilled AI reply fails", async () => {
+    const h = fakeContext();
+    const mock = await installConversationMocks(h.context);
+    const create = h.send("POST"); await create.invoke();
+    const id = (JSON.parse(payload(create.fulfill.mock.calls[0][0]).body) as { id: string }).id;
+    mock.enableCitations();
+    const reply = h.send("POST", CHAT_URL, "fetch", false, { conversationId: id, message: STREAM_USER_MESSAGE });
+    reply.fulfill.mockRejectedValueOnce(new Error("Synthetic private citation token"));
+    await reply.invoke();
+    expect(reply.fetch).not.toHaveBeenCalled();
+    expect(reply.abort).toHaveBeenCalledWith("failed");
+    const detail = h.send("GET", `${CONVERSATIONS_URL}/${id}`);
+    await detail.invoke();
+    const body = JSON.parse(payload(detail.fulfill.mock.calls[0][0]).body) as { messages: unknown[]; sources: unknown[] };
+    expect(body.messages).toEqual([]);
+    expect(body.sources).toEqual([]);
     expect(() => mock.assert()).toThrow("chat-mock");
     await mock.dispose();
   });

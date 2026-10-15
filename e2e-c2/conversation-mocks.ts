@@ -8,6 +8,14 @@ export const CONVERSATION_DETAIL_PATTERN = `${CONVERSATIONS_URL}/*`;
 export const CHAT_URL = `${C2_ORIGIN}${RESEARCH_PATH}/chat`;
 export const STREAM_USER_MESSAGE = "Summarize the synthetic research fixture.";
 export const STREAM_AI_REPLY = "This is a deterministic local test response.";
+// A completely synthetic citation: the .invalid hostname must never be visited.
+export const CITATION_SOURCE = {
+  id: "c2-mock-citation-1",
+  title: "Synthetic local evidence",
+  url: "https://example.invalid/c2-synthetic-evidence",
+} as const;
+export const CITATION_AI_TEXT = "This answer cites only synthetic evidence.";
+export const CITATION_AI_REPLY = `${CITATION_AI_TEXT} [source:${CITATION_SOURCE.id}]`;
 export const HISTORY_CONVERSATION_ID = "c2-mock-history-1";
 export const HISTORY_PREVIEW = "Synthetic fixture question";
 export const HISTORY_USER_MESSAGE = "What does this synthetic fixture show?";
@@ -35,6 +43,7 @@ export type ConversationMocks = {
   seedHistory: () => void;
   enableStreaming: () => void;
   enableSendFailure: () => void;
+  enableCitations: () => void;
   assert: () => void;
   dispose: () => Promise<void>;
 };
@@ -43,7 +52,7 @@ export async function installConversationMocks(context: BrowserContext): Promise
   const conversations: ConversationRecord[] = [];
   let sequence = 0;
   let refused = false;
-  let sendMode: "disabled" | "success" | "failure" = "disabled";
+  let sendMode: "disabled" | "success" | "failure" | "citations" = "disabled";
   let failureServed = false;
   const json = (body: unknown, status = 200) => ({
     status, contentType: "application/json", headers: { "cache-control": "no-store" }, body: JSON.stringify(body),
@@ -92,7 +101,11 @@ export async function installConversationMocks(context: BrowserContext): Promise
         researchId: conversation.summary.researchId,
         createdAt: conversation.summary.createdAt,
         messages: conversation.messages,
-        sources: [],
+        // The source appears only for a locally generated citation reply.
+        // Empty/new/History conversations never disclose source metadata.
+        sources: conversation.messages.some((message) =>
+          message.authorType === "AI" && message.content === CITATION_AI_REPLY)
+          ? [CITATION_SOURCE] : [],
       }));
     } catch {
       await abort(route, "failed");
@@ -138,11 +151,12 @@ export async function installConversationMocks(context: BrowserContext): Promise
         await route.fulfill(json({ error: "Synthetic Chat send failure." }, 503));
         return;
       }
+      const aiReply = sendMode === "citations" ? CITATION_AI_REPLY : STREAM_AI_REPLY;
       const messages: ConversationMessage[] = [
         { id: `c2-mock-stream-user-${sequence}`, conversationId: conversation.summary.id,
           authorType: "USER", content: STREAM_USER_MESSAGE, createdAt: CREATED_AT },
         { id: `c2-mock-stream-ai-${sequence}`, conversationId: conversation.summary.id,
-          authorType: "AI", content: STREAM_AI_REPLY, createdAt: CREATED_AT },
+          authorType: "AI", content: aiReply, createdAt: CREATED_AT },
       ];
       const oldPreview = conversation.summary.preview;
       // Populate before fulfillment so the UI's immediate detail GET sees the
@@ -153,7 +167,7 @@ export async function installConversationMocks(context: BrowserContext): Promise
         await route.fulfill({
           status: 200, contentType: "text/plain; charset=utf-8",
           headers: { "cache-control": "no-store", "x-content-type-options": "nosniff" },
-          body: STREAM_AI_REPLY,
+          body: aiReply,
         });
       } catch {
         conversation.messages.splice(0, conversation.messages.length);
@@ -184,6 +198,10 @@ export async function installConversationMocks(context: BrowserContext): Promise
     enableSendFailure() {
       if (sendMode !== "disabled") refuse("chat-mock-mode");
       sendMode = "failure";
+    },
+    enableCitations() {
+      if (sendMode !== "disabled") refuse("chat-mock-mode");
+      sendMode = "citations";
     },
     seedHistory() {
       if (conversations.some((item) => item.summary.id === HISTORY_CONVERSATION_ID)) refuse("chat-mock-seed");
