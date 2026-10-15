@@ -274,6 +274,78 @@ describe("C2 Chat conversation mocks (offline only)", () => {
     await mock.dispose();
   });
 
+  it("fulfills an explicitly enabled synthetic 503 without upstream I/O or stored messages", async () => {
+    const h = fakeContext();
+    const mock = await installConversationMocks(h.context);
+    const created = h.send("POST");
+    await created.invoke();
+    const id = (JSON.parse(payload(created.fulfill.mock.calls[0][0]).body) as { id: string }).id;
+    mock.enableSendFailure();
+    const failure = h.send("POST", CHAT_URL, "fetch", false, { conversationId: id, message: STREAM_USER_MESSAGE });
+    await failure.invoke();
+    expect(payload(failure.fulfill.mock.calls[0][0])).toEqual({
+      status: 503, contentType: "application/json", headers: { "cache-control": "no-store" },
+      body: JSON.stringify({ error: "Synthetic Chat send failure." }),
+    });
+    expect(failure.fetch).not.toHaveBeenCalled();
+    expect(failure.abort).not.toHaveBeenCalled();
+    const detail = h.send("GET", `${CONVERSATIONS_URL}/${id}`);
+    await detail.invoke();
+    const response = JSON.parse(payload(detail.fulfill.mock.calls[0][0]).body) as { messages: unknown[] };
+    expect(response.messages).toEqual([]);
+    const list = h.send("GET");
+    await list.invoke();
+    expect((JSON.parse(payload(list.fulfill.mock.calls[0][0]).body) as { preview: string }[])[0].preview).toBe("New conversation");
+    mock.assert();
+    await mock.dispose();
+  });
+
+  it("keeps send-success and send-failure modes mutually exclusive", async () => {
+    for (const first of ["enableStreaming", "enableSendFailure"] as const) {
+      const h = fakeContext();
+      const mock = await installConversationMocks(h.context);
+      mock[first]();
+      const second = first === "enableStreaming" ? "enableSendFailure" : "enableStreaming";
+      expect(() => mock[second]()).toThrow("chat-mock-mode");
+      mock.assert();
+      await mock.dispose();
+    }
+  });
+
+  it("rejects an unexpected prompt in failure mode instead of sending it upstream", async () => {
+    const h = fakeContext();
+    const mock = await installConversationMocks(h.context);
+    const create = h.send("POST");
+    await create.invoke();
+    const id = (JSON.parse(payload(create.fulfill.mock.calls[0][0]).body) as { id: string }).id;
+    mock.enableSendFailure();
+    const unexpected = h.send("POST", CHAT_URL, "fetch", false, { conversationId: id, message: "unapproved prompt" });
+    await unexpected.invoke();
+    expect(unexpected.fulfill).not.toHaveBeenCalled();
+    expect(unexpected.fetch).not.toHaveBeenCalled();
+    expect(unexpected.abort).toHaveBeenCalledWith("blockedbyclient");
+    expect(() => mock.assert()).toThrow("chat-mock");
+    await mock.dispose();
+  });
+
+  it("refuses duplicate synthetic failures and keeps the mock fail-closed", async () => {
+    const h = fakeContext();
+    const mock = await installConversationMocks(h.context);
+    const create = h.send("POST");
+    await create.invoke();
+    const id = (JSON.parse(payload(create.fulfill.mock.calls[0][0]).body) as { id: string }).id;
+    mock.enableSendFailure();
+    const send = () => h.send("POST", CHAT_URL, "fetch", false, { conversationId: id, message: STREAM_USER_MESSAGE });
+    const first = send(); await first.invoke();
+    const second = send(); await second.invoke();
+    expect(first.fulfill).toHaveBeenCalledOnce();
+    expect(second.fulfill).not.toHaveBeenCalled();
+    expect(second.fetch).not.toHaveBeenCalled();
+    expect(second.abort).toHaveBeenCalledWith("blockedbyclient");
+    expect(() => mock.assert()).toThrow("chat-mock");
+    await mock.dispose();
+  });
+
   it("rolls back synthetic messages if local response fulfillment fails", async () => {
     const h = fakeContext();
     const mock = await installConversationMocks(h.context);

@@ -109,3 +109,33 @@ test("H: display a locally mocked AI text response after sending a fixed prompt"
   await expect(send).toBeDisabled();
   await expect(panel.getByRole("alert")).toHaveCount(0);
 });
+
+// One explicitly enabled, locally fulfilled HTTP 503 exercises the panel's
+// optimistic-message rollback and alert. This is not a real C2 Chat response.
+test("I: show a send error and restore the idle composer after a synthetic local failure", async ({ page, conversationMocks }) => {
+  conversationMocks.enableSendFailure();
+  const panel = await openResearchChat(page);
+  const composer = panel.getByPlaceholder("Ask about this research...", { exact: true });
+  const send = panel.getByRole("button", { name: "Send", exact: true });
+
+  await panel.getByRole("button", { name: "New", exact: true }).click();
+  await expect(panel.getByText("Conversation started", { exact: true })).toBeVisible();
+  await composer.fill(STREAM_USER_MESSAGE);
+  await expect(send).toBeEnabled();
+  await send.click();
+
+  // handleSend rolls back its optimistic USER/AI pair on a non-2xx response.
+  await expect(panel.getByRole("alert")).toHaveText("Failed to send message.");
+  await expect(panel.getByText("Conversation started", { exact: true })).toBeVisible();
+  await expect(panel.getByText(STREAM_USER_MESSAGE, { exact: true })).toHaveCount(0);
+  await expect(panel.getByText(STREAM_AI_REPLY, { exact: true })).toHaveCount(0);
+  await expect(composer).toBeEnabled();
+  await expect(composer).toHaveValue("");
+  await expect(send).toBeDisabled();
+
+  // Starting a new mock conversation clears the alert without contacting DB.
+  await panel.getByRole("button", { name: "New", exact: true }).click();
+  await expect(panel.getByRole("alert")).toHaveCount(0);
+  await expect(panel.getByText("Conversation started", { exact: true })).toBeVisible();
+  await expect(composer).toBeEnabled();
+});

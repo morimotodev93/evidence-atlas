@@ -1387,3 +1387,44 @@ for this offline-tested increment. Do not automatically run real
 browser E2E, OAuth Bootstrap, the native HTTPS Probe, the C2 app,
 database or external AI calls. Preserve the protected eight-row C2
 fixture, strict recording/network guards and Draft PR status.
+
+## Step 4-C4 — synthetic Chat send-error UI (2026-10-15 JST)
+
+Step 4-C3's deterministic text-response work and verification record were
+committed and pushed as `ad24968` (`test(c2): add mocked Chat text response
+and validation record`). This Step 4-C4 increment is a subsequent,
+separate local change awaiting a commit as of the following checks.
+
+- `e2e-c2/conversation-mocks.ts` provides an explicitly enabled failure
+  mode that locally fulfills a **single** strictly validated Chat POST with
+  a synthetic HTTP **503** JSON response. The response is not forwarded to
+  the actual C2 Chat service, AI provider or database. Unexpected requests
+  and repeated failures remain fail-closed; success and failure modes cannot
+  be enabled together.
+- `e2e-c2/chat.spec.ts` adds Chat-only scenario **I**, covering the send
+  error alert (`Failed to send message.`), optimistic-message rollback,
+  composer re-enablement, and error clearing when starting a new local
+  conversation. Existing Chat scenarios E–H are retained.
+- `scripts/c2-playwright-conversation-mocks.test.ts` adds offline coverage
+  for the synthetic 503, mode exclusivity, unexpected prompt rejection,
+  and duplicate-failure refusal.
+
+Developer-reported Windows **offline** verification after applying the
+Step 4-C4 patch:
+
+- Focused Vitest: **163/163 passed across 3 files** (42 Chat mocks,
+  5 suite-selection, 116 existing C2 checks).
+- `pnpm exec tsc --noEmit`, targeted ESLint, and `git diff --check`:
+  no errors reported.
+- Playwright `--list`: **4 authenticated smoke cases** and **5 Chat-only
+  cases (E–I)** collected, with status `passed` for **discovery only**.
+- `git status --short` showed only the three Chat test/mock files above as
+  modified; a Step 4-C4 commit was not yet reported at validation time.
+
+**Decision:** The isolated send-error mock and scenario I are implemented
+and offline-checked, but **not** verified by a live browser E2E run or CI.
+The observed HTTP 503 is a local synthetic response; it is not evidence
+of actual C2 Chat service behavior. Do not automatically run the private
+browser suites, OAuth Bootstrap, Chromium HTTPS Probe, app startup,
+external AI calls or database operations. Preserve the eight-row C2
+fixture, fail-closed network boundary, redacted reporter, and Draft PR.

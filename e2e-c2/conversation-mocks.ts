@@ -34,6 +34,7 @@ type ConversationRecord = { summary: ConversationSummary; messages: Conversation
 export type ConversationMocks = {
   seedHistory: () => void;
   enableStreaming: () => void;
+  enableSendFailure: () => void;
   assert: () => void;
   dispose: () => Promise<void>;
 };
@@ -42,7 +43,8 @@ export async function installConversationMocks(context: BrowserContext): Promise
   const conversations: ConversationRecord[] = [];
   let sequence = 0;
   let refused = false;
-  let streamEnabled = false;
+  let sendMode: "disabled" | "success" | "failure" = "disabled";
+  let failureServed = false;
   const json = (body: unknown, status = 200) => ({
     status, contentType: "application/json", headers: { "cache-control": "no-store" }, body: JSON.stringify(body),
   });
@@ -103,7 +105,7 @@ export async function installConversationMocks(context: BrowserContext): Promise
   const chatHandler = async (route: Route) => {
     try {
       const request = route.request();
-      if (!streamEnabled || request.url() !== CHAT_URL || request.method() !== "POST" ||
+      if (sendMode === "disabled" || request.url() !== CHAT_URL || request.method() !== "POST" ||
           !isFetch(route) || request.headers()["content-type"] !== "application/json") {
         await abort(route, "blockedbyclient");
         return;
@@ -125,8 +127,16 @@ export async function installConversationMocks(context: BrowserContext): Promise
       const conversation = conversations.find((entry) => entry.summary.id === fields.conversationId);
       // One synthetic response per fresh conversation. No arbitrary user text,
       // unknown ID, provider request or database mutation is allowed.
-      if (!conversation || conversation.messages.length !== 0) {
+      if (!conversation || conversation.messages.length !== 0 || (sendMode === "failure" && failureServed)) {
         await abort(route, "blockedbyclient"); return;
+      }
+      if (sendMode === "failure") {
+        // Deliberately return a synthetic HTTP failure through the same exact
+        // local route; never abort the network (which would mark the boundary
+        // as violated). The UI must roll back optimistic messages itself.
+        failureServed = true;
+        await route.fulfill(json({ error: "Synthetic Chat send failure." }, 503));
+        return;
       }
       const messages: ConversationMessage[] = [
         { id: `c2-mock-stream-user-${sequence}`, conversationId: conversation.summary.id,
@@ -167,7 +177,14 @@ export async function installConversationMocks(context: BrowserContext): Promise
     refuse("chat-mock-setup");
   }
   return {
-    enableStreaming() { streamEnabled = true; },
+    enableStreaming() {
+      if (sendMode !== "disabled") refuse("chat-mock-mode");
+      sendMode = "success";
+    },
+    enableSendFailure() {
+      if (sendMode !== "disabled") refuse("chat-mock-mode");
+      sendMode = "failure";
+    },
     seedHistory() {
       if (conversations.some((item) => item.summary.id === HISTORY_CONVERSATION_ID)) refuse("chat-mock-seed");
       conversations.unshift({
