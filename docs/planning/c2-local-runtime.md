@@ -1534,3 +1534,62 @@ CDP Fetch pause must not be conflated.
 review-only D3 experiment/approval gate. No browser, OAuth, DB, proxy, probe,
 credential/state operation or C2 fixture mutation was performed. Keep PR #1
 Draft and the eight protected fixture rows unchanged.
+
+## Step 4-D4 — opt-in Playwright Edge OAuth selector (2026-10-15 JST)
+
+Starting from `3905f46`, the next narrow implementation adds one explicit
+OAuth-only command mode: `bootstrap-edge --allow-c2-edge-auth-bootstrap`.
+The existing `bootstrap --allow-c2-auth-bootstrap` still launches bundled
+Playwright Chromium with the same headed options. The Edge mode passes only
+`channel: "msedge"` to the same `chromium.launch` API and uses an independent
+fresh browser context; it does not import, attach to or copy the normal Edge
+profile, cookies or Google account data.
+
+- `scripts/c2-playwright-policy.ts` requires the exact separate Edge command
+  and opt-in flag, rejects additional CLI parameters, and returns fixed
+  browser launch options without executable-path/profile/proxy overrides.
+- `scripts/c2-playwright.ts` selects Edge only in the bootstrap branch.
+  Read-only smoke and Chat commands, configs and suite selection are untouched.
+- `scripts/c2-playwright-bootstrap.ts` preserves preflight, network interception,
+  Auth.js redirect handling, manual sign-in, session validation, redacted
+  diagnostics and exclusive state persistence; only the launch options differ.
+- `scripts/c2-playwright-bootstrap-browser.test.ts` covers the pure mode
+  selection, fail-closed invalid opt-ins and unchanged bootstrap wiring offline.
+
+**Decision:** Code/contract preparation only. This is **not approval to run**
+Edge, Chromium, OAuth, a browser probe or authenticated E2E. The route guard
+is not a host-level egress firewall; actual OAuth can update C2 Auth tables.
+A separately reviewed one-run authorization and network/DB-effect review are
+required before executing the new command. Preserve all eight protected C2
+fixture rows and Draft PR #1. No live result, CI result or developer Windows
+Vitest result is claimed by this source-only increment.
+
+### Step 4-D4 — developer-reported Windows offline verification
+
+After applying the Step 4-D4 patch, the developer reported the following
+checks on the Windows checkout of `fix/c2-probe-rejection-diagnostics`:
+
+- Focused Vitest: **172/172 tests passed across four files**:
+  5 Edge bootstrap selection, 46 Chat mocks, 5 suite-selection, and
+  116 existing C2 regression checks.
+- `pnpm exec tsc --noEmit`: completed without reported errors.
+- Targeted ESLint on the three changed runtime/policy files and the new
+  Edge bootstrap test: completed without reported errors.
+- `git diff --check`: completed without reported errors.
+- `git status --short`: four existing Step 4-D4 files were modified and
+  `scripts/c2-playwright-bootstrap-browser.test.ts` was untracked.
+  Separately, `docs/planning/c2-edge-normal-oauth-revalidation-plan.md`
+  was untracked from an earlier planning step; **do not include it in the
+  Step 4-D4 commit without a separate review**.
+
+**Interpretation:** The selected code paths passed developer-run **offline**
+checks. This is not a live Edge or Chromium test, successful Google OAuth
+bootstrap, authenticated Playwright E2E, or verified CI result.
+
+**Decision:** Step 4-D4 is ready for a narrowly staged five-file commit
+(subject to diff review). Do not execute `bootstrap-edge`, start the C2
+app, rerun the native HTTPS probe, invoke OAuth, or inspect/mutate the
+C2 database on the strength of these results. Preserve the existing
+network fail-closed rules, private browser state, the protected eight
+fixture rows, and Draft PR #1. Live testing still requires a separate
+safety and database-effect decision.

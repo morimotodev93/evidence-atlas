@@ -9,9 +9,9 @@ try {
   requireHarnessEnvironment(process.env);
   if (process.execArgv.some((arg) => /^-r|^--(?:require|import|(?:experimental-)?loader)(?:=|$)/.test(arg))) refuse("preload");
   const expected = requireExpectedUser(process.env);
-  if (mode === "bootstrap") {
+  if (mode === "bootstrap" || mode === "bootstrap-edge") {
     const { bootstrapAuth } = await import("./c2-playwright-bootstrap.ts");
-    await bootstrapAuth();
+    await bootstrapAuth(mode);
   } else if (mode === "preflight") {
     const { loadC2State } = await import("./c2-playwright-state.ts");
     const state = await loadC2State();

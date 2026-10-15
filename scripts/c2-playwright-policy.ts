@@ -8,16 +8,26 @@ export const fixture = Object.fromEntries(fixtureEntries("unused-offline-identit
 
 export function parseHarnessCommand(args: readonly string[]) {
   const mode = args[0];
-  if (!["preflight", "bootstrap", "run", "chat"].includes(mode) || args.length !== 2 ||
+  if (!["preflight", "bootstrap", "bootstrap-edge", "run", "chat"].includes(mode) || args.length !== 2 ||
     args[1] !== (mode === "bootstrap" ? "--allow-c2-auth-bootstrap" :
+      mode === "bootstrap-edge" ? "--allow-c2-edge-auth-bootstrap" :
       mode === "chat" ? "--allow-c2-chat-mock" : "--allow-c2-readonly")) refuse("command-opt-in");
-  return mode as "preflight" | "bootstrap" | "run" | "chat";
+  return mode as "preflight" | "bootstrap" | "bootstrap-edge" | "run" | "chat";
 }
 
 export function refuse(code: string): never {
   // Callers use fixed codes only, never response data/URLs/errors.
   throw new Error(`C2 E2E refused: ${code}. Details suppressed.`);
 }
+
+// Pure, fixed selection: no arbitrary executable, profile, proxy or launch args.
+// Only the separately opted-in bootstrap-edge command selects installed Edge.
+export function bootstrapBrowserLaunchOptions(mode: "bootstrap" | "bootstrap-edge") {
+  if (mode === "bootstrap") return { headless: false } as const;
+  if (mode === "bootstrap-edge") return { headless: false, channel: "msedge" } as const;
+  return refuse("command-opt-in");
+}
+
 export function requireC2Url(value: string): URL {
   try {
     const url = new URL(value);
