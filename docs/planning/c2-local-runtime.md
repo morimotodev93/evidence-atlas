@@ -1297,3 +1297,42 @@ Keep the existing one-request safety gate unchanged.
 Do not automatically rerun the native probe, OAuth Bootstrap,
 or private C2 E2E. Preserve the eight-row C2 fixture and DB.
 Keep PR #1 Draft.
+
+## Step 4-C1 — isolated Chat mock E2E foundation (2026-10-15 JST)
+
+Developer-reported implementation was committed and pushed as `ff68a6d`
+(`test(c2): add isolated Chat mock E2E suite`) on the existing Draft PR
+branch. This is a separate offline-tested feature increment, not a fix for
+the Step 4-B OAuth/Chromium navigation failure.
+
+- `e2e-c2/fixtures.ts` exports an opt-in `chatTest` fixture. The original
+  authenticated smoke tests continue to use `test` unchanged.
+- `e2e-c2/conversation-mocks.ts` intercepts only the exact C2 fixture
+  conversation collection endpoint, fulfilling local `GET` lists and
+  in-memory `POST` creation. No Chat API/DB/model call or `route.fetch`
+  is needed; unexpected requests fail closed.
+- `e2e-c2/chat.spec.ts` defines two Chat-only cases: E (create a new
+  in-memory conversation) and F (show it in History). Neither sends a
+  Chat message or selects a conversation for detail restoration.
+- `playwright.c2.chat.config.ts` selects only `chat.spec.ts` under a
+  separate `c2-chat-chromium` project. The original C2 config still
+  selects only `authenticated-smoke.spec.ts`. The wrapper requires the
+  distinct `chat --allow-c2-chat-mock` command and sets a Chat-only
+  capability flag; `global-setup.ts` checks suite/config consistency.
+  Both suites still require the existing C2 preflight and saved
+  authenticated state before any actual browser execution.
+
+Developer-reported Windows offline verification after these changes:
+focused Vitest **131/131 across 3 files**, `pnpm exec tsc --noEmit`,
+targeted ESLint and `git diff --check` all passed. Subsequent standalone
+Playwright `--list` checks collected **4 smoke cases** and **2 Chat cases**,
+with status `passed` for discovery only. This is not a browser E2E pass,
+CI confirmation, or evidence of a successful authenticated Chat flow.
+
+**Decision:** Treat Step 4-C1 fixture, collection mock, and suite separation
+as implemented and offline-checked. The next separate, offline-only task
+is a deterministic conversation-detail mock and History restore assertion;
+it must not enable a real Chat endpoint or expand the normal smoke suite.
+Do not automatically run the authenticated browser suites, OAuth Bootstrap,
+native HTTPS Probe, C2 app, or database. Preserve the eight-row C2 fixture,
+security/recording restrictions and Draft PR status.

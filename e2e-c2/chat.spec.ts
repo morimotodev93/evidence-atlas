@@ -1,5 +1,6 @@
 import { expect, type Locator, type Page } from "@playwright/test";
 import { chatTest as test } from "./fixtures.ts";
+import { HISTORY_AI_MESSAGE, HISTORY_PREVIEW, HISTORY_USER_MESSAGE } from "./conversation-mocks.ts";
 import { C2_ORIGIN, fixture, RESEARCH_PATH } from "../scripts/c2-playwright-policy.ts";
 
 // The Chat-specific fixture installs exact, in-memory conversation routes before
@@ -52,5 +53,33 @@ test("F: list an in-memory Chat conversation in History", async ({ page }) => {
   await history.click();
   await expect(dialog).toBeVisible();
   await expect(dialog.getByRole("button", { name: /New conversation/ })).toHaveCount(1);
-  // Do not select a History item yet: conversation-detail GET is not mocked.
+  // This case covers list rendering only; selection is exercised in G.
+});
+
+test("G: restore synthetic messages from a selected History conversation", async ({ page, conversationMocks }) => {
+  // Only this case opts into seeded history. E and F remain empty by default.
+  conversationMocks.seedHistory();
+  const panel = await openResearchChat(page);
+  const composer = panel.getByPlaceholder("Ask about this research...", { exact: true });
+  const history = panel.getByRole("button", { name: "History", exact: true });
+  const dialog = page.getByRole("dialog", { name: "Select Conversation", exact: true });
+
+  await expect(panel.getByText("No conversation yet", { exact: true })).toBeVisible();
+  await expect(composer).toBeDisabled();
+  await history.click();
+  await expect(dialog).toBeVisible();
+  const saved = dialog.getByRole("button").filter({
+    has: dialog.getByText(HISTORY_PREVIEW, { exact: true }),
+  });
+  await expect(saved).toHaveCount(1);
+  await saved.click();
+
+  // Selection calls a locally fulfilled detail GET. No Chat POST or AI model
+  // invocation is required to restore and render both stored messages.
+  await expect(dialog).toBeHidden();
+  await expect(panel.getByText(HISTORY_USER_MESSAGE, { exact: true })).toBeVisible();
+  await expect(panel.getByText(HISTORY_AI_MESSAGE, { exact: true })).toBeVisible();
+  await expect(panel.getByText("No conversation yet", { exact: true })).toHaveCount(0);
+  await expect(composer).toBeEnabled();
+  await expect(panel.getByRole("button", { name: "Send", exact: true })).toBeDisabled();
 });
