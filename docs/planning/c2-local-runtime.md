@@ -1616,3 +1616,48 @@ decision on network residual risk, allowed C2 Auth-side DB effects,
 separately authorized read-only fixture verification, a finite operator
 stop/cleanup plan, and the one-attempt scope. No browser, app, OAuth,
 database or network probe was run for this review. Keep Draft PR #1.
+
+## Step 4-D6 — first authorized Playwright Edge OAuth observation (2026-10-15 JST)
+
+The developer reported one headed `bootstrap-edge` attempt with the preselected
+C2-only Google identity. Before and after, the guarded read-only fixture
+`verify` returned `present: 8`, `plannedInserts: 0`, `plannedDeletes: 8`.
+OAuth emitted `AUTH_BROWSER_REDIRECT`, `AUTH_FULFILL_COMPLETED`, and
+`GOOGLE_NAV_REQUEST`, but no observed Google navigation response/commit.
+After the 20-second pending observation it reported
+`REQUEST_OBSERVED_REFUSED`, `BLOCKED_EXTERNAL_NAVIGATION`, and
+`NETWORK_REFUSED`; the recorded cancellation was before the shutdown marker.
+Exit code was 1 and the app-only auth-state file did not exist. The fixed
+codes do not reveal which request was refused, and do not prove it caused
+the earlier lack of Google response. Auth-table changes were not audited.
+
+## Step 4-D7 — sign-in return analysis and refusal classification (2026-10-15 JST)
+
+Offline source review: `src/auth.ts` uses the standard Auth.js Google
+provider and database session, and `src/app/api/auth/[...nextauth]/route.ts`
+forwards GET/POST to the standard handlers. `src/auth/requireUser.ts`
+redirects anonymous visitors to `/api/auth/signin`. The developer observed
+that repeat manual Edge sign-in stayed at `/api/auth/signin` while `/` in
+another tab rendered the signed-in Workspace. Auth.js's standard sign-in
+page is not a guaranteed post-login Workspace redirect; returning to the
+original sign-in page or reusing a previous session remains possible.
+This observation alone does **not** prove the OAuth callback is broken.
+
+The Playwright attempt stopped **before** any observed provider response,
+so a sign-in page callback/return change is not yet a proven E2E fix.
+Do not rewrite Auth.js redirects speculatively. Instead, this offline-only
+increment adds a small **fixed-category** diagnostic to existing rejected
+external-navigation observations (browser-internal, non-HTTPS, already
+allowlisted Google hostname but rejected URL/request, selected unlisted
+Google-associated hostname families, other HTTPS, invalid URL). It never
+logs a URL, query, hostname, cookie or token, never permits a request, and
+never changes the interception, OAuth, profile, saved-state or DB rules.
+The category is not proof the rejected navigation caused the initial stall.
+Only one existing Vitest file receives focused mocked checks; no browser
+or OAuth is executed for Step 4-D7.
+
+**Decision:** Classification implementation prepared for developer's offline
+validation, not verified on Windows or approved for another live OAuth run.
+If an additional run is considered, it needs **new explicit authorization**;
+Step 4-D6's one-time permission has been consumed. Keep the strict native
+HTTPS probe NO-GO, the eight fixture rows unchanged, and Draft PR #1.

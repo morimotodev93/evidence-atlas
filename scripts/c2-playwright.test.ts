@@ -8,7 +8,7 @@ import {
   type Cookie, type ReadRequest, type ReadResponse,
 } from "./c2-playwright-policy.ts";
 import { hmrAllowed, installNetworkBoundary } from "./c2-playwright-network.ts";
-import { isBootstrapIcon, redirectMethod } from "./c2-playwright-network.ts";
+import { blockedExternalNavigationCode, isBootstrapIcon, redirectMethod } from "./c2-playwright-network.ts";
 import { bootstrapDiagnostic, type BootstrapCode } from "./c2-playwright-diagnostics.ts";
 import { pathToFileURL } from "node:url";
 import Google from "next-auth/providers/google";
@@ -122,6 +122,21 @@ describe("C2 Playwright pure/offline safety", () => {
     for (const url of ["https://google.com.evil.invalid", "http://accounts.google.com", "https://evil.invalid", "http://localhost:3000"]) expect(bootstrapRequestAllowed("GET", url)).toBe(false);
     expect(bootstrapRequestAllowed("POST", `${C2_ORIGIN}/onboarding`)).toBe(false);
     expect(testRequestDecision("GET", "https://accounts.google.com")).toBe("origin");
+  });
+  it("classifies rejected external navigation without exposing URL details", () => {
+    for (const [target, expected] of [
+      ["chrome-error://chromewebdata/", "BLOCKED_NAV_BROWSER_INTERNAL"],
+      ["http://accounts.google.com/", "BLOCKED_NAV_NON_HTTPS"],
+      ["https://accounts.google.com:8443/?code=synthetic-secret", "BLOCKED_NAV_GOOGLE_HOST_REJECTED"],
+      ["https://accounts.google.co.jp/signin?state=synthetic-secret", "BLOCKED_NAV_UNLISTED_GOOGLE_FAMILY"],
+      ["https://www.googleapis.com/oauth2/?token=synthetic-secret", "BLOCKED_NAV_UNLISTED_GOOGLE_FAMILY"],
+      ["https://unrelated.invalid/path?code=synthetic-secret", "BLOCKED_NAV_OTHER_HTTPS"],
+      ["invalid-url", "BLOCKED_NAV_INVALID_URL"],
+    ] as const) {
+      const code = blockedExternalNavigationCode(target);
+      expect(code).toBe(expected);
+      expect(bootstrapDiagnostic(code)).not.toMatch(/synthetic-secret|token=|code=|state=/);
+    }
   });
   it("allows only the fixed C2 dev HMR websocket", () => {
     expect(hmrAllowed("ws://localhost:3001/_next/webpack-hmr?id=synthetic")).toBe(true);

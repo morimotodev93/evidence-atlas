@@ -12,6 +12,25 @@ export function isBootstrapIcon(method: string, rawUrl: string, resource: string
   // Serve an inert local image instead of requesting/authenticating to authjs.dev.
   return method === "GET" && resource === "image" && rawUrl === "https://authjs.dev/img/providers/google.svg";
 }
+// Report only coarse fixed categories, never host/path/query/token values.
+// Classification is observation only; it never allows a blocked navigation.
+function inHostnameFamily(host: string, family: string): boolean {
+  return host === family || host.endsWith(`.${family}`);
+}
+export function blockedExternalNavigationCode(rawUrl: string): BootstrapCode {
+  try {
+    const url = new URL(rawUrl);
+    if (["chrome-error:", "chrome:", "edge:", "about:"].includes(url.protocol)) return "BLOCKED_NAV_BROWSER_INTERNAL";
+    if (url.protocol !== "https:") return "BLOCKED_NAV_NON_HTTPS";
+    if (["google.com", "gstatic.com", "googleusercontent.com"].some((family) => inHostnameFamily(url.hostname, family))) {
+      return "BLOCKED_NAV_GOOGLE_HOST_REJECTED";
+    }
+    if (["google.co.jp", "google.co.uk", "googleapis.com", "youtube.com"].some((family) => inHostnameFamily(url.hostname, family))) {
+      return "BLOCKED_NAV_UNLISTED_GOOGLE_FAMILY";
+    }
+    return "BLOCKED_NAV_OTHER_HTTPS";
+  } catch { return "BLOCKED_NAV_INVALID_URL"; }
+}
 export function navigationFailureCategory(value: unknown): NavigationFailure {
   if (typeof value !== "string") return "OTHER";
   if (["net::ERR_BLOCKED_BY_CLIENT", "net::ERR_BLOCKED_BY_RESPONSE", "net::ERR_BLOCKED_BY_CSP", "net::ERR_UNSAFE_REDIRECT"].includes(value)) return "BLOCKED";
@@ -59,6 +78,10 @@ export async function installNetworkBoundary(context: BrowserContext, bootstrap 
       try {
         if (!bootstrapRequestAllowed(request.method(), request.url()) && !isBootstrapIcon(request.method(), request.url(), request.resourceType())) {
           violation(); diagnostic("REQUEST_OBSERVED_REFUSED");
+          if (request.isNavigationRequest()) {
+            const url = new URL(request.url());
+            if (url.origin !== C2_ORIGIN) diagnostic(blockedExternalNavigationCode(request.url()));
+          }
         }
         if (authPost(request)) diagnostic("AUTH_BROWSER_POST");
         const navigation = providerNavigation(request);
@@ -105,6 +128,7 @@ export async function installNetworkBoundary(context: BrowserContext, bootstrap 
       let local = false;
       try { local = new URL(request.url()).origin === C2_ORIGIN; } catch { /* Classified as external. */ }
       diagnostic(local ? (request.isNavigationRequest() ? "BLOCKED_C2_NAVIGATION" : "BLOCKED_C2_RESOURCE") : (request.isNavigationRequest() ? "BLOCKED_EXTERNAL_NAVIGATION" : "BLOCKED_EXTERNAL_RESOURCE"));
+      if (bootstrap && !local && request.isNavigationRequest()) diagnostic(blockedExternalNavigationCode(request.url()));
       violation(); await route.abort("blockedbyclient"); return;
     }
     const authSubmit = bootstrap && authPost(request);
