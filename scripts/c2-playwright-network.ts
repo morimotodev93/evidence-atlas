@@ -12,10 +12,10 @@ export function isBootstrapIcon(method: string, rawUrl: string, resource: string
   // Serve an inert local image instead of requesting/authenticating to authjs.dev.
   return method === "GET" && resource === "image" && rawUrl === "https://authjs.dev/img/providers/google.svg";
 }
-// Replace only the known Auth.js POST -> Google 302 with a client navigation.
-// A fresh meta-refresh navigation can enter context.route; a fulfilled 302's
-// native follow-up may not. URL is held only in memory/HTML, never reported.
-function authGoogle302Bridge(target: string): string {
+// Only a validated, GET-capable main-frame redirect uses this small HTML
+// document. The full URL stays inside the browser; diagnostics stay fixed-code.
+const MAX_GOOGLE_HOP_BRIDGES = 8;
+function routedRedirectDocument(target: string): string {
   const attribute = target.replace(/&/g, "&amp;").replace(/"/g, "&quot;")
     .replace(/</g, "&lt;").replace(/>/g, "&gt;");
   return `<!doctype html><html><head><meta charset="utf-8"><meta name="referrer" content="no-referrer"><meta http-equiv="refresh" content="0;url=${attribute}"></head><body></body></html>`;
@@ -72,6 +72,7 @@ export async function installNetworkBoundary(context: BrowserContext, bootstrap 
   let fulfillFailed = false;
   let googleRequested = false;
   let googleCommitted = false;
+  let googleHopBridges = 0;
   const seen = new Set<BootstrapCode>();
   const diagnostic = (code: BootstrapCode) => {
     if (bootstrap && !seen.has(code)) { seen.add(code); report?.(code); }
@@ -141,8 +142,11 @@ export async function installNetworkBoundary(context: BrowserContext, bootstrap 
     }
     const authSubmit = bootstrap && authPost(request);
     if (authSubmit) diagnostic("AUTH_SUBMIT");
+    let googleMainGet = false;
     try {
-      if (bootstrap && (mainRequests.has(request) || providerNavigation(request) === "main")) {
+      const navigation = bootstrap ? providerNavigation(request) : undefined;
+      googleMainGet = navigation === "main" && request.method() === "GET";
+      if (bootstrap && (mainRequests.has(request) || navigation === "main")) {
         mainRequests.add(request); navigationWatch.routed(request); diagnostic("GOOGLE_NAV_ROUTE");
       }
     }
@@ -156,6 +160,9 @@ export async function installNetworkBoundary(context: BrowserContext, bootstrap 
       fetched = true;
       const location = response.headers().location;
       let google302Target: string | undefined;
+      let googleHopTarget: string | undefined;
+      if (googleMainGet) diagnostic([301, 302, 303, 307, 308].includes(response.status())
+        ? "GOOGLE_UPSTREAM_REDIRECT" : "GOOGLE_UPSTREAM_OTHER");
       if (authSubmit && (!location || ![301, 302, 303, 307, 308].includes(response.status()))) {
         violation(); diagnostic("AUTH_RESPONSE_INVALID"); await route.abort("blockedbyclient"); return;
       }
@@ -165,8 +172,8 @@ export async function installNetworkBoundary(context: BrowserContext, bootstrap 
           diagnostic(nextMethod ? "REDIRECT_REFUSED" : "REDIRECT_STATUS_UNSUPPORTED");
           violation(); await route.abort("blockedbyclient"); return;
         }
+        const destination = new URL(location, request.url());
         if (authSubmit) {
-          const destination = new URL(location, request.url());
           const external = destination.origin !== C2_ORIGIN;
           if (external) authRedirect = true;
           // Only this exact Auth.js Google authorization 302 is bridged.
@@ -176,14 +183,26 @@ export async function installNetworkBoundary(context: BrowserContext, bootstrap 
               destination.pathname === "/o/oauth2/v2/auth") google302Target = destination.href;
           diagnostic(external ? "AUTH_REDIRECT" : "AUTH_LOCAL_REDIRECT");
         }
+        // A Google main-frame GET can have another approved 3xx hop. Turn it
+        // into a fresh, routable navigation, never a hidden native redirect.
+        // Local destinations are limited to the exact Google OAuth callback.
+        if (googleMainGet && nextMethod === "GET" &&
+            (destination.origin !== C2_ORIGIN || destination.pathname === "/api/auth/callback/google")) {
+          if (googleHopBridges >= MAX_GOOGLE_HOP_BRIDGES) {
+            violation(); diagnostic("GOOGLE_HOP_LIMIT_REFUSED"); await route.abort("blockedbyclient"); return;
+          }
+          googleHopBridges++;
+          googleHopTarget = destination.href;
+        }
       }
-      // Keep the original response (including repeated Set-Cookie) as the base.
-      // For the exact Auth.js Google 302 only, avoid an opaque native redirect
-      // chain by asking the browser for a fresh HTML meta-refresh navigation.
-      // CSP/cookie behavior is NOT proven until a separately approved live run.
+      // Preserve the original response (including repeated Set-Cookie) as the
+      // base. Do not construct cookie headers, change the allowlist or log URLs.
+      // Browser CSP/cookie behavior still needs separately approved validation.
       if (authSubmit) { fulfillStarted = true; diagnostic("AUTH_FULFILL_STARTED"); }
-      if (google302Target) {
-        await route.fulfill({ response, status: 200, contentType: "text/html; charset=utf-8", body: authGoogle302Bridge(google302Target) });
+      const bridgeTarget = google302Target ?? googleHopTarget;
+      if (bridgeTarget) {
+        await route.fulfill({ response, status: 200, contentType: "text/html; charset=utf-8", body: routedRedirectDocument(bridgeTarget) });
+        if (googleHopTarget) diagnostic("GOOGLE_HOP_BRIDGED");
       } else {
         await route.fulfill({ response });
       }

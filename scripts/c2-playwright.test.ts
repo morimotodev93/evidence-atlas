@@ -267,6 +267,49 @@ describe("C2 browser request interception with offline Playwright doubles", () =
     expect(auth.fetch).toHaveBeenCalledWith({ maxRedirects: 0, timeout: 15_000 });
     manual.assert(); expect(report.mock.calls.map(([code]) => code)).toEqual(["AUTH_SUBMIT", "AUTH_REDIRECT", "AUTH_FULFILL_STARTED", "AUTH_FULFILL_COMPLETED"]);
   });
+  it("bridges a validated Google main-frame GET 302, preserving upstream cookies; refuses outside the allowlist", async () => {
+    const codes: BootstrapCode[] = []; const manual = await boundary(true, (code) => codes.push(code));
+    const target = "https://accounts.google.com/v3/signin/identifier?state=synthetic-private&hl=en";
+    const hop = route("https://accounts.google.com/o/oauth2/v2/auth", "GET", target);
+    const upstream = { status: () => 302, headers: () => ({ location: target, "set-cookie": "google=synthetic; Secure; HttpOnly" }) };
+    hop.fetch.mockResolvedValue(upstream);
+    await manual.handler(hop.fake);
+    expect(hop.fetch).toHaveBeenCalledWith({ maxRedirects: 0, timeout: 15_000 });
+    expect(hop.fulfill).toHaveBeenCalledWith({ response: upstream, status: 200, contentType: "text/html; charset=utf-8",
+      body: expect.stringContaining("state=synthetic-private&amp;hl=en") });
+    expect(codes).toContain("GOOGLE_UPSTREAM_REDIRECT"); expect(codes).toContain("GOOGLE_HOP_BRIDGED"); manual.assert();
+
+    const callback = await boundary(true);
+    const returnHop = route("https://accounts.google.com/signin", "GET", `${C2_ORIGIN}/api/auth/callback/google?code=synthetic-private`);
+    await callback.handler(returnHop.fake);
+    expect(returnHop.fulfill).toHaveBeenCalledWith(expect.objectContaining({ status: 200, body: expect.stringContaining("/api/auth/callback/google") }));
+    callback.assert();
+
+    const denied = await boundary(true);
+    const unsafe = route("https://accounts.google.com/signin", "GET", "https://not-google.invalid/?code=synthetic-private");
+    await denied.handler(unsafe.fake);
+    expect(unsafe.fulfill).not.toHaveBeenCalled(); expect(unsafe.abort).toHaveBeenCalledOnce();
+    expect(() => denied.assert()).toThrow("bootstrap-network");
+  });
+  it("leaves 200 and Google POST responses unchanged, and caps Google GET redirect bridges", async () => {
+    const normal = await boundary(true, () => {});
+    const page = route("https://accounts.google.com/signin", "GET");
+    await normal.handler(page.fake);
+    expect(page.fulfill).toHaveBeenCalledWith({ response: expect.anything() }); normal.assert();
+    const post = route("https://accounts.google.com/signin", "POST", "https://accounts.google.com/next", 307);
+    await normal.handler(post.fake);
+    expect(post.fulfill).toHaveBeenCalledWith({ response: expect.anything() }); normal.assert();
+
+    const codes: BootstrapCode[] = []; const capped = await boundary(true, (code) => codes.push(code));
+    for (let i = 0; i < 8; i++) {
+      const hop = route("https://accounts.google.com/signin", "GET", "https://accounts.google.com/next");
+      await capped.handler(hop.fake); expect(hop.fulfill).toHaveBeenCalledWith(expect.objectContaining({ status: 200 }));
+    }
+    const ninth = route("https://accounts.google.com/signin", "GET", "https://accounts.google.com/next");
+    await capped.handler(ninth.fake);
+    expect(ninth.fulfill).not.toHaveBeenCalled(); expect(ninth.abort).toHaveBeenCalledOnce();
+    expect(codes).toContain("GOOGLE_HOP_LIMIT_REFUSED"); expect(() => capped.assert()).toThrow("bootstrap-network");
+  });
   it.each([301, 302, 303, 307, 308])("classifies redirect method transitions for %s", (status) => {
     expect(redirectMethod(status, "POST")).toBe(status === 307 || status === 308 ? "POST" : "GET");
     expect(redirectMethod(status, "GET")).toBe("GET");
