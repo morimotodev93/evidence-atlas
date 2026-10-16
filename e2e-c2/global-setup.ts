@@ -26,10 +26,12 @@ export function requireC2Config(config: FullConfig) {
 }
 export default async function globalSetup(config: FullConfig) {
   requireC2Config(config);
+  console.log("C2 stage [CONFIG_OK].");
   const expected = requireExpectedUser(process.env);
   const state = await loadC2State();
+  console.log("C2 stage [STATE_OK].");
   const client = await request.newContext({ baseURL: C2_ORIGIN, storageState: state.storageState, timeout: 15_000, ignoreHTTPSErrors: false });
-  try { await preflight(client, expected); }
+  try { await preflight(client, expected); console.log("C2 stage [PREFLIGHT_OK]."); }
   catch { refuse("preflight"); }
   finally { await client.dispose(); }
 }
