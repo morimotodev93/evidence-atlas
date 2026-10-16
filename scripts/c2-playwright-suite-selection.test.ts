@@ -1,3 +1,5 @@
+import { createRequire } from "node:module";
+import { fileURLToPath } from "node:url";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { FullConfig } from "@playwright/test";
 import { parseHarnessCommand, C2_ORIGIN } from "./c2-playwright-policy.ts";
@@ -55,6 +57,32 @@ describe("C2 suite selection (offline only)", () => {
     }
     vi.stubEnv("C2_E2E_ALLOW_CHAT_MOCK", "1");
     expect(() => requireC2Config(fixtureConfig(true))).not.toThrow();
+  });
+
+  it("validates both configs after the actual installed Playwright loader resolves FullConfig", async () => {
+    // Playwright 1.63 internal loader. This detects differences between a
+    // handwritten FullConfig fixture and the runner's resolved configuration.
+    // No global setup, test cases, browser, HTTP, or database are executed.
+    const require = createRequire(import.meta.url);
+    const { configLoader } = require("playwright/lib/common") as {
+      configLoader: { loadConfigFromFile(file: string): Promise<{ config: FullConfig }> };
+    };
+    for (const [file, chat] of [
+      ["playwright.c2.config.ts", false],
+      ["playwright.c2.chat.config.ts", true],
+    ] as const) {
+      vi.stubEnv("C2_E2E_ALLOW_CHAT_MOCK", chat ? "1" : undefined);
+      const { config } = await configLoader.loadConfigFromFile(fileURLToPath(new URL(`../${file}`, import.meta.url)));
+      expect(config.projects).toHaveLength(1);
+      expect(config.projects[0].use.defaultBrowserType).toBe("chromium");
+      expect(config.projects[0].use.browserName).toBe("chromium");
+      expect(() => requireC2Config(config)).not.toThrow();
+      const altered = {
+        ...config,
+        projects: [{ ...config.projects[0], use: { ...config.projects[0].use, browserName: "firefox" } }],
+      } as unknown as FullConfig;
+      expect(() => requireC2Config(altered)).toThrow("configuration");
+    }
   });
 
   it("refuses both directions of suite/config mismatch and the missing Chat opt-in", () => {

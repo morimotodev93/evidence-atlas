@@ -27,5 +27,5 @@ export default defineConfig({
     trace: "off", screenshot: "off", video: "off",
     serviceWorkers: "block",
   },
-  projects: [{ name: "c2-chromium", use: { ...devices["Desktop Chrome"] } }],
+  projects: [{ name: "c2-chromium", use: { ...devices["Desktop Chrome"], browserName: "chromium" } }],
 });

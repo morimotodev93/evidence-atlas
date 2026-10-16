@@ -7,6 +7,6 @@ export default defineConfig({
   ...smoke,
   testMatch: "chat.spec.ts",
   projects: [
-    { name: "c2-chat-chromium", use: { ...devices["Desktop Chrome"] } },
+    { name: "c2-chat-chromium", use: { ...devices["Desktop Chrome"], browserName: "chromium" } },
   ],
 });

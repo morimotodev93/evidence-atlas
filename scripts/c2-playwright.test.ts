@@ -422,6 +422,10 @@ describe("C2 configuration and secret-free reporting", () => {
       expect(config.webServer).toBeUndefined(); expect(config.outputDir).toBe("./test-results-c2");
       expect(config.use).toMatchObject({ baseURL: C2_ORIGIN, trace: "off", screenshot: "off", video: "off", serviceWorkers: "block" });
       expect(config.preserveOutput).toBe("never"); expect(process.env.PLAYWRIGHT_NO_COPY_PROMPT).toBe("1");
+      // Pin the explicit browserName required by requireC2Config for both projects.
+      expect(config.projects?.[0]?.use?.browserName).toBe("chromium");
+      const { default: chatConfig } = await import("../playwright.c2.chat.config.ts");
+      expect(chatConfig.projects?.[0]?.use?.browserName).toBe("chromium");
     } finally { if (old === undefined) delete process.env.PLAYWRIGHT_NO_COPY_PROMPT; else process.env.PLAYWRIGHT_NO_COPY_PROMPT = old; }
   });
   it("rejects resolved config/CLI overrides before browser startup", () => {
