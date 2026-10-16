@@ -1,4 +1,5 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
+import RedactedReporter from "../e2e-c2/redacted-reporter.ts";
 import { safeRunnerCodes } from "./c2-runner-diagnostics.ts";
 
 describe("redacted C2 runner diagnostics (offline)", () => {
@@ -28,4 +29,27 @@ describe("redacted C2 runner diagnostics (offline)", () => {
     expect(safeRunnerCodes("opaque framework failure with private details", 6)).toEqual(["REPORT_MISSING"]);
     expect(safeRunnerCodes("C2 cases collected: 4.", 6)).toEqual(["CASES_UNEXPECTED"]);
   });
+  it("distinguishes zero collection and setup refusal without emitting raw errors", () => {
+    expect(safeRunnerCodes([
+      "C2 cases collected: 0.", "C2 stage [CONFIG_ENTERED].",
+      "C2 stage [CONFIG_REFUSED].", "C2 setup/runner failed; details suppressed.",
+    ].join("\n"), 4)).toEqual(["CASES_ZERO", "CONFIG_ENTERED", "CONFIG_REFUSED", "RUNNER_SETUP_ERROR"]);
+    expect(safeRunnerCodes("C2 cases collected: 7.", 6)).toEqual(["CASES_UNEXPECTED"]);
+  });
+  it("reporter relays only exact fixed stages and a fixed setup error", () => {
+    const log = vi.spyOn(console, "log").mockImplementation(() => {});
+    const reporter = new RedactedReporter();
+    try {
+      reporter.onStdOut("C2 stage [CONFIG_OK].\nprivate-token=synthetic\nC2 stage [STATE_OK].\n");
+      reporter.onStdOut(Buffer.from("C2 stage [PREFLIGHT_OK].\r\n"));
+      reporter.onStdOut("prefix C2 stage [CONFIG_OK].\n");
+      reporter.onError();
+      expect(log.mock.calls.map(([value]) => value)).toEqual([
+        "C2 stage [CONFIG_OK].", "C2 stage [STATE_OK].", "C2 stage [PREFLIGHT_OK].",
+        "C2 setup/runner failed; details suppressed.",
+      ]);
+      expect(JSON.stringify(log.mock.calls)).not.toContain("synthetic");
+    } finally { log.mockRestore(); }
+  });
+
 });

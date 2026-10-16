@@ -455,7 +455,7 @@ describe("C2 configuration and secret-free reporting", () => {
     try {
       const reporter = new RedactedReporter();
       reporter.onTestEnd({ title: "synthetic-private-token" } as never, { status: "failed", errors: [{ message: user.email }], attachments: [{ path: "secret.json" }] } as never);
-      reporter.onError(); reporter.onStdOut(); reporter.onStdErr(); reporter.onEnd({ status: "failed" } as never);
+      reporter.onError(); reporter.onStdOut("synthetic-private-token"); reporter.onStdErr(); reporter.onEnd({ status: "failed" } as never);
       const output = [...log.mock.calls, ...error.mock.calls].flat().join("\n");
       expect(output).not.toMatch(/synthetic-private-token|offline@example|secret.json/);
     } finally { log.mockRestore(); error.mockRestore(); }

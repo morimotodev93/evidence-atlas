@@ -25,7 +25,9 @@ export function requireC2Config(config: FullConfig) {
     !project.outputDir.endsWith("test-results-c2")) refuse("configuration");
 }
 export default async function globalSetup(config: FullConfig) {
-  requireC2Config(config);
+  console.log("C2 stage [CONFIG_ENTERED].");
+  try { requireC2Config(config); }
+  catch { console.log("C2 stage [CONFIG_REFUSED]."); refuse("configuration-or-opt-in"); }
   console.log("C2 stage [CONFIG_OK].");
   const expected = requireExpectedUser(process.env);
   const state = await loadC2State();

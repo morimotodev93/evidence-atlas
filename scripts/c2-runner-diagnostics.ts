@@ -1,8 +1,9 @@
 // Child output may contain secrets from framework/runtime logs. NEVER relay it.
 // Recognize only exact, known reporter/stage lines and return constant codes.
 export type C2RunnerCode =
-  | "CASES_EXPECTED" | "CASES_UNEXPECTED" | "REPORT_MISSING"
-  | "CONFIG_OK" | "STATE_OK" | "PREFLIGHT_OK"
+  | "CASES_EXPECTED" | "CASES_ZERO" | "CASES_UNEXPECTED" | "REPORT_MISSING"
+  | "CONFIG_ENTERED" | "CONFIG_REFUSED" | "CONFIG_OK" | "STATE_OK" | "PREFLIGHT_OK"
+  | "RUNNER_SETUP_ERROR"
   | "SCENARIO_PASSED" | "SCENARIO_FAILED"
   | "RUNNER_PASSED" | "RUNNER_FAILED";
 
@@ -13,10 +14,14 @@ export function safeRunnerCodes(raw: unknown, expectedCount: 4 | 6): C2RunnerCod
     if (line.length > 96) continue;
     const match = /^C2 cases collected: ([0-9]+)\.$/.exec(line);
     if (match) {
-      seen.add(Number(match[1]) === expectedCount ? "CASES_EXPECTED" : "CASES_UNEXPECTED");
+      const count = Number(match[1]);
+      seen.add(count === expectedCount ? "CASES_EXPECTED" : count === 0 ? "CASES_ZERO" : "CASES_UNEXPECTED");
       continue;
     }
-    if (line === "C2 stage [CONFIG_OK].") seen.add("CONFIG_OK");
+    if (line === "C2 stage [CONFIG_ENTERED].") seen.add("CONFIG_ENTERED");
+    else if (line === "C2 stage [CONFIG_REFUSED].") seen.add("CONFIG_REFUSED");
+    else if (line === "C2 setup/runner failed; details suppressed.") seen.add("RUNNER_SETUP_ERROR");
+    else if (line === "C2 stage [CONFIG_OK].") seen.add("CONFIG_OK");
     else if (line === "C2 stage [STATE_OK].") seen.add("STATE_OK");
     else if (line === "C2 stage [PREFLIGHT_OK].") seen.add("PREFLIGHT_OK");
     else if (line === "C2 scenario passed.") seen.add("SCENARIO_PASSED");
