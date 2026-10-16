@@ -15,6 +15,7 @@ import Google from "next-auth/providers/google";
 import type { BrowserContext, FullConfig, Route, WebSocketRoute } from "@playwright/test";
 import { requireC2Config } from "../e2e-c2/global-setup.ts";
 import RedactedReporter from "../e2e-c2/redacted-reporter.ts";
+import type { C2NetworkCode } from "./c2-scenario-diagnostics.ts";
 
 const now = Date.parse("2026-10-13T01:00:00.000Z");
 const user = { id: "offline-user", email: "offline@example.invalid" };
@@ -139,7 +140,7 @@ describe("C2 Playwright pure/offline safety", () => {
     }
   });
   it("allows only the fixed C2 dev HMR websocket", () => {
-    expect(hmrAllowed("ws://localhost:3001/_next/webpack-hmr?id=synthetic")).toBe(true);
+    expect(hmrAllowed("ws://localhost:3001/_next/hmr?id=synthetic")).toBe(true);
     for (const url of ["ws://localhost:3000/_next/webpack-hmr", "wss://remote.invalid/ws", "ws://localhost:3001/application-write"]) expect(hmrAllowed(url)).toBe(false);
   });
   it("combines independent HTTP/session/workspace checks without triggering OAuth", async () => {
@@ -195,11 +196,11 @@ describe("C2 Playwright pure/offline safety", () => {
 });
 
 describe("C2 browser request interception with offline Playwright doubles", () => {
-  async function boundary(bootstrap = false, report?: (code: BootstrapCode) => void) {
+  async function boundary(bootstrap = false, report?: (code: BootstrapCode) => void, reportNetwork?: (code: C2NetworkCode) => void) {
     let handler!: (route: Route) => Promise<void>;
     let socketHandler!: (socket: WebSocketRoute) => void;
     const context = { route: async (_pattern: string, callback: typeof handler) => { handler = callback; }, routeWebSocket: async (_pattern: RegExp, callback: typeof socketHandler) => { socketHandler = callback; }, on: vi.fn(), pages: () => [] } as unknown as BrowserContext;
-    const assert = await installNetworkBoundary(context, bootstrap, report);
+    const assert = await installNetworkBoundary(context, bootstrap, report, reportNetwork);
     return { handler, socketHandler, assert };
   }
   function route(url = `${C2_ORIGIN}/`, method = "GET", location?: string, redirectStatus = 302) {
@@ -215,12 +216,50 @@ describe("C2 browser request interception with offline Playwright doubles", () =
       expect(() => assert()).toThrow("network-policy");
     }
   });
+  it.each([
+    [`${C2_ORIGIN}/`, "POST", "NET_METHOD_REFUSED"],
+    ["https://external.invalid/", "GET", "NET_ORIGIN_REFUSED"],
+    [`${C2_ORIGIN}/settings/workspace`, "GET", "NET_PATH_REFUSED"],
+    [`${C2_ORIGIN}/?private=synthetic`, "GET", "NET_QUERY_REFUSED"],
+    [`${C2_ORIGIN}/_next/static/unsafe[chunk].js`, "GET", "NET_STATIC_REFUSED"],
+    [`${C2_ORIGIN}/__nextjs_font/geist-latin.woff2`, "GET", "NET_DEVTOOLS_REFUSED"],
+  ])("classifies a refused request without forwarding it or exposing its data", async (url, method, code) => {
+    const report = vi.fn();
+    const { handler, assert } = await boundary(false, undefined, report);
+    for (let i = 0; i < 2; i++) {
+      const attempt = route(url, method);
+      await handler(attempt.fake);
+      expect(attempt.fetch).not.toHaveBeenCalled();
+      expect(attempt.abort).toHaveBeenCalledOnce();
+    }
+    expect(report.mock.calls).toEqual([[code]]);
+    expect(() => assert()).toThrow("network-policy");
+  });
   it("fetches allowed reads without following redirects and rejects redirect targets", async () => {
     const { handler, assert } = await boundary();
     const fake = route(`${C2_ORIGIN}/`, "GET", "https://accounts.google.com/?code=synthetic-private-token");
     await handler(fake.fake);
     expect(fake.fetch).toHaveBeenCalledWith({ maxRedirects: 0, timeout: 15_000 });
     expect(fake.fulfill).not.toHaveBeenCalled(); expect(() => assert()).toThrow("network-policy");
+  });
+  it("preserves a conditional 304 response without treating it as a redirect", async () => {
+    const { handler, assert } = await boundary();
+    const attempt = route(`${C2_ORIGIN}/research?_rsc=synthetic`);
+    const unchanged = { status: () => 304, headers: () => ({}) };
+    attempt.fetch.mockResolvedValue(unchanged);
+    await handler(attempt.fake);
+    expect(attempt.fulfill).toHaveBeenCalledWith({ response: unchanged });
+    expect(attempt.abort).not.toHaveBeenCalled();
+    assert();
+  });
+  it("still refuses any Location header, including one attached to a 304", async () => {
+    const { handler, assert } = await boundary();
+    const attempt = route();
+    attempt.fetch.mockResolvedValue({ status: () => 304, headers: () => ({ location: "https://external.invalid/" }) });
+    await handler(attempt.fake);
+    expect(attempt.fulfill).not.toHaveBeenCalled();
+    expect(attempt.abort).toHaveBeenCalledWith("blockedbyclient");
+    expect(() => assert()).toThrow("network-policy");
   });
   it("fulfills allowed reads and approved manual Google redirects", async () => {
     const normal = await boundary(); const read = route(); await normal.handler(read.fake); normal.assert(); expect(read.fulfill).toHaveBeenCalledOnce();
@@ -232,7 +271,7 @@ describe("C2 browser request interception with offline Playwright doubles", () =
     const close = vi.fn(); const connect = vi.fn();
     socketHandler({ url: () => "wss://external.invalid", close, connectToServer: connect } as unknown as WebSocketRoute);
     expect(close).toHaveBeenCalledOnce(); expect(connect).not.toHaveBeenCalled(); expect(() => assert()).toThrow();
-    const local = await boundary(); local.socketHandler({ url: () => "ws://localhost:3001/_next/webpack-hmr", close, connectToServer: connect } as unknown as WebSocketRoute);
+    const local = await boundary(); local.socketHandler({ url: () => "ws://localhost:3001/_next/hmr?id=synthetic", close, connectToServer: connect } as unknown as WebSocketRoute);
     expect(connect).toHaveBeenCalledOnce(); local.assert();
   });
   it("does not permit a preserved POST redirect into an application read endpoint during bootstrap", async () => {

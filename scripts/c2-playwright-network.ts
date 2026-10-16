@@ -2,6 +2,7 @@ import type { BrowserContext, Page, Request as BrowserRequest } from "@playwrigh
 import { C2_ORIGIN, bootstrapRequestAllowed, requireC2Url, refuse, testRequestDecision } from "./c2-playwright-policy.ts";
 import type { BootstrapCode } from "./c2-playwright-diagnostics.ts";
 import { createNavigationWatch, type NavigationFailure } from "./c2-playwright-navigation-watch.ts";
+import type { C2NetworkCode } from "./c2-scenario-diagnostics.ts";
 
 export function redirectMethod(status: number, method: string): string | undefined {
   if (![301, 302, 303, 307, 308].includes(status)) return;
@@ -61,11 +62,15 @@ function providerNavigation(request: BrowserRequest): "main" | "subframe" | unde
 export function hmrAllowed(rawUrl: string) {
   try {
     const url = new URL(rawUrl);
-    return url.origin === "ws://localhost:3001" && url.pathname === "/_next/webpack-hmr" && !url.username && !url.password;
+    // Installed Next 16 uses this exact socket and a document request ID.
+    // Replace the obsolete webpack-hmr path; do not admit other sockets.
+    return url.origin === "ws://localhost:3001" && url.pathname === "/_next/hmr" && !url.username && !url.password && !url.hash &&
+      [...url.searchParams.keys()].length === 1 && url.searchParams.has("id") && !!url.searchParams.get("id");
   } catch { return false; }
 }
-export async function installNetworkBoundary(context: BrowserContext, bootstrap = false, report?: (code: BootstrapCode) => void) {
+export async function installNetworkBoundary(context: BrowserContext, bootstrap = false, report?: (code: BootstrapCode) => void, reportNetwork?: (code: C2NetworkCode) => void) {
   let failed = false;
+  let stopping = false;
   let authRedirect = false;
   let fulfillStarted = false;
   let fulfillCompleted = false;
@@ -77,7 +82,24 @@ export async function installNetworkBoundary(context: BrowserContext, bootstrap 
   const diagnostic = (code: BootstrapCode) => {
     if (bootstrap && !seen.has(code)) { seen.add(code); report?.(code); }
   };
-  const violation = () => { failed = true; };
+  const networkSeen = new Set<C2NetworkCode>();
+  const violation = (code: C2NetworkCode = "NET_POLICY_REFUSED") => {
+    failed = true;
+    if (!bootstrap && !networkSeen.has(code)) { networkSeen.add(code); reportNetwork?.(code); }
+  };
+  // BrowserContext.close disposes its API client without awaiting route
+  // callbacks. Keep the guard installed while admitted reads finish, then
+  // close the context; a final drain also includes callbacks already queued.
+  const pending = new Set<Promise<void>>();
+  const track = (operation: () => Promise<void>) => {
+    const work = (async () => {
+      try { await operation(); }
+      catch (error) { violation(); throw error; }
+    })();
+    pending.add(work);
+    void work.then(() => pending.delete(work), () => pending.delete(work));
+    return work;
+  };
   const navigationWatch = createNavigationWatch(diagnostic);
   const mainRequests = new WeakSet<BrowserRequest>();
   if (bootstrap) {
@@ -123,7 +145,7 @@ export async function installNetworkBoundary(context: BrowserContext, bootstrap 
       } catch { diagnostic("OBSERVATION_UNAVAILABLE"); }
     });
   }
-  await context.route("**/*", async (route) => {
+  await context.route("**/*", (route) => track(async () => {
     const request = route.request();
     if (bootstrap && isBootstrapIcon(request.method(), request.url(), request.resourceType())) {
       try {
@@ -138,8 +160,22 @@ export async function installNetworkBoundary(context: BrowserContext, bootstrap 
       try { local = new URL(request.url()).origin === C2_ORIGIN; } catch { /* Classified as external. */ }
       diagnostic(local ? (request.isNavigationRequest() ? "BLOCKED_C2_NAVIGATION" : "BLOCKED_C2_RESOURCE") : (request.isNavigationRequest() ? "BLOCKED_EXTERNAL_NAVIGATION" : "BLOCKED_EXTERNAL_RESOURCE"));
       if (bootstrap && !local && request.isNavigationRequest()) diagnostic(blockedExternalNavigationCode(request.url()));
-      violation(); await route.abort("blockedbyclient"); return;
+      let code: C2NetworkCode = "NET_POLICY_REFUSED";
+      if (!bootstrap) {
+        const decision = testRequestDecision(request.method(), request.url());
+        code = decision === "method" ? "NET_METHOD_REFUSED" : decision === "origin" ? "NET_ORIGIN_REFUSED"
+          : decision === "query" ? "NET_QUERY_REFUSED" : "NET_PATH_REFUSED";
+        if (decision === "path") {
+          const path = new URL(request.url()).pathname;
+          if (path.startsWith("/_next/static/")) code = "NET_STATIC_REFUSED";
+          if (path.startsWith("/__nextjs")) code = "NET_DEVTOOLS_REFUSED";
+        }
+      }
+      violation(code); await route.abort("blockedbyclient"); return;
     }
+    // Shutdown narrows the boundary: newly arriving allowed reads are aborted
+    // locally, while disallowed requests above still latch a policy failure.
+    if (!bootstrap && stopping) { await route.abort("blockedbyclient"); return; }
     const authSubmit = bootstrap && authPost(request);
     if (authSubmit) diagnostic("AUTH_SUBMIT");
     let googleMainGet = false;
@@ -166,11 +202,20 @@ export async function installNetworkBoundary(context: BrowserContext, bootstrap 
       if (authSubmit && (!location || ![301, 302, 303, 307, 308].includes(response.status()))) {
         violation(); diagnostic("AUTH_RESPONSE_INVALID"); await route.abort("blockedbyclient"); return;
       }
-      if (location || (response.status() >= 300 && response.status() < 400)) {
+      // 304 is conditional-cache validation, not a navigation redirect.
+      // Preserve it for the browser; actual 3xx redirects remain fail-closed.
+      if (location || (response.status() >= 300 && response.status() < 400 && response.status() !== 304)) {
         const nextMethod = redirectMethod(response.status(), request.method());
         if (!bootstrap || !location || !nextMethod || !bootstrapRequestAllowed(nextMethod, new URL(location, request.url()).href)) {
           diagnostic(nextMethod ? "REDIRECT_REFUSED" : "REDIRECT_STATUS_UNSUPPORTED");
-          violation(); await route.abort("blockedbyclient"); return;
+          let refusal: C2NetworkCode = "NET_REDIRECT_REFUSED";
+          if (!bootstrap && location) {
+            const destination = new URL(location, request.url());
+            refusal = destination.origin !== C2_ORIGIN ? "NET_REDIRECT_EXTERNAL"
+              : destination.pathname.startsWith("/api/auth/") ? "NET_REDIRECT_TO_AUTH"
+              : destination.pathname === "/onboarding" ? "NET_REDIRECT_TO_ONBOARDING" : "NET_REDIRECT_LOCAL";
+          }
+          violation(refusal); await route.abort("blockedbyclient"); return;
         }
         const destination = new URL(location, request.url());
         if (authSubmit) {
@@ -209,13 +254,15 @@ export async function installNetworkBoundary(context: BrowserContext, bootstrap 
       if (authSubmit) { fulfillCompleted = true; diagnostic("AUTH_FULFILL_COMPLETED"); }
     } catch {
       if (authSubmit && fetched) fulfillFailed = true;
-      violation(); diagnostic(fetched ? "FULFILL_FAILED" : "FETCH_FAILED"); await route.abort("failed").catch(() => {});
+      violation(fetched ? "NET_FULFILL_FAILED" : "NET_FETCH_FAILED"); diagnostic(fetched ? "FULFILL_FAILED" : "FETCH_FAILED"); await route.abort("failed").catch(() => {});
     }
-  });
-  await context.routeWebSocket(/.*/, (socket) => {
-    if (hmrAllowed(socket.url())) socket.connectToServer();
-    else { violation(); diagnostic("BLOCKED_EXTERNAL_RESOURCE"); socket.close(); }
-  });
+  }));
+  await context.routeWebSocket(/.*/, (socket) => track(async () => {
+    if (hmrAllowed(socket.url())) {
+      if (!bootstrap && stopping) await socket.close();
+      else socket.connectToServer();
+    } else { violation("NET_WEBSOCKET_REFUSED"); diagnostic("BLOCKED_EXTERNAL_RESOURCE"); await socket.close(); }
+  }));
   const observedPages = new WeakSet<Page>();
   const observePage = (page: Page) => {
     if (observedPages.has(page)) return;
@@ -233,7 +280,7 @@ export async function installNetworkBoundary(context: BrowserContext, bootstrap 
           }
         }
       }
-      else { try { requireC2Url(url); } catch { violation(); } }
+      else { try { requireC2Url(url); } catch { violation("NET_FRAME_REFUSED"); } }
     });
   };
   context.on("page", observePage);
@@ -245,7 +292,12 @@ export async function installNetworkBoundary(context: BrowserContext, bootstrap 
       if (fulfillCompleted && !googleRequested && !googleCommitted) diagnostic("GOOGLE_NAV_NOT_OBSERVED");
       if (googleRequested && !googleCommitted && navigationWatch.hasPending()) diagnostic("GOOGLE_NAV_UNCOMMITTED");
     },
-    beginShutdown() { if (bootstrap && !navigationWatch.isShuttingDown()) diagnostic("BOOTSTRAP_SHUTDOWN_STARTED"); navigationWatch.beginShutdown(); },
+    beginShutdown() {
+      if (!bootstrap) stopping = true;
+      if (bootstrap && !navigationWatch.isShuttingDown()) diagnostic("BOOTSTRAP_SHUTDOWN_STARTED");
+      navigationWatch.beginShutdown();
+    },
+    async drain() { while (pending.size) await Promise.all([...pending]); },
     dispose() { navigationWatch.dispose(); },
   });
 }

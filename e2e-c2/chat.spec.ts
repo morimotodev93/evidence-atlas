@@ -9,17 +9,21 @@ import { C2_ORIGIN, fixture, RESEARCH_PATH } from "../scripts/c2-playwright-poli
 // The Chat-specific fixture installs exact, in-memory conversation routes before
 // page navigation. The C2 boundary still refuses every other Chat request.
 async function openResearchChat(page: Page): Promise<Locator> {
-  const response = await page.goto(`${C2_ORIGIN}${RESEARCH_PATH}`);
-  expect(response?.status() === 200, "C2 Research page must load").toBe(true);
-  expect(page.url() === `${C2_ORIGIN}${RESEARCH_PATH}`, "C2 Research URL must remain exact").toBe(true);
-  await expect(page.getByRole("heading", { name: String(fixture.research.title), level: 1, exact: true })).toBeVisible();
+  await test.step("C2 navigation", async () => {
+    const response = await page.goto(`${C2_ORIGIN}${RESEARCH_PATH}`);
+    expect(response?.status() === 200, "C2 Research page must load").toBe(true);
+    expect(page.url() === `${C2_ORIGIN}${RESEARCH_PATH}`, "C2 Research URL must remain exact").toBe(true);
+  });
+  await test.step("C2 Chat research heading", async () => {
+    await expect(page.getByRole("heading", { name: String(fixture.research.title), level: 1, exact: true })).toBeVisible();
+  });
 
   // The existing desktop fixture uses a 1280px viewport; the actual AI panel
   // appears in the desktop sidebar, not the mobile dialog.
   const panel = page.locator("aside").filter({
     has: page.getByRole("heading", { name: "AI Assistant", level: 2, exact: true }),
   });
-  await expect(panel).toBeVisible();
+  await test.step("C2 Chat panel", async () => { await expect(panel).toBeVisible(); });
   return panel;
 }
 
@@ -27,15 +31,19 @@ test("E: create an in-memory Chat conversation without sending a message", async
   const panel = await openResearchChat(page);
   const composer = panel.getByPlaceholder("Ask about this research...", { exact: true });
 
-  await expect(panel.getByText("No conversation yet", { exact: true })).toBeVisible();
-  await expect(composer).toBeDisabled();
-  await expect(panel.getByRole("button", { name: "Send", exact: true })).toBeDisabled();
+  await test.step("C2 Chat initial state", async () => {
+    await expect(panel.getByText("No conversation yet", { exact: true })).toBeVisible();
+    await expect(composer).toBeDisabled();
+    await expect(panel.getByRole("button", { name: "Send", exact: true })).toBeDisabled();
+  });
 
   // The POST is fulfilled by the Chat-only mock; the real C2 Chat API remains 503.
-  await panel.getByRole("button", { name: "New", exact: true }).click();
-  await expect(panel.getByText("Conversation started", { exact: true })).toBeVisible();
-  await expect(composer).toBeEnabled();
-  await expect(panel.getByRole("button", { name: "Send", exact: true })).toBeDisabled();
+  await test.step("C2 Chat creation", async () => {
+    await panel.getByRole("button", { name: "New", exact: true }).click();
+    await expect(panel.getByText("Conversation started", { exact: true })).toBeVisible();
+    await expect(composer).toBeEnabled();
+    await expect(panel.getByRole("button", { name: "Send", exact: true })).toBeDisabled();
+  });
 });
 
 test("F: list an in-memory Chat conversation in History", async ({ page }) => {
@@ -72,7 +80,7 @@ test("G: restore synthetic messages from a selected History conversation", async
   await history.click();
   await expect(dialog).toBeVisible();
   const saved = dialog.getByRole("button").filter({
-    has: dialog.getByText(HISTORY_PREVIEW, { exact: true }),
+    has: page.getByText(HISTORY_PREVIEW, { exact: true }),
   });
   await expect(saved).toHaveCount(1);
   await saved.click();

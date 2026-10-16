@@ -131,6 +131,7 @@ export function prepareC2App(input: Inputs) {
     "AUTH_URL",
     "PUBLIC_DEMO_MODE",
     "NEXT_TELEMETRY_DISABLED",
+    "NEXT_PRIVATE_DISABLE_DEV_OVERLAY_UX",
     "NODE_ENV",
     "NODE_OPTIONS",
     "NODE_PATH",
@@ -166,6 +167,9 @@ export function prepareC2App(input: Inputs) {
     AUTH_URL: C2_ORIGIN,
     PUBLIC_DEMO_MODE: "false",
     NEXT_TELEMETRY_DISABLED: "1",
+    // Developer overlay fonts/endpoints are outside the C2 test surface.
+    // Disable the overlay at its source; HMR and application hydration remain.
+    NEXT_PRIVATE_DISABLE_DEV_OVERLAY_UX: "1",
     NEXT_PUBLIC_SENTRY_DSN: "",
     NEXT_PUBLIC_SENTRY_TRACES_SAMPLE_RATE: "0",
     SENTRY_AUTH_TOKEN: "",
