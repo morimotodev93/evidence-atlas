@@ -245,13 +245,25 @@ describe("C2 browser request interception with offline Playwright doubles", () =
     await returnGet.handler(converted.fake);
     expect(converted.fulfill).toHaveBeenCalledOnce(); returnGet.assert();
   });
-  it.each([301, 302, 303, 307, 308])("preserves the original response status/Location/Set-Cookie/body when fulfilling %s", async (status) => {
+  it.each([301, 302, 303, 307, 308])("preserves upstream cookies and bridges only the exact Google OAuth 302 (%s)", async (status) => {
     const report = vi.fn(); const manual = await boundary(true, report);
-    const auth = route(`${C2_ORIGIN}/api/auth/signin/google`, "POST", "https://accounts.google.com/o/oauth2/v2/auth?state=synthetic-private", status);
-    const upstream = { status: () => status, headers: () => ({ location: "https://accounts.google.com/o/oauth2/v2/auth?state=synthetic-private", "set-cookie": "csrf=synthetic; Path=/\npkce=synthetic; Path=/", "content-type": "text/html" }), body: async () => Buffer.from("synthetic-body") };
+    const target = "https://accounts.google.com/o/oauth2/v2/auth?state=synthetic-private&client_id=synthetic";
+    const auth = route(`${C2_ORIGIN}/api/auth/signin/google`, "POST", target, status);
+    const upstream = { status: () => status, headers: () => ({ location: target, "set-cookie": "csrf=synthetic; Path=/\npkce=synthetic; Path=/", "content-type": "text/html" }), body: async () => Buffer.from("synthetic-body") };
     auth.fetch.mockResolvedValue(upstream);
     await manual.handler(auth.fake);
-    expect(auth.fulfill).toHaveBeenCalledWith({ response: upstream });
+    if (status === 302) {
+      expect(auth.fulfill).toHaveBeenCalledWith({
+        response: upstream, status: 200, contentType: "text/html; charset=utf-8",
+        body: expect.stringContaining("state=synthetic-private&amp;client_id=synthetic"),
+      });
+      expect(auth.fulfill).toHaveBeenCalledWith(expect.objectContaining({
+        body: expect.stringContaining('http-equiv="refresh"'),
+      }));
+      expect(auth.fulfill).toHaveBeenCalledWith(expect.objectContaining({
+        body: expect.stringContaining('name="referrer" content="no-referrer"'),
+      }));
+    } else expect(auth.fulfill).toHaveBeenCalledWith({ response: upstream });
     expect(auth.fetch).toHaveBeenCalledWith({ maxRedirects: 0, timeout: 15_000 });
     manual.assert(); expect(report.mock.calls.map(([code]) => code)).toEqual(["AUTH_SUBMIT", "AUTH_REDIRECT", "AUTH_FULFILL_STARTED", "AUTH_FULFILL_COMPLETED"]);
   });

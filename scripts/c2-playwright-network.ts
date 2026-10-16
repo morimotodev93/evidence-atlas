@@ -12,6 +12,14 @@ export function isBootstrapIcon(method: string, rawUrl: string, resource: string
   // Serve an inert local image instead of requesting/authenticating to authjs.dev.
   return method === "GET" && resource === "image" && rawUrl === "https://authjs.dev/img/providers/google.svg";
 }
+// Replace only the known Auth.js POST -> Google 302 with a client navigation.
+// A fresh meta-refresh navigation can enter context.route; a fulfilled 302's
+// native follow-up may not. URL is held only in memory/HTML, never reported.
+function authGoogle302Bridge(target: string): string {
+  const attribute = target.replace(/&/g, "&amp;").replace(/"/g, "&quot;")
+    .replace(/</g, "&lt;").replace(/>/g, "&gt;");
+  return `<!doctype html><html><head><meta charset="utf-8"><meta name="referrer" content="no-referrer"><meta http-equiv="refresh" content="0;url=${attribute}"></head><body></body></html>`;
+}
 // Report only coarse fixed categories, never host/path/query/token values.
 // Classification is observation only; it never allows a blocked navigation.
 function inHostnameFamily(host: string, family: string): boolean {
@@ -147,6 +155,7 @@ export async function installNetworkBoundary(context: BrowserContext, bootstrap 
       const response = await route.fetch({ maxRedirects: 0, timeout: 15_000 });
       fetched = true;
       const location = response.headers().location;
+      let google302Target: string | undefined;
       if (authSubmit && (!location || ![301, 302, 303, 307, 308].includes(response.status()))) {
         violation(); diagnostic("AUTH_RESPONSE_INVALID"); await route.abort("blockedbyclient"); return;
       }
@@ -157,15 +166,27 @@ export async function installNetworkBoundary(context: BrowserContext, bootstrap 
           violation(); await route.abort("blockedbyclient"); return;
         }
         if (authSubmit) {
-          const external = new URL(location, request.url()).origin !== C2_ORIGIN;
+          const destination = new URL(location, request.url());
+          const external = destination.origin !== C2_ORIGIN;
           if (external) authRedirect = true;
+          // Only this exact Auth.js Google authorization 302 is bridged.
+          // Other redirects retain the original fail-closed validation path.
+          if (external && response.status() === 302 && nextMethod === "GET" &&
+              destination.origin === "https://accounts.google.com" &&
+              destination.pathname === "/o/oauth2/v2/auth") google302Target = destination.href;
           diagnostic(external ? "AUTH_REDIRECT" : "AUTH_LOCAL_REDIRECT");
         }
       }
-      // Keep the original status, Location, duplicate Set-Cookie and body intact.
-      // Browser-level redirect/CSRF/Google behavior still requires a live retest.
+      // Keep the original response (including repeated Set-Cookie) as the base.
+      // For the exact Auth.js Google 302 only, avoid an opaque native redirect
+      // chain by asking the browser for a fresh HTML meta-refresh navigation.
+      // CSP/cookie behavior is NOT proven until a separately approved live run.
       if (authSubmit) { fulfillStarted = true; diagnostic("AUTH_FULFILL_STARTED"); }
-      await route.fulfill({ response });
+      if (google302Target) {
+        await route.fulfill({ response, status: 200, contentType: "text/html; charset=utf-8", body: authGoogle302Bridge(google302Target) });
+      } else {
+        await route.fulfill({ response });
+      }
       if (authSubmit) { fulfillCompleted = true; diagnostic("AUTH_FULFILL_COMPLETED"); }
     } catch {
       if (authSubmit && fetched) fulfillFailed = true;
