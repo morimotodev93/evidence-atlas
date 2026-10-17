@@ -1,5 +1,14 @@
 # Step 4-D11 — Google main-frame redirect hop containment (offline review)
 
+> **Historical status note (2026-10-17 JST):** This document preserves the
+> investigation-stage status and stop conditions stated below. References to
+> PR #1 as Draft/unmerged or authenticated C2 E2E as pending are historical:
+> [PR #1](https://github.com/morimotodev93/evidence-atlas/pull/1) merged
+> into `main` at `969af82`. Bounded C2 Smoke 4/4 and Chat mock-only 6/6 were
+> developer-reported passes, not Google OAuth or real Chat/AI E2E verification.
+> This update grants no authorization for new live operations. See the
+> [current roadmap](roadmap.md#phase-10--testing--quality).
+
 **Status:** Proposed/offline validation only; **LIVE OAuth NOT APPROVED** (2026-10-16 JST). Base `296243a`; Draft PR #1.
 
 ## Observations vs. unverified explanation

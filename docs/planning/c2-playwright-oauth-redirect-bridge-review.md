@@ -1,5 +1,14 @@
 # Step 4-D9 — proposal: re-route the Auth.js Google 302 without bypassing guards
 
+> **Historical status note (2026-10-17 JST):** This document preserves the
+> investigation-stage status and stop conditions stated below. References to
+> PR #1 as Draft/unmerged or authenticated C2 E2E as pending are historical:
+> [PR #1](https://github.com/morimotodev93/evidence-atlas/pull/1) merged
+> into `main` at `969af82`. Bounded C2 Smoke 4/4 and Chat mock-only 6/6 were
+> developer-reported passes, not Google OAuth or real Chat/AI E2E verification.
+> This update grants no authorization for new live operations. See the
+> [current roadmap](roadmap.md#phase-10--testing--quality).
+
 > Status: **PROPOSED CODE / OFFLINE CHECK ONLY / LIVE NO-GO** (2026-10-16 JST)
 > Baseline: `96f06b6`, Draft PR #1.
 > The user requested a **minimal redirect-processing fix proposal**, not a live OAuth execution.

@@ -1,5 +1,14 @@
 # C2 D19 scenario investigation and bounded diagnostics
 
+> **Historical status note (2026-10-17 JST):** This document preserves the
+> investigation-stage status and stop conditions stated below. References to
+> PR #1 as Draft/unmerged or authenticated C2 E2E as pending are historical:
+> [PR #1](https://github.com/morimotodev93/evidence-atlas/pull/1) merged
+> into `main` at `969af82`. Bounded C2 Smoke 4/4 and Chat mock-only 6/6 were
+> developer-reported passes, not Google OAuth or real Chat/AI E2E verification.
+> This update grants no authorization for new live operations. See the
+> [current roadmap](roadmap.md#phase-10--testing--quality).
+
 Date: 2026-10-16 JST. Baseline: `fd48697` on
 `fix/c2-probe-rejection-diagnostics`. This record distinguishes the
 developer-reported authenticated run from offline reproduction. Draft PR #1

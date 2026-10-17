@@ -76,7 +76,7 @@ Visitors can inspect Sources, Findings, supporting evidence links, Conclusions, 
 
 The Public Demo is intentionally separated from the authenticated SaaS application. Visitors cannot create, edit, or delete persistent research data, authenticated SaaS routes are disabled in Public Demo deployment mode, and public AI interaction is not enabled.
 
-**Live Demo:** https://<Production Alias>
+**Live Demo:** https://evidence-atlas-mu.vercel.app/demo
 
 ## Technology Stack
 

@@ -1,8 +1,8 @@
 # evidence-atlas Roadmap
 
-> **Last Updated:** 2026-10-09
+> **Last Updated:** 2026-10-17
 
-Current stage: Phases 4–7 are complete for their stated baseline scopes. Phases 0–3 established the foundation, product direction, data contract, and design-system baseline. Checked implementation items describe code present in the repository, not a fresh runtime verification or completion of every related product requirement.
+Current stage: The portfolio MVP and curated read-only Public Demo are implemented, with scoped deployment checks recorded. Phases 4–7 are complete for their defined baselines; Phase 8 is partial. Phase 10 has completed its bounded Public Demo + C2 authenticated Smoke + Chat mock-only end-to-end checklist item, but other quality work remains open. Phase 11 operational reviews and Phase 12 documentation are not complete. Checked items describe specific implementation or reported verification, not blanket production, OAuth, provider, or security validation.
 
 ## 1. Project Overview
 
@@ -595,6 +595,8 @@ Developer-provided terminal observations now cover all six Groq cases. Case 01 f
 
 **C2 authenticated E2E verification — developer-reported completion (2026-10-16, JST):** Following the D19 investigation and subsequent C2 fixes committed in `5bbf0ce`, the developer supplied a Windows PowerShell transcript from a bounded C2 run. A private C2 application E2E Session was created without performing Google OAuth; HTTP/session preflight succeeded, but PostgreSQL container identity was not proven. All four authenticated read-only Smoke cases and all six Chat mock-only cases reported passing, with both runners reporting `RUNNER_PASSED`. FixtureBefore, Create, Preflight, Smoke, Chat, Revoke and FixtureAfter each exited **0**. Protected fixture verification before and after showed `{"mode":"verify","present":8,"plannedInserts":0,"plannedDeletes":8}`; planned deletion was **not** executed. The private Session was revoked and the saved authentication state was deleted (`Auth state exists: False`). This completes the Phase 10 **End-to-end tests** checklist item for the defined Public Demo + C2 Smoke + Chat mock-only scope, based on developer-provided runtime evidence rather than independent re-execution. Google OAuth browser sign-in, the unmocked Chat API/AI behavior, and PostgreSQL container identity remain outside this result. Other Phase 10 checklist items remain open; Draft PR #1 remains unmerged.
 
+**PR #1 post-merge status (2026-10-17 JST):** [PR #1](https://github.com/morimotodev93/evidence-atlas/pull/1) was merged into `main` at [`969af82`](https://github.com/morimotodev93/evidence-atlas/commit/969af82a863b34b343ad59e40221e5b4f7f9fc13). Earlier "Draft/unmerged" or "authenticated E2E pending" wording in dated C2 investigation records describes the checkpoints when those records were written, not the current PR status. The completed Phase 10 E2E checkbox covers the Public Demo smoke, authenticated C2 read-only Smoke 4/4, and C2 Chat mock-only 6/6 based on developer-provided runtime evidence; it does not establish automated Google OAuth, unmocked Chat/AI behavior, independent PostgreSQL container identity, or complete external egress containment. No fresh tests or live C2 operations were performed merely by merging this PR, and the merge does not authorize new live operations.
+
 ### Phase 11 — Deployment
 
 **Goal:** Deploy the portfolio version and verify production behavior.
@@ -663,7 +665,7 @@ Authentication, billing, advanced RAG, background processing, and other infrastr
 
 The public portfolio deployment is not intended to function as an unrestricted public SaaS service.
 
-The Demo uses curated data with separate public read-only routes implemented in Phase 9.2 and a visitor-facing SaaS write lock in Phase 9.3. Public deployments must set `PUBLIC_DEMO_MODE=true`; deployment verification, public AI controls, credential review, and infrastructure hardening remain pending.
+The Demo uses curated data with separate public read-only routes implemented in Phase 9.2 and a visitor-facing SaaS write lock in Phase 9.3. Public deployments must set `PUBLIC_DEMO_MODE=true`. The selected deployed Demo pages and visitor-facing route boundaries have been verified as recorded in Phase 9; public AI interaction remains disabled, and further normal-SaaS security, telemetry, and infrastructure hardening remain pending.
 
 This approach allows the project to demonstrate:
 

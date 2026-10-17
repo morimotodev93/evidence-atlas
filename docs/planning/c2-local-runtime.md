@@ -1,5 +1,14 @@
 # C2 runtime isolation — Steps 2-B through 4-B3
 
+> **Historical status note (2026-10-17 JST):** This document preserves the
+> investigation-stage status and stop conditions stated below. References to
+> PR #1 as Draft/unmerged or authenticated C2 E2E as pending are historical:
+> [PR #1](https://github.com/morimotodev93/evidence-atlas/pull/1) merged
+> into `main` at `969af82`. Bounded C2 Smoke 4/4 and Chat mock-only 6/6 were
+> developer-reported passes, not Google OAuth or real Chat/AI E2E verification.
+> This update grants no authorization for new live operations. See the
+> [current roadmap](roadmap.md#phase-10--testing--quality).
+
 Status: launcher, environment isolation, database initialization and B2 service/build
 guards implemented and tested offline. Separately authorized Step 2-C checks
 verified the C2 listener, endpoints, real Google OAuth and matching database-backed
