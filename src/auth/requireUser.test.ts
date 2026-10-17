@@ -43,4 +43,14 @@ describe("requireUser deployment boundary", () => {
     await expect(requireUser()).rejects.toBe(redirectError);
     expect(mocks.redirect).toHaveBeenCalledWith("/api/auth/signin");
   });
+
+  it("propagates an unexpected authentication failure without redirecting or returning 404", async () => {
+    vi.stubEnv("PUBLIC_DEMO_MODE", "false");
+    const error = new Error("Synthetic session database failure");
+    mocks.auth.mockRejectedValueOnce(error);
+
+    await expect(requireUser()).rejects.toBe(error);
+    expect(mocks.redirect).not.toHaveBeenCalled();
+    expect(mocks.notFound).not.toHaveBeenCalled();
+  });
 });

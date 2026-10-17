@@ -52,7 +52,16 @@ export async function POST(request: Request, { params }: RouteContext) {
     throw error;
   }
 
-  const body: unknown = await request.json();
+  let body: unknown;
+  try {
+    body = await request.json();
+  } catch (error) {
+    if (!(error instanceof SyntaxError)) throw error;
+    return Response.json(
+      { error: "A conversationId and non-empty message are required." },
+      { status: 400 },
+    );
+  }
 
   if (
     typeof body !== "object" ||

@@ -171,6 +171,13 @@ function chatRequest() {
   });
 }
 
+function expectNoChatWrites() {
+  expect(mocks.conversationCreate).not.toHaveBeenCalled();
+  expect(mocks.conversationQuery.update).not.toHaveBeenCalled();
+  expect(mocks.messageCreate).not.toHaveBeenCalled();
+  expect(mocks.aiUsageEventCreate).not.toHaveBeenCalled();
+}
+
 function completionCallback() {
   expect(mocks.streamText).toHaveBeenCalledOnce();
   const options = mocks.streamText.mock.calls[0][0] as {
@@ -283,6 +290,132 @@ describe("research chat route authorization", () => {
     mocks.resolveWorkspaceSources.mockResolvedValue([]);
   });
 
+  const routes = [
+    { name: "chat POST", run: () => sendChatMessage(chatRequest(), routeContext()) },
+    { name: "conversation list GET", run: () => getConversations(new Request("http://localhost/chat/conversations"), routeContext()) },
+    { name: "conversation create POST", run: () => createConversation(new Request("http://localhost/chat/conversations", { method: "POST" }), routeContext()) },
+    { name: "conversation detail GET", run: () => getConversation(new Request("http://localhost/chat/conversations/detail"), conversationRouteContext()) },
+  ];
+
+  it.each(routes)("propagates unexpected authentication failures in $name", async ({ run }) => {
+    const error = new Error("Synthetic private session failure");
+    mocks.auth.mockRejectedValueOnce(error);
+
+    await expect(run()).rejects.toBe(error);
+    expect(mocks.requireResearchAccess).not.toHaveBeenCalled();
+    expect(mocks.conversationWhere).not.toHaveBeenCalled();
+    expect(mocks.chatRateLimit.limit).not.toHaveBeenCalled();
+    expect(mocks.streamText).not.toHaveBeenCalled();
+    expectNoChatWrites();
+  });
+
+  it.each(routes)("propagates unexpected access lookup failures in $name instead of returning 404", async ({ run }) => {
+    const error = new Error("Synthetic private database failure");
+    mocks.requireResearchAccess.mockRejectedValueOnce(error);
+
+    await expect(run()).rejects.toBe(error);
+    expect(mocks.conversationWhere).not.toHaveBeenCalled();
+    expect(mocks.messageWhere).not.toHaveBeenCalled();
+    expect(mocks.chatRateLimit.limit).not.toHaveBeenCalled();
+    expect(mocks.streamText).not.toHaveBeenCalled();
+    expectNoChatWrites();
+  });
+
+  it.each(routes.slice(2))("returns 401 for unauthenticated $name without reading or writing", async ({ run }) => {
+    mocks.auth.mockResolvedValueOnce(null);
+
+    const response = await run();
+
+    expect(response.status).toBe(401);
+    await expect(response.json()).resolves.toEqual({ error: "Unauthorized." });
+    expect(mocks.requireResearchAccess).not.toHaveBeenCalled();
+    expect(mocks.conversationWhere).not.toHaveBeenCalled();
+    expect(mocks.messageWhere).not.toHaveBeenCalled();
+    expect(mocks.resolveWorkspaceSources).not.toHaveBeenCalled();
+    expectNoChatWrites();
+  });
+
+  it("propagates Conversation lookup failure without returning a not-found or successful chat response", async () => {
+    const error = new Error("Synthetic private Conversation failure");
+    mocks.conversationQuery.first.mockRejectedValueOnce(error);
+
+    await expect(sendChatMessage(chatRequest(), routeContext())).rejects.toBe(error);
+    expect(mocks.chatRateLimit.limit).not.toHaveBeenCalled();
+    expect(mocks.buildResearchContext).not.toHaveBeenCalled();
+    expect(mocks.messageWhere).not.toHaveBeenCalled();
+    expect(mocks.streamText).not.toHaveBeenCalled();
+    expectNoChatWrites();
+  });
+
+  it("propagates Conversation creation failure instead of returning 201", async () => {
+    const error = new Error("Synthetic private Conversation write failure");
+    mocks.conversationCreate.mockRejectedValueOnce(error);
+
+    await expect(routes[2].run()).rejects.toBe(error);
+    expect(mocks.conversationCreate).toHaveBeenCalledExactlyOnceWith({ researchId });
+    expect(mocks.conversationQuery.update).not.toHaveBeenCalled();
+    expect(mocks.messageCreate).not.toHaveBeenCalled();
+    expect(mocks.aiUsageEventCreate).not.toHaveBeenCalled();
+    expect(mocks.streamText).not.toHaveBeenCalled();
+  });
+
+  it.each(["rate limit", "Research context"])("propagates %s failure before writes or generation", async (stage) => {
+    const error = new Error("Synthetic internal service failure");
+    (stage === "rate limit" ? mocks.chatRateLimit.limit : mocks.buildResearchContext).mockRejectedValueOnce(error);
+
+    await expect(sendChatMessage(chatRequest(), routeContext())).rejects.toBe(error);
+    expect(mocks.retrieveWorkspaceContext).not.toHaveBeenCalled();
+    expect(mocks.messageWhere).not.toHaveBeenCalled();
+    expect(mocks.streamText).not.toHaveBeenCalled();
+    expectNoChatWrites();
+  });
+
+  it("returns 404 when Research context disappears before retrieval or persistence", async () => {
+    mocks.buildResearchContext.mockResolvedValueOnce(null);
+
+    const response = await sendChatMessage(chatRequest(), routeContext());
+
+    expect(response.status).toBe(404);
+    await expect(response.json()).resolves.toEqual({ error: "Research not found." });
+    expect(mocks.retrieveWorkspaceContext).not.toHaveBeenCalled();
+    expect(mocks.messageWhere).not.toHaveBeenCalled();
+    expect(mocks.streamText).not.toHaveBeenCalled();
+    expectNoChatWrites();
+  });
+
+  it("does not convert unexpected request-body read failures to 400", async () => {
+    const request = chatRequest();
+    const error = new Error("Synthetic request stream failure");
+    vi.spyOn(request, "json").mockRejectedValueOnce(error);
+
+    await expect(sendChatMessage(request, routeContext())).rejects.toBe(error);
+    expect(mocks.conversationWhere).not.toHaveBeenCalled();
+    expect(mocks.chatRateLimit.limit).not.toHaveBeenCalled();
+    expect(mocks.streamText).not.toHaveBeenCalled();
+    expectNoChatWrites();
+  });
+
+  it.each(["{", ""])("returns the existing 400 contract for malformed JSON %j without side effects", async (body) => {
+    const request = new Request(`http://localhost/research/${researchId}/chat`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body,
+    });
+
+    const response = await sendChatMessage(request, routeContext());
+
+    expect(response.status).toBe(400);
+    await expect(response.json()).resolves.toEqual({
+      error: "A conversationId and non-empty message are required.",
+    });
+    expect(mocks.conversationWhere).not.toHaveBeenCalled();
+    expect(mocks.chatRateLimit.limit).not.toHaveBeenCalled();
+    expect(mocks.buildResearchContext).not.toHaveBeenCalled();
+    expect(mocks.retrieveWorkspaceContext).not.toHaveBeenCalled();
+    expect(mocks.streamText).not.toHaveBeenCalled();
+    expectNoChatWrites();
+  });
+
   it("returns 401 for an unauthenticated conversation list request", async () => {
     mocks.auth.mockResolvedValue(null);
 
@@ -299,6 +432,7 @@ describe("research chat route authorization", () => {
     expect(mocks.requireResearchAccess).not.toHaveBeenCalled();
     expect(mocks.conversationWhere).not.toHaveBeenCalled();
     expect(mocks.chatRateLimit.limit).not.toHaveBeenCalled();
+    expectNoChatWrites();
   });
 
   it("returns 404 for a conversation list when the user cannot access the research", async () => {
@@ -321,6 +455,7 @@ describe("research chat route authorization", () => {
       researchId,
     );
     expect(mocks.conversationWhere).not.toHaveBeenCalled();
+    expectNoChatWrites();
   });
 
   it("lists conversations only after confirming research access", async () => {
@@ -372,10 +507,16 @@ describe("research chat route authorization", () => {
     expect(mocks.messageCreate).not.toHaveBeenCalled();
     expect(mocks.streamText).not.toHaveBeenCalled();
 
+    expectNoChatWrites();
     dateNowSpy.mockRestore();
   });
 
-  it("does not consume the rate limit for an invalid chat request", async () => {
+  it.each([
+    { conversationId, message: "" },
+    { conversationId: " \t ", message: "Question" },
+    { conversationId, message: 42 },
+    null,
+  ])("does not consume the rate limit or write for invalid chat input %j", async (body) => {
     const request = new Request(
       `http://localhost/research/${researchId}/chat`,
       {
@@ -383,10 +524,7 @@ describe("research chat route authorization", () => {
         headers: {
           "content-type": "application/json",
         },
-        body: JSON.stringify({
-          conversationId,
-          message: "",
-        }),
+        body: JSON.stringify(body),
       },
     );
 
@@ -402,6 +540,7 @@ describe("research chat route authorization", () => {
     expect(mocks.conversationWhere).not.toHaveBeenCalled();
     expect(mocks.retrieveWorkspaceContext).not.toHaveBeenCalled();
     expect(mocks.streamText).not.toHaveBeenCalled();
+    expectNoChatWrites();
   });
 
   it("does not create a conversation when the user cannot access the research", async () => {
@@ -425,6 +564,7 @@ describe("research chat route authorization", () => {
     });
 
     expect(mocks.conversationCreate).not.toHaveBeenCalled();
+    expectNoChatWrites();
   });
 
   it("creates a conversation for an authorized research member", async () => {
@@ -469,6 +609,7 @@ describe("research chat route authorization", () => {
     expect(mocks.conversationWhere).not.toHaveBeenCalled();
     expect(mocks.messageWhere).not.toHaveBeenCalled();
     expect(mocks.resolveWorkspaceSources).not.toHaveBeenCalled();
+    expectNoChatWrites();
   });
 
   it("returns 404 when the conversation does not belong to the authorized research", async () => {
@@ -492,6 +633,7 @@ describe("research chat route authorization", () => {
     });
     expect(mocks.messageWhere).not.toHaveBeenCalled();
     expect(mocks.resolveWorkspaceSources).not.toHaveBeenCalled();
+    expectNoChatWrites();
   });
 
   it("loads conversation detail from the authorized research workspace", async () => {
@@ -553,6 +695,7 @@ describe("research chat route authorization", () => {
     expect(mocks.messageCreate).not.toHaveBeenCalled();
     expect(mocks.streamText).not.toHaveBeenCalled();
     expect(mocks.chatRateLimit.limit).not.toHaveBeenCalled();
+    expectNoChatWrites();
   });
 
   it("returns 404 for an inaccessible research without writing or invoking AI", async () => {
@@ -571,6 +714,7 @@ describe("research chat route authorization", () => {
     expect(mocks.messageCreate).not.toHaveBeenCalled();
     expect(mocks.streamText).not.toHaveBeenCalled();
     expect(mocks.chatRateLimit.limit).not.toHaveBeenCalled();
+    expectNoChatWrites();
   });
 
   it("returns 404 when the conversation does not belong to the authorized research", async () => {
@@ -592,6 +736,7 @@ describe("research chat route authorization", () => {
 
     expect(mocks.messageCreate).not.toHaveBeenCalled();
     expect(mocks.streamText).not.toHaveBeenCalled();
+    expectNoChatWrites();
   });
 
   it("records AI usage and persists a completed AI message", async () => {

@@ -147,6 +147,8 @@ Conversation-specific operations additionally match both Conversation ID and the
 
 Unauthenticated API requests return `401`. Requests for inaccessible Research, or for Conversations outside the authorized Research, return `404` without exposing the protected resource through subsequent reads or writes.
 
+Chat message requests return `400` with the existing required-fields error for malformed or empty JSON bodies and invalid `conversationId`/`message` values, before Conversation lookup, rate limiting, retrieval or persistence. Unexpected body-read, authentication, database and service exceptions propagate to Next.js error handling; they are not converted to authorization failures or successful responses.
+
 Conversation activity is updated when the user message is accepted. History is ordered by that activity timestamp and previews the first user message. Retrieval failures do not save the new user turn; later failures can leave persisted user messages even when the client removes the attempted exchange from its display. Retry and durable failure-state handling are deferred. Retrieval results, distances, and context snapshots are not persisted with messages.
 
 The API surface is:
