@@ -85,6 +85,36 @@ async function expectTabReachable(page: Page, link: Locator) {
   await expect(link).toBeFocused();
 }
 
+async function expectExposedKeyboardFocus(link: Locator) {
+  await expect(link).toBeFocused();
+  const focus = await link.evaluate((element) => {
+    const style = getComputedStyle(element);
+    // Sample rendered link fragments, including wrapped inline Source links.
+    const exposed = Array.from(element.getClientRects()).some((rect) => {
+      const left = Math.max(0, rect.left);
+      const right = Math.min(innerWidth, rect.right);
+      const top = Math.max(0, rect.top);
+      const bottom = Math.min(innerHeight, rect.bottom);
+      if (left >= right || top >= bottom) return false;
+      // A sticky header may cover a fragment's centre while its lower part stays
+      // exposed. Sample across it to check complete occlusion, not partial overlap.
+      return [0.1, 0.5, 0.9].some((y) => [0.1, 0.5, 0.9].some((x) => {
+        const hit = document.elementFromPoint(left + (right - left) * x, top + (bottom - top) * y);
+        return hit !== null && element.contains(hit);
+      }));
+    });
+    return {
+      exposed,
+      focusVisible: element.matches(":focus-visible"),
+      indicator: (style.outlineStyle !== "none" && parseFloat(style.outlineWidth) > 0)
+        || style.boxShadow !== "none",
+    };
+  });
+  expect(focus, `Keyboard focus: ${await link.innerText()}`)
+    .toEqual({ exposed: true, focusVisible: true, indicator: true });
+  // Computed styles and hit testing do not establish perceptual visibility or contrast.
+}
+
 test.beforeAll(async ({ request }) => {
   // Stop the suite on a normal SaaS deployment before any browser tests run.
   const response = await request.get("/");
@@ -219,6 +249,90 @@ for (const viewport of [{ width: 375, height: 812 }, { width: 768, height: 1024 
       await expect(list).toBeVisible();
       await expect(list.getByRole("link")).toHaveCount(seededResearchTitles.length);
       await expectNoHorizontalOverflow(page);
+    });
+  });
+}
+
+for (const viewport of [
+  { width: 1280, height: 720 },
+  { width: 375, height: 812 },
+  { width: 768, height: 1024 },
+]) {
+  test.describe(`Public Demo accessibility at ${viewport.width}px`, () => {
+    test.use({ viewport });
+
+    test("landmarks, link names and forward/reverse keyboard navigation", async ({ page }) => {
+      await page.goto("/demo");
+      const main = page.getByRole("main");
+      await expect(main).toHaveCount(1);
+      await expect(page.getByRole("heading", { level: 1 })).toHaveCount(1);
+      await expect(main.getByRole("heading", { level: 1 })).toHaveText(workspaceName);
+      const list = page.getByRole("region", { name: "Research list", exact: true });
+      await expect(list.getByRole("heading", { level: 2 })).toHaveText(seededResearchTitles);
+
+      const site = page.getByRole("link", { name: "Evidence Atlas", exact: true });
+      const code = page.getByRole("link", { name: "Source code", exact: true });
+      await expect(site).toHaveAttribute("href", "/demo");
+      await expect(code).toHaveAttribute("href", "https://github.com/morimotodev93/evidence-atlas");
+      const listLinks = [site, code, ...await list.getByRole("link").all()];
+      for (const link of listLinks) {
+        await expectTabReachable(page, link);
+        await expectExposedKeyboardFocus(link);
+      }
+      for (const link of listLinks.slice(0, -1).reverse()) {
+        await page.keyboard.press("Shift+Tab");
+        await expectExposedKeyboardFocus(link);
+      }
+
+      const productivity = list.getByRole("link").first();
+      const href = await productivity.getAttribute("href");
+      if (!href) throw new Error("Missing Demo Research link");
+      await expectTabReachable(page, productivity);
+      await page.keyboard.press("Enter");
+      await expect(page).toHaveURL(new URL(href, page.url()).href);
+      await expect(main).toHaveCount(1);
+      await expect(page.getByRole("heading", { level: 1 })).toHaveCount(1);
+      await expect(main.getByRole("heading", { level: 1 })).toHaveText(seededResearchTitles[0]);
+      await expect(main.getByRole("heading", { level: 2 }))
+        .toHaveText(["Conclusion", "Sources", "Findings", "Discussion"]);
+
+      const sources = main.locator("section").filter({
+        has: page.getByRole("heading", { name: "Sources", exact: true, level: 2 }),
+      });
+      const findings = main.locator("section").filter({
+        has: page.getByRole("heading", { name: "Findings", exact: true, level: 2 }),
+      });
+      const sourceLinks = await sources.getByRole("link").all();
+      const supportingLinks = await findings.getByRole("link").all();
+      expect(sourceLinks.length).toBeGreaterThan(0);
+      expect(supportingLinks.length).toBeGreaterThan(0);
+      await expect(main.getByRole("heading", { level: 3 })).toHaveCount(sourceLinks.length);
+      for (const link of [...sourceLinks, ...supportingLinks]) {
+        await expect(link).toHaveAccessibleName(/\S/);
+        await expect(link).toHaveAttribute("href", /^https?:\/\//);
+        await expect(link).toHaveAttribute("target", "_blank");
+      }
+      for (const link of sourceLinks) {
+        await expect(link.getByRole("heading", { level: 3 })).toHaveCount(1);
+      }
+
+      const back = page.getByRole("link", { name: "← Back to Demo Workspace", exact: true });
+      const detailLinks = [site, code, back, ...sourceLinks, ...supportingLinks];
+      for (const link of detailLinks) {
+        await expectTabReachable(page, link);
+        await expectExposedKeyboardFocus(link);
+      }
+      for (const link of detailLinks.slice(0, -1).reverse()) {
+        await page.keyboard.press("Shift+Tab");
+        await expectExposedKeyboardFocus(link);
+      }
+      await expectTabReachable(page, back);
+      await page.keyboard.press("Enter");
+      await expect(page).toHaveURL(/\/demo$/);
+      await expect(list).toBeVisible();
+      // Confirm keyboard operation remains available after returning to the list.
+      await expectTabReachable(page, productivity);
+      await expectExposedKeyboardFocus(productivity);
     });
   });
 }
