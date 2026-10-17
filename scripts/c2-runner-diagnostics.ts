@@ -35,3 +35,22 @@ export function safeRunnerCodes(raw: unknown, expectedCount: 4 | 6): C2RunnerCod
   }
   return seen.size ? [...seen] : ["REPORT_MISSING"];
 }
+
+export function runnerSucceeded(
+  codes: readonly C2RunnerCode[],
+  expectedCount: 4 | 6,
+  child: { status: number | null; error?: unknown; signal?: string | null },
+): boolean {
+  if (child.status !== 0 || child.error || child.signal || (expectedCount !== 4 && expectedCount !== 6)) return false;
+  const required = new Set<C2RunnerCode>([
+    "CASES_EXPECTED", "CONFIG_OK", "STATE_OK", "PREFLIGHT_OK", "SCENARIO_PASSED", "RUNNER_PASSED",
+  ]);
+  for (let index = 1; index <= expectedCount; index++) required.add(`CASE_${index}_PASSED` as C2RunnerCode);
+  const seen = new Set(codes);
+  if (![...required].every((code) => seen.has(code))) return false;
+  // Only successful evidence and neutral progress are compatible with success.
+  // This also rejects failed/skipped cases, extra case ordinals, count conflicts,
+  // setup refusals, network violations and missing reports, even alongside passes.
+  return codes.every((code) => required.has(code) || code === "CONFIG_ENTERED" ||
+    (parseScenarioStepLine(`C2 step [${code}].`) === code && /_(ENTERED|OK)$/.test(code)));
+}

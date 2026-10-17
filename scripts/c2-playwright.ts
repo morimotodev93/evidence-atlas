@@ -3,7 +3,7 @@ import { createRequire } from "node:module";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { C2_ORIGIN, parseHarnessCommand, preflight, requireExpectedUser, requireHarnessEnvironment, refuse } from "./c2-playwright-policy.ts";
-import { safeRunnerCodes } from "./c2-runner-diagnostics.ts";
+import { runnerSucceeded, safeRunnerCodes } from "./c2-runner-diagnostics.ts";
 
 try {
   const mode = parseHarnessCommand(process.argv.slice(2));
@@ -44,13 +44,15 @@ try {
       cwd: root, env, shell: false, stdio: ["ignore", "pipe", "ignore"],
       encoding: "utf8", maxBuffer: 64 * 1024, timeout: 300_000,
     });
-    for (const code of safeRunnerCodes(result.stdout, chat ? 6 : 4)) {
+    const expectedCount = chat ? 6 : 4;
+    const codes = safeRunnerCodes(result.stdout, expectedCount);
+    for (const code of codes) {
       console.log(`C2 runner [${code}].`);
     }
     if (result.error) console.log("C2 runner [CHILD_ERROR].");
     if (result.signal) console.log("C2 runner [CHILD_INTERRUPTED].");
     if (result.status !== 0) console.log("C2 runner [CHILD_NONZERO].");
-    if (result.error || result.status !== 0) refuse("suite-failed-or-timed-out");
+    if (!runnerSucceeded(codes, expectedCount, result)) refuse("suite-failed-or-timed-out");
     console.log(chat
       ? "C2 Chat mock-only suite passed (raw runner output suppressed)."
       : "C2 authenticated read-only suite passed (raw runner output suppressed).");
