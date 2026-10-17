@@ -167,6 +167,94 @@ test("Research detail displays its content and links back to the list", async ({
   await expect(page.getByRole("region", { name: "Research list", exact: true })).toBeVisible();
 });
 
+for (const title of seededResearchTitles.slice(1)) {
+  test(`${title} detail opens from its list link and returns without horizontal overflow`, async ({ page }) => {
+    await page.goto("/demo");
+    const list = page.getByRole("region", { name: "Research list", exact: true });
+    await expect(list).toBeVisible();
+    const link = list.getByRole("link").filter({
+      has: page.getByRole("heading", { name: title, exact: true }),
+    });
+    await expect(link).toHaveCount(1);
+    await expect(link).toHaveAttribute("href", /^\/demo\/research\/[^/?#]+$/);
+    const href = await link.getAttribute("href");
+    if (!href) throw new Error(`Missing Demo Research link: ${title}`);
+    const detailURL = new URL(href, page.url()).href;
+    await expectResponsiveElement(page, link, false);
+    await expectNoHorizontalOverflow(page);
+    await link.click();
+    await expect(page).toHaveURL(detailURL);
+
+    // Next.js may prefetch the clicked route. Check its HTTP response separately
+    // instead of requiring a new document request during client-side navigation.
+    const response = await page.request.get(detailURL);
+    expect(response.status()).toBe(200);
+    expect(response.url()).toBe(detailURL);
+    const main = page.getByRole("main");
+    await expectResponsiveElement(page, main, false);
+    await expect(page.getByRole("heading", { level: 1 })).toHaveText(title);
+    await expectResponsiveElement(page, main.getByRole("heading", { level: 1 }));
+    for (const otherTitle of seededResearchTitles.filter((other) => other !== title)) {
+      await expect(main.getByRole("heading", { name: otherTitle, exact: true, level: 1 }))
+        .toHaveCount(0);
+    }
+
+    for (const name of ["Conclusion", "Sources", "Findings", "Discussion"]) {
+      const heading = main.getByRole("heading", { name, exact: true, level: 2 });
+      const section = main.locator("section").filter({
+        has: page.getByRole("heading", { name, exact: true, level: 2 }),
+      });
+      await expect(section).toHaveCount(1);
+      await expectResponsiveElement(page, heading);
+      await expect(heading).toBeInViewport();
+      // Source URL text intentionally truncates; titles and body text must not.
+      const paragraphs = section.locator("p:not(.truncate)");
+      expect(await paragraphs.count()).toBeGreaterThan(0);
+      for (const content of [...await paragraphs.all(), ...await section.getByRole("heading", { level: 3 }).all()]) {
+        await expect(content).toHaveText(/\S/);
+        await expectResponsiveElement(page, content);
+        await expect(content).toBeInViewport();
+      }
+    }
+
+    for (const { name, unit, empty } of [
+      { name: "Sources", unit: "sources", empty: "No sources yet." },
+      { name: "Findings", unit: "findings", empty: "No findings yet." },
+      { name: "Discussion", unit: "comments", empty: "No discussion yet." },
+    ]) {
+      const section = main.locator("section").filter({
+        has: page.getByRole("heading", { name, exact: true, level: 2 }),
+      });
+      const items = name === "Sources"
+        ? section.getByRole("heading", { level: 3 }) : section.getByRole("article");
+      const count = await items.count();
+      await expect(section.getByText(`${count} ${unit}`, { exact: true })).toBeVisible();
+      if (count === 0) {
+        await expectResponsiveElement(page, section.getByText(empty, { exact: true }));
+      } else {
+        await expect(section.getByText(empty, { exact: true })).toHaveCount(0);
+      }
+      // Inspect external destinations without opening any Source site.
+      for (const source of await section.getByRole("link").all()) {
+        await expect(source).toHaveAccessibleName(/\S/);
+        await expect(source).toHaveAttribute("href", /^https?:\/\//);
+        await expect(source).toHaveAttribute("target", "_blank");
+        await expectResponsiveElement(page, source, false);
+      }
+    }
+    await expectNoHorizontalOverflow(page);
+
+    const back = page.getByRole("link", { name: "← Back to Demo Workspace", exact: true });
+    await expectResponsiveElement(page, back);
+    await back.click();
+    await expect(page).toHaveURL(/\/demo$/);
+    await expect(list).toBeVisible();
+    await expect(list.getByRole("link")).toHaveCount(seededResearchTitles.length);
+    await expect(list.getByRole("heading", { level: 2 })).toHaveText(seededResearchTitles);
+    await expectNoHorizontalOverflow(page);
+  });
+}
+
 test("list and detail expose read-only UI without mutation or AI controls", async ({ page }) => {
   await page.goto("/demo");
   // Actual SaaS controls include New Research, Edit, Delete, Add Source/Finding/
