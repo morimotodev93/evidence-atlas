@@ -17,6 +17,7 @@ import { deleteComment } from "@/app/research/[id]/_actions/deleteComment";
 
 const mocks = vi.hoisted(() => ({
   auth: vi.fn(), query: vi.fn(), write: vi.fn(), cookies: vi.fn(), notFound: vi.fn(), index: vi.fn(),
+  refresh: vi.fn(), revalidatePath: vi.fn(),
 }));
 vi.mock("@/auth", () => ({ auth: mocks.auth }));
 vi.mock("@/prisma/db", () => ({ db: {
@@ -25,7 +26,7 @@ vi.mock("@/prisma/db", () => ({ db: {
 } }));
 vi.mock("next/headers", () => ({ cookies: mocks.cookies }));
 vi.mock("next/navigation", () => ({ notFound: mocks.notFound, redirect: vi.fn() }));
-vi.mock("next/cache", () => ({ refresh: vi.fn(), revalidatePath: vi.fn() }));
+vi.mock("next/cache", () => ({ refresh: mocks.refresh, revalidatePath: mocks.revalidatePath }));
 vi.mock("@/inngest/request-research-index", () => ({ requestResearchIndex: mocks.index }));
 
 const notFoundError = new Error("NEXT_HTTP_ERROR_FALLBACK;404");
@@ -54,6 +55,8 @@ function expectNoSideEffects() {
   expect(mocks.write).not.toHaveBeenCalled();
   expect(mocks.cookies).not.toHaveBeenCalled();
   expect(mocks.index).not.toHaveBeenCalled();
+  expect(mocks.refresh).not.toHaveBeenCalled();
+  expect(mocks.revalidatePath).not.toHaveBeenCalled();
 }
 
 describe("Direct Server Action deployment lock using real requireUser", () => {
