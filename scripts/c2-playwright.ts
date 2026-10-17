@@ -3,15 +3,16 @@ import { createRequire } from "node:module";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { C2_ORIGIN, parseHarnessCommand, preflight, requireExpectedUser, requireHarnessEnvironment, refuse } from "./c2-playwright-policy.ts";
+import { runnerSucceeded, safeRunnerCodes } from "./c2-runner-diagnostics.ts";
 
 try {
   const mode = parseHarnessCommand(process.argv.slice(2));
   requireHarnessEnvironment(process.env);
   if (process.execArgv.some((arg) => /^-r|^--(?:require|import|(?:experimental-)?loader)(?:=|$)/.test(arg))) refuse("preload");
   const expected = requireExpectedUser(process.env);
-  if (mode === "bootstrap") {
+  if (mode === "bootstrap" || mode === "bootstrap-edge") {
     const { bootstrapAuth } = await import("./c2-playwright-bootstrap.ts");
-    await bootstrapAuth();
+    await bootstrapAuth(mode);
   } else if (mode === "preflight") {
     const { loadC2State } = await import("./c2-playwright-state.ts");
     const state = await loadC2State();
@@ -20,7 +21,7 @@ try {
     try { await preflight(client, expected); }
     finally { await client.dispose(); }
     console.log("C2 HTTP/session preflight passed. PostgreSQL container identity is not proven.");
-  } else {
+  } else { // Fixed smoke and Chat-mock suites share preflight and storage-state guards.
     const { loadC2State } = await import("./c2-playwright-state.ts");
     await loadC2State();
     const root = fileURLToPath(new URL("../", import.meta.url));
@@ -34,11 +35,27 @@ try {
       C2_E2E_ALLOW_READONLY: "1", PLAYWRIGHT_NO_COPY_PROMPT: "1", NEXT_TELEMETRY_DISABLED: "1",
       C2_FIXTURE_USER_ID: expected.id, C2_FIXTURE_USER_EMAIL: expected.email,
     });
-    const result = spawnSync(process.execPath, [cli, "test", "--config", join(root, "playwright.c2.config.ts")], {
-      cwd: root, env, shell: false, stdio: "ignore", timeout: 300_000,
+    const chat = mode === "chat";
+    if (chat) env.C2_E2E_ALLOW_CHAT_MOCK = "1";
+    const config = chat ? "playwright.c2.chat.config.ts" : "playwright.c2.config.ts";
+    const result = spawnSync(process.execPath, [cli, "test", "--config", join(root, config)], {
+      // Keep child stderr suppressed. Stdout stays in memory and is NEVER
+      // forwarded: only allowlisted, constant diagnostic codes may escape.
+      cwd: root, env, shell: false, stdio: ["ignore", "pipe", "ignore"],
+      encoding: "utf8", maxBuffer: 64 * 1024, timeout: 300_000,
     });
-    if (result.error || result.status !== 0) refuse("suite-failed-or-timed-out");
-    console.log("C2 authenticated read-only suite passed (raw runner output suppressed).");
+    const expectedCount = chat ? 6 : 4;
+    const codes = safeRunnerCodes(result.stdout, expectedCount);
+    for (const code of codes) {
+      console.log(`C2 runner [${code}].`);
+    }
+    if (result.error) console.log("C2 runner [CHILD_ERROR].");
+    if (result.signal) console.log("C2 runner [CHILD_INTERRUPTED].");
+    if (result.status !== 0) console.log("C2 runner [CHILD_NONZERO].");
+    if (!runnerSucceeded(codes, expectedCount, result)) refuse("suite-failed-or-timed-out");
+    console.log(chat
+      ? "C2 Chat mock-only suite passed (raw runner output suppressed)."
+      : "C2 authenticated read-only suite passed (raw runner output suppressed).");
   }
 } catch {
   console.error("C2 E2E command refused or failed; sensitive details suppressed.");

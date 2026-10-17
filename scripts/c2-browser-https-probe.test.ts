@@ -91,10 +91,10 @@ describe("Native Chromium/CDP probe orchestration (all browser/protocol calls mo
     expect(s.browser.newContext).toHaveBeenCalledWith({ serviceWorkers: "block", javaScriptEnabled: false, acceptDownloads: false, ignoreHTTPSErrors: false });
     expect(s.goto).toHaveBeenCalledWith(PROBE_TARGET, { waitUntil: "commit", timeout: expect.any(Number) });
   });
-  it("enables Response interception before native navigation and never uses route.fetch/APIRequestContext", async () => {
+  it("gates all requests before navigation and arms Response interception only for the approved GET", async () => {
     const s = setup(200); await s.run();
     const enable = s.send.mock.calls.findIndex(([method]) => method === "Fetch.enable");
-    expect(s.send.mock.calls[enable]).toEqual(["Fetch.enable", { handleAuthRequests: true, patterns: [{ urlPattern: "*", requestStage: "Request" }, { urlPattern: "*", requestStage: "Response" }] }]);
+    expect(s.send.mock.calls[enable]).toEqual(["Fetch.enable", { handleAuthRequests: true, patterns: [{ urlPattern: "*", requestStage: "Request" }] }]);
     expect(s.send.mock.invocationCallOrder[enable]).toBeLessThan(s.goto.mock.invocationCallOrder[0]);
     expect(s.send.mock.calls.filter(([method]) => method === "Fetch.continueRequest")).toEqual([["Fetch.continueRequest", { requestId: "fetch-root", interceptResponse: true }]]);
     expect(s.send.mock.calls.some(([method]) => ["Fetch.disable", "Fetch.continueResponse", "Fetch.fulfillRequest", "Fetch.getResponseBody"].includes(method))).toBe(false);
@@ -110,8 +110,26 @@ describe("Native Chromium/CDP probe orchestration (all browser/protocol calls mo
     const s = setup(); const running = s.run();
     await vi.waitFor(() => expect(s.goto).toHaveBeenCalled());
     s.cdpEvents.get("Fetch.requestPaused")!(event({ requestId: "unexpected", request: { url: "https://evil.invalid/", method: "GET" }, resourceType: "Image" }));
-    expect(await running).toBe("HTTPS_PROBE_REFUSED");
+    expect(await running).toBe("HTTPS_REQUEST_METADATA_MISMATCH");
     expect(s.send.mock.calls.filter(([method]) => method === "Fetch.continueRequest")).toHaveLength(1);
+  });
+  it("classifies a rejected continuation without exposing exception text", async () => {
+    const s = setup(); const original = s.send.getMockImplementation()!;
+    s.send.mockImplementation((method, params) => method === "Fetch.continueRequest" ? Promise.reject(new Error("synthetic-cookie private")) : original(method, params));
+    expect(await s.run()).toBe("HTTPS_CONTINUE_FAILED");
+    expect(s.codes.map(probeDiagnostic).join("\n")).not.toContain("synthetic-cookie");
+  });
+  it("classifies navigation rejection separately from transport failure", async () => {
+    const s = setup(); s.goto.mockRejectedValueOnce(new Error("synthetic-private navigation"));
+    expect(await s.run()).toBe("HTTPS_NAVIGATION_FAILED");
+    expect(s.codes.map(probeDiagnostic).join("\n")).not.toContain("synthetic-private");
+  });
+  it("never claims request mismatch when failing the unexpected request fails", async () => {
+    const s = setup(); const original = s.send.getMockImplementation()!;
+    s.send.mockImplementation((method, params) => method === "Fetch.failRequest" ? Promise.reject(new Error("synthetic-private abort")) : original(method, params));
+    const running = s.run(); await vi.waitFor(() => expect(s.goto).toHaveBeenCalled());
+    s.cdpEvents.get("Fetch.requestPaused")!(event({ requestId: "unapproved", request: { url: "https://evil.invalid/", method: "GET" } }));
+    expect(await running).toBe("HTTPS_ABORT_FAILED");
   });
   it("does not navigate if CDP containment setup is rejected", async () => {
     const s = setup(200); const original = s.send.getMockImplementation()!;
@@ -122,13 +140,19 @@ describe("Native Chromium/CDP probe orchestration (all browser/protocol calls mo
   it("does not report safe response success when the response abort command is rejected", async () => {
     const s = setup(302); const original = s.send.getMockImplementation()!;
     s.send.mockImplementation((method, params) => method === "Fetch.failRequest" ? Promise.reject(new Error("synthetic-cookie command rejection")) : original(method, params));
-    expect(await s.run()).toBe("HTTPS_PROBE_REFUSED");
+    expect(await s.run()).toBe("HTTPS_ABORT_FAILED");
     expect(s.codes).not.toContain("HTTPS_REDIRECT_REFUSED"); expect(s.browser.close).toHaveBeenCalledOnce();
   });
   it("refuses mismatched Response request identity even if URL matches", async () => {
     const s = setup(); const running = s.run(); await vi.waitFor(() => expect(s.goto).toHaveBeenCalled());
     s.cdpEvents.get("Fetch.requestPaused")!(event({ requestId: "other", networkId: "other", responseStatusCode: 200 }));
-    expect(await running).toBe("HTTPS_PROBE_REFUSED");
+    expect(await running).toBe("HTTPS_RESPONSE_ID_MISMATCH");
+  });
+  it("distinguishes mismatched Response metadata before it can be forwarded", async () => {
+    const s = setup(); const running = s.run(); await vi.waitFor(() => expect(s.goto).toHaveBeenCalled());
+    s.cdpEvents.get("Fetch.requestPaused")!(event({ responseStatusCode: 200, request: { url: "https://evil.invalid/", method: "GET" } }));
+    expect(await running).toBe("HTTPS_RESPONSE_METADATA_MISMATCH");
+    expect(s.send).toHaveBeenCalledWith("Fetch.failRequest", { requestId: "fetch-root", errorReason: "Aborted" });
   });
   it("never supplies credentials to an HTTP/proxy auth challenge", async () => {
     const s = setup(); const running = s.run(); await vi.waitFor(() => expect(s.goto).toHaveBeenCalled());
@@ -167,13 +191,25 @@ describe("Native Chromium/CDP probe orchestration (all browser/protocol calls mo
     expect(await running).toBe("HTTPS_TIMEOUT"); expect(s.browser.close).toHaveBeenCalledOnce();
     expect(s.browser.newContext).not.toHaveBeenCalled(); expect(s.goto).not.toHaveBeenCalled();
   });
-  it("redirected and duplicate request-stage events are never granted another continuation", async () => {
-    for (const redirectedRequestId of [undefined, "fetch-root"]) {
+  it("classifies repeated Fetch pause and distinct Fetch IDs without granting another continuation", async () => {
+    for (const [requestId, secondNetworkId, expected] of [
+      ["fetch-root", "network-root", "HTTPS_REPAUSED_FETCH_ID"],
+      ["second", "network-root", "HTTPS_SECOND_FETCH_SAME_NETWORK"],
+      ["second", "other-network", "HTTPS_SECOND_FETCH_UNLINKED"],
+      ["second", undefined, "HTTPS_SECOND_FETCH_UNLINKED"],
+    ] as const) {
       const s = setup(); const running = s.run(); await vi.waitFor(() => expect(s.goto).toHaveBeenCalled());
-      s.cdpEvents.get("Fetch.requestPaused")!(event({ requestId: "second", redirectedRequestId }));
-      expect(await running).toBe("HTTPS_PROBE_REFUSED");
+      s.cdpEvents.get("Fetch.requestPaused")!(event({ requestId, networkId: secondNetworkId }));
+      expect(await running).toBe(expected);
       expect(s.send.mock.calls.filter(([method]) => method === "Fetch.continueRequest")).toHaveLength(1);
+      expect(s.send).toHaveBeenCalledWith("Fetch.failRequest", { requestId, errorReason: "Aborted" });
     }
+  });
+  it("never follows a redirected request-stage event", async () => {
+    const s = setup(); const running = s.run(); await vi.waitFor(() => expect(s.goto).toHaveBeenCalled());
+    s.cdpEvents.get("Fetch.requestPaused")!(event({ requestId: "second", redirectedRequestId: "fetch-root" }));
+    expect(await running).toBe("HTTPS_REQUEST_METADATA_MISMATCH");
+    expect(s.send.mock.calls.filter(([method]) => method === "Fetch.continueRequest")).toHaveLength(1);
   });
   it("an early user browser closure is cancellation, not a claimed TLS failure", async () => {
     const s = setup(); const running = s.run(); await vi.waitFor(() => expect(s.goto).toHaveBeenCalled()); s.browserEvents.get("disconnected")!();

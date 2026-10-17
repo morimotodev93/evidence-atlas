@@ -3,9 +3,11 @@ import { test } from "./fixtures.ts";
 import { C2_ORIGIN, fixture, RESEARCH_PATH, checkedGet, requireSession, requireExpectedUser, requireC2Url } from "../scripts/c2-playwright-policy.ts";
 
 async function navigate(page: Page, path: string) {
-  const response = await page.goto(`${C2_ORIGIN}${path}`);
-  expect(response?.status() === 200, "C2 page must load successfully").toBe(true);
-  expect(page.url() === `${C2_ORIGIN}${path}`, "C2 navigation must retain the exact route").toBe(true);
+  await test.step("C2 navigation", async () => {
+    const response = await page.goto(`${C2_ORIGIN}${path}`);
+    expect(response?.status() === 200, "C2 page must load successfully").toBe(true);
+    expect(page.url() === `${C2_ORIGIN}${path}`, "C2 navigation must retain the exact route").toBe(true);
+  });
 }
 
 test("A: authenticated Workspace overview", async ({ page }) => {
@@ -13,9 +15,9 @@ test("A: authenticated Workspace overview", async ({ page }) => {
   await expect(page.getByRole("heading", { name: String(fixture.workspace.name), exact: true, level: 1 })).toBeVisible();
   const summary = page.getByRole("region", { name: "Workspace Summary", exact: true });
   await expect(summary).toBeVisible();
-  // Existing summary has paragraph label/count pairs, not named cards. Check its
-  // accessible region's normalized text instead of positional/CSS locators.
-  await expect(summary).toHaveText(/Workspace Summary\s+Research\s+1\s+Sources\s+1\s+Findings\s+1\s+Tags\s+0/);
+  // textContent does not insert whitespace between adjacent block elements.
+  // Assert every label/count paragraph exactly, including order and count.
+  await expect(summary.getByRole("paragraph")).toHaveText(["Research", "1", "Sources", "1", "Findings", "1", "Tags", "0"]);
 });
 
 test("B: Research list and local detail navigation", async ({ page }) => {

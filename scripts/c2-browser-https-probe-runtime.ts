@@ -21,27 +21,47 @@ export async function runProbe(engine: Pick<BrowserType, "launch">, env: Record<
   let approvedId: string | undefined;
   let networkId: string | undefined;
   let intentionalAbort = false;
-  const abort = async (requestId: string) => {
+  const abort = async (requestId: string): Promise<boolean> => {
     // Never disable/detach Fetch while a response is paused: that can release it.
     intentionalAbort = true;
-    await cdp!.send("Fetch.failRequest", { requestId, errorReason: "Aborted" });
+    try {
+      await cdp!.send("Fetch.failRequest", { requestId, errorReason: "Aborted" });
+      return true;
+    } catch {
+      finish("HTTPS_ABORT_FAILED"); // No response result may be claimed without abort acknowledgement.
+      return false;
+    }
   };
   const paused = async (event: PausedRequest) => {
     try {
       if (stopped) { await abort(event.requestId); return; }
-      if (!exactProbeRequest(event, rootFrame)) { await abort(event.requestId); finish("HTTPS_PROBE_REFUSED"); return; }
       const responseStage = event.responseStatusCode !== undefined || event.responseErrorReason !== undefined;
+      if (!exactProbeRequest(event, rootFrame)) {
+        if (await abort(event.requestId)) finish(responseStage ? "HTTPS_RESPONSE_METADATA_MISMATCH" : "HTTPS_REQUEST_METADATA_MISMATCH");
+        return;
+      }
       if (!responseStage) {
-        if (approvedId) { await abort(event.requestId); finish("HTTPS_PROBE_REFUSED"); return; }
+        if (approvedId) {
+          // IDs are compared only; never log identifiers or relax the one-request gate.
+          const code: ProbeCode = event.requestId === approvedId ? "HTTPS_REPAUSED_FETCH_ID"
+            : networkId && event.networkId === networkId ? "HTTPS_SECOND_FETCH_SAME_NETWORK"
+            : "HTTPS_SECOND_FETCH_UNLINKED";
+          if (await abort(event.requestId)) finish(code);
+          return;
+        }
         approvedId = event.requestId; networkId = event.networkId;
         report("HTTPS_REQUEST_STARTED");
         // The only continuation is one reviewed request, before native Chromium
         // DNS/TCP/TLS. Response interception is also explicitly requested here.
-        await cdp!.send("Fetch.continueRequest", { requestId: event.requestId, interceptResponse: true });
+        try {
+          await cdp!.send("Fetch.continueRequest", { requestId: event.requestId, interceptResponse: true });
+        } catch {
+          finish("HTTPS_CONTINUE_FAILED");
+        }
         return;
       }
       if (!approvedId || (event.requestId !== approvedId && (!networkId || event.networkId !== networkId))) {
-        await abort(event.requestId); finish("HTTPS_PROBE_REFUSED"); return;
+        if (await abort(event.requestId)) finish("HTTPS_RESPONSE_ID_MISMATCH"); return;
       }
       let code: ProbeCode;
       if (event.responseErrorReason) code = probeFailure(event.responseErrorReason);
@@ -49,8 +69,7 @@ export async function runProbe(engine: Pick<BrowserType, "launch">, env: Record<
       else code = event.responseStatusCode! >= 300 && event.responseStatusCode! < 400 ? "HTTPS_REDIRECT_REFUSED" : "HTTPS_RESPONSE_RECEIVED";
       // Abort every response at headers: no Location follow, body consumption,
       // remote document/JS rendering, response forwarding or credential prompt.
-      await abort(event.requestId);
-      finish(code);
+      if (await abort(event.requestId)) finish(code);
     } catch { finish("HTTPS_PROBE_REFUSED"); }
   };
   const setup = async () => {
@@ -82,16 +101,17 @@ export async function runProbe(engine: Pick<BrowserType, "launch">, env: Record<
     if (stopped) return;
     await cdp.send("Network.setCacheDisabled", { cacheDisabled: true });
     if (stopped) return;
-    // No context.route: Playwright's normal route manager enables Request stage
-    // only and could overwrite the CDP Response-stage containment.
+    // Intercept every outgoing request before it is sent. The one approved GET
+    // explicitly opts into Response interception via continueRequest below.
+    // No context.route: Playwright routing may replace this CDP Fetch controller.
     await cdp.send("Fetch.enable", { handleAuthRequests: true, patterns: [
-      { urlPattern: "*", requestStage: "Request" }, { urlPattern: "*", requestStage: "Response" },
+      { urlPattern: "*", requestStage: "Request" },
     ] });
     if (stopped) return;
     // Browser-native navigation. Expected rejection follows our response abort;
     // generic goto exception text is never interpreted or printed.
     void page.goto(PROBE_TARGET, { waitUntil: "commit", timeout: left() }).catch((error: unknown) => {
-      if (!stopped && !intentionalAbort) finish(error instanceof Error && error.name === "TimeoutError" ? "HTTPS_TIMEOUT" : "HTTPS_PROBE_REFUSED");
+      if (!stopped && !intentionalAbort) finish(error instanceof Error && error.name === "TimeoutError" ? "HTTPS_TIMEOUT" : "HTTPS_NAVIGATION_FAILED");
     });
   };
   const work = setup().catch((error: unknown) => finish(error instanceof Error && error.name === "TimeoutError" ? "HTTPS_TIMEOUT" : "HTTPS_PROBE_REFUSED"));

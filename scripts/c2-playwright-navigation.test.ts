@@ -70,7 +70,18 @@ describe("OAuth browser navigation observations (offline event/route doubles)", 
     s.handlers.get("request")!(s.post);
     s.handlers.get("response")!({ request: () => s.post, status: () => 302, headers: () => ({}) });
     expect(s.codes).toContain("AUTH_BROWSER_POST"); expect(s.codes).toContain("AUTH_BROWSER_REDIRECT");
-    expect(s.fulfill).toHaveBeenCalledWith({ response: s.response });
+    expect(s.fulfill).toHaveBeenCalledOnce();
+    const [options] = s.fulfill.mock.calls[0] as [{
+      response: typeof s.response; status: number; contentType: string; body: string;
+    }];
+    expect(options).toMatchObject({
+      response: s.response, status: 200, contentType: "text/html; charset=utf-8",
+    });
+    expect(options.body).toContain('name="referrer" content="no-referrer"');
+    expect(options.body).toContain(
+      `http-equiv="refresh" content="0;url=${google.replaceAll("&", "&amp;")}"`,
+    );
+    expect(s.abort).not.toHaveBeenCalled();
   });
   it.each([
     ["net::ERR_BLOCKED_BY_CLIENT", "BLOCKED"], ["net::ERR_UNSAFE_REDIRECT", "BLOCKED"], ["net::ERR_ABORTED", "CANCELED"],

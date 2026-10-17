@@ -8,13 +8,14 @@ import {
   type Cookie, type ReadRequest, type ReadResponse,
 } from "./c2-playwright-policy.ts";
 import { hmrAllowed, installNetworkBoundary } from "./c2-playwright-network.ts";
-import { isBootstrapIcon, redirectMethod } from "./c2-playwright-network.ts";
+import { blockedExternalNavigationCode, isBootstrapIcon, redirectMethod } from "./c2-playwright-network.ts";
 import { bootstrapDiagnostic, type BootstrapCode } from "./c2-playwright-diagnostics.ts";
 import { pathToFileURL } from "node:url";
 import Google from "next-auth/providers/google";
 import type { BrowserContext, FullConfig, Route, WebSocketRoute } from "@playwright/test";
 import { requireC2Config } from "../e2e-c2/global-setup.ts";
 import RedactedReporter from "../e2e-c2/redacted-reporter.ts";
+import type { C2NetworkCode } from "./c2-scenario-diagnostics.ts";
 
 const now = Date.parse("2026-10-13T01:00:00.000Z");
 const user = { id: "offline-user", email: "offline@example.invalid" };
@@ -59,6 +60,10 @@ describe("C2 Playwright pure/offline safety", () => {
     expect(parseHarnessCommand(["bootstrap", "--allow-c2-auth-bootstrap"])).toBe("bootstrap");
     expect(parseHarnessCommand(["run", "--allow-c2-readonly"])).toBe("run");
     expect(parseHarnessCommand(["preflight", "--allow-c2-readonly"])).toBe("preflight");
+    expect(parseHarnessCommand(["chat", "--allow-c2-chat-mock"])).toBe("chat");
+    expect(() => parseHarnessCommand(["chat", "--allow-c2-readonly"])).toThrow("command-opt-in");
+    expect(() => parseHarnessCommand(["run", "--allow-c2-chat-mock"])).toThrow("command-opt-in");
+    expect(() => parseHarnessCommand(["chat", "--allow-c2-chat-mock", "--grep=Chat"])).toThrow("command-opt-in");
   });
   it("requires private explicit fixture user selection", () => {
     expect(() => requireExpectedUser({})).toThrow("user-selection");
@@ -119,8 +124,23 @@ describe("C2 Playwright pure/offline safety", () => {
     expect(bootstrapRequestAllowed("POST", `${C2_ORIGIN}/onboarding`)).toBe(false);
     expect(testRequestDecision("GET", "https://accounts.google.com")).toBe("origin");
   });
+  it("classifies rejected external navigation without exposing URL details", () => {
+    for (const [target, expected] of [
+      ["chrome-error://chromewebdata/", "BLOCKED_NAV_BROWSER_INTERNAL"],
+      ["http://accounts.google.com/", "BLOCKED_NAV_NON_HTTPS"],
+      ["https://accounts.google.com:8443/?code=synthetic-secret", "BLOCKED_NAV_GOOGLE_HOST_REJECTED"],
+      ["https://accounts.google.co.jp/signin?state=synthetic-secret", "BLOCKED_NAV_UNLISTED_GOOGLE_FAMILY"],
+      ["https://www.googleapis.com/oauth2/?token=synthetic-secret", "BLOCKED_NAV_UNLISTED_GOOGLE_FAMILY"],
+      ["https://unrelated.invalid/path?code=synthetic-secret", "BLOCKED_NAV_OTHER_HTTPS"],
+      ["invalid-url", "BLOCKED_NAV_INVALID_URL"],
+    ] as const) {
+      const code = blockedExternalNavigationCode(target);
+      expect(code).toBe(expected);
+      expect(bootstrapDiagnostic(code)).not.toMatch(/synthetic-secret|token=|code=|state=/);
+    }
+  });
   it("allows only the fixed C2 dev HMR websocket", () => {
-    expect(hmrAllowed("ws://localhost:3001/_next/webpack-hmr?id=synthetic")).toBe(true);
+    expect(hmrAllowed("ws://localhost:3001/_next/hmr?id=synthetic")).toBe(true);
     for (const url of ["ws://localhost:3000/_next/webpack-hmr", "wss://remote.invalid/ws", "ws://localhost:3001/application-write"]) expect(hmrAllowed(url)).toBe(false);
   });
   it("combines independent HTTP/session/workspace checks without triggering OAuth", async () => {
@@ -176,11 +196,11 @@ describe("C2 Playwright pure/offline safety", () => {
 });
 
 describe("C2 browser request interception with offline Playwright doubles", () => {
-  async function boundary(bootstrap = false, report?: (code: BootstrapCode) => void) {
+  async function boundary(bootstrap = false, report?: (code: BootstrapCode) => void, reportNetwork?: (code: C2NetworkCode) => void) {
     let handler!: (route: Route) => Promise<void>;
     let socketHandler!: (socket: WebSocketRoute) => void;
     const context = { route: async (_pattern: string, callback: typeof handler) => { handler = callback; }, routeWebSocket: async (_pattern: RegExp, callback: typeof socketHandler) => { socketHandler = callback; }, on: vi.fn(), pages: () => [] } as unknown as BrowserContext;
-    const assert = await installNetworkBoundary(context, bootstrap, report);
+    const assert = await installNetworkBoundary(context, bootstrap, report, reportNetwork);
     return { handler, socketHandler, assert };
   }
   function route(url = `${C2_ORIGIN}/`, method = "GET", location?: string, redirectStatus = 302) {
@@ -196,12 +216,50 @@ describe("C2 browser request interception with offline Playwright doubles", () =
       expect(() => assert()).toThrow("network-policy");
     }
   });
+  it.each([
+    [`${C2_ORIGIN}/`, "POST", "NET_METHOD_REFUSED"],
+    ["https://external.invalid/", "GET", "NET_ORIGIN_REFUSED"],
+    [`${C2_ORIGIN}/settings/workspace`, "GET", "NET_PATH_REFUSED"],
+    [`${C2_ORIGIN}/?private=synthetic`, "GET", "NET_QUERY_REFUSED"],
+    [`${C2_ORIGIN}/_next/static/unsafe[chunk].js`, "GET", "NET_STATIC_REFUSED"],
+    [`${C2_ORIGIN}/__nextjs_font/geist-latin.woff2`, "GET", "NET_DEVTOOLS_REFUSED"],
+  ])("classifies a refused request without forwarding it or exposing its data", async (url, method, code) => {
+    const report = vi.fn();
+    const { handler, assert } = await boundary(false, undefined, report);
+    for (let i = 0; i < 2; i++) {
+      const attempt = route(url, method);
+      await handler(attempt.fake);
+      expect(attempt.fetch).not.toHaveBeenCalled();
+      expect(attempt.abort).toHaveBeenCalledOnce();
+    }
+    expect(report.mock.calls).toEqual([[code]]);
+    expect(() => assert()).toThrow("network-policy");
+  });
   it("fetches allowed reads without following redirects and rejects redirect targets", async () => {
     const { handler, assert } = await boundary();
     const fake = route(`${C2_ORIGIN}/`, "GET", "https://accounts.google.com/?code=synthetic-private-token");
     await handler(fake.fake);
     expect(fake.fetch).toHaveBeenCalledWith({ maxRedirects: 0, timeout: 15_000 });
     expect(fake.fulfill).not.toHaveBeenCalled(); expect(() => assert()).toThrow("network-policy");
+  });
+  it("preserves a conditional 304 response without treating it as a redirect", async () => {
+    const { handler, assert } = await boundary();
+    const attempt = route(`${C2_ORIGIN}/research?_rsc=synthetic`);
+    const unchanged = { status: () => 304, headers: () => ({}) };
+    attempt.fetch.mockResolvedValue(unchanged);
+    await handler(attempt.fake);
+    expect(attempt.fulfill).toHaveBeenCalledWith({ response: unchanged });
+    expect(attempt.abort).not.toHaveBeenCalled();
+    assert();
+  });
+  it("still refuses any Location header, including one attached to a 304", async () => {
+    const { handler, assert } = await boundary();
+    const attempt = route();
+    attempt.fetch.mockResolvedValue({ status: () => 304, headers: () => ({ location: "https://external.invalid/" }) });
+    await handler(attempt.fake);
+    expect(attempt.fulfill).not.toHaveBeenCalled();
+    expect(attempt.abort).toHaveBeenCalledWith("blockedbyclient");
+    expect(() => assert()).toThrow("network-policy");
   });
   it("fulfills allowed reads and approved manual Google redirects", async () => {
     const normal = await boundary(); const read = route(); await normal.handler(read.fake); normal.assert(); expect(read.fulfill).toHaveBeenCalledOnce();
@@ -213,7 +271,7 @@ describe("C2 browser request interception with offline Playwright doubles", () =
     const close = vi.fn(); const connect = vi.fn();
     socketHandler({ url: () => "wss://external.invalid", close, connectToServer: connect } as unknown as WebSocketRoute);
     expect(close).toHaveBeenCalledOnce(); expect(connect).not.toHaveBeenCalled(); expect(() => assert()).toThrow();
-    const local = await boundary(); local.socketHandler({ url: () => "ws://localhost:3001/_next/webpack-hmr", close, connectToServer: connect } as unknown as WebSocketRoute);
+    const local = await boundary(); local.socketHandler({ url: () => "ws://localhost:3001/_next/hmr?id=synthetic", close, connectToServer: connect } as unknown as WebSocketRoute);
     expect(connect).toHaveBeenCalledOnce(); local.assert();
   });
   it("does not permit a preserved POST redirect into an application read endpoint during bootstrap", async () => {
@@ -226,15 +284,70 @@ describe("C2 browser request interception with offline Playwright doubles", () =
     await returnGet.handler(converted.fake);
     expect(converted.fulfill).toHaveBeenCalledOnce(); returnGet.assert();
   });
-  it.each([301, 302, 303, 307, 308])("preserves the original response status/Location/Set-Cookie/body when fulfilling %s", async (status) => {
+  it.each([301, 302, 303, 307, 308])("preserves upstream cookies and bridges only the exact Google OAuth 302 (%s)", async (status) => {
     const report = vi.fn(); const manual = await boundary(true, report);
-    const auth = route(`${C2_ORIGIN}/api/auth/signin/google`, "POST", "https://accounts.google.com/o/oauth2/v2/auth?state=synthetic-private", status);
-    const upstream = { status: () => status, headers: () => ({ location: "https://accounts.google.com/o/oauth2/v2/auth?state=synthetic-private", "set-cookie": "csrf=synthetic; Path=/\npkce=synthetic; Path=/", "content-type": "text/html" }), body: async () => Buffer.from("synthetic-body") };
+    const target = "https://accounts.google.com/o/oauth2/v2/auth?state=synthetic-private&client_id=synthetic";
+    const auth = route(`${C2_ORIGIN}/api/auth/signin/google`, "POST", target, status);
+    const upstream = { status: () => status, headers: () => ({ location: target, "set-cookie": "csrf=synthetic; Path=/\npkce=synthetic; Path=/", "content-type": "text/html" }), body: async () => Buffer.from("synthetic-body") };
     auth.fetch.mockResolvedValue(upstream);
     await manual.handler(auth.fake);
-    expect(auth.fulfill).toHaveBeenCalledWith({ response: upstream });
+    if (status === 302) {
+      expect(auth.fulfill).toHaveBeenCalledWith({
+        response: upstream, status: 200, contentType: "text/html; charset=utf-8",
+        body: expect.stringContaining("state=synthetic-private&amp;client_id=synthetic"),
+      });
+      expect(auth.fulfill).toHaveBeenCalledWith(expect.objectContaining({
+        body: expect.stringContaining('http-equiv="refresh"'),
+      }));
+      expect(auth.fulfill).toHaveBeenCalledWith(expect.objectContaining({
+        body: expect.stringContaining('name="referrer" content="no-referrer"'),
+      }));
+    } else expect(auth.fulfill).toHaveBeenCalledWith({ response: upstream });
     expect(auth.fetch).toHaveBeenCalledWith({ maxRedirects: 0, timeout: 15_000 });
     manual.assert(); expect(report.mock.calls.map(([code]) => code)).toEqual(["AUTH_SUBMIT", "AUTH_REDIRECT", "AUTH_FULFILL_STARTED", "AUTH_FULFILL_COMPLETED"]);
+  });
+  it("bridges a validated Google main-frame GET 302, preserving upstream cookies; refuses outside the allowlist", async () => {
+    const codes: BootstrapCode[] = []; const manual = await boundary(true, (code) => codes.push(code));
+    const target = "https://accounts.google.com/v3/signin/identifier?state=synthetic-private&hl=en";
+    const hop = route("https://accounts.google.com/o/oauth2/v2/auth", "GET", target);
+    const upstream = { status: () => 302, headers: () => ({ location: target, "set-cookie": "google=synthetic; Secure; HttpOnly" }) };
+    hop.fetch.mockResolvedValue(upstream);
+    await manual.handler(hop.fake);
+    expect(hop.fetch).toHaveBeenCalledWith({ maxRedirects: 0, timeout: 15_000 });
+    expect(hop.fulfill).toHaveBeenCalledWith({ response: upstream, status: 200, contentType: "text/html; charset=utf-8",
+      body: expect.stringContaining("state=synthetic-private&amp;hl=en") });
+    expect(codes).toContain("GOOGLE_UPSTREAM_REDIRECT"); expect(codes).toContain("GOOGLE_HOP_BRIDGED"); manual.assert();
+
+    const callback = await boundary(true);
+    const returnHop = route("https://accounts.google.com/signin", "GET", `${C2_ORIGIN}/api/auth/callback/google?code=synthetic-private`);
+    await callback.handler(returnHop.fake);
+    expect(returnHop.fulfill).toHaveBeenCalledWith(expect.objectContaining({ status: 200, body: expect.stringContaining("/api/auth/callback/google") }));
+    callback.assert();
+
+    const denied = await boundary(true);
+    const unsafe = route("https://accounts.google.com/signin", "GET", "https://not-google.invalid/?code=synthetic-private");
+    await denied.handler(unsafe.fake);
+    expect(unsafe.fulfill).not.toHaveBeenCalled(); expect(unsafe.abort).toHaveBeenCalledOnce();
+    expect(() => denied.assert()).toThrow("bootstrap-network");
+  });
+  it("leaves 200 and Google POST responses unchanged, and caps Google GET redirect bridges", async () => {
+    const normal = await boundary(true, () => {});
+    const page = route("https://accounts.google.com/signin", "GET");
+    await normal.handler(page.fake);
+    expect(page.fulfill).toHaveBeenCalledWith({ response: expect.anything() }); normal.assert();
+    const post = route("https://accounts.google.com/signin", "POST", "https://accounts.google.com/next", 307);
+    await normal.handler(post.fake);
+    expect(post.fulfill).toHaveBeenCalledWith({ response: expect.anything() }); normal.assert();
+
+    const codes: BootstrapCode[] = []; const capped = await boundary(true, (code) => codes.push(code));
+    for (let i = 0; i < 8; i++) {
+      const hop = route("https://accounts.google.com/signin", "GET", "https://accounts.google.com/next");
+      await capped.handler(hop.fake); expect(hop.fulfill).toHaveBeenCalledWith(expect.objectContaining({ status: 200 }));
+    }
+    const ninth = route("https://accounts.google.com/signin", "GET", "https://accounts.google.com/next");
+    await capped.handler(ninth.fake);
+    expect(ninth.fulfill).not.toHaveBeenCalled(); expect(ninth.abort).toHaveBeenCalledOnce();
+    expect(codes).toContain("GOOGLE_HOP_LIMIT_REFUSED"); expect(() => capped.assert()).toThrow("bootstrap-network");
   });
   it.each([301, 302, 303, 307, 308])("classifies redirect method transitions for %s", (status) => {
     expect(redirectMethod(status, "POST")).toBe(status === 307 || status === 308 ? "POST" : "GET");
@@ -336,6 +449,7 @@ describe("C2 configuration and secret-free reporting", () => {
     for (const key of Object.keys(process.env)) {
       if (/^(E2E_BASE_URL|NODE_OPTIONS|NODE_PATH|DEBUG|PWDEBUG|PW_TEST_.*|HTTPS?_PROXY|ALL_PROXY|PUBLIC_DEMO_MODE|C2_RUNTIME_MODE|AUTH_URL)$/i.test(key)) vi.stubEnv(key, undefined);
     }
+    vi.stubEnv("C2_E2E_ALLOW_CHAT_MOCK", undefined);
   });
   afterEach(() => vi.unstubAllEnvs());
   it("configures an isolated, fixed, non-recording suite without app startup", async () => {
@@ -347,11 +461,15 @@ describe("C2 configuration and secret-free reporting", () => {
       expect(config.webServer).toBeUndefined(); expect(config.outputDir).toBe("./test-results-c2");
       expect(config.use).toMatchObject({ baseURL: C2_ORIGIN, trace: "off", screenshot: "off", video: "off", serviceWorkers: "block" });
       expect(config.preserveOutput).toBe("never"); expect(process.env.PLAYWRIGHT_NO_COPY_PROMPT).toBe("1");
+      // Pin the explicit browserName required by requireC2Config for both projects.
+      expect(config.projects?.[0]?.use?.browserName).toBe("chromium");
+      const { default: chatConfig } = await import("../playwright.c2.chat.config.ts");
+      expect(chatConfig.projects?.[0]?.use?.browserName).toBe("chromium");
     } finally { if (old === undefined) delete process.env.PLAYWRIGHT_NO_COPY_PROMPT; else process.env.PLAYWRIGHT_NO_COPY_PROMPT = old; }
   });
   it("rejects resolved config/CLI overrides before browser startup", () => {
     vi.stubEnv("C2_E2E_ALLOW_READONLY", "1"); vi.stubEnv("PLAYWRIGHT_NO_COPY_PROMPT", "1");
-    const config = { workers: 1, maxFailures: 1, webServer: null, preserveOutput: "never", reporter: [["C:/repo/e2e-c2/redacted-reporter.ts"]], projects: [{ name: "c2-chromium", testDir: "C:/repo/e2e-c2", outputDir: "C:/repo/test-results-c2", retries: 0, use: { baseURL: C2_ORIGIN, browserName: "chromium", trace: "off", screenshot: "off", video: "off", serviceWorkers: "block" } }] } as unknown as FullConfig;
+    const config = { workers: 1, maxFailures: 1, webServer: null, preserveOutput: "never", reporter: [["C:/repo/e2e-c2/redacted-reporter.ts"]], projects: [{ name: "c2-chromium", testMatch: "authenticated-smoke.spec.ts", testDir: "C:/repo/e2e-c2", outputDir: "C:/repo/test-results-c2", retries: 0, use: { baseURL: C2_ORIGIN, browserName: "chromium", trace: "off", screenshot: "off", video: "off", serviceWorkers: "block" } }] } as unknown as FullConfig;
     try {
       expect(() => requireC2Config(config)).not.toThrow();
       for (const use of [{ baseURL: "https://production.invalid" }, { trace: "on" }, { storageState: "other.json" }, { connectOptions: { wsEndpoint: "wss://remote.invalid" } }, { contextOptions: { recordHar: { path: "secret.har" } } }]) {
@@ -380,7 +498,7 @@ describe("C2 configuration and secret-free reporting", () => {
     try {
       const reporter = new RedactedReporter();
       reporter.onTestEnd({ title: "synthetic-private-token" } as never, { status: "failed", errors: [{ message: user.email }], attachments: [{ path: "secret.json" }] } as never);
-      reporter.onError(); reporter.onStdOut(); reporter.onStdErr(); reporter.onEnd({ status: "failed" } as never);
+      reporter.onError(); reporter.onStdOut("synthetic-private-token"); reporter.onStdErr(); reporter.onEnd({ status: "failed" } as never);
       const output = [...log.mock.calls, ...error.mock.calls].flat().join("\n");
       expect(output).not.toMatch(/synthetic-private-token|offline@example|secret.json/);
     } finally { log.mockRestore(); error.mockRestore(); }

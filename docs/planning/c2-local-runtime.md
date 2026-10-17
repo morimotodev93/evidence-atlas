@@ -730,21 +730,21 @@ rewrite, extra destination/method permission or credential automation was added.
 
 The diagnostic stages now distinguish:
 
-| Fixed code | Evidence, and its limit |
-| --- | --- |
-| AUTH_REDIRECT | Policy-approved API redirect response, before fulfillment |
-| AUTH_FULFILL_STARTED | Driver fulfillment call started |
-| AUTH_FULFILL_COMPLETED | Fulfill Promise returned; not proof of browser receipt |
-| AUTH_FULFILL_PENDING | At manual-wait end, call started but had not returned/failed |
-| AUTH_BROWSER_POST | Browser-context POST event observed |
-| AUTH_BROWSER_REDIRECT | Browser-context response event has a redirect status |
-| GOOGLE_NAV_REQUEST | Allowed main-frame provider navigation request observed, even without a Route |
-| GOOGLE_NAV_ROUTE | Such a request additionally reached the route handler |
-| GOOGLE_NAV_RESPONSE / GOOGLE_NAV_HTTP_ERROR | Browser-context provider response class observed |
-| GOOGLE_NAVIGATION | Allowed provider URL committed to the main frame; not auth success |
-| GOOGLE_SUBFRAME_NAV_REQUEST | Provider subframe request, distinct from main-frame navigation |
-| GOOGLE_NAV_NOT_OBSERVED | Fulfill returned but no main-frame provider request/commit was observed by manual-wait end |
-| GOOGLE_NAV_UNCOMMITTED | Main-frame provider request observed, without commit by manual-wait end |
+| Fixed code                                  | Evidence, and its limit                                                                    |
+| ------------------------------------------- | ------------------------------------------------------------------------------------------ |
+| AUTH_REDIRECT                               | Policy-approved API redirect response, before fulfillment                                  |
+| AUTH_FULFILL_STARTED                        | Driver fulfillment call started                                                            |
+| AUTH_FULFILL_COMPLETED                      | Fulfill Promise returned; not proof of browser receipt                                     |
+| AUTH_FULFILL_PENDING                        | At manual-wait end, call started but had not returned/failed                               |
+| AUTH_BROWSER_POST                           | Browser-context POST event observed                                                        |
+| AUTH_BROWSER_REDIRECT                       | Browser-context response event has a redirect status                                       |
+| GOOGLE_NAV_REQUEST                          | Allowed main-frame provider navigation request observed, even without a Route              |
+| GOOGLE_NAV_ROUTE                            | Such a request additionally reached the route handler                                      |
+| GOOGLE_NAV_RESPONSE / GOOGLE_NAV_HTTP_ERROR | Browser-context provider response class observed                                           |
+| GOOGLE_NAVIGATION                           | Allowed provider URL committed to the main frame; not auth success                         |
+| GOOGLE_SUBFRAME_NAV_REQUEST                 | Provider subframe request, distinct from main-frame navigation                             |
+| GOOGLE_NAV_NOT_OBSERVED                     | Fulfill returned but no main-frame provider request/commit was observed by manual-wait end |
+| GOOGLE_NAV_UNCOMMITTED                      | Main-frame provider request observed, without commit by manual-wait end                    |
 
 Browser failed requests use only fixed BLOCKED/CANCELED/NETWORK/OTHER categories
 under `AUTH_BROWSER_FAILED_*` or `GOOGLE_NAV_FAILED_*`. The classifier compares
@@ -1056,19 +1056,19 @@ unknown or insufficient error data remains HTTPS_FAILURE_UNCLASSIFIED. A local
 deadline is HTTPS_TIMEOUT and does not prove a TLS problem. Generic CDP failures
 can lack enough data to distinguish TLS; no such diagnosis is invented.
 
-| Code | Interpretation of a future live result |
-| --- | --- |
-| CHROMIUM_STARTED | Installed browser launch returned; no HTTPS proof yet |
-| HTTPS_REQUEST_STARTED | Exact native request was approved; no response proof yet |
-| HTTPS_RESPONSE_RECEIVED | Ordinary HTTPS response headers arrived and the response was terminated; no OAuth proof |
-| HTTPS_REDIRECT_REFUSED | 3xx headers arrived and were terminated before following; transport responded but target changed |
-| HTTPS_DNS_FAILURE / HTTPS_TLS_FAILURE / HTTPS_NETWORK_FAILURE | Exact correlated native failure class; underlying cause still needs review |
-| HTTPS_TIMEOUT | Measurement deadline elapsed; pending startup/setup/request is not conclusive TLS evidence |
-| HTTPS_FAILURE_UNCLASSIFIED | Available error data does not support a narrower cause |
-| HTTPS_AUTH_CHALLENGE_REFUSED | Credentials/challenge handling was refused; proxy challenge may precede origin TLS |
-| HTTPS_CANCELED | Context/browser or correlated navigation was canceled; not independent connectivity failure proof |
-| HTTPS_PROBE_REFUSED | Invocation, metadata, containment or overall safety failed; no success claimed |
-| HTTPS_CLEANUP_FAILED | Closure was not acknowledged; overall exit fails even if earlier headers were received |
+| Code                                                          | Interpretation of a future live result                                                            |
+| ------------------------------------------------------------- | ------------------------------------------------------------------------------------------------- |
+| CHROMIUM_STARTED                                              | Installed browser launch returned; no HTTPS proof yet                                             |
+| HTTPS_REQUEST_STARTED                                         | Exact native request was approved; no response proof yet                                          |
+| HTTPS_RESPONSE_RECEIVED                                       | Ordinary HTTPS response headers arrived and the response was terminated; no OAuth proof           |
+| HTTPS_REDIRECT_REFUSED                                        | 3xx headers arrived and were terminated before following; transport responded but target changed  |
+| HTTPS_DNS_FAILURE / HTTPS_TLS_FAILURE / HTTPS_NETWORK_FAILURE | Exact correlated native failure class; underlying cause still needs review                        |
+| HTTPS_TIMEOUT                                                 | Measurement deadline elapsed; pending startup/setup/request is not conclusive TLS evidence        |
+| HTTPS_FAILURE_UNCLASSIFIED                                    | Available error data does not support a narrower cause                                            |
+| HTTPS_AUTH_CHALLENGE_REFUSED                                  | Credentials/challenge handling was refused; proxy challenge may precede origin TLS                |
+| HTTPS_CANCELED                                                | Context/browser or correlated navigation was canceled; not independent connectivity failure proof |
+| HTTPS_PROBE_REFUSED                                           | Invocation, metadata, containment or overall safety failed; no success claimed                    |
+| HTTPS_CLEANUP_FAILED                                          | Closure was not acknowledged; overall exit fails even if earlier headers were received            |
 
 Exit succeeds only for HTTPS_RESPONSE_RECEIVED with acknowledged cleanup; all other
 terminal results fail. Intermediate fixed facts can precede a cleanup refusal.
@@ -1101,3 +1101,563 @@ successful login. A probe failure does not by itself identify Windows networking
 or Google as its cause. Do not change certificates, security flags or proxy settings
 to force success, and do not automatically retry OAuth/fixtures/E2E. No probe or
 fifth OAuth attempt was executed in this task; the stall root cause remains unknown.
+
+## Step 4-B4 — developer-reported live HTTPS probe observations (2026-10-13 JST)
+
+This section updates the historical _not executed_ statement in Step 4-B3.
+The four native Chromium executions below were performed locally by the
+developer, not by this code-review task. All were standalone Probe invocations
+against the fixed `https://accounts.google.com/robots.txt` target; the
+developer shared only fixed diagnostic codes and exit status, not raw network
+logs, IDs, headers, cookies or authenticated state.
+
+| Revision                              | Developer-reported codes                                                     | Exit status |
+| ------------------------------------- | ---------------------------------------------------------------------------- | ----------- |
+| Baseline `6d2179c`                    | `CHROMIUM_STARTED → HTTPS_REQUEST_STARTED → HTTPS_PROBE_REFUSED`             | Failure     |
+| First refusal-classification revision | `CHROMIUM_STARTED → HTTPS_REQUEST_STARTED → HTTPS_REQUEST_MISMATCH`          | `1`         |
+| Request/response mismatch split       | `CHROMIUM_STARTED → HTTPS_REQUEST_STARTED → HTTPS_DUPLICATE_REQUEST`         | `1`         |
+| Fetch/network identity split          | `CHROMIUM_STARTED → HTTPS_REQUEST_STARTED → HTTPS_SECOND_FETCH_SAME_NETWORK` | `1`         |
+
+The latest fixed code establishes: after a matching Request-stage pause was
+approved, a second matching Request-stage pause had a **different Fetch requestId**
+but the **same present networkId**. The second pause was **aborted**, not
+continued. This does **not** prove two HTTP GETs were transmitted, that a
+Google HTTPS response was received, or that DNS/TLS failed. In particular,
+CDP Fetch request IDs do not identify individual HTTP requests by themselves;
+the network ID correlates to a Network.requestWillBeSent ID. Chrome/Fetch
+interception can report distinct Fetch IDs for one Network ID; the underlying
+cause in this particular execution remains unknown.
+
+After the first refusal split, the developer ran the focused mocked Vitest
+suite (**70/70**), TypeScript, targeted ESLint and git diff check successfully.
+After the mismatch split, the same checks passed (**71/71**). After the
+Fetch/network identity split, the developer again reported passing offline
+checks (**72/72**), then performed the single fourth live probe listed above.
+These are developer reports, not an independent CI or live-browser re-test.
+
+**Current stop condition:** Do not grant an additional Fetch.continueRequest
+on the strength of a shared networkId, allow a redirect, change browser/TLS
+security settings, or diagnose OAuth from these results. Preserve the one-GET
+gate and response-stage abort, and keep PR #1 Draft/unmerged while reviewing
+whether Chromium internally re-pauses or restarts the same network request.
+No further repeat Probe, fifth OAuth Bootstrap, C2 E2E or fixture/DB mutation
+is authorized by these observations. C2 fixture 8 rows remain protected.
+
+## Step 4-B5 — minimal CDP interception configuration review (2026-10-13 JST)
+
+### Reason for the change
+
+The latest developer-reported standalone run returned
+`CHROMIUM_STARTED → HTTPS_REQUEST_STARTED → HTTPS_SECOND_FETCH_SAME_NETWORK`
+and exit 1 after all 72 focused mocked tests and targeted TypeScript, lint
+and diff checks had passed. That demonstrates two matching Request-stage
+Fetch pauses with distinct Fetch IDs and a shared Network ID. It does **not**
+prove that two outbound HTTP GETs were transmitted, or establish DNS/TLS,
+Chromium behavior, Google reachability or OAuth root cause.
+
+Review of the Chrome DevTools Protocol `Fetch.pdl` and Chromium's
+`DevToolsURLLoaderInterceptor::InnerContinueRequest` establishes that
+`Fetch.continueRequest({ interceptResponse: true })` enables the response
+stage **for the paused request** even if `Fetch.enable` initially selected
+only the Request stage. The old probe specified universal Request _and_
+Response patterns and also set the per-request response override.
+That is overlapping configuration, not evidence of the observed duplicate
+pause's root cause.
+
+Reference implementations:
+
+- https://github.com/ChromeDevTools/devtools-protocol/blob/master/pdl/domains/Fetch.pdl
+- https://chromium.googlesource.com/chromium/src/+/lkgr/content/browser/devtools/devtools_url_loader_interceptor.cc
+- https://github.com/puppeteer/puppeteer/issues/7475 (historic similar identity pattern, not proof of the same cause)
+
+### Revised minimal configuration and boundaries
+
+The probe now uses **one wildcard Request-stage Fetch pattern** before any
+navigation. Every page request is still paused before sending and must pass
+the exact fixed GET, Document, main-frame and no-redirect metadata gate.
+The sole permitted `Fetch.continueRequest` still supplies
+`interceptResponse: true` and no URL/method/headers modifications.
+The response is therefore still intercepted before body forwarding and must
+be aborted before an HTTP response is reported. All unexpected or repeated
+Request-stage pauses remain aborted without a second continuation.
+`Fetch.authRequired` still cancels authorization; no credentials are used.
+
+No Playwright route manager, Node HTTP fallback, state or browser-profile reuse,
+security/proxy override, redirect follow, response-body read, app access, OAuth
+or DB interaction was added. Fixed target and opt-in, 15-second measurement
+and 5-second cleanup are unchanged. This change is a smaller CDP policy
+configuration, **not a proven fix** for a second Fetch pause.
+
+### Validation and execution gate
+
+The existing mock contract now asserts the single universal Request
+pattern and verifies the sole continuation has `interceptResponse: true`.
+Older test and live evidence above applies to the previous revision;
+the changed files have **not yet** been retested locally. First run focused
+Vitest, TypeScript, targeted ESLint and `git diff --check`. Keep the
+PR Draft and do not automatically execute another native HTTPS probe,
+OAuth Bootstrap, C2 E2E, or the protected eight-row fixture. Any later
+single live probe requires separate developer-controlled authorization.
+
+## Step 4-B6 — Request-only live probe reproduction and investigation pause (2026-10-13 JST)
+
+After the Step 4-B5 revision, the developer reported the following **offline**
+checks passing on the actual Windows checkout: focused Vitest **72/72**,
+`pnpm exec tsc --noEmit`, targeted ESLint and `git diff --check`.
+These are user-reported results, not CI verification.
+
+The developer then approved and ran one native standalone probe under the
+**Request-only Fetch pattern with per-request `interceptResponse: true`**.
+Its complete fixed-code output was:
+
+```text
+CHROMIUM_STARTED
+HTTPS_REQUEST_STARTED
+HTTPS_SECOND_FETCH_SAME_NETWORK
+ExitCode=1
+```
+
+This reproduces the previous fixed-code result even though the universal
+Response-stage pattern was removed. Therefore **the overlapping Request/Response
+Fetch.enable configuration is not a sufficient explanation or solution**.
+The Request gate still aborts the second matching paused event instead of
+continuing it. There is no observed response-header receipt, and the root
+cause of the original OAuth blank/loading navigation is still unproven.
+
+CDP Fetch.pdl states that `Fetch.RequestId` does not uniquely identify
+individual HTTP requests within a network request. Puppeteer's NetworkManager
+source explicitly anticipates multiple `Fetch.requestPaused` events for the
+same `Network.requestWillBeSent`; Puppeteer issue #7475 also records an
+older similar trace, but neither proves the precise origin of these particular
+Chromium events.
+
+Source context:
+
+- https://github.com/ChromeDevTools/devtools-protocol/blob/master/pdl/domains/Fetch.pdl
+- https://github.com/puppeteer/puppeteer/blob/main/packages/puppeteer-core/src/cdp/NetworkManager.ts
+- https://github.com/puppeteer/puppeteer/issues/7475
+
+**Decision:** Pause further retries and diagnostic-code proliferation.
+Do not automatically continue a second Fetch pause merely because its
+networkId matches: matching IDs do not authorize another wire request.
+Do not relax TLS, proxy, response/redirect containment or credential policy
+to force a successful response. Preserve this PR as a Draft and the one-GET
+gate unchanged. Any alternate probe design would need a **separate safety
+review of the redirect/no-second-request guarantee** before a live run.
+No OAuth Bootstrap, E2E, app, C2 fixture (8 rows) or database operation
+is authorized by this observation.
+
+## Step 4-B7 — out-of-process HTTPS egress isolation design review (2026-10-13 JST)
+
+See [C2 native Chromium HTTPS probe — out-of-process egress isolation design review](./c2-https-egress-isolation-review.md).
+
+No alternate browser probe was implemented or executed. The review distinguishes
+**destination-level outbound enforcement** (potentially achievable with a
+credential-free disposable VM, verified default-deny network policy and a
+fixed-policy CONNECT gateway) from the **strict original exact-URL and
+at-most-one-on-wire-GET requirement**. HTTPS CONNECT preserves native
+Chromium-to-Google TLS, but cannot inspect the encrypted URL path, method
+or number of HTTP requests on one tunnel. A single tunnel is **not** a
+single HTTP GET, and a same-host redirect cannot be excluded by the gateway
+alone. TLS MITM/certificate overrides are not accepted as a workaround.
+
+**Decision: NO-GO** for a new live probe under unchanged strict requirements.
+A narrower destination-isolation/TLS-reachability experiment would be a
+different explicitly approved test with an independently reviewed VM and
+gateway implementation; no such approval or environment inspection exists.
+Keep PR #1 Draft. Preserve the eight-row C2 fixture and OAuth/E2E/DB stop
+conditions. This is a documentation-only design/safety review.
+
+## Step 4-B8 — Chromium 153 static source review (2026-10-15 JST)
+
+A read-only investigation confirmed that Playwright 1.63.0
+specifies Chromium revision 1243, version 153.0.8010.12.
+The installed Windows chrome.exe reports the same version.
+
+Chromium 153 passes ResourceRequest.devtools_request_id
+to newly created InterceptionJob instances, while each
+InterceptionJob receives its own Fetch interception ID.
+
+NavigationURLLoaderImpl can recreate loaders while preserving
+the ResourceRequest and its DevTools request ID.
+Potential restart paths include Client Hints handling,
+redirect processing, and ThrottlingURLLoader behavior.
+
+This mechanism is consistent with the observed
+HTTPS_SECOND_FETCH_SAME_NETWORK result.
+
+However, the actual restart path, the number of HTTP GETs
+sent on the wire, and the original OAuth navigation failure
+remain unproven.
+
+Decision: Record this as a plausible internal Chromium
+restart mechanism, not a confirmed root cause.
+
+Keep the existing one-request safety gate unchanged.
+Do not automatically rerun the native probe, OAuth Bootstrap,
+or private C2 E2E. Preserve the eight-row C2 fixture and DB.
+Keep PR #1 Draft.
+
+## Step 4-C1 — isolated Chat mock E2E foundation (2026-10-15 JST)
+
+Developer-reported implementation was committed and pushed as `ff68a6d`
+(`test(c2): add isolated Chat mock E2E suite`) on the existing Draft PR
+branch. This is a separate offline-tested feature increment, not a fix for
+the Step 4-B OAuth/Chromium navigation failure.
+
+- `e2e-c2/fixtures.ts` exports an opt-in `chatTest` fixture. The original
+  authenticated smoke tests continue to use `test` unchanged.
+- `e2e-c2/conversation-mocks.ts` intercepts only the exact C2 fixture
+  conversation collection endpoint, fulfilling local `GET` lists and
+  in-memory `POST` creation. No Chat API/DB/model call or `route.fetch`
+  is needed; unexpected requests fail closed.
+- `e2e-c2/chat.spec.ts` defines two Chat-only cases: E (create a new
+  in-memory conversation) and F (show it in History). Neither sends a
+  Chat message or selects a conversation for detail restoration.
+- `playwright.c2.chat.config.ts` selects only `chat.spec.ts` under a
+  separate `c2-chat-chromium` project. The original C2 config still
+  selects only `authenticated-smoke.spec.ts`. The wrapper requires the
+  distinct `chat --allow-c2-chat-mock` command and sets a Chat-only
+  capability flag; `global-setup.ts` checks suite/config consistency.
+  Both suites still require the existing C2 preflight and saved
+  authenticated state before any actual browser execution.
+
+Developer-reported Windows offline verification after these changes:
+focused Vitest **131/131 across 3 files**, `pnpm exec tsc --noEmit`,
+targeted ESLint and `git diff --check` all passed. Subsequent standalone
+Playwright `--list` checks collected **4 smoke cases** and **2 Chat cases**,
+with status `passed` for discovery only. This is not a browser E2E pass,
+CI confirmation, or evidence of a successful authenticated Chat flow.
+
+**Decision:** Treat Step 4-C1 fixture, collection mock, and suite separation
+as implemented and offline-checked. The next separate, offline-only task
+is a deterministic conversation-detail mock and History restore assertion;
+it must not enable a real Chat endpoint or expand the normal smoke suite.
+Do not automatically run the authenticated browser suites, OAuth Bootstrap,
+native HTTPS Probe, C2 app, or database. Preserve the eight-row C2 fixture,
+security/recording restrictions and Draft PR status.
+
+## Step 4-C2 — deterministic Chat History restoration (2026-10-15 JST)
+
+The developer committed and pushed the History restoration increment as
+`b0ed398` (`test(c2): add mocked Chat history restoration`). This adds a
+locally seeded conversation with fixed synthetic USER and AI messages, an
+exact in-memory conversation-detail GET, and Chat-only scenario G that
+selects the History entry and checks the restored text. The original
+four authenticated smoke cases remain separate. No actual Chat API,
+provider or database write is needed for the synthetic response.
+
+Developer-reported Windows offline checks passed: focused Vitest
+**142/142 across 3 files**, `pnpm exec tsc --noEmit`, targeted ESLint,
+and `git diff --check`. Playwright `--list` collected **4 smoke** and
+**3 Chat** cases. These collection checks did not execute browser E2E.
+
+## Step 4-C3 — deterministic local Chat text response (2026-10-15 JST)
+
+After `b0ed398`, the developer applied an additional local-only change
+to `e2e-c2/chat.spec.ts`, `e2e-c2/conversation-mocks.ts`, and
+`scripts/c2-playwright-conversation-mocks.test.ts`. Scenario H exercises
+the UI's Send action using one fixed synthetic prompt. The Chat-only
+mock permits a narrowly checked POST to the exact fixture Chat URL only
+after explicit per-test enablement; it fulfills a fixed `text/plain`
+response locally and records synthetic messages for the mock detail GET.
+Unknown IDs, unexpected methods, request metadata or message bodies
+are refused. Existing service-policy 503 behavior is unchanged.
+
+The browser UI uses `response.body.getReader()` to consume the text,
+but Playwright `route.fulfill` supplies a complete body. This verifies
+a stream-compatible text-reading path, **not** timed multi-chunk
+delivery, real model inference, or actual streamed browser E2E success.
+
+Developer-reported Windows offline validation after this patch:
+- Focused Vitest: **159/159 passed across 3 files** (38 Chat mock,
+  5 suite-selection, 116 existing C2 checks).
+- `pnpm exec tsc --noEmit`, targeted ESLint and `git diff --check`:
+  no errors reported.
+- Playwright `--list`: **4 smoke cases** and **4 Chat cases** collected,
+  with runner status `passed` for discovery only.
+
+At the time of these checks the three stream-mock files were modified
+locally and not yet reported committed. This section records the
+reported verification, not a subsequent commit, CI run, or live
+authenticated E2E pass.
+
+**Decision:** Proceed with the documentation and a reviewable commit
+for this offline-tested increment. Do not automatically run real
+browser E2E, OAuth Bootstrap, the native HTTPS Probe, the C2 app,
+database or external AI calls. Preserve the protected eight-row C2
+fixture, strict recording/network guards and Draft PR status.
+
+## Step 4-C4 — synthetic Chat send-error UI (2026-10-15 JST)
+
+Step 4-C3's deterministic text-response work and verification record were
+committed and pushed as `ad24968` (`test(c2): add mocked Chat text response
+and validation record`). This Step 4-C4 increment is a subsequent,
+separate local change awaiting a commit as of the following checks.
+
+- `e2e-c2/conversation-mocks.ts` provides an explicitly enabled failure
+  mode that locally fulfills a **single** strictly validated Chat POST with
+  a synthetic HTTP **503** JSON response. The response is not forwarded to
+  the actual C2 Chat service, AI provider or database. Unexpected requests
+  and repeated failures remain fail-closed; success and failure modes cannot
+  be enabled together.
+- `e2e-c2/chat.spec.ts` adds Chat-only scenario **I**, covering the send
+  error alert (`Failed to send message.`), optimistic-message rollback,
+  composer re-enablement, and error clearing when starting a new local
+  conversation. Existing Chat scenarios E–H are retained.
+- `scripts/c2-playwright-conversation-mocks.test.ts` adds offline coverage
+  for the synthetic 503, mode exclusivity, unexpected prompt rejection,
+  and duplicate-failure refusal.
+
+Developer-reported Windows **offline** verification after applying the
+Step 4-C4 patch:
+
+- Focused Vitest: **163/163 passed across 3 files** (42 Chat mocks,
+  5 suite-selection, 116 existing C2 checks).
+- `pnpm exec tsc --noEmit`, targeted ESLint, and `git diff --check`:
+  no errors reported.
+- Playwright `--list`: **4 authenticated smoke cases** and **5 Chat-only
+  cases (E–I)** collected, with status `passed` for **discovery only**.
+- `git status --short` showed only the three Chat test/mock files above as
+  modified; a Step 4-C4 commit was not yet reported at validation time.
+
+**Decision:** The isolated send-error mock and scenario I are implemented
+and offline-checked, but **not** verified by a live browser E2E run or CI.
+The observed HTTP 503 is a local synthetic response; it is not evidence
+of actual C2 Chat service behavior. Do not automatically run the private
+browser suites, OAuth Bootstrap, Chromium HTTPS Probe, app startup,
+external AI calls or database operations. Preserve the eight-row C2
+fixture, fail-closed network boundary, redacted reporter, and Draft PR.
+
+## Step 4-C5 — synthetic AI citation display (2026-10-15 JST)
+
+The Step 4-C4 send-error UI increment and its validation record were
+committed and pushed as `b1a1ba4` (`test(c2): covermocked Chat send error UI`).
+The next local-only increment adds an isolated citation-display mode to
+`e2e-c2/conversation-mocks.ts`, scenario **J** in `e2e-c2/chat.spec.ts`,
+and focused offline regressions in
+`scripts/c2-playwright-conversation-mocks.test.ts`.
+
+- The Chat mock returns a fixed synthetic AI answer containing a
+  `[source:c2-mock-citation-1]` marker, then serves its matching local
+  source metadata through the exact conversation-detail GET. Existing
+  collection, History, successful-send and send-failure modes remain
+  separate, with no upstream forwarding or database access.
+- Scenario J checks the stripped answer text, `Supporting sources` label,
+  exactly one link, and its `href`, `target` and `rel` attributes. The URL
+  uses a non-resolving `example.invalid` hostname and is **not clicked**.
+- Offline regressions use the application's actual citation parser and
+  cover matching response/metadata, mode exclusivity, duplicate-send
+  refusal and rollback on failed local fulfillment.
+
+Developer-reported Windows **offline** checks after applying the patch:
+- Focused Vitest: **167/167 passed across 3 files** (46 Chat mock,
+  5 suite-selection, 116 existing C2 tests).
+- `pnpm exec tsc --noEmit`, targeted ESLint and `git diff --check`:
+  no errors reported.
+- Playwright `--list`: **4 authenticated smoke** cases and **6 Chat-only**
+  cases (E–J) collected; `passed` means discovery only, not browser execution.
+- `git status --short` reported changes to only the three Chat test/mock
+  files above. This increment was not yet committed at verification time.
+
+**Decision:** Treat Step 4-C5 as implemented and offline-checked, ready
+for a separate documented commit. This does **not** establish live UI
+behavior, real source URL reachability, provider inference, streaming
+chunk timing, or a successful authenticated browser E2E. Do not start
+C2 app, OAuth Bootstrap, browser suites, native Chromium HTTPS Probe,
+or DB operations. Preserve the protected eight-row fixture, strict
+network/recording guards and Draft PR status.
+
+## Step 4-D1 — manual Edge normal-profile OAuth observation (2026-10-15 JST)
+
+This entry records a **developer-reported manual browser result**, supported
+by a screenshot of the resulting Workspace page. It does not report a
+Playwright run, a fresh automated bootstrap, or independently verified
+database/session state. The Step 4-C5 changes and validation record were
+committed and pushed as `1fe1228` before this observation was documented.
+
+- The developer used **Microsoft Edge in an existing ordinary profile**,
+  without a newly created C2-specific profile or special browser settings.
+  This was not a Playwright-controlled browser session.
+- The developer visited `http://localhost:3001/api/auth/signin`, saw the
+  Google account chooser, selected the **previously used C2 test Google
+  account** (not their ordinary personal Google account), completed the
+  interactive login, and reached the Evidence Atlas Workspace at
+  `http://localhost:3001/`.
+- The supplied screenshot shows a visible **Sign out** control, the selected
+  `[C2 E2E fixture v1] Workspace`, a matching recent Research card, and
+  summary counts of **Research 1, Sources 1, Findings 1, Tags 0**.
+  These are visible UI observations, **not** a verification of all eight
+  protected C2 database fixture rows or the underlying session identity.
+- No account email address, OAuth code, state parameter, browser cookie,
+  access token, browser-profile contents, or screenshot is stored in this
+  Git documentation record.
+
+**Interpretation:** A normal, manually operated Edge browser successfully
+completed a C2 test-account login flow and rendered the expected Workspace.
+The previous Playwright-controlled Chromium OAuth navigation remained
+stalled before an observed Google response/commit. This contrast is useful
+for investigating differences in automation, browser configuration,
+profile state, and network interception, but **does not identify any of
+those factors as the root cause**. In particular, it does not prove
+that InPrivate/incognito mode caused the earlier failures.
+
+**Still unverified:** whether this manual attempt inserted or updated any
+C2 authentication rows; the complete eight-row fixture count; direct
+`/api/auth/session` identity validation; the exact browser network exchange;
+and creation of `playwright/.auth/c2-user.json`. Prior authenticated
+Playwright smoke/Chat suites remain **unexecuted**. An existing normal
+profile can contain personal cookies or settings, so it must not be copied
+or imported into automated browser tests.
+
+**Decision:** Record the result as **manual Edge OAuth/Workspace success,
+reported and visually corroborated; not automated E2E success**. Next,
+perform **offline-only** comparison of the Edge manual and Playwright
+Chromium paths before authorizing further live tests. Do not rerun OAuth,
+start new browsers/probes, modify authentication state, perform DB reads
+or writes, reset or re-seed the eight-row fixture, relax TLS/network
+guards, or change the status of Draft PR #1 based on this observation.
+
+## Step 4-D2 — offline Edge/Playwright Chromium comparison (2026-10-15 JST)
+
+See [Step 4-D2 offline comparison](./c2-edge-playwright-offline-comparison.md).
+Source review at `46ea97f` compared the successful manual Edge login against
+the stalled Playwright Chromium Bootstrap. Unlike Edge's existing normal
+profile and direct `/api/auth/signin` navigation, Bootstrap uses a fresh
+Chromium context, starts at `/`, and intercepts browser traffic with
+`route.fetch` and `route.fulfill`. The interception difference is a
+**priority hypothesis**, not a proven cause. The lack of Google response or
+navigation commit, earlier private-browser success, and separate duplicate
+CDP Fetch pause must not be conflated.
+
+**Decision:** D2 analysis complete, root cause unresolved. Next produce a
+review-only D3 experiment/approval gate. No browser, OAuth, DB, proxy, probe,
+credential/state operation or C2 fixture mutation was performed. Keep PR #1
+Draft and the eight protected fixture rows unchanged.
+
+## Step 4-D4 — opt-in Playwright Edge OAuth selector (2026-10-15 JST)
+
+Starting from `3905f46`, the next narrow implementation adds one explicit
+OAuth-only command mode: `bootstrap-edge --allow-c2-edge-auth-bootstrap`.
+The existing `bootstrap --allow-c2-auth-bootstrap` still launches bundled
+Playwright Chromium with the same headed options. The Edge mode passes only
+`channel: "msedge"` to the same `chromium.launch` API and uses an independent
+fresh browser context; it does not import, attach to or copy the normal Edge
+profile, cookies or Google account data.
+
+- `scripts/c2-playwright-policy.ts` requires the exact separate Edge command
+  and opt-in flag, rejects additional CLI parameters, and returns fixed
+  browser launch options without executable-path/profile/proxy overrides.
+- `scripts/c2-playwright.ts` selects Edge only in the bootstrap branch.
+  Read-only smoke and Chat commands, configs and suite selection are untouched.
+- `scripts/c2-playwright-bootstrap.ts` preserves preflight, network interception,
+  Auth.js redirect handling, manual sign-in, session validation, redacted
+  diagnostics and exclusive state persistence; only the launch options differ.
+- `scripts/c2-playwright-bootstrap-browser.test.ts` covers the pure mode
+  selection, fail-closed invalid opt-ins and unchanged bootstrap wiring offline.
+
+**Decision:** Code/contract preparation only. This is **not approval to run**
+Edge, Chromium, OAuth, a browser probe or authenticated E2E. The route guard
+is not a host-level egress firewall; actual OAuth can update C2 Auth tables.
+A separately reviewed one-run authorization and network/DB-effect review are
+required before executing the new command. Preserve all eight protected C2
+fixture rows and Draft PR #1. No live result, CI result or developer Windows
+Vitest result is claimed by this source-only increment.
+
+### Step 4-D4 — developer-reported Windows offline verification
+
+After applying the Step 4-D4 patch, the developer reported the following
+checks on the Windows checkout of `fix/c2-probe-rejection-diagnostics`:
+
+- Focused Vitest: **172/172 tests passed across four files**:
+  5 Edge bootstrap selection, 46 Chat mocks, 5 suite-selection, and
+  116 existing C2 regression checks.
+- `pnpm exec tsc --noEmit`: completed without reported errors.
+- Targeted ESLint on the three changed runtime/policy files and the new
+  Edge bootstrap test: completed without reported errors.
+- `git diff --check`: completed without reported errors.
+- `git status --short`: four existing Step 4-D4 files were modified and
+  `scripts/c2-playwright-bootstrap-browser.test.ts` was untracked.
+  Separately, `docs/planning/c2-edge-normal-oauth-revalidation-plan.md`
+  was untracked from an earlier planning step; **do not include it in the
+  Step 4-D4 commit without a separate review**.
+
+**Interpretation:** The selected code paths passed developer-run **offline**
+checks. This is not a live Edge or Chromium test, successful Google OAuth
+bootstrap, authenticated Playwright E2E, or verified CI result.
+
+**Decision:** Step 4-D4 is ready for a narrowly staged five-file commit
+(subject to diff review). Do not execute `bootstrap-edge`, start the C2
+app, rerun the native HTTPS probe, invoke OAuth, or inspect/mutate the
+C2 database on the strength of these results. Preserve the existing
+network fail-closed rules, private browser state, the protected eight
+fixture rows, and Draft PR #1. Live testing still requires a separate
+safety and database-effect decision.
+
+## Step 4-D5 — Playwright Edge OAuth live-run safety review (2026-10-15 JST)
+
+See [D5 one-run OAuth review](./c2-playwright-edge-oauth-live-gate.md).
+After Step 4-D4 (`4339c77`), code review confirmed the new Edge selection
+uses a fresh Playwright browser context, separate exact CLI opt-in,
+the existing network interception and validated C2-only session
+persistence. Developer-reported Windows offline checks passed **172/172**.
+The original C2 fixture eight-row graph remains protected.
+
+A real OAuth flow requires multiple HTTPS requests and may update
+C2 Auth User/Account/Session rows. The Playwright Route guard does
+not independently prove host-wide outbound containment. The isolated
+one-GET Chromium probe remains under its **separate NO-GO** decision.
+The 20-second Google navigation timer is an observation, not a hard
+automatic abort; a bounded, supervised attempt needs a cleanup review.
+
+**Decision:** D5 source/documentation review complete. A live Edge
+OAuth attempt is **not yet authorized**: it requires an explicit
+decision on network residual risk, allowed C2 Auth-side DB effects,
+separately authorized read-only fixture verification, a finite operator
+stop/cleanup plan, and the one-attempt scope. No browser, app, OAuth,
+database or network probe was run for this review. Keep Draft PR #1.
+
+## Step 4-D6 — first authorized Playwright Edge OAuth observation (2026-10-15 JST)
+
+The developer reported one headed `bootstrap-edge` attempt with the preselected
+C2-only Google identity. Before and after, the guarded read-only fixture
+`verify` returned `present: 8`, `plannedInserts: 0`, `plannedDeletes: 8`.
+OAuth emitted `AUTH_BROWSER_REDIRECT`, `AUTH_FULFILL_COMPLETED`, and
+`GOOGLE_NAV_REQUEST`, but no observed Google navigation response/commit.
+After the 20-second pending observation it reported
+`REQUEST_OBSERVED_REFUSED`, `BLOCKED_EXTERNAL_NAVIGATION`, and
+`NETWORK_REFUSED`; the recorded cancellation was before the shutdown marker.
+Exit code was 1 and the app-only auth-state file did not exist. The fixed
+codes do not reveal which request was refused, and do not prove it caused
+the earlier lack of Google response. Auth-table changes were not audited.
+
+## Step 4-D7 — sign-in return analysis and refusal classification (2026-10-15 JST)
+
+Offline source review: `src/auth.ts` uses the standard Auth.js Google
+provider and database session, and `src/app/api/auth/[...nextauth]/route.ts`
+forwards GET/POST to the standard handlers. `src/auth/requireUser.ts`
+redirects anonymous visitors to `/api/auth/signin`. The developer observed
+that repeat manual Edge sign-in stayed at `/api/auth/signin` while `/` in
+another tab rendered the signed-in Workspace. Auth.js's standard sign-in
+page is not a guaranteed post-login Workspace redirect; returning to the
+original sign-in page or reusing a previous session remains possible.
+This observation alone does **not** prove the OAuth callback is broken.
+
+The Playwright attempt stopped **before** any observed provider response,
+so a sign-in page callback/return change is not yet a proven E2E fix.
+Do not rewrite Auth.js redirects speculatively. Instead, this offline-only
+increment adds a small **fixed-category** diagnostic to existing rejected
+external-navigation observations (browser-internal, non-HTTPS, already
+allowlisted Google hostname but rejected URL/request, selected unlisted
+Google-associated hostname families, other HTTPS, invalid URL). It never
+logs a URL, query, hostname, cookie or token, never permits a request, and
+never changes the interception, OAuth, profile, saved-state or DB rules.
+The category is not proof the rejected navigation caused the initial stall.
+Only one existing Vitest file receives focused mocked checks; no browser
+or OAuth is executed for Step 4-D7.
+
+**Decision:** Classification implementation prepared for developer's offline
+validation, not verified on Windows or approved for another live OAuth run.
+If an additional run is considered, it needs **new explicit authorization**;
+Step 4-D6's one-time permission has been consumed. Keep the strict native
+HTTPS probe NO-GO, the eight fixture rows unchanged, and Draft PR #1.

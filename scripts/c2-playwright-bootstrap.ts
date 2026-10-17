@@ -1,7 +1,7 @@
 import { chromium, request } from "@playwright/test";
 import { createInterface } from "node:readline/promises";
 import { stdin, stdout } from "node:process";
-import { C2_ORIGIN, RESEARCH_PATH, captureAppState, checkedGet, preflight, refuse, requireExpectedUser } from "./c2-playwright-policy.ts";
+import { C2_ORIGIN, RESEARCH_PATH, bootstrapBrowserLaunchOptions, captureAppState, checkedGet, preflight, refuse, requireExpectedUser } from "./c2-playwright-policy.ts";
 import { installNetworkBoundary, safePageUrl } from "./c2-playwright-network.ts";
 import { saveC2State } from "./c2-playwright-state.ts";
 import { bootstrapDiagnostic, type BootstrapCode } from "./c2-playwright-diagnostics.ts";
@@ -15,14 +15,14 @@ function checkNetwork(assert: () => void) {
   try { assert(); } catch { report("NETWORK_REFUSED"); refuse("bootstrap-network"); }
 }
 
-export async function bootstrapAuth() {
+export async function bootstrapAuth(mode: "bootstrap" | "bootstrap-edge" = "bootstrap") {
   if (!stdin.isTTY || !stdout.isTTY) refuse("interactive-terminal-required");
   const expected = requireExpectedUser(process.env);
   const client = await request.newContext({ baseURL: C2_ORIGIN, storageState: { cookies: [], origins: [] } });
   try { await phase("APP_PREFLIGHT_FAILED", () => preflight(client, expected, false)); }
   finally { await client.dispose(); }
   // Fresh ephemeral context: no private-browser/profile import or reuse.
-  const browser = await phase("BROWSER_START_FAILED", () => chromium.launch({ headless: false }));
+  const browser = await phase("BROWSER_START_FAILED", () => chromium.launch(bootstrapBrowserLaunchOptions(mode)));
   let boundary: Awaited<ReturnType<typeof installNetworkBoundary>> | undefined;
   try {
     const context = await browser.newContext({ serviceWorkers: "block" });
