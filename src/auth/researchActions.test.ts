@@ -154,10 +154,10 @@ describe.each(actions)("$name access control", (action) => {
     expect(mocks.write).not.toHaveBeenCalled();
   });
 
-  it("rethrows unexpected workspace membership lookup failures without writing", async () => {
+  it.each(["Research", "WorkspaceMembership"])("rethrows unexpected %s lookup failures without writing", async (model) => {
     const error = new Error("Database unavailable");
 
-    mocks.models.WorkspaceMembership.query.first.mockRejectedValue(error);
+    mocks.models[model].query.first.mockRejectedValue(error);
 
     await expect(action.run()).rejects.toBe(error);
 

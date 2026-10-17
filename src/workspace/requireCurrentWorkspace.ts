@@ -1,7 +1,7 @@
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 
-import { requireWorkspaceAccess } from "@/auth/requireWorkspaceAccess";
+import { requireWorkspaceAccess, WorkspaceAccessError } from "@/auth/requireWorkspaceAccess";
 import { db } from "@/prisma/db";
 
 import { CURRENT_WORKSPACE_COOKIE } from "./currentWorkspace";
@@ -22,7 +22,8 @@ export async function requireCurrentWorkspace(userId: string) {
       if (workspace) {
         return workspace;
       }
-    } catch {
+    } catch (error) {
+      if (!(error instanceof WorkspaceAccessError)) throw error;
       // stale / unauthorized cookie:
       // fall through to an accessible workspace
     }
