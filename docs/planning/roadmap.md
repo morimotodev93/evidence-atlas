@@ -568,13 +568,13 @@ Final verification passed `pnpm exec playwright test e2e/public-demo.spec.ts` (*
 - **Code review:** Native anchors carry visible titles; the GitHub icon is decorative (`aria-hidden="true"`). Status (`Completed`), Demo/read-only and tag labels use text rather than color alone. Section headings express content hierarchy rather than decoration; the list's existing `aria-label="Research list"` names its region. No additional ARIA is needed. Link focus uses the browser's `outline-style: auto` (computed 1px) with the global `outline-ring/50` color and no shadow. `.dark` tokens exist, but system-theme selection and a theme control are absent, matching the implementation gap already recorded in the design system. The sidebar and other Draft design-direction proposals are not treated as implemented requirements.
 - **Numerical text-contrast samples:** A temporary Playwright/Chromium script read computed text colors and the nearest nontransparent ancestor background in the current light theme at rest, checked sampled ancestor chains for opacity/filter/gradient effects, and converted colors through Canvas 2D sRGB `getImageData` (8-bit RGB). WCAG relative luminance uses linearized sRGB with coefficients 0.2126/0.7152/0.0722 and ratio `(Llighter + 0.05) / (Ldarker + 0.05)`. The opaque pairs below exceed the normal-text 4.5:1 threshold before display rounding. They are samples, not all-state or whole-page contrast certification; antialiased glyph pixels were not used. Translucent/blurred header backgrounds, hover backgrounds, focus outlines and dark colors are excluded from numerical conclusions.
 
-| Sample | Foreground / opaque background (sRGB) | Ratio | Result for sampled pair |
-| --- | --- | --- | --- |
-| Page heading / main background | `#0f172a` / `#fafafa` | 17.10:1 | Pass |
-| Finding text and Supporting link / card | `#0f172a` / `#ffffff` | 17.85:1 | Pass |
-| Muted description and small metadata / main background | `#475569` / `#fafafa` | 7.26:1 | Pass |
-| Muted list/Source description and small date / card | `#475569` / `#ffffff` | 7.58:1 | Pass |
-| Tag text / secondary badge | `#0f172a` / `#e2e8f0` | 14.48:1 | Pass |
+| Sample                                                 | Foreground / opaque background (sRGB) | Ratio   | Result for sampled pair |
+| ------------------------------------------------------ | ------------------------------------- | ------- | ----------------------- |
+| Page heading / main background                         | `#0f172a` / `#fafafa`                 | 17.10:1 | Pass                    |
+| Finding text and Supporting link / card                | `#0f172a` / `#ffffff`                 | 17.85:1 | Pass                    |
+| Muted description and small metadata / main background | `#475569` / `#fafafa`                 | 7.26:1  | Pass                    |
+| Muted list/Source description and small date / card    | `#475569` / `#ffffff`                 | 7.58:1  | Pass                    |
+| Tag text / secondary badge                             | `#0f172a` / `#e2e8f0`                 | 14.48:1 | Pass                    |
 
 - **Findings and fixes:** No UI defect requiring a change reproduced within the reviewed scope; UI/shared SaaS components and dependencies are unchanged. At 375px, reverse Tab can place part of a Source link behind the sticky header, with the remaining part still visible. This is recorded as partial overlap, not complete occlusion under [2.4.11 Focus Not Obscured (Minimum)](https://www.w3.org/WAI/WCAG22/Understanding/focus-not-obscured-minimum.html). The first new-test run falsely treated a covered centre point as complete occlusion; the test was corrected to sample multiple points across rendered fragments and then passed. This does not establish zero partial overlap or full focus-indicator contrast compliance.
 - **Validation:** `pnpm exec playwright test e2e/public-demo.spec.ts` passed **11/11** (existing 8 + new 3); `pnpm test --run` passed **52 files / 976 tests**; `pnpm exec tsc --noEmit`, `pnpm lint` and `git diff --check` passed. Playwright/Vitest initially failed to spawn subprocesses in the restricted sandbox (`EPERM`) and passed after approved execution outside it. Public Demo preflight and browser non-GET blocking remain intact. Only the Public Demo browser suite ran; Vitest's C2-named tests are offline/mock checks, not a live C2 suite. No C2 environment operation, OAuth flow, real Chat/AI call, direct DB operation, production mutation, or authentication-state acquisition/export was performed.
@@ -655,14 +655,52 @@ Developer-provided terminal observations now cover all six Groq cases. Case 01 f
 - **Package-manager diagnostics:** pnpm attempted its automatic dependency verification/install before running scripts. Project install-lock acquisition and the user-level store operation lock were denied (`ERR_PNPM_STORE_DIR_OPEN_OPERATION_LOCK`, OS error 5), followed by a warning that installed dependencies may be out of sync with the lockfile. pnpm nevertheless continued to the existing tools. Consequently the TypeScript/ESLint exit-0 results cover the existing installed dependencies, not a successful clean dependency installation. The suggested `verifyDepsBeforeRun: false` bypass was **not** applied; permissions, package manager, lockfile, and dependency settings were not changed to suppress these messages.
 - **Initial Codex warning/error classification:**
 
-  | Classification | Observation in this run | Decision |
-  | --- | --- | --- |
-  | Prevents build verification | Compilation did not complete; verifier stopped the growing worker, followed by the PostCSS subprocess/timeout error | Preserve as interrupted/inconclusive; investigate environment and copy layout before attributing a code defect or changing CSS/configuration |
-  | Environment-dependent tooling failure | pnpm project/store locks denied; automatic dependency verification failed, then existing tools ran | Existing dependency results only; resolve legitimate local permissions/dependency verification before a clean rerun; do not disable the check |
-  | Known environment restriction, reproduced now | Vitest's Vite/esbuild startup failed with `spawn EPERM`, consistent with earlier restricted-sandbox test startup records | No tests ran; do not claim the historical passing test count for this run |
-  | Informational configuration output | Next.js lists experimental `clientTraceMetadata` while using the existing Sentry wrapper | Not an error or a new application regression; no configuration change warranted |
-  | Historical warnings, not reproduced here | Earlier roadmap entries mention unconfigured Upstash build credentials and missing Inngest event-key test diagnostics | Neither appeared in this interrupted build / pre-collection test run; do not claim they are resolved or count them as current warnings |
-  | Outside this verification | Live DB, OAuth, AI, Redis, Inngest Cloud, Sentry upload, and deployment behavior | No live-service validation or production-readiness conclusion |
+##### PR #5 / Prevents build verification
+
+- **Observation in this run:**
+  Compilation did not complete; verifier stopped the growing worker, followed by the PostCSS subprocess/timeout error
+- **Decision:**
+  Preserve as interrupted/inconclusive; investigate environment and copy layout before attributing a code defect or
+  changing CSS/configuration
+
+##### PR #5 / Environment-dependent tooling failure
+
+- **Observation in this run:**
+  pnpm project/store locks denied; automatic dependency verification failed, then existing tools ran
+- **Decision:**
+  Existing dependency results only; resolve legitimate local permissions/dependency verification before a clean rerun;
+  do not disable the check
+
+##### PR #5 / Known environment restriction, reproduced now
+
+- **Observation in this run:**
+  Vitest's Vite/esbuild startup failed with `spawn EPERM`, consistent with earlier restricted-sandbox test startup
+  records
+- **Decision:**
+  No tests ran; do not claim the historical passing test count for this run
+
+##### PR #5 / Informational configuration output
+
+- **Observation in this run:**
+  Next.js lists experimental `clientTraceMetadata` while using the existing Sentry wrapper
+- **Decision:**
+  Not an error or a new application regression; no configuration change warranted
+
+##### PR #5 / Historical warnings, not reproduced here
+
+- **Observation in this run:**
+  Earlier roadmap entries mention unconfigured Upstash build credentials and missing Inngest event-key test
+  diagnostics
+- **Decision:**
+  Neither appeared in this interrupted build / pre-collection test run; do not claim they are resolved or count them
+  as current warnings
+
+##### PR #5 / Outside this verification
+
+- **Observation in this run:**
+  Live DB, OAuth, AI, Redis, Inngest Cloud, Sentry upload, and deployment behavior
+- **Decision:**
+  No live-service validation or production-readiness conclusion
 
 - **Communication and side effects:** Google Fonts CSS/font fetching is the expected build-time asset dependency, but this run recorded neither successful font acquisition nor a font-specific error. There was no packet capture or complete outbound-traffic audit, so actual destinations and the absence of every unexpected packet are not proven. No external-network permission was expanded and no sandbox escalation was requested. With no env files loaded, no service credentials inherited, no Sentry DSN, and no Sentry build token, runtime event delivery and authenticated source-map/release upload had no configured credentials; the compilation did not reach Sentry's after-production-compile hook. Source review found request/lazy DB, AI, Redis, and Inngest paths rather than a migration/seed/build-time query script; Public Demo guards and the missing Demo Workspace prevented intended data entry paths. No service request, DB query, migration, seed, C2 startup, production server, browser/OAuth flow, fixture operation, or deployment was intentionally invoked. This is configuration/source/log evidence, not a DB audit or complete egress-containment proof.
 - **Secret and workspace checks:** Original local environment files were not modified, removed, or moved; local fingerprints taken during verification still matched at the final check (fingerprints were not published). A value-match scan of **519 generated/log files** found **zero matches** for configured local values of at least eight characters from `.env`, `.env.local`, and `.env.sentry-build-plugin`. This bounded scan is not a general secret-detection certification. At the end of this initial Codex run, only this roadmap was changed in the working tree. No generated artifact was added to Git; no commit, push, PR creation, Vercel deployment, or application/configuration/dependency change was performed.
@@ -675,14 +713,29 @@ Developer-provided terminal observations now cover all six Groq cases. Case 01 f
 - **Evidence attribution:** The developer supplied the Windows PowerShell build/test observations below. Codex reviewed the existing diff and collection configuration during finalization, but did **not** rerun the build, Vitest, TypeScript, or ESLint. The detailed OS/tool versions above describe the initial Codex environment; the later report explicitly identifies Windows PowerShell and Next.js **16.3.8**, without independently re-establishing every environment version or flag.
 - **Production build completed, per developer report:** `pnpm build` reported `Compiled successfully`, `Completed runAfterProductionCompile`, and `Finished TypeScript`; it completed page-data collection, static generation **10/10**, and final page optimization, then displayed the route list including `/demo` and `/demo/research/[researchId]`. PowerShell returned to its prompt. These observations support completion of the build pipeline on the developer's Windows environment. A numeric `$LASTEXITCODE` was **not supplied**, so exit **0** is not independently recorded. No subsequent `BUILD_ID` or artifact inspection by Codex is claimed.
 - **Windows build safety limit:** The log explicitly lists **`Environments: .env.local, .env`**. This was not the credential-free Codex copy. The report does not establish whether real DB operations, Sentry source-map/release uploads, or other external service communication occurred; it also does not prove secret isolation or the complete absence of external side effects. Completion of `runAfterProductionCompile` alone does not prove either that an upload occurred or that uploads were disabled. The earlier env-file/value-match checks apply only to the initial isolated run and must not be transferred to this Windows build. Build completion does not establish Vercel deployment success, DB connectivity, OAuth/AI behavior, or actual production operation.
-- **Vitest collection defect and bounded fix:** The developer's first Windows test run traversed `build/production-verification/source/`, duplicating baseline unit-test collection and incorrectly collecting three copied Playwright suites: `build/production-verification/source/e2e/public-demo.spec.ts`, `build/production-verification/source/e2e-c2/authenticated-smoke.spec.ts`, and `build/production-verification/source/e2e-c2/chat.spec.ts`. It reported **1,952 tests passing with three suites failing**, not a passing regression suite. The existing exclusions `e2e/**` and `e2e-c2/**` covered the root directories, not those nested copies. The developer added **`"build/**"`** to `test.exclude` in `vitest.config.ts`, preserving `configDefaults.exclude` and both root E2E exclusions. Codex confirmed this exact one-line change is present. It removes generated-copy tests from Vitest collection while retaining the original unit suite; it does not modify or disable the Playwright tests themselves. `.gitignore` already excludes `/build`, so no additional ignore/configuration changes are included.
+- **Vitest collection defect and bounded fix:** The developer's first Windows test run traversed `build/production-verification/source/`, duplicating baseline unit-test collection and incorrectly collecting three copied Playwright suites: `build/production-verification/source/e2e/public-demo.spec.ts`, `build/production-verification/source/e2e-c2/authenticated-smoke.spec.ts`, and `build/production-verification/source/e2e-c2/chat.spec.ts`. It reported **1,952 tests passing with three suites failing**, not a passing regression suite. The existing exclusions `e2e/**` and `e2e-c2/**` covered the root directories, not those nested copies. The developer added **`"build/**"`** to `test.exclude`in`vitest.config.ts`, preserving `configDefaults.exclude`and both root E2E exclusions. Codex confirmed this exact one-line change is present. It removes generated-copy tests from Vitest collection while retaining the original unit suite; it does not modify or disable the Playwright tests themselves.`.gitignore`already excludes`/build`, so no additional ignore/configuration changes are included.
 - **Developer-reported final checks after the exclusion fix:**
 
-  | Command | Reported Windows result | Evidence limit |
-  | --- | --- | --- |
-  | `pnpm test --run` | **52/52 files, 976/976 tests passed**, duration **7.80s** | Supplied log: `Test Files 52 passed (52)` and `Tests 976 passed (976)`; not re-executed by Codex |
-  | `pnpm exec tsc --noEmit` | **Passed** | Developer report; no new Codex execution or numeric exit-code transcript |
-  | `pnpm lint` | **Passed** | Developer report; no new Codex execution or numeric exit-code transcript |
+##### PR #5 / Developer-reported `pnpm test --run`
+
+- **Reported Windows result:**
+  **52/52 files, 976/976 tests passed**, duration **7.80s**
+- **Evidence limit:**
+  Supplied log: `Test Files 52 passed (52)` and `Tests 976 passed (976)`; not re-executed by Codex
+
+##### PR #5 / Developer-reported `pnpm exec tsc --noEmit`
+
+- **Reported Windows result:**
+  **Passed**
+- **Evidence limit:**
+  Developer report; no new Codex execution or numeric exit-code transcript
+
+##### PR #5 / Developer-reported `pnpm lint`
+
+- **Reported Windows result:**
+  **Passed**
+- **Evidence limit:**
+  Developer report; no new Codex execution or numeric exit-code transcript
 
 - **Unresolved isolated-build issues:** Retain the initial **496-second / exit 1** interrupted run, approximately **6.1 GiB** worker working set, absent `BUILD_ID`, pnpm dependency-verification/permission diagnostics, and post-interruption PostCSS communication/timeout errors as historical evidence. The Windows completion report does not resolve their causes or demonstrate a successful build under the same isolation conditions. No application build defect has been established from that interrupted run, and no CSS, bundler, dependency, heap-limit, or safety-guard change is justified by this evidence alone.
 - **Final scope and checks:** The final working-tree diff is limited to `vitest.config.ts` and `docs/planning/roadmap.md`; existing uncommitted changes were preserved, and branch/HEAD were not changed. Codex checked `git branch --show-current`, `git status --short`, `git diff --stat`, `git diff --check`, and the diff for both files; whitespace validation passed. No environment file was edited and no build/test command, DB/OAuth/AI/C2 operation, Sentry upload, production-server startup, deployment, commit, push, or PR creation was performed during this finalization. PR #5 is ready for review as a bounded collection fix and evidence update, with the outstanding verification limits stated explicitly.
@@ -692,22 +745,148 @@ Developer-provided terminal observations now cover all six Groq cases. Case 01 f
 
 - **Inventory before adding coverage:** The following categories distinguish existing evidence from gaps and reproduced failures. Existing tests were retained and strengthened where appropriate, rather than duplicated.
 
-  | Error path | Initial classification | Evidence / bounded outcome |
-  | --- | --- | --- |
-  | Demo missing Workspace/Research; missing/blank/wrong configuration; Workspace/Organization name mismatch | Existing tests confirm | `src/lib/demo/read.test.ts` and `src/app/demo/pages.test.ts`: fail closed, no arbitrary fallback, unavailable public data invokes `notFound()` |
-  | Demo other-Workspace Research and related private fields | Existing tests confirm | Parent query matches Research ID and Demo Workspace ID before child reads; linked Sources/Tags are filtered; private User metadata is excluded from returned Comments and rendered pages |
-  | Demo unexpected DB errors | Existing tests confirm | Reader tests cover Workspace/Research/Source/Finding/Comment/ResearchTag failures; both page tests rethrow reader failures without invoking `notFound()` |
-  | Public deployment page/Auth.js/Chat locks, including session-shaped input and invalid Demo configuration | Existing tests confirm | `requireUser.test.ts`, `publicDeploymentRoutes.test.ts`, `publicDeploymentWrites.test.ts`, `chatRoutes.test.ts`: block protected work before auth/DB/providers; Demo reads remain independent of authentication |
-  | Normal unauthenticated requests and Research authorization refusal | Existing tests confirm | `requireUser` redirects to sign-in; actual guards exercised through `researchActions.test.ts` and `researchPages.test.ts` deny missing Research/non-members; create Actions test their caller contracts; Chat maps `ResearchAccessError` to fixed 404 bodies |
-  | Unexpected authentication and Action Research lookup errors | Implementation present, test gap | Added `requireUser` auth-exception propagation and expanded the existing ten-Action DB-failure matrix from membership lookup to Research lookup as well |
-  | Current Workspace selection after cookie-based membership/Workspace DB failure | Reproduced behavior defect | `requireCurrentWorkspace` caught all exceptions and returned another accessible Workspace; two new tests rejected that false success before the fix |
-  | Chat Demo 404, list/message 401, denied Research/Conversation 404, invalid fields 400, rate limit 429 with `Retry-After` | Existing tests confirm | Existing exact status/body tests retained; rejection tests now also check no Conversation create/update, Message create or usage-event write |
-  | Chat Conversation create/detail 401; unexpected auth/access/Conversation lookup or create errors; rate-limit/context exceptions; vanished context | Implementation present, test gap | Added representative handler-boundary tests: exact error identity propagates, failed creation does not return 201, vanished context returns the existing Research 404, downstream writes/AI are absent |
-  | Chat malformed/empty JSON | Reproduced behavior defect | New tests with `"{"` and an empty body initially threw `SyntaxError` instead of returning the existing invalid-request 400 contract |
-  | Chat retrieval/generation startup/usage write/AI-message write failures and incomplete/blank generated responses | Existing tests confirm | Existing `chatRoutes.test.ts` characterizes failures and retained writes: retrieval failure precedes persistence; later generation failures can retain the accepted user message; usage-write and AI-message-write failures propagate |
-  | Global error rendering and configured Sentry capture in Demo vs normal SaaS | Implementation present, test gap | Added static rendering and explicitly invoked registered-effect tests with a mocked SDK; added client/server/edge init-option tests with absent/synthetic DSN in both deployment modes |
-  | C2 Sentry isolation, tracing sample configuration and best-effort index-enqueue reporting | Existing tests confirm | Existing `sentry-config.test.ts`, C2 service/client/build isolation tests and `request-research-index.test.ts` retained; no live Sentry delivery |
-  | Actual Next.js production error responses, browser mounting/recovery, real DB/provider/stream failures and actual Sentry delivery/redaction | Cannot confirm in this review | Offline mocks/source inspection only; no production build, live server, browser or external-service verification |
+##### PR #6 / Demo configuration and missing resources
+
+- **Error path:**
+  Demo missing Workspace/Research; missing/blank/wrong configuration; Workspace/Organization name mismatch
+- **Initial classification:**
+  Existing tests confirm
+- **Evidence / bounded outcome:**
+  `src/lib/demo/read.test.ts` and `src/app/demo/pages.test.ts`: fail closed, no arbitrary fallback, unavailable public
+  data invokes `notFound()`
+
+##### PR #6 / Demo tenant and private fields
+
+- **Error path:**
+  Demo other-Workspace Research and related private fields
+- **Initial classification:**
+  Existing tests confirm
+- **Evidence / bounded outcome:**
+  Parent query matches Research ID and Demo Workspace ID before child reads; linked Sources/Tags are filtered; private
+  User metadata is excluded from returned Comments and rendered pages
+
+##### PR #6 / Demo DB exceptions
+
+- **Error path:**
+  Demo unexpected DB errors
+- **Initial classification:**
+  Existing tests confirm
+- **Evidence / bounded outcome:**
+  Reader tests cover Workspace/Research/Source/Finding/Comment/ResearchTag failures; both page tests rethrow reader
+  failures without invoking `notFound()`
+
+##### PR #6 / Public deployment locks
+
+- **Error path:**
+  Public deployment page/Auth.js/Chat locks, including session-shaped input and invalid Demo configuration
+- **Initial classification:**
+  Existing tests confirm
+- **Evidence / bounded outcome:**
+  `requireUser.test.ts`, `publicDeploymentRoutes.test.ts`, `publicDeploymentWrites.test.ts`, `chatRoutes.test.ts`:
+  block protected work before auth/DB/providers; Demo reads remain independent of authentication
+
+##### PR #6 / Authentication and Research refusal
+
+- **Error path:**
+  Normal unauthenticated requests and Research authorization refusal
+- **Initial classification:**
+  Existing tests confirm
+- **Evidence / bounded outcome:**
+  `requireUser` redirects to sign-in; actual guards exercised through `researchActions.test.ts` and
+  `researchPages.test.ts` deny missing Research/non-members; create Actions test their caller contracts; Chat maps
+  `ResearchAccessError` to fixed 404 bodies
+
+##### PR #6 / Authentication and lookup exceptions
+
+- **Error path:**
+  Unexpected authentication and Action Research lookup errors
+- **Initial classification:**
+  Implementation present, test gap
+- **Evidence / bounded outcome:**
+  Added `requireUser` auth-exception propagation and expanded the existing ten-Action DB-failure matrix from
+  membership lookup to Research lookup as well
+
+##### PR #6 / Current Workspace DB failures
+
+- **Error path:**
+  Current Workspace selection after cookie-based membership/Workspace DB failure
+- **Initial classification:**
+  Reproduced behavior defect
+- **Evidence / bounded outcome:**
+  `requireCurrentWorkspace` caught all exceptions and returned another accessible Workspace; two new tests rejected
+  that false success before the fix
+
+##### PR #6 / Chat status and rejection effects
+
+- **Error path:**
+  Chat Demo 404, list/message 401, denied Research/Conversation 404, invalid fields 400, rate limit 429 with
+  `Retry-After`
+- **Initial classification:**
+  Existing tests confirm
+- **Evidence / bounded outcome:**
+  Existing exact status/body tests retained; rejection tests now also check no Conversation create/update, Message
+  create or usage-event write
+
+##### PR #6 / Chat handler boundaries
+
+- **Error path:**
+  Chat Conversation create/detail 401; unexpected auth/access/Conversation lookup or create errors; rate-limit/context
+  exceptions; vanished context
+- **Initial classification:**
+  Implementation present, test gap
+- **Evidence / bounded outcome:**
+  Added representative handler-boundary tests: exact error identity propagates, failed creation does not return 201,
+  vanished context returns the existing Research 404, downstream writes/AI are absent
+
+##### PR #6 / Malformed and empty JSON
+
+- **Error path:**
+  Chat malformed/empty JSON
+- **Initial classification:**
+  Reproduced behavior defect
+- **Evidence / bounded outcome:**
+  New tests with `"{"` and an empty body initially threw `SyntaxError` instead of returning the existing
+  invalid-request 400 contract
+
+##### PR #6 / Chat generation and persistence failures
+
+- **Error path:**
+  Chat retrieval/generation startup/usage write/AI-message write failures and incomplete/blank generated responses
+- **Initial classification:**
+  Existing tests confirm
+- **Evidence / bounded outcome:**
+  Existing `chatRoutes.test.ts` characterizes failures and retained writes: retrieval failure precedes persistence;
+  later generation failures can retain the accepted user message; usage-write and AI-message-write failures propagate
+
+##### PR #6 / Global error and Sentry capture
+
+- **Error path:**
+  Global error rendering and configured Sentry capture in Demo vs normal SaaS
+- **Initial classification:**
+  Implementation present, test gap
+- **Evidence / bounded outcome:**
+  Added static rendering and explicitly invoked registered-effect tests with a mocked SDK; added client/server/edge
+  init-option tests with absent/synthetic DSN in both deployment modes
+
+##### PR #6 / C2 Sentry and enqueue reporting
+
+- **Error path:**
+  C2 Sentry isolation, tracing sample configuration and best-effort index-enqueue reporting
+- **Initial classification:**
+  Existing tests confirm
+- **Evidence / bounded outcome:**
+  Existing `sentry-config.test.ts`, C2 service/client/build isolation tests and `request-research-index.test.ts`
+  retained; no live Sentry delivery
+
+##### PR #6 / Runtime and delivery limits
+
+- **Error path:**
+  Actual Next.js production error responses, browser mounting/recovery, real DB/provider/stream failures and actual
+  Sentry delivery/redaction
+- **Initial classification:**
+  Cannot confirm in this review
+- **Evidence / bounded outcome:**
+  Offline mocks/source inspection only; no production build, live server, browser or external-service verification
 
 - **Caller semantics:** `WorkspaceAccessError` and `ResearchAccessError` are internal exceptions, not HTTP responses. `requireResearchAccess` translates only a missing membership's `WorkspaceAccessError`; DB errors retain their identity. Normal pages use the Research access exception to call `notFound()`. Actions either return `{ error: "Research not found." }` or throw the existing generic Research error, while unexpected errors propagate. Chat returns the fixed JSON 404 only for `ResearchAccessError`. `requireUser` retains its sign-in redirect in normal mode and its earlier deployment refusal in Demo mode. Research access depends on membership in the Research's actual Workspace, not solely on the currently selected Workspace; membership in multiple Workspaces is not itself an access violation. Current Workspace switching/admin/settings callers were source-inspected, not exhaustively tested here.
 
@@ -727,18 +906,109 @@ Developer-provided terminal observations now cover all six Groq cases. Case 01 f
 
 - **Inventory before adding coverage:**
 
-  | Authorization case | Initial classification | Evidence / bounded result |
-  | --- | --- | --- |
-  | Workspace non-admin guard refusal, missing target membership, last-ADMIN refusal and demotion with another ADMIN remaining | Existing tests confirm the Action contract | Four cases in `workspaceMemberRole.test.ts`, but both `requireUser` and `requireWorkspaceAdmin` were mocked; they did not prove the actual admin/access guard chain |
-  | Organization role management in normal SaaS mode | Test gap | The baseline had only its Public Demo entry-refusal test, not normal-mode admin/target lookup or mutation coverage. The Phase 7 summary broadly mentions Organization role-management tests; this inventory records that coverage limit without rewriting the historical summary |
-  | MEMBER/non-member refusal using real guards; ADMIN from another Organization/Workspace; independence of the two role scopes; exact target read/update and admin-count scoping; membership/count DB exceptions | Test gap | Added direct Action tests with real `requireUser` and access/admin guards, synthetic auth results, and predicate-aware DB mocks |
-  | Research membership/missing-resource/unauthenticated refusal, authorized mutations, unexpected Research/membership lookup exceptions | Existing tests confirm | `researchActions.test.ts`: ten Actions × six cases, with real Research/Workspace access guards and mocked `requireUser`/DB. No duplicate cases added |
-  | Research creation-related Action refusal/error propagation and authorized authorship/Workspace Tag scoping | Existing tests confirm the caller contract | `researchCreateActions.test.ts`: six Actions × three refusal/error cases plus six authorized cases; `requireResearchAccess` is mocked here, so this is not independent proof of its implementation |
-  | Public Demo direct Action refusal before auth/private queries/writes/cookies/index enqueue | Existing tests confirm | Fourteen existing cases in `publicDeploymentWrites.test.ts` retained; added explicit no-`refresh`/no-`revalidatePath` assertions to the same cases |
-  | Workspace switching in normal SaaS mode | Test gap | Added real-guard direct calls for unauthenticated refusal, another Workspace's ADMIN lacking target membership, DB failure propagation and an allowed MEMBER switch |
-  | Selected-Workspace cookie revalidation/fallback and DB exception propagation | Existing tests confirm | The seven `requireCurrentWorkspace.test.ts` cases from PR #6 remain unchanged; they test selection, not the switch Action |
-  | Runtime authorization defect | None reproduced | All bounded new cases passed against the unchanged application implementation; no guard, Action, role model or Public Demo policy was modified |
-  | Concurrent membership changes, real DB/Next.js transport/browser enforcement, OAuth, live services and exhaustive application-wide authorization | Out of scope / unverified | Offline mocks and source inspection only; no security or integration completeness claim |
+##### PR #7 / Workspace role caller contract
+
+- **Authorization case:**
+  Workspace non-admin guard refusal, missing target membership, last-ADMIN refusal and demotion with another ADMIN
+  remaining
+- **Initial classification:**
+  Existing tests confirm the Action contract
+- **Evidence / bounded result:**
+  Four cases in `workspaceMemberRole.test.ts`, but both `requireUser` and `requireWorkspaceAdmin` were mocked; they
+  did not prove the actual admin/access guard chain
+
+##### PR #7 / Organization role management
+
+- **Authorization case:**
+  Organization role management in normal SaaS mode
+- **Initial classification:**
+  Test gap
+- **Evidence / bounded result:**
+  The baseline had only its Public Demo entry-refusal test, not normal-mode admin/target lookup or mutation coverage.
+  The Phase 7 summary broadly mentions Organization role-management tests; this inventory records that coverage limit
+  without rewriting the historical summary
+
+##### PR #7 / Real guard and tenant boundaries
+
+- **Authorization case:**
+  MEMBER/non-member refusal using real guards; ADMIN from another Organization/Workspace; independence of the two role
+  scopes; exact target read/update and admin-count scoping; membership/count DB exceptions
+- **Initial classification:**
+  Test gap
+- **Evidence / bounded result:**
+  Added direct Action tests with real `requireUser` and access/admin guards, synthetic auth results, and
+  predicate-aware DB mocks
+
+##### PR #7 / Research guard coverage
+
+- **Authorization case:**
+  Research membership/missing-resource/unauthenticated refusal, authorized mutations, unexpected Research/membership
+  lookup exceptions
+- **Initial classification:**
+  Existing tests confirm
+- **Evidence / bounded result:**
+  `researchActions.test.ts`: ten Actions × six cases, with real Research/Workspace access guards and mocked
+  `requireUser`/DB. No duplicate cases added
+
+##### PR #7 / Research creation callers
+
+- **Authorization case:**
+  Research creation-related Action refusal/error propagation and authorized authorship/Workspace Tag scoping
+- **Initial classification:**
+  Existing tests confirm the caller contract
+- **Evidence / bounded result:**
+  `researchCreateActions.test.ts`: six Actions × three refusal/error cases plus six authorized cases;
+  `requireResearchAccess` is mocked here, so this is not independent proof of its implementation
+
+##### PR #7 / Public Demo refusal
+
+- **Authorization case:**
+  Public Demo direct Action refusal before auth/private queries/writes/cookies/index enqueue
+- **Initial classification:**
+  Existing tests confirm
+- **Evidence / bounded result:**
+  Fourteen existing cases in `publicDeploymentWrites.test.ts` retained; added explicit
+  no-`refresh`/no-`revalidatePath` assertions to the same cases
+
+##### PR #7 / Workspace switching
+
+- **Authorization case:**
+  Workspace switching in normal SaaS mode
+- **Initial classification:**
+  Test gap
+- **Evidence / bounded result:**
+  Added real-guard direct calls for unauthenticated refusal, another Workspace's ADMIN lacking target membership, DB
+  failure propagation and an allowed MEMBER switch
+
+##### PR #7 / Selected Workspace revalidation
+
+- **Authorization case:**
+  Selected-Workspace cookie revalidation/fallback and DB exception propagation
+- **Initial classification:**
+  Existing tests confirm
+- **Evidence / bounded result:**
+  The seven `requireCurrentWorkspace.test.ts` cases from PR #6 remain unchanged; they test selection, not the switch
+  Action
+
+##### PR #7 / Runtime defect result
+
+- **Authorization case:**
+  Runtime authorization defect
+- **Initial classification:**
+  None reproduced
+- **Evidence / bounded result:**
+  All bounded new cases passed against the unchanged application implementation; no guard, Action, role model or
+  Public Demo policy was modified
+
+##### PR #7 / Concurrency and runtime limits
+
+- **Authorization case:**
+  Concurrent membership changes, real DB/Next.js transport/browser enforcement, OAuth, live services and exhaustive
+  application-wide authorization
+- **Initial classification:**
+  Out of scope / unverified
+- **Evidence / bounded result:**
+  Offline mocks and source inspection only; no security or integration completeness claim
 
 - **Implemented permission model:** Organization ADMIN is derived only from `Membership(userId, organizationId)` and manages that Organization's member roles. Workspace ADMIN is derived only from `WorkspaceMembership(userId, workspaceId)` and manages that Workspace's member roles. An ADMIN in the opposite scope cannot elevate a MEMBER or non-member; an ADMIN in one Organization/Workspace cannot use that membership against another. A local ADMIN can act even with a MEMBER role in the opposite scope. Target lookup and mutation use the requested scope ID plus target User ID, and the last-admin count uses that scope ID. Tests cover self-demotion of the last ADMIN while an unrelated tenant still has an ADMIN, and permit demotion when another local ADMIN remains. Research access and Workspace selection require Workspace membership, including MEMBER; they do not require Organization ADMIN or Workspace ADMIN. Access to multiple Workspaces is allowed; a different current-Workspace cookie is not itself a reason to deny a permitted explicit target ID.
 
@@ -754,30 +1024,182 @@ Developer-provided terminal observations now cover all six Groq cases. Case 01 f
 
 - **Inventory before adding coverage:**
 
-  | Case | Initial classification | Evidence / result |
-  | --- | --- | --- |
-  | Research updates and child mutations: missing Research, missing membership, unauthenticated calls, unexpected Research/membership lookup exceptions and authorized writes | Existing tests confirm | `researchActions.test.ts`: ten Actions × six cases with real Research/Workspace guards and mocked User/DB I/O; retained unchanged |
-  | Comment/Finding/Source/Tag creation, Tag detachment and status change: auth/access refusal, unexpected access errors and authorized writes | Existing tests confirm caller behavior | `researchCreateActions.test.ts`: six Actions × three refusals plus six successes; its User/Research guards are mocked, so these do not independently prove the guards |
-  | Onboarding provisioning, already-provisioned redirect, both names empty, transaction failure | Existing tests confirm | Four original `createInitialWorkspace.test.ts` cases retained |
-  | Organization/Workspace roles and admin boundaries; fourteen direct Public Demo write refusals | Existing tests confirm | PR #7's 24 role cases and fourteen Demo cases retained; existing Chat malformed-JSON and authorization cases were not duplicated |
-  | Shared text lengths, trim/null/empty behavior, invalid URL/status, normalization before persistence, invalid role/name handling and no downstream effects | Implementation present, test gap | Added schema tests and direct Action tests below; role/onboarding schemas stay private and are exercised through their Actions |
-  | Six further Public Demo Actions: create Source/Finding/Comment/Tag, update Conclusion/status | Implementation present, test gap | Added to the existing real-`requireUser` Demo matrix, with valid input reaching the deployment refusal |
-  | Runtime validation defect | None reproduced | All final contract tests pass against unchanged application code. Seven initial supplementary-character assertions failed because the new tests incorrectly assumed UTF-16 length; installed Zod source established the actual behavior, and only those test expectations were corrected |
-  | Live Server Action transport, browser forms/links, real DB semantics, concurrency and all application inputs outside this scope | Unverified | Offline mocks and local source inspection only |
+##### PR #8 / Validation / Research update and child mutations
+
+- **Case:**
+  Research updates and child mutations: missing Research, missing membership, unauthenticated calls, unexpected
+  Research/membership lookup exceptions and authorized writes
+- **Initial classification:**
+  Existing tests confirm
+- **Evidence / result:**
+  `researchActions.test.ts`: ten Actions × six cases with real Research/Workspace guards and mocked User/DB I/O;
+  retained unchanged
+
+##### PR #8 / Validation / Research creation callers
+
+- **Case:**
+  Comment/Finding/Source/Tag creation, Tag detachment and status change: auth/access refusal, unexpected access errors
+  and authorized writes
+- **Initial classification:**
+  Existing tests confirm caller behavior
+- **Evidence / result:**
+  `researchCreateActions.test.ts`: six Actions × three refusals plus six successes; its User/Research guards are
+  mocked, so these do not independently prove the guards
+
+##### PR #8 / Validation / Onboarding
+
+- **Case:**
+  Onboarding provisioning, already-provisioned redirect, both names empty, transaction failure
+- **Initial classification:**
+  Existing tests confirm
+- **Evidence / result:**
+  Four original `createInitialWorkspace.test.ts` cases retained
+
+##### PR #8 / Validation / Roles and Public Demo
+
+- **Case:**
+  Organization/Workspace roles and admin boundaries; fourteen direct Public Demo write refusals
+- **Initial classification:**
+  Existing tests confirm
+- **Evidence / result:**
+  PR #7's 24 role cases and fourteen Demo cases retained; existing Chat malformed-JSON and authorization cases were
+  not duplicated
+
+##### PR #8 / Validation / Shared input contracts
+
+- **Case:**
+  Shared text lengths, trim/null/empty behavior, invalid URL/status, normalization before persistence, invalid
+  role/name handling and no downstream effects
+- **Initial classification:**
+  Implementation present, test gap
+- **Evidence / result:**
+  Added schema tests and direct Action tests below; role/onboarding schemas stay private and are exercised through
+  their Actions
+
+##### PR #8 / Validation / Additional Demo refusals
+
+- **Case:**
+  Six further Public Demo Actions: create Source/Finding/Comment/Tag, update Conclusion/status
+- **Initial classification:**
+  Implementation present, test gap
+- **Evidence / result:**
+  Added to the existing real-`requireUser` Demo matrix, with valid input reaching the deployment refusal
+
+##### PR #8 / Validation / Runtime defect result
+
+- **Case:**
+  Runtime validation defect
+- **Initial classification:**
+  None reproduced
+- **Evidence / result:**
+  All final contract tests pass against unchanged application code. Seven initial supplementary-character assertions
+  failed because the new tests incorrectly assumed UTF-16 length; installed Zod source established the actual
+  behavior, and only those test expectations were corrected
+
+##### PR #8 / Validation / Transport and live limits
+
+- **Case:**
+  Live Server Action transport, browser forms/links, real DB semantics, concurrency and all application inputs outside
+  this scope
+- **Initial classification:**
+  Unverified
+- **Evidence / result:**
+  Offline mocks and local source inspection only
 
 - **Schema → Action inventory (current behavior, not new requirements):** All Actions convert `FormData.get()` with `String(value ?? "")` before parsing. A missing form field therefore differs from a missing property passed directly to a schema. Text properties below are required at the schema object level; only Research description accepts `null`. Length limits are applied after the stated transforms.
 
-  | Schema / fields | Current input contract | Actions / effects after validation and authorization |
-  | --- | --- | --- |
-  | `src/types/research.ts`: title, description | Title: trim, 1–200. Description: trim, 0–2000 or null, not an optional schema property. Both Actions convert missing/empty/whitespace description to null. Internal newlines are preserved | `createResearch`: User → current Workspace → create with actor/Workspace → index → redirect. `updateResearch`: User → Research access → update → index → redirect |
-  | `source.ts`: title, URL | Title: trim, 1–200. URL: required `z.url()`, max 2048; Actions trim before parsing. Installed `z.url()` also trims and strips tab/CR/LF, retaining spelling rather than canonicalizing via `URL.href` | `createSource`: User → Research access → create → redirect. `updateSource`: deployment guard at entry → validation → child lookup → User/Research access → update → redirect. Neither indexes |
-  | `finding.ts`: content | Trim, 1–10000. Both Actions replace CRLF and lone CR with LF before schema parsing/length checks; the schema alone preserves internal newlines | `createFinding`, `updateFinding`: validate → User/Research access → write → index → redirect; update additionally performs deployment refusal at entry and child lookup before User/access |
-  | `comment.ts`: content | Trim, 1–5000. Both Actions normalize CRLF/CR to LF before parsing; the schema alone preserves internal newlines | `createComment`, `updateComment`: validate → User/Research access → write → redirect; create binds the author to the actor. Update has the same entry deployment guard/child lookup ordering as Finding. Neither indexes |
-  | `tag.ts`: name | Trim, 1–50; blank invalid; no internal newline conversion | `createTag`: User/Research access → look up normalized name in that Research's Workspace → attach existing Tag or transactionally create Tag + association → redirect. No index |
-  | `conclusion.ts`: conclusion | Trim, 0–5000, not nullable at schema level. Action normalizes CRLF/CR to LF; missing/blank clears stored value to null | `updateConclusion`: User/Research access → Research update → index → redirect |
-  | `status.ts`: status | Exactly `IN_PROGRESS`, `COMPLETED`, `ARCHIVED`; no trimming/case conversion. No Conclusion requirement or transition restriction | `updateResearchStatus`: User/Research access → update → redirect; no index |
-  | Private onboarding schema: organizationName, workspaceName | Each trim, 1–100, required; no internal newline conversion | `createInitialWorkspace`: User → accessible-Workspace lookup → redirect if already provisioned; otherwise transactionally create Organization/Workspace and ADMIN memberships → cookie → redirect |
-  | Private Organization/Workspace role schemas | Exactly `ADMIN`, `MEMBER`; no trimming/case conversion | `updateOrganizationMemberRole`, `updateWorkspaceMemberRole`: User → scoped admin guard → target lookup → no-op or last-admin check as needed → update → revalidate settings path |
+##### PR #8 / Schema / Research title and description
+
+- **Schema / fields:**
+  `src/types/research.ts`: title, description
+- **Current input contract:**
+  Title: trim, 1–200. Description: trim, 0–2000 or null, not an optional schema property. Both Actions convert
+  missing/empty/whitespace description to null. Internal newlines are preserved
+- **Actions / effects after validation and authorization:**
+  `createResearch`: User → current Workspace → create with actor/Workspace → index → redirect. `updateResearch`: User
+  → Research access → update → index → redirect
+
+##### PR #8 / Schema / Source title and URL
+
+- **Schema / fields:**
+  `source.ts`: title, URL
+- **Current input contract:**
+  Title: trim, 1–200. URL: required `z.url()`, max 2048; Actions trim before parsing. Installed `z.url()` also trims
+  and strips tab/CR/LF, retaining spelling rather than canonicalizing via `URL.href`
+- **Actions / effects after validation and authorization:**
+  `createSource`: User → Research access → create → redirect. `updateSource`: deployment guard at entry → validation →
+  child lookup → User/Research access → update → redirect. Neither indexes
+
+##### PR #8 / Schema / Finding content
+
+- **Schema / fields:**
+  `finding.ts`: content
+- **Current input contract:**
+  Trim, 1–10000. Both Actions replace CRLF and lone CR with LF before schema parsing/length checks; the schema alone
+  preserves internal newlines
+- **Actions / effects after validation and authorization:**
+  `createFinding`, `updateFinding`: validate → User/Research access → write → index → redirect; update additionally
+  performs deployment refusal at entry and child lookup before User/access
+
+##### PR #8 / Schema / Comment content
+
+- **Schema / fields:**
+  `comment.ts`: content
+- **Current input contract:**
+  Trim, 1–5000. Both Actions normalize CRLF/CR to LF before parsing; the schema alone preserves internal newlines
+- **Actions / effects after validation and authorization:**
+  `createComment`, `updateComment`: validate → User/Research access → write → redirect; create binds the author to the
+  actor. Update has the same entry deployment guard/child lookup ordering as Finding. Neither indexes
+
+##### PR #8 / Schema / Tag name
+
+- **Schema / fields:**
+  `tag.ts`: name
+- **Current input contract:**
+  Trim, 1–50; blank invalid; no internal newline conversion
+- **Actions / effects after validation and authorization:**
+  `createTag`: User/Research access → look up normalized name in that Research's Workspace → attach existing Tag or
+  transactionally create Tag + association → redirect. No index
+
+##### PR #8 / Schema / Conclusion
+
+- **Schema / fields:**
+  `conclusion.ts`: conclusion
+- **Current input contract:**
+  Trim, 0–5000, not nullable at schema level. Action normalizes CRLF/CR to LF; missing/blank clears stored value to
+  null
+- **Actions / effects after validation and authorization:**
+  `updateConclusion`: User/Research access → Research update → index → redirect
+
+##### PR #8 / Schema / Research status
+
+- **Schema / fields:**
+  `status.ts`: status
+- **Current input contract:**
+  Exactly `IN_PROGRESS`, `COMPLETED`, `ARCHIVED`; no trimming/case conversion. No Conclusion requirement or transition
+  restriction
+- **Actions / effects after validation and authorization:**
+  `updateResearchStatus`: User/Research access → update → redirect; no index
+
+##### PR #8 / Schema / Onboarding names
+
+- **Schema / fields:**
+  Private onboarding schema: organizationName, workspaceName
+- **Current input contract:**
+  Each trim, 1–100, required; no internal newline conversion
+- **Actions / effects after validation and authorization:**
+  `createInitialWorkspace`: User → accessible-Workspace lookup → redirect if already provisioned; otherwise
+  transactionally create Organization/Workspace and ADMIN memberships → cookie → redirect
+
+##### PR #8 / Schema / Organization and Workspace roles
+
+- **Schema / fields:**
+  Private Organization/Workspace role schemas
+- **Current input contract:**
+  Exactly `ADMIN`, `MEMBER`; no trimming/case conversion
+- **Actions / effects after validation and authorization:**
+  `updateOrganizationMemberRole`, `updateWorkspaceMemberRole`: User → scoped admin guard → target lookup → no-op or
+  last-admin check as needed → update → revalidate settings path
 
 - **Length and URL findings:** Installed **Zod 4.6.5**, `v4/core/checks.js` (`$ZodCheckMaxLength`) and `util.codePointLength` count string code points when needed; supplementary-character tests characterize that installed behavior rather than adding an application counter or byte limit. ASCII fixtures cover max−1, max and max+1 without ambiguity. Local `z.url()` checks and `v4/core/schemas.js` inspection confirmed broad URL parsing: HTTP(S), FTP and mailto are accepted; a local probe also accepted `javascript:alert(1)`. Shared Research display and AI citation components pass stored Source URLs to links. No HTTP(S)-only protocol/hostname policy is currently specified, and this review does not silently introduce one or claim that link navigation is safe for every accepted scheme. Define that policy and assess each renderer/browser boundary in a separately scoped follow-up before changing the acceptance contract. No URL was navigated or fetched.
 
