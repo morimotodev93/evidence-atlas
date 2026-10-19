@@ -215,4 +215,44 @@ describe("createInitialWorkspace", () => {
     expect(mocks.cookieSet).not.toHaveBeenCalled();
     expect(mocks.redirect).not.toHaveBeenCalled();
   });
+
+  describe.each(["organizationName", "workspaceName"])("%s validation", (field) => {
+    it.each([undefined, "", " \t\r\n ", "x".repeat(101)])(
+      "rejects missing, blank or oversized input (case %#)", async (value) => {
+        const data = onboardingForm();
+        if (value === undefined) data.delete(field);
+        else data.set(field, value);
+
+        await expect(createInitialWorkspace(state, data)).resolves.toEqual({
+          error: "Enter an organization name and workspace name.",
+        });
+
+        expect(mocks.requireUser).not.toHaveBeenCalled();
+        expect(mocks.getAccessibleWorkspaces).not.toHaveBeenCalled();
+        expect(mocks.transaction).not.toHaveBeenCalled();
+        expect(mocks.organizationCreate).not.toHaveBeenCalled();
+        expect(mocks.membershipCreate).not.toHaveBeenCalled();
+        expect(mocks.workspaceCreate).not.toHaveBeenCalled();
+        expect(mocks.workspaceMembershipCreate).not.toHaveBeenCalled();
+        expect(mocks.cookies).not.toHaveBeenCalled();
+        expect(mocks.cookieSet).not.toHaveBeenCalled();
+        expect(mocks.redirect).not.toHaveBeenCalled();
+      },
+    );
+
+    it.each([1, 99, 100])("trims and saves a name of length %i", async (length) => {
+      const value = "x".repeat(length);
+      const data = onboardingForm();
+      data.set(field, ` \t${value}\r\n `);
+
+      await expect(createInitialWorkspace(state, data)).rejects.toBe(redirectError);
+
+      const create = field === "organizationName" ? mocks.organizationCreate : mocks.workspaceCreate;
+      expect(create).toHaveBeenCalledExactlyOnceWith(expect.objectContaining({ name: value }));
+      expect(mocks.membershipCreate).toHaveBeenCalledTimes(1);
+      expect(mocks.workspaceMembershipCreate).toHaveBeenCalledTimes(1);
+      expect(mocks.cookieSet).toHaveBeenCalledTimes(1);
+      expect(mocks.redirect).toHaveBeenCalledExactlyOnceWith("/");
+    });
+  });
 });

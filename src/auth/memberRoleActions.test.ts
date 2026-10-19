@@ -139,6 +139,23 @@ describe.each(scopes)("$name member-role Action with real guards", (scope) => {
     model.rows = [membership(actorId, "ADMIN"), membership(targetId, "MEMBER")];
   });
 
+  it.each([undefined, "", " \t ", "admin", " ADMIN ", "OWNER", "IN_PROGRESS"])(
+    "rejects invalid role %j before authentication or membership queries", async (role) => {
+      const data = new FormData();
+      if (role !== undefined) data.set("role", role);
+
+      await expect(scope.action(scope.id, targetId, state, data)).resolves.toEqual({
+        error: `Invalid ${scope.name.toLowerCase()} role.`,
+      });
+
+      expect(mocks.auth).not.toHaveBeenCalled();
+      expect(model.where).not.toHaveBeenCalled();
+      expect(otherModel.where).not.toHaveBeenCalled();
+      expect(mocks.redirect).not.toHaveBeenCalled();
+      expectNoEffects();
+    },
+  );
+
   it("redirects an unauthenticated direct call before any membership lookup", async () => {
     mocks.auth.mockResolvedValue(null);
 
