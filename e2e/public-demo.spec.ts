@@ -75,11 +75,39 @@ async function expectResponsiveElement(page: Page, locator: Locator, fullText = 
   }
 }
 
-async function expectTabReachable(page: Page, link: Locator) {
+async function pressTab(page: Page, key: "Tab" | "Shift+Tab", target?: Locator) {
+  const diagnose = process.env.E2E_FOCUS_DIAGNOSTICS === "1" && page.viewportSize()?.width === 375
+    && target && await target.evaluate((element) => element.matches('main a[target="_blank"]'));
+  const snapshot = () => target!.evaluate((element) => {
+    const style = getComputedStyle(element);
+    const header = document.querySelector("body > header")?.getBoundingClientRect();
+    const rect = element.getBoundingClientRect();
+    return {
+      host: location.hostname,
+      kind: element.querySelector("h3") ? "Source" : "Supporting source",
+      title: element.querySelector("h3")?.textContent ?? element.textContent,
+      focused: element === document.activeElement,
+      focusVisible: element.matches(":focus-visible"),
+      scrollY,
+      scrollContainer: document.scrollingElement?.tagName,
+      scrollMarginTop: style.scrollMarginTop,
+      scrollPaddingTop: getComputedStyle(document.documentElement).scrollPaddingTop,
+      header: header ? { top: header.top, bottom: header.bottom, height: header.height } : null,
+      rect: { top: rect.top, bottom: rect.bottom, left: rect.left, right: rect.right },
+      outline: { style: style.outlineStyle, width: style.outlineWidth, offset: style.outlineOffset },
+      shadow: style.boxShadow,
+    };
+  });
+  const before = diagnose ? await snapshot() : null;
+  await page.keyboard.press(key);
+  if (diagnose) console.info(JSON.stringify({ event: "Source keyboard focus", key, before, after: await snapshot() }));
+}
+
+async function expectTabReachable(page: Page, link: Locator, key: "Tab" | "Shift+Tab" = "Tab") {
   // Traverse the real tab order rather than assigning focus programmatically.
   const limit = await page.getByRole("link").count() + 1;
   for (let attempt = 0; attempt < limit; attempt++) {
-    await page.keyboard.press("Tab");
+    await pressTab(page, key, link);
     if (await link.evaluate((element) => element === document.activeElement)) break;
   }
   await expect(link).toBeFocused();
@@ -115,7 +143,53 @@ async function expectExposedKeyboardFocus(link: Locator) {
   // Computed styles and hit testing do not establish perceptual visibility or contrast.
 }
 
-test.beforeAll(async ({ request }) => {
+async function expectUnobscuredSourceFocus(page: Page, link: Locator) {
+  // Do not scroll/focus here: inspect the browser's real keyboard auto-scroll.
+  const header = await page.getByRole("banner").boundingBox();
+  expect(header, "Demo sticky header bounding box").not.toBeNull();
+  if (!header) throw new Error("Missing Demo sticky header");
+  const focus = await link.evaluate((element) => {
+    const style = getComputedStyle(element);
+    // The current links use a native auto outline, not a box-shadow ring.
+    // Reserve at least 4 CSS px for its browser-dependent painted extent;
+    // larger explicit outline widths/offsets must also fit in full.
+    const outlineExtent = Math.max(4,
+      (parseFloat(style.outlineWidth) || 0) + (parseFloat(style.outlineOffset) || 0));
+    const rects = Array.from(element.getClientRects())
+      .filter((rect) => rect.width > 0 && rect.height > 0)
+      .map((rect) => ({ left: rect.left, right: rect.right, top: rect.top, bottom: rect.bottom }));
+    return {
+      rects, outlineExtent,
+      focused: element === document.activeElement,
+      focusVisible: element.matches(":focus-visible"),
+      outline: style.outlineStyle !== "none" && parseFloat(style.outlineWidth) > 0,
+      shadow: style.boxShadow,
+      width: document.documentElement.clientWidth,
+      height: document.documentElement.clientHeight,
+    };
+  });
+  const label = `Unobscured Source focus: ${await link.innerText()}`;
+  expect(focus.focused, label).toBe(true);
+  expect(focus.focusVisible, label).toBe(true);
+  expect(focus.outline, label).toBe(true);
+  // Fail explicitly if the indicator changes to a shadow that needs other bounds.
+  expect(focus.shadow, label).toBe("none");
+  expect(focus.rects.length, label).toBeGreaterThan(0);
+  for (const rect of focus.rects) {
+    // Compare every full fragment plus outline clearance, not just exposed points
+    // or a viewport-clipped intersection. No overlap tolerance is permitted.
+    expect(rect.top - focus.outlineExtent, label).toBeGreaterThanOrEqual(header.y + header.height);
+    expect(rect.bottom + focus.outlineExtent, label).toBeLessThanOrEqual(focus.height);
+    expect(rect.left - focus.outlineExtent, label).toBeGreaterThanOrEqual(0);
+    expect(rect.right + focus.outlineExtent, label).toBeLessThanOrEqual(focus.width);
+  }
+  await expectNoHorizontalOverflow(page);
+}
+
+test.beforeAll(async ({ request, baseURL }) => {
+  expect(process.env.E2E_BASE_URL, "Set an explicitly verified Public Demo E2E_BASE_URL").toBeTruthy();
+  if (!baseURL) throw new Error("Missing Public Demo baseURL");
+  console.info(`Public Demo target host: ${new URL(baseURL).hostname}`);
   // Stop the suite on a normal SaaS deployment before any browser tests run.
   const response = await request.get("/");
   expect(response.status(), "Public Demo preflight must return 200").toBe(200);
@@ -125,10 +199,13 @@ test.beforeAll(async ({ request }) => {
   expect(html).toContain(workspaceName);
 });
 
-test.beforeEach(async ({ context }) => {
-  // Also prevent incidental non-GET browser traffic (for example telemetry).
+test.beforeEach(async ({ context, baseURL }) => {
+  if (!baseURL) throw new Error("Missing Public Demo baseURL");
+  const origin = new URL(baseURL).origin;
+  // Keep browser traffic read-only and on the approved origin, including popups.
+  // Source destinations are inspected as attributes, never opened.
   await context.route("**/*", (route) => route.request().method() === "GET"
-    ? route.continue() : route.abort());
+    && new URL(route.request().url()).origin === origin ? route.continue() : route.abort());
 });
 
 test("root redirects to the Demo Workspace", async ({ page }) => {
@@ -406,14 +483,33 @@ for (const viewport of [
 
       const back = page.getByRole("link", { name: "← Back to Demo Workspace", exact: true });
       const detailLinks = [site, code, back, ...sourceLinks, ...supportingLinks];
+      const externalLinks = new Set([...sourceLinks, ...supportingLinks]);
+      const detailURL = page.url();
+      const expectDetailFocus = async (link: Locator) => {
+        await expectExposedKeyboardFocus(link);
+        if (viewport.width === 375 && externalLinks.has(link)) {
+          await expectUnobscuredSourceFocus(page, link);
+        }
+      };
       for (const link of detailLinks) {
         await expectTabReachable(page, link);
-        await expectExposedKeyboardFocus(link);
+        await expectDetailFocus(link);
+      }
+      if (viewport.width === 375) {
+        // Also check the final Supporting Source in reverse: the existing
+        // reverse loop starts at the penultimate link. Tab out, then return
+        // through the real reverse order (including the document boundary).
+        const last = supportingLinks[supportingLinks.length - 1];
+        await page.keyboard.press("Tab");
+        await expectTabReachable(page, last, "Shift+Tab");
+        await expectDetailFocus(last);
       }
       for (const link of detailLinks.slice(0, -1).reverse()) {
-        await page.keyboard.press("Shift+Tab");
-        await expectExposedKeyboardFocus(link);
+        await pressTab(page, "Shift+Tab", link);
+        await expectDetailFocus(link);
       }
+      await expect(page).toHaveURL(detailURL);
+      expect(page.context().pages()).toHaveLength(1);
       await expectTabReachable(page, back);
       await page.keyboard.press("Enter");
       await expect(page).toHaveURL(/\/demo$/);

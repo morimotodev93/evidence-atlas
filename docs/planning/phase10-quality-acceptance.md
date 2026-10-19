@@ -748,3 +748,69 @@ C2で外部サービスが止まること、通常SaaS/DemoでDSN設定時のSen
 - 初回restricted Vitestはesbuild `spawn EPERM`でテスト実行前に停止。同じoffline scopeを承認済みの子process起動可能環境で実行した。追加Demoテストのlayoutリンク数の誤った期待値3件と、非文字列テーブルのTypeScript推論エラーを修正した。過去のPR #12の60ファイル/1,325件成功は比較用の既存実績であり、今回の実行結果ではない。
 - 最終実行: Node.js **24.16.0** / pnpm **12.9.1**。`pnpm test --run` は **63ファイル / 1,395件成功**（70件追加）、`pnpm exec tsc --noEmit` と `pnpm lint` はexit **0**。`git diff --check` はexit **0**。新規未追跡5ファイルも `git diff --no-index --check` でwhitespace診断なし（exit 1は追加差分の存在）。依存関係・設定・packageManagerは変更していない。
 - 実DB、保存値修復、migration/seed、認可変更、実Session/OAuth、実AI/embedding、Sentry/Upstash/Inngest Cloud通信、外部Source URL接続検査、server/browser E2E、production build、deployは対象外。raw streamと保存後citationの差、DB競合、375px overlap等の既知リスクも未対応のまま。commit/push/PR作成は行わない。
+
+## PR #14 follow-up — 375px sticky header focus overlap (2026-10-19 JST)
+
+開始時は `fix/demo-375px-focus-overlap` / `538d2f8de2bba64af5e6a033be6785cf82b05860` / clean。以下は今回の実装・offline検証記録であり、PR #3のブラウザ観測やPR #13の実績とは区別する。実装と回帰テストの準備は完了したが、実ブラウザでの解消確認は **Not run**。既知のblocking defectの解消判定、A / Accessibility review、R / Responsive UI reviewおよびroadmapのチェック状態は変更しない。PR #3の歴史的記録も変更しない。
+
+- **既知の問題（過去の観測）:** PR #3では375pxのShift+TabでSourceリンクの一部がsticky headerの背後に入り、残りは見えていた。既存 `expectExposedKeyboardFocus` は複数点のいずれかが露出すれば成功するため、部分重なりを検出しない。過去の成功を「重なりなし」と読み替えない。今回、新たなブラウザ観測は行っていない。
+- **静的に確認した構造と推定原因:** Demo headerは `sticky top-0`、内容は `flex-wrap`。詳細ページには独立したscroll containerがなく、root viewportがスクロール対象となる構造。対象リンクにもrootにも `scroll-margin-top` / `scroll-padding-top` はなかった。Sourceカードのリンクはタイトル・URL preview・更新日時を含むflex itemで、カード外周ではない。Supporting sourcesも文字リンクをflex親に置くため、長いタイトルはその幅内で折り返す。outlineを取り除くクラスはなく、過去のブラウザ記録はnative auto outline / computed 1px / shadowなし。ブラウザのfocus自動スクロールがsticky headerの占有領域を考慮せず、下のリンクから戻るShift+Tabで上端に寄せた対象を覆うことが推定原因。Tabとの実際のスクロール量・折り返し後の高さ・focus paintの実測は承認後に確認する。
+- **最小修正:** `src/app/demo/research/[researchId]/page.tsx` の `main` に `[&_a]:scroll-mt-24 sm:[&_a]:scroll-mt-16` を追加。Sources、Supporting sources、BackにDemo詳細限定のscroll marginを設定し、共有 `ResearchDetailContent` と通常SaaSには変更しない。sticky、focus indicator、DOM / Tab順序、Source URLガード、認可・read-only境界は維持する。
+- **値の根拠と候補比較:** 標準16px root / 現在の行高から、375pxで2行なら24px + 12px gap + 20px + 上下padding24px + border1px = 約81px、1行なら24 + 24 + 1 = 約49pxと算出する（実測ではない）。6rem = 96px / sm以上4rem = 64pxは各々15pxの余裕を含み、回帰判定で確保する最低4pxのoutline領域も含む。scroll marginは通常のレイアウト寸法や空白を増やさない。rootのscroll paddingはスクロール対象に設定する必要があり、`main` に設定してもこの構造では効かない。rootへのDemo条件付きCSSや動的header計測を追加するより、既存Demo詳細から対象anchorへ適用する方法を選んだ。固定値が任意のzoom / text spacing / 3行以上のheaderを保証するものではない。
+- **375pxの回帰強化:** `e2e/public-demo.spec.ts` の既存14件と3幅のkeyboardケースを維持。`expectTabReachable` に逆方向指定を追加し、既存Tab / Shift+Tabの順序に沿って全Sources / Supporting sourcesを検査する。既存逆順loopで対象外だった末尾Supporting Sourceも、Tabで一度末尾を出てShift+Tabで戻る確認を追加。`locator.focus()`、`scrollIntoViewIfNeeded()`、手動scrollを新判定に使用しない。
+- **部分重なりのassertion:** 既存の部分露出・focus判定を残したうえで、375pxだけ `expectUnobscuredSourceFocus` を追加。実際のbanner bounding boxと対象の全非空 `getClientRects()` を取得し、全fragmentについて `top - outlineExtent >= header.bottom`、`bottom + outlineExtent <= viewport.height`、左右もoutline込みでviewport内であることを要求する。focused / `:focus-visible` / outlineの存在も要求。`outlineExtent` は最低4 CSS pxとcomputed outline幅 + offsetの大きい方で、auto outlineの描画差に余裕を取る保守的な検査。これは重なりの許容誤差ではなく、**部分重なりの許容は0px**。shadowへの変更時は明示的に失敗させ、indicator境界の検査を見直す。知覚的なfocus contrastを証明する検査ではない。ページの横overflow、URL不変、popupなしも確認する。
+- **実行時の通信防御:** 既存browser non-GET拒否を維持し、承認対象baseURLと異なるoriginの通信も拒否するよう `beforeEach` を強化。外部Sourceはhref / targetの属性確認とfocus移動のみで、Enter / clickを行わない。Playwright設定の公開URL既定値は変更していないため、将来の実行でも明示した `E2E_BASE_URL` が必須。APIRequestによるGET preflight / 既存GETケースとredirect先のidentity確認は別途必要で、このbrowser routeだけで全通信の監査済みとはしない。
+- **今回実行したoffline検証:** Node.js **24.16.0** / pnpm **12.9.1**。初回 `pnpm test --run` はconfig読込時にesbuild `spawn EPERM`で起動失敗（テスト失敗ではなく、テスト未実行）。同一コマンドを承認済みの子process起動可能環境で再実行し、**63ファイル / 1,395件成功、exit 0**。`pnpm exec tsc --noEmit`、`pnpm lint`、`git diff --check` は **exit 0**。PR #13の63ファイル / 1,395件は比較用の過去実績で、上記は今回の再実行結果。新たなofflineテストや依存更新は加えていない。C2名のVitestもoffline/mock検査であり、実C2接続ではない。
+- **幅別の影響・未確認:** 375×812は96px、768×1024 / 1280×720は64pxのscroll marginのみ変更。幅・padding・カード配置は維持する設計。768px / desktopの既存ケースは維持するが、今回3幅ともブラウザ未実行であり、横scrollなし・重なり解消・実際のfocus描画は未確認。全4詳細の狭幅、native zoom / text spacing、他browserもこの変更だけで完了しない。
+
+### 承認待ちのブラウザ手順（未実行）
+
+実行前に、(1)この差分を含む接続先の完全URLと配備commit / artifact identity（未コミット差分を配備済みと扱わない）、(2)Public Demo read-onlyでありGET以外を拒否しOAuth / AI / mutationを行わない境界、(3)外部Source / Source codeへ遷移しないこと、(4)取得・記録を公開Demoの表示内容・URL / HTTP status・viewport / bounding box / computed focus情報・匿名化した実行結果に限定すること、(5)以下のコマンドと既存14件全体を対象とすること、を別途明示承認する。trace / screenshot / video / Session stateの取得は行わない。未承認のserver起動や配備はこの手順に含めない。配備identityまたはread-only境界が確認できなければ停止する。
+
+承認後のみ、PowerShellで明示URLを指定し、既存設定の公開URLへfallbackさせずに実行する（下記は手順例で、今回は未実行）:
+
+```powershell
+$env:E2E_BASE_URL = 'https://<approved-host-containing-this-diff>'
+pnpm exec playwright test e2e/public-demo.spec.ts --project=chromium --trace=off
+```
+
+375pxで両方向の全対象focusを確認し、768px / 1280pxを含む14件のPass / Failと対象identityを新しい記録に残す。必要に応じて実測header高・auto-scroll位置を使いCSS値を再検討する。静的検証とVitest成功だけで375pxの問題を解消済みとは判定しない。今回、ブラウザ / server / production build / deploy、実DB / migration / seed、OAuth / 実Session、実AI / embedding / Cloud接続、commit / push / PR作成は行っていない。
+
+### PR #14 failure investigation / verified Preview regression (2026-10-19 JST)
+
+上記の未実行記録に続く別の調査・実行記録。実行者はCodex。開始時は同じ `fix/demo-375px-focus-overlap`、HEAD `cf59f67a0013fc15164924fffaac89d56615753f`、clean。今回は接続先identityとGET read-only境界の確認後、依頼されたブラウザ診断・回帰を実行した。過去のNot runやPR #3の部分露出記録は変更しない。
+
+- **報告された失敗の帰属:** ユーザー報告の **12 passed / 1 failed / 1 not run** は、URLのない既存ログだけではPreviewの結果と特定できなかった。今回ユーザーから実行時の `E2E_BASE_URL=https://evidence-atlas-mu.vercel.app` と回答を得た。現プロセスに環境変数がないことは、過去の実行で既定URLを使った証拠ではない。
+- **配備identity:** GitHubの[Preview deployment 7164615772](https://api.github.com/repos/morimotodev93/evidence-atlas/deployments/7164615772) / [success status](https://api.github.com/repos/morimotodev93/evidence-atlas/deployments/7164615772/statuses) は、commit `cf59f67a0013fc15164924fffaac89d56615753f` と `evidence-atlas-e1thk4j9t-morimotodev93.vercel.app` を対応付けている。一方、GitHub mainは `538d2f8de2bba64af5e6a033be6785cf82b05860`。[Production deployment 7164420687](https://api.github.com/repos/morimotodev93/evidence-atlas/deployments/7164420687) / [status](https://api.github.com/repos/morimotodev93/evidence-atlas/deployments/7164420687/statuses) のhostは `evidence-atlas-72u1svc3z-morimotodev93.vercel.app`。申告された公開aliasとこのProductionの `/demo` が参照するNext static asset一覧のSHA-256は同一 `21b5a8ccbce510cee5cf5b537512bf24933846f7897614236fcd8679b5036290`、Previewとは異なる。現在の公開aliasがProductionと同じ配信artifactを参照する証拠であり、過去の実行時点のalias割当やruntime commitを直接取得した証拠ではない。詳細HTMLでも公開aliasにはscroll marginクラスがなく、PreviewにはPR #14のクラスが存在した。
+- **安全確認:** ブラウザ起動前に対象GETでrootの307→`/demo`、Demoの200とread-only / Workspace表示、`/research`・`/api/auth/session`・`/api/inngest` の404を確認した。ブラウザは既存context routeでnon-GETと別originを拒否し、service worker無効。外部Source / Source codeへ遷移せず、trace / screenshot / video / cookie / Session stateを取得しない。記録は公開タイトル、host、CSS / rect / scroll値、HTTP status、実行結果に限定。server / build / deploy / 実DB接続 / OAuth / 実AI / Cloud操作は行っていない。
+- **今回の変更:** CSSは変更しない。`e2e/public-demo.spec.ts` は明示的な `E2E_BASE_URL` を必須にしてhostをログ出力し、`E2E_FOCUS_DIAGNOSTICS=1` のときだけ375px外部Source対象の実Tab / Shift+Tab前後にread-only snapshotを記録する。対象kind、scroll container、computed margin / root padding、header / link rect、outline / shadow、focus状態を含む。実際のキー操作は維持し、`focus()`、強制scroll、0px重なり条件や4px確保条件の変更はない。今回の調査用変更はE2Eとこの追記だけで、配備されたUIは `cf59f67` のまま。
+
+**実ブラウザ観測（375×812、全対象のmarginは各hostで同じ）:**
+
+| 対象 / 操作 | computed margin / root padding | header下端 | scrollY 前→後 | link top 前→後 | focus後rect / outline | 判定 |
+| --- | --- | --- | --- | --- | --- | --- |
+| 公開alias、同名Supporting sourceへShift+Tab（今回の再現失敗箇所） | 0px / auto | 81px | 1475→1475 | 78→78px | left33 / right342 / bottom118px、auto 1px・offset1px、shadowなし | top−4 = 74px < 81px、7px不足でFail |
+| Preview、最初のSourceカードへTab | 96px / auto | 81px | 0→0 | 688→688px | left33 / right342 / bottom808px、auto 1px・offset1px、shadowなし | top−4 = 684px、bottom＋4 = 812pxでPass |
+| Preview、最初のSourceカードへShift+Tab | 96px / auto | 81px | 758→592 | −70→96px | left33 / right342 / bottom216px、auto 1px・offset1px、shadowなし | top−4 = 92px ≥ 81pxでPass |
+| Preview、Stack OverflowのSourceカードへShift+Tab | 96px / auto | 81px | 929→924 | 91→96px | auto 1px・offset1px、shadowなし | 5pxの自動scrollでmargin適用、Pass |
+
+元の失敗メッセージのタイトルはSourceカードと複数のSupporting sourcesで共通し、タイトルだけでは要素を一意にできない。今回の公開alias再現はSupporting sourceで最初に失敗したため、元のログを「最初のSourceカードの失敗」と断定しない。Previewの全Sources / Supporting sourcesは両方向とも厳密判定を通過した。
+
+**原因とCSS判断:** 公開aliasで今回観測した7px不足は、PR #14のmarginが適用されていない配信内容で再現した。Previewでは `scroll-mt-24` がcomputed 96pxになり、実際のShift+Tabによる再配置も確認できた。scroll containerはHTML、sticky headerはtop0 / height81px、rootのscroll paddingはauto。Previewはこのままで合格するため、margin増量・scroll padding追加は根拠がなく行わない。余白があっても毎回scrollするわけではなく、最初のカードへのTabや、top126pxのSupporting sourceへのShift+TabではscrollYが変わらなかった（どちらも安全な位置でPass）。公開aliasのtop78pxはレイアウトviewport内にあるためscrollYが変わらず、stickyによる遮蔽は残った。これは今回のChromiumでの観測で、任意のscroll履歴・zoom・browserについて再配置を保証する結論ではない。
+
+**実行結果:**
+
+- 初回restricted Preview実行はworkerの `spawn EPERM` で起動失敗し、ブラウザテストは未実行。同一対象・コマンドを子process起動可能な承認済み環境で実行した。
+- Preview、375px accessibility 1件: **1 passed**。続けて同じPreviewで既存Public Demo全体: **14 passed**（375×812 / 768×1024 / 1280×720の既存ケースを含む）。テスト判定を緩めていない。公開aliasの375px比較診断: **1 failed**、expected ≥81 / actual74を再現。これらはユーザー報告の12/1/1とは別の今回の実行結果。
+- `pnpm test --run`: **63ファイル / 1,395件成功**、`pnpm exec tsc --noEmit`、`pnpm lint`、`git diff --check`: **exit 0**。Node.js24.16.0 / pnpm12.9.1。Vitestはoffline/mock scopeで、実C2 / 実DB検証ではない。
+- 調査ログはignored `test-results/pr14-preview-investigation.log`、`pr14-preview-full.log`、`pr14-production-investigation.log` に分離して保存。元の失敗contextは保持した。公開aliasの失敗はPreviewでの375px修正不成立の証拠とは扱わない。Previewの代表詳細における問題解消確認であり、全詳細×全幅・native zoom / text spacing・他browserやPhase 10全体の合格ではない。A / Rチェック状態とroadmapは変更しない。commit / push / PR作成は行わない。
+
+再現用コマンド（今回実行済み、接続先の配備identityを再実行時にも確認する）:
+
+```powershell
+$env:E2E_BASE_URL = 'https://evidence-atlas-e1thk4j9t-morimotodev93.vercel.app'
+$env:E2E_FOCUS_DIAGNOSTICS = '1'
+pnpm exec playwright test e2e/public-demo.spec.ts --project=chromium --grep 'Public Demo accessibility at 375px' --trace=off --output=test-results/pr14-preview-investigation
+$env:E2E_FOCUS_DIAGNOSTICS = '0'
+pnpm exec playwright test e2e/public-demo.spec.ts --project=chromium --trace=off --output=test-results/pr14-preview-full
+```
