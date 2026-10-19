@@ -77,4 +77,25 @@ describe("Authenticated Research detail after display extraction", () => {
     expect(mocks.models.Research.where).not.toHaveBeenCalled();
     expect(mocks.models.Source.where).not.toHaveBeenCalled();
   });
+
+  it.each(["missing", "inaccessible"])(
+    "returns notFound for %s Research before reading any detail children", async (reason) => {
+      const error = new Error("NEXT_NOT_FOUND");
+      mocks.notFound.mockImplementation(() => { throw error; });
+      mocks.models[reason === "missing" ? "Research" : "WorkspaceMembership"].query.first.mockResolvedValue(null);
+
+      await expect(DetailPage({ params: Promise.resolve({ id: research.id }) })).rejects.toBe(error);
+
+      expect(mocks.notFound).toHaveBeenCalledTimes(1);
+      expect(mocks.models.Research.where).toHaveBeenCalledExactlyOnceWith({ id: research.id });
+      if (reason === "inaccessible") {
+        expect(mocks.models.WorkspaceMembership.where).toHaveBeenCalledExactlyOnceWith({
+          userId: "user-id", workspaceId: research.workspaceId,
+        });
+      }
+      for (const name of ["Source", "Finding", "Comment", "ResearchTag"]) {
+        expect(mocks.models[name].where).not.toHaveBeenCalled();
+      }
+    },
+  );
 });

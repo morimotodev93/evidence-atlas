@@ -18,6 +18,7 @@ import { createSource } from "@/app/research/[id]/_actions/createSource";
 import { createFinding } from "@/app/research/[id]/_actions/createFinding";
 import { createComment } from "@/app/research/[id]/_actions/createComment";
 import { createTag } from "@/app/research/[id]/_actions/createTag";
+import { detachTag } from "@/app/research/[id]/_actions/detachTag";
 import { updateConclusion } from "@/app/research/[id]/_actions/updateConclusion";
 import { updateResearchStatus } from "@/app/research/[id]/_actions/updateResearchStatus";
 
@@ -78,6 +79,7 @@ describe("Direct Server Action deployment lock using real requireUser", () => {
     { name: "Finding creation", run: () => createFinding("research-id", state, form()) },
     { name: "Comment creation", run: () => createComment("research-id", state, form()) },
     { name: "Tag creation", run: () => createTag("research-id", state, form()) },
+    { name: "Tag detachment", run: () => detachTag("research-id", "tag-id") },
     { name: "Conclusion update", run: () => updateConclusion("research-id", state, form()) },
     { name: "Research status update", run: () => updateResearchStatus("research-id", state, form()) },
   ])("rejects $name even with an existing-session-shaped auth mock", async ({ run }) => {
