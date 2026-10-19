@@ -78,6 +78,23 @@ describe("Authenticated Research detail after display extraction", () => {
     expect(mocks.models.Source.where).not.toHaveBeenCalled();
   });
 
+  it("keeps authenticated Source controls and association removal for an unsafe stored URL", async () => {
+    const storedSource = { ...source, url: "ftp://example.com/legacy" };
+    mocks.models.Source.query.all.mockResolvedValue([storedSource, { ...source, id: "unattached-source" }]);
+    mocks.models.Finding.query.all.mockResolvedValue([
+      { ...finding, sources: [{ sourceId: source.id, source: storedSource }] },
+    ]);
+    const html = renderToStaticMarkup(await DetailPage({ params: Promise.resolve({ id: research.id }) }));
+    expect(html).toContain(storedSource.url);
+    expect(html).not.toContain(`href="${storedSource.url}"`);
+    expect(html).toContain("Remove");
+    for (const name of ["EditSourceDialog", "DeleteSourceDialog", "ManageFindingSourcesDialog"]) {
+      expect(html).toContain(name);
+    }
+    expect(html).toContain("Supporting sources");
+    expect(html.match(/Supporting evidence/g)?.length).toBeGreaterThanOrEqual(2);
+  });
+
   it.each(["missing", "inaccessible"])(
     "returns notFound for %s Research before reading any detail children", async (reason) => {
       const error = new Error("NEXT_NOT_FOUND");

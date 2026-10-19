@@ -2,6 +2,7 @@ import Link from "next/link";
 import type { ReactNode } from "react";
 import { Badge } from "@/components/ui/badge";
 import { formatDate } from "@/lib/date";
+import { safeSourceHref } from "@/lib/source-url";
 import { formatResearchStatus } from "./research-list-items";
 
 type ResearchDisplay = {
@@ -160,31 +161,42 @@ export function ResearchDetailContent({ research, sources, findings, comments, c
               </p>
             </div>
           ) : (
-            sources.map((source) => (
-              <div
-                key={source.id}
-                className="flex items-center gap-3 rounded-lg border bg-card p-4"
-              >
-                <Link
-                  href={source.url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="min-w-0 flex-1 hover:opacity-80"
-                >
+            sources.map((source) => {
+              const href = safeSourceHref(source.url);
+              const content = (
+                <>
                   <h3 className="font-medium">{source.title}</h3>
-
                   <p className="mt-1 truncate text-sm text-muted-foreground">
                     {source.url}
                   </p>
-
                   <p className="mt-2 text-xs text-muted-foreground">
                     Updated {formatDate(source.updatedAt)}
                   </p>
-                </Link>
+                </>
+              );
 
-                {controls?.source && <div className="flex shrink-0 items-center gap-2">{controls.source(source)}</div>}
-              </div>
-            ))
+              return (
+                <div
+                  key={source.id}
+                  className="flex items-center gap-3 rounded-lg border bg-card p-4"
+                >
+                  {href ? (
+                    <Link
+                      href={href}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="min-w-0 flex-1 hover:opacity-80"
+                    >
+                      {content}
+                    </Link>
+                  ) : (
+                    <div className="min-w-0 flex-1">{content}</div>
+                  )}
+
+                  {controls?.source && <div className="flex shrink-0 items-center gap-2">{controls.source(source)}</div>}
+                </div>
+              );
+            })
           )}
         </div>
       </section>
@@ -247,23 +259,30 @@ export function ResearchDetailContent({ research, sources, findings, comments, c
                           Supporting sources
                         </p>
 
-                        {finding.sources.map((findingSource) => (
-                          <div
-                            key={findingSource.sourceId}
-                            className="flex items-center justify-between gap-3"
-                          >
-                            <Link
-                              href={findingSource.source.url}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="text-sm hover:underline"
+                        {finding.sources.map((findingSource) => {
+                          const href = safeSourceHref(findingSource.source.url);
+                          return (
+                            <div
+                              key={findingSource.sourceId}
+                              className="flex items-center justify-between gap-3"
                             >
-                              {findingSource.source.title}
-                            </Link>
+                              {href ? (
+                                <Link
+                                  href={href}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="text-sm hover:underline"
+                                >
+                                  {findingSource.source.title}
+                                </Link>
+                              ) : (
+                                <span className="text-sm">{findingSource.source.title}</span>
+                              )}
 
-                            {controls?.findingSource?.(finding.id, findingSource.sourceId)}
-                          </div>
-                        ))}
+                              {controls?.findingSource?.(finding.id, findingSource.sourceId)}
+                            </div>
+                          );
+                        })}
                       </div>
                     )}
 
