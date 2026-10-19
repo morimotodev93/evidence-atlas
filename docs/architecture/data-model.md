@@ -596,6 +596,8 @@ The detail page displays the current status and allows changing it to any of the
 
 For the MVP, sources are primarily external links or URLs.
 
+Source URL input accepts HTTP and HTTPS only (including `http://localhost:3000`). Validation trims surrounding whitespace, preserves the original URL spelling without canonicalization, and limits URLs to 2048 characters. Other protocols are rejected with `Please enter a valid URL`. This application input rule does not rewrite or revalidate existing database records when they are read.
+
 A Source is independent from a Finding so that the same source can be referenced by multiple Findings.
 
 The current Source fields are `title`, `url`, `researchId`, an ID, and timestamps. Additional source metadata and notes are not modeled yet.

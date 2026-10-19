@@ -218,6 +218,70 @@ describe.each(actions)("$name input boundary", (action) => {
 });
 
 describe.each([
+  { name: "createSource", run: (data: FormData) => createSource(researchId, state, data), save: mocks.models.Source.create },
+  { name: "updateSource", run: (data: FormData) => updateSource("source-id", state, data), save: mocks.models.Source.query.update },
+])("$name URL protocol boundary", ({ name, run, save }) => {
+  it.each([
+    "javascript:alert(1)", "data:text/html,...", "file:///example.txt",
+    "ftp://example.com/file", "mailto:person@example.com", "tel:+81312345678",
+  ])("rejects %s before auth or private queries without effects", async (url) => {
+    await expect(run(form({ title: "Source", url }))).resolves.toEqual({
+      error: "Please enter a valid URL",
+    });
+    expect(mocks.auth).not.toHaveBeenCalled();
+    expect(mocks.currentWorkspace).not.toHaveBeenCalled();
+    for (const model of Object.values(mocks.models)) {
+      expect(model.where).not.toHaveBeenCalled();
+      expect(model.query.first).not.toHaveBeenCalled();
+    }
+    expect(mocks.notFound).not.toHaveBeenCalled();
+    expectNoWrites();
+  });
+
+  it.each(["https://example.com", "http://example.com", "http://localhost:3000"])(
+    "persists %s after authorization and redirects without indexing", async (url) => {
+      save.mockImplementationOnce(async () => {
+        expect(mocks.auth).toHaveBeenCalledTimes(1);
+        expect(mocks.models.Research.where).toHaveBeenCalledWith({ id: researchId });
+        expect(mocks.models.WorkspaceMembership.where).toHaveBeenCalledWith({ userId, workspaceId });
+        expect(mocks.redirect).not.toHaveBeenCalled();
+        return { id: "source-id" };
+      });
+      await expect(run(form({ title: " Source ", url: ` \t${url}\r\n ` }))).rejects.toBe(redirectError);
+      expect(save).toHaveBeenCalledExactlyOnceWith({
+        ...(name === "createSource" ? { researchId } : {}), title: "Source", url,
+      });
+      if (name === "updateSource") {
+        expect(mocks.models.Source.where).toHaveBeenLastCalledWith({ id: "source-id" });
+      }
+      expect(mocks.index).not.toHaveBeenCalled();
+      expect(mocks.redirect).toHaveBeenCalledExactlyOnceWith(`/research/${researchId}`);
+    },
+  );
+
+  it.each(["https://example.com", "javascript:alert(1)"])(
+    "retains the Public Demo guard/validation order for %s", async (url) => {
+      vi.stubEnv("PUBLIC_DEMO_MODE", "true");
+      const result = run(form({ title: "Source", url }));
+      if (name === "createSource" && url.startsWith("javascript:")) {
+        await expect(result).resolves.toEqual({ error: "Please enter a valid URL" });
+        expect(mocks.notFound).not.toHaveBeenCalled();
+      } else {
+        await expect(result).rejects.toThrow("Unexpected Demo refusal");
+        expect(mocks.notFound).toHaveBeenCalledTimes(1);
+      }
+      expect(mocks.auth).not.toHaveBeenCalled();
+      expect(mocks.currentWorkspace).not.toHaveBeenCalled();
+      for (const model of Object.values(mocks.models)) {
+        expect(model.where).not.toHaveBeenCalled();
+        expect(model.query.first).not.toHaveBeenCalled();
+      }
+      expectNoWrites();
+    },
+  );
+});
+
+describe.each([
   { name: "createResearch", run: createResearch, save: mocks.models.Research.create },
   { name: "updateResearch", run: (data: FormData) => updateResearch(researchId, data), save: mocks.models.Research.query.update },
 ])("$name optional description", ({ run, save }) => {

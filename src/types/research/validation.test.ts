@@ -76,18 +76,54 @@ describe("Source URL schema", () => {
 
   it.each([undefined, null, "", " \t ", "example.com", "/relative", "https://", "https://exa mple.com"])(
     "rejects invalid URL %j", (value) => {
-      expect(schema.safeParse(value).success).toBe(false);
+      const result = schema.safeParse(value);
+      expect(result.success).toBe(false);
+      if (!result.success && typeof value === "string") {
+        expect(result.error.issues[0].message).toBe("Please enter a valid URL");
+      }
     },
   );
 
-  it.each(["https://example.com/path?q=value#section", "http://localhost:3000", "ftp://example.com/file", "mailto:person@example.com"])(
-    "retains the existing z.url acceptance of %s", (value) => {
+  it.each([
+    "https://example.com", "http://example.com", "http://localhost:3000",
+    "https://example.com/path?q=value#section", "http://example.com/path?q=value#section",
+    "HTTPS://EXAMPLE.COM:443/a",
+  ])(
+    "accepts HTTP/HTTPS URL %s without canonicalizing it", (value) => {
       expect(schema.parse(value)).toBe(value);
     },
   );
 
+  it.each([
+    "javascript:alert(1)", "data:text/html,...", "file:///example.txt",
+    "ftp://example.com/file", "mailto:person@example.com", "tel:+81312345678",
+  ])("rejects non-HTTP/HTTPS URL %s with the existing message", (value) => {
+    const result = schema.safeParse(value);
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      expect(result.error.issues[0]).toMatchObject({
+        code: "invalid_format", message: "Please enter a valid URL",
+      });
+    }
+  });
+
   it("trims URL whitespace without canonicalizing the stored spelling", () => {
     expect(schema.parse(" \tHTTPS://EXAMPLE.COM:443/a \r\n")).toBe("HTTPS://EXAMPLE.COM:443/a");
+  });
+
+  it("retains installed Zod's removal of internal tabs and newlines", () => {
+    expect(schema.parse("https://exa\tmple.com/a\r\nb")).toBe("https://example.com/ab");
+  });
+
+  it("trims before checking the URL length boundary", () => {
+    const prefix = "https://example.com/";
+    const value = prefix + "a".repeat(2048 - prefix.length);
+    expect(schema.parse(` \t${value}\r\n `)).toBe(value);
+    const result = schema.safeParse(` \t${value}a\r\n `);
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      expect(result.error.issues[0].message).toBe("URL must be 2048 characters or less");
+    }
   });
 
   it.each([-1, 0, 1])("checks the 2048-character limit plus %i", (offset) => {
