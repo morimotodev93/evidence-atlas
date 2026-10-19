@@ -537,6 +537,8 @@ Users who want to operate the application themselves should use their own databa
 
 **Goal:** Ensure the application is reliable and maintainable.
 
+**Quality acceptance baseline (2026-10-19 JST; PR #10 documentation):** [Phase 10 acceptance criteria](phase10-quality-acceptance.md) inventories evidence, gaps, safety gates and the follow-up sequence for all eleven items. E2E remains checked only for Public Demo + C2 authenticated read-only Smoke 4/4 + Chat mock-only 6/6; the other ten items remain open. PR #9's 58-file / 1,287-test success is historical evidence, not a new execution or completion decision. This documentation update runs no tests, build or live-service verification and changes no checklist state.
+
 - [ ] Unit tests
 - [ ] Integration tests
 - [ ] Database tests
