@@ -271,4 +271,19 @@ describe.each(scopes)("$name member-role Action with real guards", (scope) => {
       expectNoEffects();
     },
   );
+
+  it("retains the save-error state without cache or cookie effects", async () => {
+    model.update.mockRejectedValueOnce(new Error("Synthetic save failure"));
+
+    await expect(run()).resolves.toEqual({
+      error: "Failed to update member role. Please try again.",
+    });
+
+    expect(model.update).toHaveBeenCalledExactlyOnceWith(targetFilter, { role: "ADMIN" });
+    expect(otherModel.update).not.toHaveBeenCalled();
+    expect(mocks.cookies).not.toHaveBeenCalled();
+    expect(mocks.revalidatePath).not.toHaveBeenCalled();
+    expect(mocks.refresh).not.toHaveBeenCalled();
+    expect(mocks.redirect).not.toHaveBeenCalled();
+  });
 });

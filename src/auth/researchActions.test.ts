@@ -26,7 +26,7 @@ const mocks = vi.hoisted(() => {
       return [name, { where: vi.fn(() => query), create: write, query }];
     }),
   );
-  return { models, write, requireUser: vi.fn(), redirect: vi.fn() };
+  return { models, write, requireUser: vi.fn(), redirect: vi.fn(), index: vi.fn() };
 });
 
 vi.mock("@/prisma/db", () => ({ db: { orm: { public: mocks.models } } }));
@@ -34,7 +34,7 @@ vi.mock("@/auth/requireUser", () => ({ requireUser: mocks.requireUser }));
 vi.mock("next/navigation", () => ({ redirect: mocks.redirect }));
 
 vi.mock("@/inngest/request-research-index", () => ({
-  requestResearchIndex: vi.fn(),
+  requestResearchIndex: mocks.index,
 }));
 
 function form() {
@@ -144,6 +144,7 @@ describe.each(actions)("$name access control", (action) => {
 
       expect(mocks.write).not.toHaveBeenCalled();
       expect(mocks.redirect).not.toHaveBeenCalled();
+      expect(mocks.index).not.toHaveBeenCalled();
     },
   );
 
@@ -152,6 +153,7 @@ describe.each(actions)("$name access control", (action) => {
     mocks.requireUser.mockRejectedValue(error);
     await expect(action.run()).rejects.toBe(error);
     expect(mocks.write).not.toHaveBeenCalled();
+    expect(mocks.index).not.toHaveBeenCalled();
   });
 
   it.each(["Research", "WorkspaceMembership"])("rethrows unexpected %s lookup failures without writing", async (model) => {
@@ -163,6 +165,7 @@ describe.each(actions)("$name access control", (action) => {
 
     expect(mocks.write).not.toHaveBeenCalled();
     expect(mocks.redirect).not.toHaveBeenCalled();
+    expect(mocks.index).not.toHaveBeenCalled();
   });
 
   it("writes and redirects after confirming workspace membership", async () => {

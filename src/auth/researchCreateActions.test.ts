@@ -47,6 +47,7 @@ const mocks = vi.hoisted(() => {
   return {
     ResearchAccessError,
     requireUser: vi.fn(),
+    index: vi.fn(),
     requireResearchAccess: vi.fn(),
     redirect: vi.fn(),
 
@@ -114,7 +115,7 @@ vi.mock("next/navigation", () => ({
 }));
 
 vi.mock("@/inngest/request-research-index", () => ({
-  requestResearchIndex: vi.fn(),
+  requestResearchIndex: mocks.index,
 }));
 
 const state = { error: null };
@@ -176,6 +177,7 @@ const actions = [
 ];
 
 function expectNoWrites() {
+  expect(mocks.index).not.toHaveBeenCalled();
   expect(mocks.commentCreate).not.toHaveBeenCalled();
   expect(mocks.findingCreate).not.toHaveBeenCalled();
   expect(mocks.sourceCreate).not.toHaveBeenCalled();
