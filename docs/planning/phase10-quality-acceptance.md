@@ -814,3 +814,59 @@ pnpm exec playwright test e2e/public-demo.spec.ts --project=chromium --grep 'Pub
 $env:E2E_FOCUS_DIAGNOSTICS = '0'
 pnpm exec playwright test e2e/public-demo.spec.ts --project=chromium --trace=off --output=test-results/pr14-preview-full
 ```
+
+## PR #15 follow-up — Public Demo narrow-viewport coverage (2026-10-19 JST)
+
+この追記はPR #3 / #4 / #14の歴史的な観測・実行結果と区別した、Codexによるテスト追加とoffline検証の記録である。開始ブランチは `test/demo-narrow-viewport-coverage`、HEADは指定された `e5a6ad58c493c8a5978a5c3b098eb8e1537d635c`、`git status --short` は空（clean）。ローカルの `main` / `origin/main` も同じHEADだった。offline作業のためfetchやリモートの最新状態の再照会はしていない。Node.js **24.16.0** / pnpm **12.9.1**を使用し、packageManager・依存・設定は変更しない。
+
+### 対象と既存証拠との関係
+
+- **追加は6件:** Code Quality & Reliability、Developer Experience、Adoption & Organizational Impactの各詳細 × **375×812 / 768×1024**。Research IDは固定せず、`/demo` の該当タイトルの実リンクから取得する。
+- **既存14件は保持:** desktopのroot/list/代表詳細/read-only/404/無効endpoint確認、追加3詳細のdesktop表示、375px / 768pxの一覧・Developer Productivity表示、1280px / 375px / 768pxの代表詳細keyboard確認。Developer Productivityの狭幅や追加3詳細のdesktopケースは重複追加しない。
+- **過去のブラウザ証拠:** PR #14の確認済みPreviewは **14/14成功**、Vitestは **63ファイル / 1,395件成功**だった。PR #3の部分露出判定とPR #14の厳密な重なり判定の違いは上記の記録を維持する。PR #14のPreview host / deployment identityはPR #15の配備identityとして流用しない。
+- **共通化:** 既存desktop3件の構造・本文確認を `expectResearchDetailLayout`、件数・空状態・外部リンク属性確認を `expectResearchDetailCounts` に抽出し、新規6件でも利用する。desktopのHTTP 200 / URL確認、click / Back、一覧復帰確認は残す。既存assertionは緩めず、main / h1の一意性、h2順序、Research説明文、件数表示のclipping、Supporting sourceタイトルの全文検査を追加する。
+
+### 追加したassertionと受入条件
+
+1. **遷移・構造:** `/demo` の選択リンクへ実Tabで到達し、隣接する前のResearchとのShift+Tab / Tab順序も確認してEnterで開く。実hrefに一致するURL、単一main / h1、選択タイトル、他Researchのh1不在、Conclusion / Sources / Findings / Discussionの順序と存在を要求する。Backのhrefは `/demo`、Enterで一覧へ戻り4タイトルとリンク数を確認し、選んだResearchへ再びTabで到達できることを確認する。
+2. **表示:** `expectResponsiveElement` と `expectNoHorizontalOverflow` を再利用し、main、詳細タイトル・説明、4セクション見出し、本文、Sourceタイトル、Supporting sourceタイトル、件数、空状態、必要リンクのviewport内配置・全文のclippingを検査する。一覧タイトルの既存ellipsisとSource URL previewの意図的なtruncateは許容する。Sourcesは表示h3数、Findings / Discussionは表示article数から件数を算出し、表示件数と一致させる。0件なら既存の `No sources yet.` / `No findings yet.` / `No discussion yet.` を要求し、非0件なら空状態の不在を要求する。固定の件数を捏造せず、空のSource / Supporting source一覧にリンクを要求しない。
+3. **keyboard・focus:** 詳細ではheaderの2リンク→Back→全Source→全Supporting sourceを実Tabで順に検査し、末尾を含め逆順もShift+Tabで検査する。最初の到達には `expectTabReachable` を使い、隣接リンク間は1回のキー操作後にfocusedを要求して余分なtab stopを見逃さない。全対象に `:focus-visible`、outline / shadowのindicator、hit testによる露出を要求する。
+4. **PR #14の厳密判定:** 新規6件では**両幅・両方向**の全Source / Supporting sourceに、変更していない `expectUnobscuredSourceFocus` を適用する。全非空fragmentについてoutlineを最低4 CSS px（computed幅＋offsetが大きければその値）確保し、上端が実header下端以上、下端・左右がviewport内、**部分重なりの許容0px**を要求する。focus検査中は手動scroll / `locator.focus()`を使わず、実keyboard auto-scrollを観測する。computed style / hit testだけで知覚的contrastの合格とはしない。
+5. **外部遷移防止:** Source / Supporting sourceは非空accessible name、HTTP(S) href、`target="_blank"`だけを検査し、click / Enterしない。GitHubも開かない。focus往復後の詳細URL不変とpage数1を要求する。既存の明示的 `E2E_BASE_URL` 必須、Public Demo GET preflight、browser non-GET拒否・別origin拒否、service worker無効化を保持する。
+
+### 今回実行したoffline検証
+
+| コマンド | 今回の結果 |
+| --- | --- |
+| `pnpm exec playwright test e2e/public-demo.spec.ts --list` | exit 0、**20件列挙（既存14＋追加6）**。browser / preflightは実行しない |
+| `pnpm test --run` | 初回はesbuild `spawn EPERM`でconfig読込中にexit 1、テスト未実行。同一コマンドを子process起動可能な承認済み環境で再実行し、**63ファイル / 1,395件成功、exit 0** |
+| `pnpm exec tsc --noEmit` | exit 0 |
+| `pnpm lint` | exit 0 |
+| `git diff --check` | exit 0。GitのLF→CRLF通知のみでwhitespace違反なし |
+| `git diff --stat` | E2E specと本追記の2ファイルのみ。アプリ本体・roadmap・Playwright設定は変更なし |
+| `git status --short` | `M docs/planning/phase10-quality-acceptance.md`、`M e2e/public-demo.spec.ts` のみ |
+
+今回のVitest結果はPR #14と件数が同じでも別の再実行結果であり、offline/mock scopeである。静的レンダリングやC2名のVitestを実ブラウザ・実C2成功として扱わない。`--list`の成功もブラウザ成功の証拠ではない。
+
+### PR #15ブラウザ結果 — Not run
+
+**今回のPlaywright実行状態: Pass 0 / Fail 0 / Not run 20（うち新規6）。** PR #15のPreview URL・deployment ID / status・配備commitとの対応は**未確認**。現在の `E2E_BASE_URL` は未設定。ブラウザ起動・HTTP preflightを行っておらず、新しいUI不具合の再現や修正完了は主張しない。
+
+以下は別途承認されたブラウザ確認後に実測で埋める表。URL / 配備commit / 実行者 / Chromium version / 実行日時と、各行のPass / Fail、失敗時の操作・期待結果・実際の結果を併記する。
+
+| Research | viewport | 遷移・構造・Back | 表示・件数・空状態 | Tab / Shift+Tab / focus | 総合 |
+| --- | --- | --- | --- | --- | --- |
+| Code Quality & Reliability | 375×812 | Not run | Not run | Not run | Not run |
+| Developer Experience | 375×812 | Not run | Not run | Not run | Not run |
+| Adoption & Organizational Impact | 375×812 | Not run | Not run | Not run | Not run |
+| Code Quality & Reliability | 768×1024 | Not run | Not run | Not run | Not run |
+| Developer Experience | 768×1024 | Not run | Not run | Not run | Not run |
+| Adoption & Organizational Impact | 768×1024 | Not run | Not run | Not run | Not run |
+
+実行前にPR #15固有のPreview URLと配備commit / deployment successとの対応、およびPublic Demoのread-only接続先を確認し、追加承認を得たうえでそのURLを明示的な `E2E_BASE_URL` に設定する必要がある。未設定・identity不明のまま実行せず、既定公開aliasやPR #14のPreviewを代用しない。安全境界を維持して既存14件を含む20件の結果を記録する。ブラウザで不具合が再現した場合だけページ・viewport・操作・期待/実際を残し、実装修正の規模と独立PRへの分割を評価する。
+
+### 残る受入項目・停止状態
+
+**Phase 10のチェックボックスと `roadmap.md` は変更しない。Accessibility review / Responsive UI reviewは未完了のまま。** 新規6件のブラウザ検証に加え、全5ページのnative Chrome 200% zoomの環境値・ページ別結果、text-only 200% / text spacing、focus / hover / sticky背景・metadata / tag等のcontrast、SaaS各画面の375px / 768px / desktopとChatの1023 / 1024px配置・keyboard確認が残る。screen reader・他browser・物理device等のdeferred riskも既存契約どおり残す。
+
+今回はアプリ本体・PR #13のSource表示防御・PR #14のscroll margin / 厳密focus helper・通信境界に変更なし。server起動、実ブラウザ、実DB接続、migration / seed、OAuth / Session、実AI / embedding、Sentry / Upstash / Inngest Cloud通信、production build、deploy、commit / push / PR作成は行わず、未コミットのレビュー可能な状態で停止する。
