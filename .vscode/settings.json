@@ -31,9 +31,20 @@
   "[scss]": {
     "editor.defaultFormatter": "esbenp.prettier-vscode"
   },
+
   "[markdown]": {
-    "editor.defaultFormatter": "esbenp.prettier-vscode"
+    "editor.defaultFormatter": "esbenp.prettier-vscode",
+    "editor.formatOnSave": false,
+    "editor.wordWrap": "bounded",
+    "editor.wordWrapColumn": 100,
+    "editor.rulers": [100],
+    "files.trimTrailingWhitespace": false
   },
+
+  // ========= Markdown =========
+  "markdown.validate.enabled": true,
+  "markdown.updateLinksOnFileMove.enabled": "prompt",
+
 
   // ========= Files =========
   "files.eol": "\n",
@@ -45,7 +56,8 @@
   "explorer.confirmDragAndDrop": true,
 
   // ========= TypeScript =========
-  "js/ts.tsdk": "node_modules/typescript/lib",
+  "js/ts.tsdk.path": "./node_modules/typescript/lib",
+
 
   // ========= pnpm =========
   "npm.packageManager": "pnpm",
@@ -58,12 +70,18 @@
   "git.confirmSync": true,
 
   // ========= Search =========
+
   "search.exclude": {
     "**/.next": true,
+    "**/.next-c2": true,
     "**/node_modules": true,
     "**/dist": true,
-    "**/coverage": true
+    "**/coverage": true,
+    "**/test-results": true,
+    "**/test-results-c2": true,
+    "**/playwright-report": true
   },
+
 
   // ========= Workspace =========
   "workbench.iconTheme": "material-icon-theme",

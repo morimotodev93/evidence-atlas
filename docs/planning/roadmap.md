@@ -544,8 +544,8 @@ Users who want to operate the application themselves should use their own databa
 - [ ] Database tests
 - [ ] AI-related tests
 - [x] End-to-end tests — Public Demo smoke + C2 authenticated read-only Smoke (4/4) + Chat mock-only (6/6), per developer-run logs; Google OAuth flow excluded
-- [ ] Validation tests
-- [ ] Authorization tests
+- [x] Validation tests
+- [x] Authorization tests
 - [ ] Error handling review
 - [ ] Accessibility review
 - [ ] Responsive UI review
