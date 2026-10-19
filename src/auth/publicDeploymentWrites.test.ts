@@ -14,6 +14,12 @@ import { updateFinding } from "@/app/research/[id]/_actions/updateFinding";
 import { deleteFinding } from "@/app/research/[id]/_actions/deleteFinding";
 import { updateComment } from "@/app/research/[id]/_actions/updateComment";
 import { deleteComment } from "@/app/research/[id]/_actions/deleteComment";
+import { createSource } from "@/app/research/[id]/_actions/createSource";
+import { createFinding } from "@/app/research/[id]/_actions/createFinding";
+import { createComment } from "@/app/research/[id]/_actions/createComment";
+import { createTag } from "@/app/research/[id]/_actions/createTag";
+import { updateConclusion } from "@/app/research/[id]/_actions/updateConclusion";
+import { updateResearchStatus } from "@/app/research/[id]/_actions/updateResearchStatus";
 
 const mocks = vi.hoisted(() => ({
   auth: vi.fn(), query: vi.fn(), write: vi.fn(), cookies: vi.fn(), notFound: vi.fn(), index: vi.fn(),
@@ -36,6 +42,7 @@ function form() {
   for (const [key, value] of Object.entries({
     title: "Research", content: "Content", url: "https://example.com", sourceId: "source-id",
     organizationName: "Organization", workspaceName: "Workspace", role: "MEMBER",
+    name: "Tag", conclusion: "Conclusion", status: "COMPLETED",
   })) data.set(key, value);
   return data;
 }
@@ -67,6 +74,12 @@ describe("Direct Server Action deployment lock using real requireUser", () => {
     { name: "Workspace switching", run: () => switchWorkspace("workspace-id") },
     { name: "Organization role update", run: () => updateOrganizationMemberRole("org-id", "user-id", state, form()) },
     { name: "Workspace role update", run: () => updateWorkspaceMemberRole("workspace-id", "user-id", state, form()) },
+    { name: "Source creation", run: () => createSource("research-id", state, form()) },
+    { name: "Finding creation", run: () => createFinding("research-id", state, form()) },
+    { name: "Comment creation", run: () => createComment("research-id", state, form()) },
+    { name: "Tag creation", run: () => createTag("research-id", state, form()) },
+    { name: "Conclusion update", run: () => updateConclusion("research-id", state, form()) },
+    { name: "Research status update", run: () => updateResearchStatus("research-id", state, form()) },
   ])("rejects $name even with an existing-session-shaped auth mock", async ({ run }) => {
     await expect(run()).rejects.toBe(notFoundError);
     expectNoSideEffects();
