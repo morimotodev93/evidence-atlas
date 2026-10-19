@@ -14,7 +14,7 @@ export const sourceSchema = z.object({
     ),
 
   url: z
-    .url("Please enter a valid URL")
+    .url({ protocol: /^https?$/, error: "Please enter a valid URL" })
     .max(
       MAX_SOURCE_URL_LENGTH,
       `URL must be ${MAX_SOURCE_URL_LENGTH} characters or less`,
