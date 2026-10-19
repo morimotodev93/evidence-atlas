@@ -605,7 +605,7 @@ PR #5の通常Windows工程完了（D）とcredential-free copy中断（C）は�
 - **作業:**
   Source表示防御と375px overlap、build/env安全計画
 - **終了時の成果 / 依存:**
-  PR #9の入力制限だけで既存URL表示は安全にならない。Research Sources/SupportingとAI citationのHTTP(S)表示allowlist・非リンク表示を別PRで実装/renderer確認。
+  PR #9の入力制限だけで既存URL表示は安全にならない。Research Sources/SupportingとAI citationのHTTP(S)表示allowlist・非リンク表示はPR #13の作業差分で実装し、offline rendererで確認した（下記追記）。
   DB既存値監査は別承認。overlapはA/Rのblocking defectとして追跡
 
 ### P1 / U/V/AZ/Eの証拠対応、I offline不足、AI採点・version固定
@@ -707,7 +707,7 @@ C2で外部サービスが止まること、通常SaaS/DemoでDSN設定時のSen
 
 ## Known deferred risks
 
-- 保存済みの不許可Source URLは入力制限で修復されず、Source/Supporting/AI panelは現状保存URLを渡す。実DBの既存値・実browserでのexploitabilityは未確認。表示防御を先行し、データ監査/修復は別承認とする。SSRF/hostname/private-IP遮断は今回のHTTP(S)入力policyとは別要求。
+- 保存済みの不許可Source URLは入力制限で修復されない。PR #13の作業差分ではSource/Supporting/AI panelにHTTP(S)表示allowlistを適用し、不許可値は非リンク表示とした。実DBの既存値・実browserでのexploitabilityは未確認。データ監査/修復は別承認とする。SSRF/hostname/private-IP遮断は入力・表示のHTTP(S) policyとは別要求。
 - raw streamは保存allowlistでfilterされず、History復元後とtext/引用が異なり得る。引用だけの出力はvalidation後に空で保存され得る。未解決のまま意味品質・正常会話の合格にしない。
 - last ADMINのread/count→update、認可とmutationの間の競合、index lock/rollback、scalar attributionの孤立はmockで実保証できない。DB gate完了までproduction競合安全性を主張しない。
 - C2 preflightはDBコンテナーidentity・egress全監査ではない。OAuth自動化の失敗歴、probeの制限、Route Bのrefresh/revoke caveatを保つ。EE完了を根拠に再ログインやSession操作を行わない。
@@ -717,7 +717,7 @@ C2で外部サービスが止まること、通常SaaS/DemoでDSN設定時のSen
 
 ## Recommended follow-up PR sequence
 
-1. **表示境界の修正:** SourceリンクのHTTP(S)表示防御（保存値は変更しない）、375px sticky header overlapを各小PRで修正し、offline renderer/必要なDemo回帰だけ実行する。
+1. **表示境界の修正:** SourceリンクのHTTP(S)表示防御（保存値は変更しない）はPR #13の作業差分とoffline rendererで対応。375px sticky header overlapは別PRで修正し、必要なDemo回帰だけ実行する。
 2. **Offline証拠と不足の整理:** U/Iのchunker・context/selection、V/AZの対応表とread入口、Eの未対応caller/stream契約、AI-Aの採点/version固定。既存assertionで足りる項目は結果と限界だけ記録し、完了候補は別PRで判定する。
 3. **Demo A/R:** 全詳細の狭幅・keyboard・native zoom/spacingを共同で検証し、結果表とblocking defect解消を提示する。既存14ケースを維持し、同じassertionを複製しない。
 4. **隔離build:** PB前提を具体化し許可後に通常production buildを再検証。exit0/完全artifact/安全証拠が揃ってからPBを判定する。
@@ -736,3 +736,15 @@ C2で外部サービスが止まること、通常SaaS/DemoでDSN設定時のSen
 - statusはroadmap変更と新文書の未追跡追加のみ。通常の `git diff --stat` は既存roadmap差分も含み、新文書は含まないため、追加ファイルのstatを別に示す。
 
 テスト、tsc、lint、build、browser、DB、OAuth/Session、実AI、Cloud通信は今回実行していない。過去の1,287件成功と今回の静的検証は別結果である。commit・push・PR作成も行わない。
+
+## PR #13 follow-up — Source URL render guard (2026-10-19 JST)
+
+この追記は上記の文書作成時の記録と区別した、未コミットの実装・offline検証記録である。開始時は `fix/source-url-render-guard` / `6efd253` / clean。リモートmainを取得し、PR #12後の手動更新を含む最新 `b235390` へfast-forwardしてから実装した。`.vscode/settings.json` と `roadmap.md` は今回変更していない。Phase 10のチェック状態は維持する。
+
+- 共通関数 `src/lib/source-url.ts` の `safeSourceHref(unknown)` は、baseなしのWHATWG `URL`で解析し、protocolが `http:` / `https:` のときだけ正規化済み `URL.href` を返す。それ以外・非文字列・解析失敗は `null`。scheme/hostの大小文字、default port、末尾slash、空白・escapeなどは標準URLの正規化に従う。保存値と画面のURL文字列は変更せず、リンク先だけ正規化する。localhost/loopback/private IPを遮断する仕様ではなく、取得・疎通確認・SSRF対策は行わない。
+- Research詳細のSourceカードとFinding Supporting sourcesは共通判定を使用する。不許可でもカード・タイトル・保存URL・日時・Findingとの関連を残し、編集/削除/関連解除controlは維持する。共通Research表示を使うPublic Demoにも適用され、既存HTTPSリンクとread-only境界を維持する。
+- AIのSupporting sourcesだけを `ResearchAiSupportingSources` に切り出し、live/履歴復元の両方が通る表示境界に同じ判定を適用する。不許可はSourceタイトルのテキスト表示。本文、citation解析/照合、conversation保存/復元、通信・AI呼出条件は変更しない。
+- Offline回帰はURL関数34件（HTTP(S)/localhost/大小混在/正規化9、拒否文字列17、非文字列8）、Research renderer16件、AI renderer16件、Demo追加3件、認証済み詳細追加1件の計70件。AI rendererには復元APIと同じSource shapeを渡し、許可/不許可混在とfetch未実行を確認した。実際の履歴UI操作やChat API通信を再現したものではない。
+- 初回restricted Vitestはesbuild `spawn EPERM`でテスト実行前に停止。同じoffline scopeを承認済みの子process起動可能環境で実行した。追加Demoテストのlayoutリンク数の誤った期待値3件と、非文字列テーブルのTypeScript推論エラーを修正した。過去のPR #12の60ファイル/1,325件成功は比較用の既存実績であり、今回の実行結果ではない。
+- 最終実行: Node.js **24.16.0** / pnpm **12.9.1**。`pnpm test --run` は **63ファイル / 1,395件成功**（70件追加）、`pnpm exec tsc --noEmit` と `pnpm lint` はexit **0**。`git diff --check` はexit **0**。新規未追跡5ファイルも `git diff --no-index --check` でwhitespace診断なし（exit 1は追加差分の存在）。依存関係・設定・packageManagerは変更していない。
+- 実DB、保存値修復、migration/seed、認可変更、実Session/OAuth、実AI/embedding、Sentry/Upstash/Inngest Cloud通信、外部Source URL接続検査、server/browser E2E、production build、deployは対象外。raw streamと保存後citationの差、DB競合、375px overlap等の既知リスクも未対応のまま。commit/push/PR作成は行わない。

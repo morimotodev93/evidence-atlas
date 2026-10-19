@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { parseSourceCitations } from "@/lib/ai/source-citations";
 import { useState } from "react";
 import { ResearchAiConversationsDialog } from "./research-ai-conversations-dialog";
+import { ResearchAiSupportingSources } from "./research-ai-supporting-sources";
 
 export type ResearchAiSource = {
   id: string;
@@ -331,25 +332,7 @@ export function ResearchAiPanel({ researchId, sources }: ResearchAiPanelProps) {
                   </p>
 
                   {parsedMessage && parsedMessage.sources.length > 0 ? (
-                    <div className="mt-3">
-                      <p className="text-xs font-medium text-muted-foreground">
-                        Supporting sources
-                      </p>
-
-                      <div className="mt-2 space-y-1">
-                        {parsedMessage.sources.map((source) => (
-                          <a
-                            key={source.id}
-                            href={source.url}
-                            target="_blank"
-                            rel="noreferrer"
-                            className="block text-sm text-foreground underline underline-offset-4 hover:text-muted-foreground"
-                          >
-                            {source.title}
-                          </a>
-                        ))}
-                      </div>
-                    </div>
+                    <ResearchAiSupportingSources sources={parsedMessage.sources} />
                   ) : null}
                 </div>
               );

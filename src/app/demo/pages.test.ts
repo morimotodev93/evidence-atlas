@@ -67,8 +67,24 @@ describe("Public Demo pages", () => {
       expect(html).toContain(value);
     }
     expect(html).toContain('href="/demo"');
+    expect(html.match(/href="https:\/\/example.com\/evidence"/g)).toHaveLength(2);
     expect(html).not.toContain(comment.user.email);
     expect(mocks.getDemoResearch).toHaveBeenCalledExactlyOnceWith(research.id);
+  });
+
+  it.each(["javascript:alert(1)", "//example.com", "https://"])("keeps invalid saved Source %s visible and read-only without linking", async (url) => {
+    const storedSource = { ...source, url };
+    mocks.getDemoResearch.mockResolvedValue({
+      research, sources: [storedSource], tags, comments: [],
+      findings: [{ ...finding, sources: [{ sourceId: source.id, source: storedSource }] }],
+    });
+    const page = await detailPage();
+    const html = renderWithLayout(page);
+    expectReadOnly(html);
+    expect(html.match(/Supporting evidence/g)).toHaveLength(2);
+    expect(html).toContain(url);
+    expect(html).toContain("Supporting sources");
+    expect(renderToStaticMarkup(page).match(/href="[^"]*"/g)).toEqual(['href="/demo"']);
   });
 
   it.each(["workspace", "research"])("uses notFound for unavailable %s public data", async (kind) => {
