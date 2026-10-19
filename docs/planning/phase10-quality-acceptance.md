@@ -748,3 +748,30 @@ C2で外部サービスが止まること、通常SaaS/DemoでDSN設定時のSen
 - 初回restricted Vitestはesbuild `spawn EPERM`でテスト実行前に停止。同じoffline scopeを承認済みの子process起動可能環境で実行した。追加Demoテストのlayoutリンク数の誤った期待値3件と、非文字列テーブルのTypeScript推論エラーを修正した。過去のPR #12の60ファイル/1,325件成功は比較用の既存実績であり、今回の実行結果ではない。
 - 最終実行: Node.js **24.16.0** / pnpm **12.9.1**。`pnpm test --run` は **63ファイル / 1,395件成功**（70件追加）、`pnpm exec tsc --noEmit` と `pnpm lint` はexit **0**。`git diff --check` はexit **0**。新規未追跡5ファイルも `git diff --no-index --check` でwhitespace診断なし（exit 1は追加差分の存在）。依存関係・設定・packageManagerは変更していない。
 - 実DB、保存値修復、migration/seed、認可変更、実Session/OAuth、実AI/embedding、Sentry/Upstash/Inngest Cloud通信、外部Source URL接続検査、server/browser E2E、production build、deployは対象外。raw streamと保存後citationの差、DB競合、375px overlap等の既知リスクも未対応のまま。commit/push/PR作成は行わない。
+
+## PR #14 follow-up — 375px sticky header focus overlap (2026-10-19 JST)
+
+開始時は `fix/demo-375px-focus-overlap` / `538d2f8de2bba64af5e6a033be6785cf82b05860` / clean。以下は今回の実装・offline検証記録であり、PR #3のブラウザ観測やPR #13の実績とは区別する。実装と回帰テストの準備は完了したが、実ブラウザでの解消確認は **Not run**。既知のblocking defectの解消判定、A / Accessibility review、R / Responsive UI reviewおよびroadmapのチェック状態は変更しない。PR #3の歴史的記録も変更しない。
+
+- **既知の問題（過去の観測）:** PR #3では375pxのShift+TabでSourceリンクの一部がsticky headerの背後に入り、残りは見えていた。既存 `expectExposedKeyboardFocus` は複数点のいずれかが露出すれば成功するため、部分重なりを検出しない。過去の成功を「重なりなし」と読み替えない。今回、新たなブラウザ観測は行っていない。
+- **静的に確認した構造と推定原因:** Demo headerは `sticky top-0`、内容は `flex-wrap`。詳細ページには独立したscroll containerがなく、root viewportがスクロール対象となる構造。対象リンクにもrootにも `scroll-margin-top` / `scroll-padding-top` はなかった。Sourceカードのリンクはタイトル・URL preview・更新日時を含むflex itemで、カード外周ではない。Supporting sourcesも文字リンクをflex親に置くため、長いタイトルはその幅内で折り返す。outlineを取り除くクラスはなく、過去のブラウザ記録はnative auto outline / computed 1px / shadowなし。ブラウザのfocus自動スクロールがsticky headerの占有領域を考慮せず、下のリンクから戻るShift+Tabで上端に寄せた対象を覆うことが推定原因。Tabとの実際のスクロール量・折り返し後の高さ・focus paintの実測は承認後に確認する。
+- **最小修正:** `src/app/demo/research/[researchId]/page.tsx` の `main` に `[&_a]:scroll-mt-24 sm:[&_a]:scroll-mt-16` を追加。Sources、Supporting sources、BackにDemo詳細限定のscroll marginを設定し、共有 `ResearchDetailContent` と通常SaaSには変更しない。sticky、focus indicator、DOM / Tab順序、Source URLガード、認可・read-only境界は維持する。
+- **値の根拠と候補比較:** 標準16px root / 現在の行高から、375pxで2行なら24px + 12px gap + 20px + 上下padding24px + border1px = 約81px、1行なら24 + 24 + 1 = 約49pxと算出する（実測ではない）。6rem = 96px / sm以上4rem = 64pxは各々15pxの余裕を含み、回帰判定で確保する最低4pxのoutline領域も含む。scroll marginは通常のレイアウト寸法や空白を増やさない。rootのscroll paddingはスクロール対象に設定する必要があり、`main` に設定してもこの構造では効かない。rootへのDemo条件付きCSSや動的header計測を追加するより、既存Demo詳細から対象anchorへ適用する方法を選んだ。固定値が任意のzoom / text spacing / 3行以上のheaderを保証するものではない。
+- **375pxの回帰強化:** `e2e/public-demo.spec.ts` の既存14件と3幅のkeyboardケースを維持。`expectTabReachable` に逆方向指定を追加し、既存Tab / Shift+Tabの順序に沿って全Sources / Supporting sourcesを検査する。既存逆順loopで対象外だった末尾Supporting Sourceも、Tabで一度末尾を出てShift+Tabで戻る確認を追加。`locator.focus()`、`scrollIntoViewIfNeeded()`、手動scrollを新判定に使用しない。
+- **部分重なりのassertion:** 既存の部分露出・focus判定を残したうえで、375pxだけ `expectUnobscuredSourceFocus` を追加。実際のbanner bounding boxと対象の全非空 `getClientRects()` を取得し、全fragmentについて `top - outlineExtent >= header.bottom`、`bottom + outlineExtent <= viewport.height`、左右もoutline込みでviewport内であることを要求する。focused / `:focus-visible` / outlineの存在も要求。`outlineExtent` は最低4 CSS pxとcomputed outline幅 + offsetの大きい方で、auto outlineの描画差に余裕を取る保守的な検査。これは重なりの許容誤差ではなく、**部分重なりの許容は0px**。shadowへの変更時は明示的に失敗させ、indicator境界の検査を見直す。知覚的なfocus contrastを証明する検査ではない。ページの横overflow、URL不変、popupなしも確認する。
+- **実行時の通信防御:** 既存browser non-GET拒否を維持し、承認対象baseURLと異なるoriginの通信も拒否するよう `beforeEach` を強化。外部Sourceはhref / targetの属性確認とfocus移動のみで、Enter / clickを行わない。Playwright設定の公開URL既定値は変更していないため、将来の実行でも明示した `E2E_BASE_URL` が必須。APIRequestによるGET preflight / 既存GETケースとredirect先のidentity確認は別途必要で、このbrowser routeだけで全通信の監査済みとはしない。
+- **今回実行したoffline検証:** Node.js **24.16.0** / pnpm **12.9.1**。初回 `pnpm test --run` はconfig読込時にesbuild `spawn EPERM`で起動失敗（テスト失敗ではなく、テスト未実行）。同一コマンドを承認済みの子process起動可能環境で再実行し、**63ファイル / 1,395件成功、exit 0**。`pnpm exec tsc --noEmit`、`pnpm lint`、`git diff --check` は **exit 0**。PR #13の63ファイル / 1,395件は比較用の過去実績で、上記は今回の再実行結果。新たなofflineテストや依存更新は加えていない。C2名のVitestもoffline/mock検査であり、実C2接続ではない。
+- **幅別の影響・未確認:** 375×812は96px、768×1024 / 1280×720は64pxのscroll marginのみ変更。幅・padding・カード配置は維持する設計。768px / desktopの既存ケースは維持するが、今回3幅ともブラウザ未実行であり、横scrollなし・重なり解消・実際のfocus描画は未確認。全4詳細の狭幅、native zoom / text spacing、他browserもこの変更だけで完了しない。
+
+### 承認待ちのブラウザ手順（未実行）
+
+実行前に、(1)この差分を含む接続先の完全URLと配備commit / artifact identity（未コミット差分を配備済みと扱わない）、(2)Public Demo read-onlyでありGET以外を拒否しOAuth / AI / mutationを行わない境界、(3)外部Source / Source codeへ遷移しないこと、(4)取得・記録を公開Demoの表示内容・URL / HTTP status・viewport / bounding box / computed focus情報・匿名化した実行結果に限定すること、(5)以下のコマンドと既存14件全体を対象とすること、を別途明示承認する。trace / screenshot / video / Session stateの取得は行わない。未承認のserver起動や配備はこの手順に含めない。配備identityまたはread-only境界が確認できなければ停止する。
+
+承認後のみ、PowerShellで明示URLを指定し、既存設定の公開URLへfallbackさせずに実行する（下記は手順例で、今回は未実行）:
+
+```powershell
+$env:E2E_BASE_URL = 'https://<approved-host-containing-this-diff>'
+pnpm exec playwright test e2e/public-demo.spec.ts --project=chromium --trace=off
+```
+
+375pxで両方向の全対象focusを確認し、768px / 1280pxを含む14件のPass / Failと対象identityを新しい記録に残す。必要に応じて実測header高・auto-scroll位置を使いCSS値を再検討する。静的検証とVitest成功だけで375pxの問題を解消済みとは判定しない。今回、ブラウザ / server / production build / deploy、実DB / migration / seed、OAuth / 実Session、実AI / embedding / Cloud接続、commit / push / PR作成は行っていない。

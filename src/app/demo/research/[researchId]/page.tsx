@@ -12,7 +12,9 @@ export default async function DemoResearchPage({ params }: {
   const data = await getDemoResearch(researchId);
   if (!data) notFound();
 
-  return <main className="mx-auto w-full max-w-5xl px-4 py-6 sm:px-6 sm:py-8">
+  // Reserve the Demo header's two-line / single-line height plus focus-outline
+  // clearance when the browser scrolls a focused link; no layout spacing changes.
+  return <main className="mx-auto w-full max-w-5xl px-4 py-6 sm:px-6 sm:py-8 [&_a]:scroll-mt-24 sm:[&_a]:scroll-mt-16">
     <div className="mb-6">
       <Link href="/demo" className="text-sm text-muted-foreground hover:text-foreground">← Back to Demo Workspace</Link>
     </div>
