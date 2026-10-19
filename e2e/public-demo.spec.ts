@@ -75,11 +75,39 @@ async function expectResponsiveElement(page: Page, locator: Locator, fullText = 
   }
 }
 
+async function pressTab(page: Page, key: "Tab" | "Shift+Tab", target?: Locator) {
+  const diagnose = process.env.E2E_FOCUS_DIAGNOSTICS === "1" && page.viewportSize()?.width === 375
+    && target && await target.evaluate((element) => element.matches('main a[target="_blank"]'));
+  const snapshot = () => target!.evaluate((element) => {
+    const style = getComputedStyle(element);
+    const header = document.querySelector("body > header")?.getBoundingClientRect();
+    const rect = element.getBoundingClientRect();
+    return {
+      host: location.hostname,
+      kind: element.querySelector("h3") ? "Source" : "Supporting source",
+      title: element.querySelector("h3")?.textContent ?? element.textContent,
+      focused: element === document.activeElement,
+      focusVisible: element.matches(":focus-visible"),
+      scrollY,
+      scrollContainer: document.scrollingElement?.tagName,
+      scrollMarginTop: style.scrollMarginTop,
+      scrollPaddingTop: getComputedStyle(document.documentElement).scrollPaddingTop,
+      header: header ? { top: header.top, bottom: header.bottom, height: header.height } : null,
+      rect: { top: rect.top, bottom: rect.bottom, left: rect.left, right: rect.right },
+      outline: { style: style.outlineStyle, width: style.outlineWidth, offset: style.outlineOffset },
+      shadow: style.boxShadow,
+    };
+  });
+  const before = diagnose ? await snapshot() : null;
+  await page.keyboard.press(key);
+  if (diagnose) console.info(JSON.stringify({ event: "Source keyboard focus", key, before, after: await snapshot() }));
+}
+
 async function expectTabReachable(page: Page, link: Locator, key: "Tab" | "Shift+Tab" = "Tab") {
   // Traverse the real tab order rather than assigning focus programmatically.
   const limit = await page.getByRole("link").count() + 1;
   for (let attempt = 0; attempt < limit; attempt++) {
-    await page.keyboard.press(key);
+    await pressTab(page, key, link);
     if (await link.evaluate((element) => element === document.activeElement)) break;
   }
   await expect(link).toBeFocused();
@@ -158,7 +186,10 @@ async function expectUnobscuredSourceFocus(page: Page, link: Locator) {
   await expectNoHorizontalOverflow(page);
 }
 
-test.beforeAll(async ({ request }) => {
+test.beforeAll(async ({ request, baseURL }) => {
+  expect(process.env.E2E_BASE_URL, "Set an explicitly verified Public Demo E2E_BASE_URL").toBeTruthy();
+  if (!baseURL) throw new Error("Missing Public Demo baseURL");
+  console.info(`Public Demo target host: ${new URL(baseURL).hostname}`);
   // Stop the suite on a normal SaaS deployment before any browser tests run.
   const response = await request.get("/");
   expect(response.status(), "Public Demo preflight must return 200").toBe(200);
@@ -474,7 +505,7 @@ for (const viewport of [
         await expectDetailFocus(last);
       }
       for (const link of detailLinks.slice(0, -1).reverse()) {
-        await page.keyboard.press("Shift+Tab");
+        await pressTab(page, "Shift+Tab", link);
         await expectDetailFocus(link);
       }
       await expect(page).toHaveURL(detailURL);

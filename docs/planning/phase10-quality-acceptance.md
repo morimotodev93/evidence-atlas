@@ -775,3 +775,42 @@ pnpm exec playwright test e2e/public-demo.spec.ts --project=chromium --trace=off
 ```
 
 375pxで両方向の全対象focusを確認し、768px / 1280pxを含む14件のPass / Failと対象identityを新しい記録に残す。必要に応じて実測header高・auto-scroll位置を使いCSS値を再検討する。静的検証とVitest成功だけで375pxの問題を解消済みとは判定しない。今回、ブラウザ / server / production build / deploy、実DB / migration / seed、OAuth / 実Session、実AI / embedding / Cloud接続、commit / push / PR作成は行っていない。
+
+### PR #14 failure investigation / verified Preview regression (2026-10-19 JST)
+
+上記の未実行記録に続く別の調査・実行記録。実行者はCodex。開始時は同じ `fix/demo-375px-focus-overlap`、HEAD `cf59f67a0013fc15164924fffaac89d56615753f`、clean。今回は接続先identityとGET read-only境界の確認後、依頼されたブラウザ診断・回帰を実行した。過去のNot runやPR #3の部分露出記録は変更しない。
+
+- **報告された失敗の帰属:** ユーザー報告の **12 passed / 1 failed / 1 not run** は、URLのない既存ログだけではPreviewの結果と特定できなかった。今回ユーザーから実行時の `E2E_BASE_URL=https://evidence-atlas-mu.vercel.app` と回答を得た。現プロセスに環境変数がないことは、過去の実行で既定URLを使った証拠ではない。
+- **配備identity:** GitHubの[Preview deployment 7164615772](https://api.github.com/repos/morimotodev93/evidence-atlas/deployments/7164615772) / [success status](https://api.github.com/repos/morimotodev93/evidence-atlas/deployments/7164615772/statuses) は、commit `cf59f67a0013fc15164924fffaac89d56615753f` と `evidence-atlas-e1thk4j9t-morimotodev93.vercel.app` を対応付けている。一方、GitHub mainは `538d2f8de2bba64af5e6a033be6785cf82b05860`。[Production deployment 7164420687](https://api.github.com/repos/morimotodev93/evidence-atlas/deployments/7164420687) / [status](https://api.github.com/repos/morimotodev93/evidence-atlas/deployments/7164420687/statuses) のhostは `evidence-atlas-72u1svc3z-morimotodev93.vercel.app`。申告された公開aliasとこのProductionの `/demo` が参照するNext static asset一覧のSHA-256は同一 `21b5a8ccbce510cee5cf5b537512bf24933846f7897614236fcd8679b5036290`、Previewとは異なる。現在の公開aliasがProductionと同じ配信artifactを参照する証拠であり、過去の実行時点のalias割当やruntime commitを直接取得した証拠ではない。詳細HTMLでも公開aliasにはscroll marginクラスがなく、PreviewにはPR #14のクラスが存在した。
+- **安全確認:** ブラウザ起動前に対象GETでrootの307→`/demo`、Demoの200とread-only / Workspace表示、`/research`・`/api/auth/session`・`/api/inngest` の404を確認した。ブラウザは既存context routeでnon-GETと別originを拒否し、service worker無効。外部Source / Source codeへ遷移せず、trace / screenshot / video / cookie / Session stateを取得しない。記録は公開タイトル、host、CSS / rect / scroll値、HTTP status、実行結果に限定。server / build / deploy / 実DB接続 / OAuth / 実AI / Cloud操作は行っていない。
+- **今回の変更:** CSSは変更しない。`e2e/public-demo.spec.ts` は明示的な `E2E_BASE_URL` を必須にしてhostをログ出力し、`E2E_FOCUS_DIAGNOSTICS=1` のときだけ375px外部Source対象の実Tab / Shift+Tab前後にread-only snapshotを記録する。対象kind、scroll container、computed margin / root padding、header / link rect、outline / shadow、focus状態を含む。実際のキー操作は維持し、`focus()`、強制scroll、0px重なり条件や4px確保条件の変更はない。今回の調査用変更はE2Eとこの追記だけで、配備されたUIは `cf59f67` のまま。
+
+**実ブラウザ観測（375×812、全対象のmarginは各hostで同じ）:**
+
+| 対象 / 操作 | computed margin / root padding | header下端 | scrollY 前→後 | link top 前→後 | focus後rect / outline | 判定 |
+| --- | --- | --- | --- | --- | --- | --- |
+| 公開alias、同名Supporting sourceへShift+Tab（今回の再現失敗箇所） | 0px / auto | 81px | 1475→1475 | 78→78px | left33 / right342 / bottom118px、auto 1px・offset1px、shadowなし | top−4 = 74px < 81px、7px不足でFail |
+| Preview、最初のSourceカードへTab | 96px / auto | 81px | 0→0 | 688→688px | left33 / right342 / bottom808px、auto 1px・offset1px、shadowなし | top−4 = 684px、bottom＋4 = 812pxでPass |
+| Preview、最初のSourceカードへShift+Tab | 96px / auto | 81px | 758→592 | −70→96px | left33 / right342 / bottom216px、auto 1px・offset1px、shadowなし | top−4 = 92px ≥ 81pxでPass |
+| Preview、Stack OverflowのSourceカードへShift+Tab | 96px / auto | 81px | 929→924 | 91→96px | auto 1px・offset1px、shadowなし | 5pxの自動scrollでmargin適用、Pass |
+
+元の失敗メッセージのタイトルはSourceカードと複数のSupporting sourcesで共通し、タイトルだけでは要素を一意にできない。今回の公開alias再現はSupporting sourceで最初に失敗したため、元のログを「最初のSourceカードの失敗」と断定しない。Previewの全Sources / Supporting sourcesは両方向とも厳密判定を通過した。
+
+**原因とCSS判断:** 公開aliasで今回観測した7px不足は、PR #14のmarginが適用されていない配信内容で再現した。Previewでは `scroll-mt-24` がcomputed 96pxになり、実際のShift+Tabによる再配置も確認できた。scroll containerはHTML、sticky headerはtop0 / height81px、rootのscroll paddingはauto。Previewはこのままで合格するため、margin増量・scroll padding追加は根拠がなく行わない。余白があっても毎回scrollするわけではなく、最初のカードへのTabや、top126pxのSupporting sourceへのShift+TabではscrollYが変わらなかった（どちらも安全な位置でPass）。公開aliasのtop78pxはレイアウトviewport内にあるためscrollYが変わらず、stickyによる遮蔽は残った。これは今回のChromiumでの観測で、任意のscroll履歴・zoom・browserについて再配置を保証する結論ではない。
+
+**実行結果:**
+
+- 初回restricted Preview実行はworkerの `spawn EPERM` で起動失敗し、ブラウザテストは未実行。同一対象・コマンドを子process起動可能な承認済み環境で実行した。
+- Preview、375px accessibility 1件: **1 passed**。続けて同じPreviewで既存Public Demo全体: **14 passed**（375×812 / 768×1024 / 1280×720の既存ケースを含む）。テスト判定を緩めていない。公開aliasの375px比較診断: **1 failed**、expected ≥81 / actual74を再現。これらはユーザー報告の12/1/1とは別の今回の実行結果。
+- `pnpm test --run`: **63ファイル / 1,395件成功**、`pnpm exec tsc --noEmit`、`pnpm lint`、`git diff --check`: **exit 0**。Node.js24.16.0 / pnpm12.9.1。Vitestはoffline/mock scopeで、実C2 / 実DB検証ではない。
+- 調査ログはignored `test-results/pr14-preview-investigation.log`、`pr14-preview-full.log`、`pr14-production-investigation.log` に分離して保存。元の失敗contextは保持した。公開aliasの失敗はPreviewでの375px修正不成立の証拠とは扱わない。Previewの代表詳細における問題解消確認であり、全詳細×全幅・native zoom / text spacing・他browserやPhase 10全体の合格ではない。A / Rチェック状態とroadmapは変更しない。commit / push / PR作成は行わない。
+
+再現用コマンド（今回実行済み、接続先の配備identityを再実行時にも確認する）:
+
+```powershell
+$env:E2E_BASE_URL = 'https://evidence-atlas-e1thk4j9t-morimotodev93.vercel.app'
+$env:E2E_FOCUS_DIAGNOSTICS = '1'
+pnpm exec playwright test e2e/public-demo.spec.ts --project=chromium --grep 'Public Demo accessibility at 375px' --trace=off --output=test-results/pr14-preview-investigation
+$env:E2E_FOCUS_DIAGNOSTICS = '0'
+pnpm exec playwright test e2e/public-demo.spec.ts --project=chromium --trace=off --output=test-results/pr14-preview-full
+```
