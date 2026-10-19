@@ -1,0 +1,232 @@
+# Phase 10 — Quality Acceptance Criteria
+
+作成日: 2026-10-19 (JST)。対象 Repository: `morimotodev93/evidence-atlas`。
+
+## Purpose / Scope
+
+Phase 10 の11項目について、既存証拠、未検証範囲、今後の合否判定を固定する。対象は現在実装されている Public Demo、通常 SaaS の Research/Workspace/Organization、Chat・引用・検索・索引と、その実行境界である。将来の招待・課金・高度な権限・未実装のテーマ切替は要求しない。
+
+この文書の作成は品質検証の実行でも完了承認でもない。**チェック状態は E2E のみ完了、他10項目は未完了のまま維持する。** 以下のコマンド・シナリオは将来の手順であり、今回実行していない。既存の詳細な検証記録は移動・削除・修正しない。
+
+## Current baseline and evidence sources
+
+開始時に確認したブランチは `docs/phase10-quality-acceptance`、HEAD は指定 Baseline `6efd253d3a3477109326a0853ada7d2290f01943`。`docs/planning/roadmap.md` には既存の未コミット変更（表の整形・空白変更）があったため保持した。新文書とロードマップへの短い追記のみを今回の変更とする。
+
+### 証拠の種類
+
+| 記号 | 種類 | 使用できる結論 / 限界 |
+| --- | --- | --- |
+| S | 今回の静的確認 | 追跡されたソース・設定・文書の存在と内容。実行成功、配備状態、実DB内容を証明しない |
+| C | 過去の Codex 実行結果として記録された証拠 | 記載されたコミット・環境・モック境界・コマンド内の結果。今回の再実行や独立した実ログ監査ではない |
+| D | 開発者提供の実行報告・ログ | 報告された環境と範囲の結果。Codex の実行・観測に読み替えない |
+| G-local | 今回確認したローカル Git 履歴 | マージコミットと実装の到達を確認。GitHub API、Checks、レビュー、現在の配備を照会した証拠ではない |
+| G-remote | GitHub 上の PR・差分・マージ・CI | 将来照会した場合も C/D と別に記録する。マージや緑の CI だけで実サービス成功としない。今回は未取得 |
+
+外部情報は [source-memo.md](source-memo.md) に従う。今回はリポジトリ内の静的情報だけを確認し、外部仕様・モデル提供状況や GitHub の現在状態を調査していない。以下の PR リンクは照合先であり、今回のリモート取得結果ではない。
+
+### PR #1〜#9 の証拠索引
+
+| PR / ローカルのマージコミット | 既存の検証実績と証拠の種類 | 根拠・留保 |
+| --- | --- | --- |
+| [#1](https://github.com/morimotodev93/evidence-atlas/pull/1) / `969af82` | D: C2 authenticated read-only Smoke **4/4**、Chat mock-only **6/6**。各段階 exit 0、Session revoke、保存 state 削除 | [roadmap Phase 10](roadmap.md#phase-10--testing--quality)、[C2 runtime](c2-local-runtime.md)、[Route B](c2-e2e-session-route-b.md)。Google OAuth を行わない DB Session 作成。fixture 前後 `present:8 / plannedInserts:0 / plannedDeletes:8` は削除実行ではない。DBコンテナー同一性は証明されていない |
+| [#2](https://github.com/morimotodev93/evidence-atlas/pull/2) / `dd46982` | C: Public Demo **8/8**（desktop 6、375px 1、768px 1）、Vitest 52ファイル / 976件 | Research一覧と代表詳細 Developer Productivity のリサイズ・遷移。物理モバイル・タッチではない |
+| [#3](https://github.com/morimotodev93/evidence-atlas/pull/3) / `b8b97c1` | C: Public Demo **11/11**、3サイズでキーボード・構造・フォーカス露出。数値コントラストは限定サンプル | 375px逆Tabで Sourceリンクが sticky header と部分的に重なる。完全遮蔽でないという既存判定を、問題解決としない |
+| [#4](https://github.com/morimotodev93/evidence-atlas/pull/4) / `71c9ec7` | C: Public Demo **14/14**、残り3詳細を desktop で追加。D: Windows Chrome native 200% の部分結果 | D: キーボード・縦スクロール、文字欠け・操作不能なしとの報告。全4詳細別の結果、横スクロール、正確な環境値は不足。CSS zoom と native zoom は別証拠 |
+| [#5](https://github.com/morimotodev93/evidence-atlas/pull/5) / `589af59` | C: 隔離 `pnpm build` は中断・exit 1・compile段階、`BUILD_ID` なし。D: Windows通常ビルドは工程完了、数値exit未提供 | [roadmap PR #5](roadmap.md#initial-codex-isolated-verification)。Dの `.env.local, .env` 読込は隔離成功ではない。`build/**` の Vitest除外をSで確認。D: 修正後52ファイル / 976件成功 |
+| [#6](https://github.com/morimotodev93/evidence-atlas/pull/6) / `5072bbc` | C: Vitest **55ファイル / 1,029件**。Chat malformed JSON、Workspace選択の例外処理を修正、エラー経路を追加 | [roadmap PR #6](roadmap.md#phase-10--testing--quality)、`chatRoutes`、`requireCurrentWorkspace`、`global-error`、Sentry runtime の各テスト。SDK capture mock は実送信ではない |
+| [#7](https://github.com/morimotodev93/evidence-atlas/pull/7) / `ecd3766` | C: Vitest **56ファイル / 1,053件**。実guardを使う役割変更24件とWorkspace切替4件 | `memberRoleActions.test.ts`、`switchWorkspace.test.ts`。DB/auth I/Oはモック、最後のADMIN検査は逐次動作であり競合保証ではない |
+| [#8](https://github.com/morimotodev93/evidence-atlas/pull/8) / `05e4b71` | roadmapの実行記録: Vitest **58ファイル / 1,255件**。7 schema、11 Action、onboarding、役割入力、Demo拒否 | PR #9は比較値を developer-provided と表記。証拠帰属を統一して独立実行と主張せず、PR #8本文の実行記録とPR #9の比較値を区別する |
+| [#9](https://github.com/morimotodev93/evidence-atlas/pull/9) / `6efd253` | C: Vitest **58ファイル / 1,287件**、tsc/lint/diff成功。Source URLをHTTP(S)に限定 | schema **129件**、direct Action **71件**。保存入力の検証であり、既存DBレコード、表示リンクの安全性、実通信を証明しない |
+
+全9件のマージコミットはローカル履歴で確認した（G-local）。PR #1の古い Draft/unmerged や C2 pending の記述は当時の記録であり、後日の成功・マージ記録と併読する。過去の件数は各時点の実績で、今回テストを実行した値ではない。
+
+### 実行設定と既存テストの棚卸し（S）
+
+[package.json](../../package.json) は `pnpm@12.9.1`、`test=vitest`、`test:e2e=playwright test`、`build=next build`。[vitest.config.ts](../../vitest.config.ts) は標準除外に `e2e/**`, `e2e-c2/**`, `build/**` を追加し、`@` と `server-only` を解決する。coverage閾値や unit/integration の別プロジェクト設定はない。**58は追跡 `*.test.ts` の静的ファイル数でもあるが、1,287という実行件数を静的に再計測したわけではない。**
+
+以下は配置別の重複しないファイル数。unit/integration の性質は同一ファイル内でも異なるため、ファイル名だけで分類しない。
+
+| 配置 / ファイル数 | 対象テスト・実モジュール | モック境界 / 保証しないもの |
+| --- | --- | --- |
+| `src/types/research` / 1 | [validation.test.ts](../../src/types/research/validation.test.ts): Research title/description、status、Source、Finding、Comment、Tag、Conclusionの7 schemaモジュール | Zod入力契約を実行。FormData transportやDB制約ではない |
+| `src/auth` / 11 | [researchActions](../../src/auth/researchActions.test.ts) は10 mutation×6境界で実Research/Workspace guard、[researchCreateActions](../../src/auth/researchCreateActions.test.ts) は作成系caller、[inputValidationActions](../../src/auth/inputValidationActions.test.ts) は11 Actionと実guard、[memberRoleActions](../../src/auth/memberRoleActions.test.ts) は実User/access/admin guard | `researchActions` のUser guard、`researchCreateActions` のResearch guardはモック。auth/DB/index/navigation等は外部境界としてモック |
+| 同上（11の内訳の続き） | [chatRoutes](../../src/auth/chatRoutes.test.ts)、[requireUser](../../src/auth/requireUser.test.ts)、[createInitialWorkspace](../../src/auth/createInitialWorkspace.test.ts)、[researchPages](../../src/auth/researchPages.test.ts)、[researchDetailDisplay](../../src/auth/researchDetailDisplay.test.ts)、[publicDeploymentRoutes](../../src/auth/publicDeploymentRoutes.test.ts)、[publicDeploymentWrites](../../src/auth/publicDeploymentWrites.test.ts) | Chatはauth/access/context/retrieval/resolver/SDK/DBを基本モック。実prompt builder、選択ケースの `vi.importActual` validator/parser は実結合。onboardingはtransactionコールバックの模擬実行。静的React renderingはブラウザmountではない |
+| `src/workspace` / 2 | [requireCurrentWorkspace](../../src/workspace/requireCurrentWorkspace.test.ts): cookie再検証・fallback・DB例外。[switchWorkspace](../../src/workspace/switchWorkspace.test.ts): 実guardとActionの結合 | cookie、auth、DB、Next navigation/cacheはモック。実cookie配送や同時変更ではない |
+| `src/lib/ai` / 5 | [source-citations](../../src/lib/ai/source-citations.test.ts)、[ai-chat-dataset](../../src/lib/ai/ai-chat-dataset.test.ts)、[resolve-workspace-sources](../../src/lib/ai/resolve-workspace-sources.test.ts)、[retrieve-workspace-context](../../src/lib/ai/retrieve-workspace-context.test.ts)、[index-research](../../src/lib/ai/index-research.test.ts) | 引用・datasetは実処理、resolverはpredicateを実行するDBダブル。retrievalはembedding/vector search/DB/Sentryをモックし主に1件の観測属性経路。indexはchunker/embedding/lock/DB/Sentryをモックしupsert・冪等性を確認。実pgvector・lock・rollbackではない |
+| `src/lib/demo` 1 + `src/app/demo` 1 | [read](../../src/lib/demo/read.test.ts) の実Demo reader・scope制限と、[pages](../../src/app/demo/pages.test.ts) の表示・notFound・例外 | reader側DB、pages側reader/Next/authをモック。private metadata除外と別Workspace拒否を確認するが実HTTPではない |
+| `src/lib/deployment-mode.test.ts` / 1 | [deployment-mode](../../src/lib/deployment-mode.test.ts): Demo環境値のfail-closed契約 | 配備時の設定値や認証セッションを保証しない |
+| `src/lib/observability` 2 + `src/app/global-error.test.ts` 1 | [sentry-config](../../src/lib/observability/sentry-config.test.ts)、[sentry-runtime](../../src/lib/observability/sentry-runtime.test.ts)、[global-error](../../src/app/global-error.test.ts): sample rate・初期化・静的error表示と登録effectの明示呼出し | SDKはモック。実イベント配送・任意例外のredaction・ブラウザ回復ではない |
+| `src/app/api/inngest` 2 + `src/inngest` 1 | [route](../../src/app/api/inngest/route.test.ts)、[request-research-index](../../src/app/api/inngest/request-research-index.test.ts)、[client](../../src/inngest/client.test.ts): Demo拒否、lazy dispatch、enqueue失敗、SDK mode境界 | Cloud通信・署名交換・ジョブ実行やretry実績ではない |
+| `src/lib/c2` / 4 | [runtime-database](../../src/lib/c2/runtime-database.test.ts)、[service-isolation](../../src/lib/c2/service-isolation.test.ts)、[build-isolation](../../src/lib/c2/build-isolation.test.ts)、[sentry-client-isolation](../../src/lib/c2/sentry-client-isolation.test.ts) | DB/サービス拒否、synthetic dotenvと実loader、設定alias・inert adapterを確認。実DB・Next build・通信全遮断の証拠ではない |
+| `scripts` / 26 | `c2-*.test.ts` **24**: DB target、launcher/診断、fixture、Session、runner/config/state、OAuth観測、probe、network lifecycle、Chat mock、実SSR summary/locator等。`evaluation-cli-options.test.ts`, `evaluation-run-storage.test.ts` **2** | browser/HTTP/process/SQL等はダブルまたはsynthetic subprocess/source確認。storageは一時ファイルの実I/Oを含む。C2/E2Eという名前でもブラウザや実サービスを起動した結果ではない |
+
+[playwright.config.ts](../../playwright.config.ts) は `e2e/`、Desktop Chrome project（Chromium）、1 worker、最初の失敗で停止、ローカルサーバー自動起動なし。既定は公開Demo URLで `E2E_BASE_URL` により変更可能。[public-demo.spec.ts](../../e2e/public-demo.spec.ts) は動的展開を含む14件（従来desktop 6 + mobile 2 + accessibility 3 + 他詳細desktop 3）で、preflightとbrowser non-GET拒否を持つ。
+
+[playwright.c2.config.ts](../../playwright.c2.config.ts) は固定C2 originのSmoke専用、[playwright.c2.chat.config.ts](../../playwright.c2.chat.config.ts) は別のChat専用。4件と6件は別suite・別opt-inで、global setup/state/network制限、1 worker、retryなし、trace/screenshot/videoなし、snapshot抑止・redacted reporterを使う。C2は実Chatエンドポイントを503にするため、Chat suiteはAPI全体をブラウザ側でmockする。
+
+手動用の `scripts/test-vector-search.ts`, `test-retrieve-workspace-context.ts`, `test-source-citations.ts`, `evaluate-retrieval-context.ts`, `evaluate-ai-chat.ts` はVitestの合格suiteと同一視しない。特に検索・評価スクリプトはDB/AIに到達し得るため、今回importも実行もしない。
+
+### 関連仕様・実行記録と整合性
+
+- [product-definition §9.6–9.7](product-definition.md#96-authentication--authorization)、[data-model §6–8](../architecture/data-model.md#6-data-boundaries)、[directory-structure](../architecture/directory-structure.md)、[AI architecture](../architecture/ai-architecture.md)、[design system](../design/design-system.md) を実装範囲の基準とする。
+- [C2 local PostgreSQL](c2-local-postgres.md) はtarget/role/portとmigrationの準備、[runtime](c2-local-runtime.md) は起動・OAuth・fixture・mock suiteの段階別記録。[runner refusal](c2-runner-config-refusal-report.md)、[D19](c2-d19-scenario-investigation.md) は失敗・offline修正を保持。[Route B](c2-e2e-session-route-b.md) の成功手順をOAuth成功に読み替えない。
+- C2 Step 2-CのGoogleログインとUser/Account/Session増加、Steps 3-B/3-Cの8件fixture・手動閲覧は限定的な実DB利用記録。DB整合性・transaction・競合テストの合格ではない。後の手動Edge成功も自動Google OAuthの成功ではない。
+- **文書と現状の差異:** directory-structure の「E2E suite未配置」は現存3 suiteと相違する。AI architecture §6の「prompt追加は未コミット」は `e707e23` がHEADの祖先であること、およびquality reportの追記と相違する。ただし歴史的な実行時prompt identity・配備は未証明。`docs/planning/requireCurrentWorkspace.ts` はcookie導入前のsnapshotで現行runtime仕様に使わない。今回はこれらを報告し、原文を黙って更新しない。
+
+## Completion decision policy
+
+1. 下表と詳細手順の有限な対象を契約とする。全関数・全ブラウザ・全WCAGの無制限な網羅、coverage率、テスト件数の増加を合格条件にしない。
+2. 各行の対象ケースを既存assertionへ対応付ける。実関数、モックしたguard/I/O、期待値、成功・拒否・例外時の副作用を記録し、既存ケースで満たす部分は再実装しない。新しいリスクを観測するassertionだけを追加する。
+3. 判定は `Pass / Fail / Not run / Blocked` を使う。許可・環境不足はBlocked、未実行はNot run。収集のみの `--list`、EPERMでcollection前に停止、compile中断をPassにしない。
+4. 必要証拠は対象commit/差分、実行者（C/D/CI）、日時・timezone、OS/tool version、対象/除外・mock境界、コマンドと数値exit、期待/実測結果、失敗も含むartifact参照。秘密値・cookie・raw private dataは含めない。配備対象を使う場合はbuild/commit identity、特定できなければその限界も記録する。
+5. 既存証拠の対象コードが変わらず、その行の全条件を満たすとレビューで確認できれば再実行を機械的に要求しない。変化した境界だけ対象を再検証する。最終的なチェック更新は別PRの明示的判定で行い、本PRでは一切更新しない。
+6. 必須ケースの失敗やblocking defectが残る行は完了しない。対象外・既知のdeferred riskには理由と追跡先を残す。行の対象を縮めて失敗を消す場合は別のscope変更としてレビューし、元の結果を保存する。
+7. E2Eの完了済み範囲は固定する。Google OAuth・実AI・DB engineの合格を追加しない。他の行がBlockedでも過去の限定E2E合格を取り消したり、逆に他の行まで完了にしない。
+
+優先度: **P0**=安全前提・露出境界、**P1**=次に進める有限の品質gate、**P2**=準備と承認後の実環境gate。順番は重要度だけでなく依存関係で決める。
+
+## Phase 10 acceptance criteria matrix
+
+「条件」は後続の同じIDの手順・期待結果・証拠・対象外を含む。実サービス欄の「不要」はその行の限定判定に不要という意味であり、実環境が検証済みという意味ではない。
+
+| ID / 項目 | 現在のチェック | 実装・検証済み | 根拠 | 未検証 | 判定可能な完了条件 | 残作業 | 優先度 | 実サービスの要否 | 判定を妨げる依存関係 |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| U / Unit tests | 未完了 | schema、引用、Demo mode、設定・C2/CLI純粋境界 | 上記58ファイル棚卸し、PR #6–#9、Cの1,287件 | chunkerの空/境界/分割、既存テストと契約の対応 | Uの有限ケースを実関数で満たし、対象suite exit 0、差分に応じたoffline回帰成功 | 対応表とchunkerの不足ケースのみ追加 | P1 | 不要 | subprocess/依存状態の確認。DB/AI待ちは不要 |
+| I / Integration tests | 未完了 | 実guard→Action、prompt/validator/parser→Chat、resolver predicate、SSR結合の一部 | C1、PR #6–#9、`chatRoutes`, `inputValidationActions`, `memberRoleActions` | 実context/selection結合、Next HTTP/Server Action transport、送信後失敗 | Iの実モジュール鎖と限定HTTPケースを成功・拒否・失敗時の状態まで検証しexit 0 | 境界表、context/selection不足、通常SaaS隔離harnessとHTTP検証 | P1（HTTPはP2） | providerはmockで可。HTTP時は隔離ローカルruntime。実DBは採用設計次第で別承認 | U、Eのerror契約、安全な非C2 Chat harness。C2の503を無効化して代用しない |
+| DB / Database tests | 未完了 | 限定C2 schema/fixture/session利用報告、mock transaction/index upsert | C2 runtime/Route B、data-model、`index-research.test.ts` | 実FK/unique/cascade、rollback、lock、ADMIN競合 | DBの使い捨てDBケースで制約・原子性・競合不変条件を全て満たす。前後検査とcleanup完了 | 専用計画、承認、fixture・障害・barrier実装、実DB実行 | P2、計画P1 | **実DB必須・明示許可**。OAuth/実AI不要 | DB同一性/権限/別namespace、既存C28件保護、競合保証の設計 |
+| AI / AI-related tests | 未完了 | 引用/allowlist、dataset、C1 mock、過去Gemini/Groq評価 | [quality report](ai-chat-quality-evaluation.md)、AI architecture、AIの5 suite | 再現可能なprompt/設定、C2/I2/N2採点、意味的grounding、実検索・実Chat | AI-A offline、AI-B固定条件のGemini18回答、AI-C実検索/Chatの限定検証を各gateで満たす | rubric固定、失敗保持、保存artifact、承認済み実AI評価と通常SaaS検証 | P1準備 / P2実行 | **実AI/embedding必須・承認**。AI-Cは実DB/セッションとrate-limit境界も必要 | U/I/DB、予算・隔離・rubric、実Chat用target。Groq再比較は必須ではない |
+| EE / End-to-end tests | **完了を維持** | Public Demo、C2 read-only Smoke4/4、Chat mock6/6 | PR #1–#4、C:Demo14/14、D:C2 transcript | Google OAuth自動化、実AI/API、DBコンテナー同一性、完全egress | 既存限定scopeの成功・cleanup記録を保持。変更時のみ該当suiteを安全に再検証 | 今回は証拠整理のみ | 維持 | 既存判定に再接続不要。再実行はDemo HTTP/C2実DB・Sessionの別承認 | 追加実行時のtarget/fixture/state安全gate。未検証機能をscopeへ足さない |
+| V / Validation tests | 未完了 | 7schema、11 Action、onboarding、roles、HTTP(S)入力、拒否時無副作用 | PR #8/#9、schema129・Action71、既存Chat400 | transport、duplicate keys、全File型方針、grapheme UX | Vの保存入力契約を既存assertionへ対応付け、正規化/限界/拒否/正常副作用/例外を全て満たす | 対応表と未定policyの明記。既存証拠で満たせれば追加テスト不要 | P1 | 限定direct-call判定は不要 | PR #9を最終URL仕様とする。transportはI、表示URLは別P0 |
+| AZ / Authorization tests | 未完了 | 実guard、tenant scope、独立ADMIN、逐次last-ADMIN、Demo拒否、switch | PR #6/#7、Research/Chat/Demo既存suite | settings/onboarding等のread境界の対応漏れ、実transport、権限変更race | AZのroute/caller表で許可/拒否・漏洩/副作用なしを示し、mock guardを実guard証拠で補完 | read入口を静的照合、不足ケースのみ追加。逐次契約は既存証拠で満たす可能性 | P1 | 限定逐次判定は不要。raceはDB/HTTPはI | 実guard対応表。DB競合保証は別gateとして未検証のまま明示 |
+| E / Error handling review | 未完了 | malformed JSON400、予期しない例外伝播、Workspace fallback修正、capture mock | PR #6、C1、Demo reader、global-error/Sentry tests | 未対応caller失敗、stream/abort、production response・browser回復、実redaction | Eの障害表と隔離production-mode応答/回復を満たし、false success/秘密漏洩なし | 不足の代表障害・stream policy、production artifact後の安全なmount/HTTP確認 | P1 offline / P2 runtime | 実AI/DB障害/Sentry送信はmock注入で可。実Sentry配送は別承認で対象外 | I、PB、合意した部分保存/abort契約、Sentry metadata取り扱い |
+| A / Accessibility review | 未完了 | 代表詳細×3幅のTab/Shift+Tab/構造、限定contrast、全詳細desktop表示 | PR #3/#4、Public Demo14件、D:Chrome200%部分報告 | 全4詳細の全幅操作、native zoom詳細、テキストspacing/focus状態、375px重なり | Aの対象ページで名前/構造/keyboard/可視focus/可読性/zoomを全て記録。375px重なりは修正・再確認する | 既存ケース再利用、追加詳細・zoom結果表、overlap修正と回帰 | P1（修正P0） | Demo GET/browser必要。DB直接接続/OAuth/AI不要 | Rと共同レビュー、配備identity、native Chrome手動環境 |
+| R / Responsive UI review | 未完了 | 375×812、768×1024代表詳細、1280×720 desktop全詳細 | PR #2–#4、D:Chrome200%部分報告 | 他3詳細の狭幅、全ページnative200%、SaaSのdesktop/mobile AI操作 | Rの固定ページ×viewport表でoverflow/clipping/重なりによる操作不能なし。SaaS配置切替はsynthetic Chatで確認 | 4詳細×3幅の差分確認、native200%補完、SaaS breakpoint確認、overlap解決 | P1 Demo / P2 SaaS | Demo HTTP。SaaSは承認C2 read-only＋Chat mockで可 | A、C2/session安全gate、画面間state非同期を仕様として記録 |
+| PB / Production build verification | 未完了 | D:Windows通常ビルド工程完了。C:隔離run中断を詳細記録 | PR #5、`next.config.ts`, package scripts、env/Sentry記録 | credential-free build完走、数値exit0、完全artifact、依存再現性・egress境界 | PBの隔離条件で通常production `pnpm build` exit0、compile/type/route完了、`BUILD_ID`等を確認 | 環境・copy/junction・pnpm lock問題を整理後、承認された安全な再build | P2、準備P0 | アプリ実サービス不要。通常font取得は限定network許可が必要になり得る | env自動読込とSentry upload隔離、依存状態、resource上限。C2 buildで代替不可 |
+
+### U / I — 重複を増やさない実施手順
+
+- **U:** schema/引用/Demo mode/C2 policy/CLI設定の既存assertionを一覧化し、成功、無効値、境界、失敗時の拒否を対応付ける。追加は現状mockされる `chunkText` / `estimateTokenCount` の空白入力、短いASCII/CJK、閾値前後、複数chunkの元テキスト保持・overlap・終了性の代表ケースに限定する。実tokenizer精度や全Unicode組合せは対象外。テストが関数の行を写すだけにならず、入出力と本文欠落を観測すること。
+- **Iのoffline gate:** (1) 実 `buildResearchContext` をDBダブルに結合し、missing Research、null Conclusion、未リンク/リンクSource、Comments/Source本文を含めない契約を確認。(2) 実 `retrieveWorkspaceContext` に固定vector候補を渡し、distance=0.35/超過、候補要求10/出力最大5、同一type/id重複、同一ResearchのCONCLUSION/RESEARCHの区別、missing元レコードをskipし補充しない動作、Finding chunk本文と現在Source metadataを確認。(3) 実prompt/validator/parserを使う既存C1・resolverとguard→Actionを再利用する。embed/search/DB/SDK mockの存在を表に記録し、実SQL結合と呼ばない。
+- **IのHTTP gate:** 通常SaaSの隔離targetで、既存の契約を使いResearch更新Action成功/invalid入力/非member拒否、Chat会話作成・list・detail・固定stream送信/復元を各1代表経路確認する。401/404/400、指定targetのみに保存、拒否時write/AIなし、期待するredirect/履歴を観測する。provider/Redis等はローカルの固定応答に置換した専用harnessを別PRでレビューし、C2 guardは緩めない。guardの直呼び合格だけでtransport合格にしない。実DBを使う案ならDB gateの許可・fixture計画を先に満たす。
+- 将来の実行例は `pnpm exec vitest run <対象ファイル>` と、差分に応じた `pnpm test --run`。対象suiteは全件成功・exit0、独立する既存テストを黙って除外しない。変更した契約とassertion、mock一覧、実行ログを証拠にする。今回これらは未実行。
+
+### DB — 実DB専用の有限gate
+
+実施前にDB安全gateを満たす。現在のC2保護fixtureとは別の、使い捨てDBまたは明確に分離した所有manifestを使う。対象contract/migration revisionを固定し、必要なschema準備・書込・cleanupを個別に許可する。通常開発/本番にfallbackしない。手順が未実装のため、以下は自動実行できる既存suiteの主張ではない。
+
+1. 独立2tenantのUser/Organization/Workspace/Researchと最低限の子を作る。Membership/WorkspaceMembership複合キー、FindingSource/ResearchTag複合キー、Workspace内Tag名、RetrievalChunk unique keyで同じキーを2回書き、重複拒否または設計されたupsert結果1件を確認する。必要な親なしの子追加はFK違反で拒否されること。
+2. Source/Findingそれぞれの削除でFindingSourceがcascadeし、反対側の本体は残ることを確認する。別Research Sourceリンク・別Workspace TagはアプリActionで拒否、他tenantのrow差分ゼロを確認する。独立FKだけでは同じResearch/Workspaceを強制しないため、DB制約が保証すると書かない。
+3. onboardingのOrganization/Workspace/2 membership、Tag新規作成とResearchTag、index replacementの各transactionで途中に合成障害を1箇所注入し、新規rowゼロまたは旧chunk完全保持を確認する。成功時は期待graphが全件できること。既存mock transactionが呼ばれたこととは別証拠にする。
+4. barrier付き2 connectionで同じResearchのindex replacementを競合させ、advisory lockの待機/解放、重複なし・半端なchunk集合なしを確認する。embeddingは固定値でよく、実AIは不要。異なるResearchの操作が不必要に同じlockで止まらない代表ケースも1件確認する。
+5. Organization/Workspace各scopeの最後の2 ADMINを同時に降格する代表ケースで、commit後ADMINが最低1人残り、敗者が明示的拒否/rollback等で扱われることを要求する。現在のread/count→別updateには原子的保証がないため、失敗した場合は実装修正が必要であり「テスト済み」で完了にしない。権限取消とwriteの競合も1代表ケースで期待する整合点・拒否方針を先に固定し、取消後に無権限writeが確定しないことを検証する。
+6. 各caseの期待/実測row数・constraint種別・transaction outcome・競合の順序を秘匿化して残す。終了時は所有manifestだけcleanupし、他row/既存C2 fixture/auth rows不変、全connection終了を確認する。cleanup失敗はgate失敗として報告する。
+
+対象外は全migration経路の互換性、負荷限界・性能benchmark、災害復旧、全分離レベルの組合せ。`AiUsageEvent` と `RetrievalChunk` のscalar attributionにはFKがないため、存在しない参照制約を合格条件にしない。Chat全writeのtransaction化も現行仕様ではなく、途中失敗時の部分保存はI/Eで判断する。
+
+### AI — offline、モデル品質、実Chatを分ける
+
+[quality report](ai-chat-quality-evaluation.md) のモデル応答・採点は開発者提供の実行観測（D）であり、今回のCodex実行ではない。元Geminiは **Pass4 / Provisional1 / Fail1**。Case03はsemantic引用のscope違反。prompt改善後のCase03反復5回は引用適切5/5、満点1/5。最新Geminiは **Pass3 / Fail3**（02:5/6、03:7/8、04:7/8）。引用IDの適格性だけでは因果表現・限定・説明不足を解決しない。
+
+Groqは `openai/gpt-oss-120b` の評価専用。01は2回とも4/6 Fail、02はraw4/6 Fail（正規化後6/6相当でもraw判定を変更しない）、03は定性的失敗で統合点なし、04は7/8 Fail、05は8/10 Fail、06のみ6/6 Pass。Finding ID/metadataを引用にする失敗、review時間増加を余力と逆解釈する失敗等を保持する。異なるprompt/反復数の比較からモデル優劣・料金・再現性を推定しない。
+
+| Gate | 手順・期待結果 | 必要な証拠 / 対象外 |
+| --- | --- | --- |
+| AI-A: 実行不要の準備とoffline処理 | 実prompt builder、dataset v1.0、引用allowlist/正規化/parse、C1、Iのcontext/selection、run-storage契約を対応付ける。C2/I2/N2の因果/限定/測定助言の0/1/2採点を例付きで固定し、datasetのGemini専用verdict文言との差異を解消する方針を別PRで決定する | prompt commitと構築後SHA-256、fixture hash、SDK/model ID・設定表。既存testで足りる所を複製しない。C2/I2/N2は採点criterion IDで、C2 runtimeとは別。provider呼出し不要 |
+| AI-B: boundedな実モデル品質gate | production設定のGoogle `gemini-3.6-flash`（実行前にID/利用可否を確認）で6ケース×事前固定3反復=**18 assessable回答**。各expected behavior=2、failure conditionなし、claimと引用の意味的対応が全回答で成立することをPass条件とする。02/03/04は2評価者で採点し、差は理由付きで合意。曖昧さを実行後に緩めない | 全失敗/Not runも保持、成功だけ選ぶretry不可。HTTP/生成失敗は内容Failと区別し、再実行回数/費用は事前承認。18件はこのfixtureのgateであり統計的な本番信頼度ではない。Groqの再比較は任意で、行の完了に必須ではない |
+| AI-C: 実検索と実Chatの限定gate | 承認済みの通常SaaS隔離DBで2tenant・固定Researchをindexし、旧16問の関連度groupを利用して4代表問（同Research、同Workspace別Research、関連なし、別Workspaceのみ）を実embedding/searchで確認する。返るID/順位/期待空集合を実行前に明記し、無関係・別tenant引用なし。続けて引用可能な正常回答と資料不足回答の各1会話で送信→stream完了→usage/message保存→History復元を確認する | 期待関連ID、実retrieval結果・許可Source、raw/validated/persisted/renderedの差、finish reason・usage・復元結果。別tenantの変更ゼロ。DB/AI/必要なrate-limitサービスの接続は個別承認。全16問のrecall統計、長会話・他言語・全injection・Groq production採用は対象外 |
+
+実行metadataには日時、実行者、provider/model ID（aliasの場合はその限界）、prompt commit/hash、dataset/fixture hash、generation settings（未指定ならSDK/provider defaultと明記）、各反復のraw/validated/parsed、採点criterion/reviewer/reason、usage/finish reason、許可された費用を含める。現行 `--save` はprompt/fixture hashと応答段階・usageを保存するが、prompt全文snapshot、採点者・採点・全generation settings・finish reasonの完全な記録ではない。不足はsanitized sidecarで補い、secretやprivate資料を保存しない。`.env` を読む実行CLIを承認前に起動しない。
+
+post-validationで空になるAI Message、raw streamと保存後引用の差、Source refresh失敗は既知の動作。空回答・引用表示の受入policyを先に決め、正常回答と扱わないこと、未許可/非HTTP(S)リンクを操作可能にしないことをI/E・表示防御の後続PRで確認する。修正が必要なら本PRではなく実装PRで扱う。
+
+### V / AZ / E — 既存証拠で判定できる部分と追加gate
+
+| ID | 実施手順と期待結果 | 必要証拠 / 対象外 |
+| --- | --- | --- |
+| V | PR #8/#9の表を7schema→11 Actionへ対応付ける。missing/null/blank/trim/newline、min/max−1/max/max+1、status enum、description/Conclusion null、Source HTTP(S)/localhost/不許可protocol、onboarding名・role enumで既存の正規化payload/同一error契約/拒否時無副作用を確認する。成功時auth→正しいscope保存→必要index/redirect、save失敗時既存error/throwを確認 | 既存schema129・Action71と関連suiteのassertion参照で満たせる可能性。新テスト数を要求しない。重複form keys、全fieldのFile拒否、payload/transport上限、grapheme長、ID形式の新policyは対象外・別PR。HTTPはI、既存保存URL表示はP0で別管理 |
+| AZ | route/caller表をdirectory-structureの入口に対応付ける。未認証、別tenant MEMBER/ADMIN、同scope MEMBER/ADMIN、複数Workspace membership、missing子/会話と違うResearchを有限caseにする。Organization/Workspace role独立、target複合predicate、逐次last ADMIN、current cookie再検証、Demoのauth/private lookup前拒否、chat401/404を示す。Chatは認証UserのWorkspace membership→Research→Conversation IDとResearch IDの一致を確認し、会話作成者限定という新要件を作らない。settings read/onboarding入口も現在の実guardを追い、漏れだけ追加 | guard自体をmockしたcaller testは他の実guard testと対応させる。拒否時query/write/cookie/cache/index/AIなし、許可時target以外変更なしのassertionを示す。現存逐次caseは再追加しない。実OAuth/transportは対象外、競合はDB gate。これでproduction全体の認可保証を主張しない |
+| E | PR #6の各error分類をcallerに対応付け、未対応のWorkspace/admin/onboarding/Conversation list/detailのDB例外を代表各1件で確認する。成功/404に誤変換せず、固定されたAction error/throwを守る。stream開始前/後・abortをsynthetic providerで注入し、spinner解除・再操作・USER/usage/AIの部分保存と未完了AI非成功扱いを記録する。PB成功後の隔離production-modeで合成例外のHTML/RSC/HTTPとglobal error表示を確認し、message/stack/secret marker漏洩なし、ブラウザ再操作可能を確認 | 既存Chat400/401/404/429・例外同一性・no-write、Demo例外・notFound、global-error mockを再利用。実Sentry送信を要件にしない。capture引数とredaction方針をreviewし、任意例外文やextras/breadcrumbを自動redactする保証はないと明記。実provider outage/実DB停止、完全監視監査は別gate |
+
+Vの既存入力契約、AZの既存逐次guard契約、Uの既存純粋policy部分、Eの既存error経路は、コードが変わらず対応表が埋まれば過去証拠だけで満たす可能性がある。ただしUのchunker、I/DB/AI、A/R、PBとEのruntime部分は現存証拠だけでは満たさない。AZのread入口監査で未対応境界が見つかれば、そこだけ追加する。
+
+### A / R — 限定した画面受入レビュー
+
+対象は `/demo` と全4詳細 **Developer Productivity / Code Quality & Reliability / Developer Experience / Adoption & Organizational Impact**。A/R共同の結果表を使い、既存14ケースで済む部分を再実装しない。viewportは **1280×720、375×812、768×1024**。3つの詳細はdesktop回帰だけなので、狭幅も確認済みとしない。
+
+1. 各ページ×3幅でh1/main、Conclusion/Sources/Findings/Discussion、本文/Source title/empty state、Back、一覧の4リンクを確認。`scrollWidth <= clientWidth`、必要本文のclippingなし、重なりで読めない/使えない箇所なしを期待する。意図した一覧ellipsis/URL preview短縮は許容し、全文がlink name等で識別できること。
+2. Tab/Shift+Tab/Enterのみでheader、全Research、Back、Source/Supporting Sourceを到達・操作でき、順序が理解可能、trapなし、focus-visibleが目視可能であること。外部Source/GitHubへは遷移せず、名前とHTTP(S)先だけ検査する。**375pxの既知のSource/sticky header部分重なりは未解決。focusしたリンクの表示とindicatorがheaderに隠れない状態へ修正し、forward/reverse Tabの再現手順・修正前後を記録するまでA/Rは完了しない。** 完全遮蔽でない既存assertionをそのまま修正完了証拠にしない。
+3. native Chrome 200%を同じwindowで全5ページ確認し、version、Windows、window/viewport、OS scaling（取得不可なら明記）、日時、menuの200%を記録する。各ページの本文・縦scroll・横scroll・keyboard/focus/Backに個別結果を残す。既存D報告は部分証拠に留め、CSS `zoom:2` / deviceScaleFactorは代替にしない。
+4. 全5ページでtext-only 200%およびline-height1.5、paragraph spacing2em、letter spacing0.12em、word spacing0.16emの上書きに対し、主要本文と必要リンクの欠落・操作不能なしを確認し元に戻す。使用したブラウザ/方法を記録する。light themeの本文/metadata/タグの代表contrastとfocus/hover/sticky背景の可視性を追加確認し、既存5組の比率を全状態へ一般化しない。採用する限定基準は通常text4.5:1、大きなtext3:1、必要な非text/focus境界3:1。測定不能・不一致は合格扱いにせず記録する。
+5. RのSaaS追加範囲は実装済みのoverview/list/detail、Workspace selector、Research作成/編集・代表Source dialog、settings役割form、onboarding formの375px/768px/desktop表示とkeyboard操作、およびChatの`lg`前後（1023/1024px）のside panel/mobile dialog/History/送信error/citation。合成データ・mockで確認し実mutationをしない。viewport切替でpanel instanceのdraft/選択が同期しない既存仕様は、Historyで保存会話を開き直せることを確認し、同期機能の追加要件にしない。現C2 fixtureにないform/設定はoffline preview等の別harnessをレビューする。
+
+必要証拠はpage×viewport×操作のPass/Fail/未実施表、匿名化したfocus/欠け/重なりのcapture、検査実行者・環境・対象配備identity。Aはこの有限範囲の構造・操作・可読性レビュー、Rは上記画面の配置/操作レビューであり、**WCAG完全適合監査ではない**。screen reader/全支援技術、他ブラウザ・物理device、dark theme、全contrast全状態はdeferred riskとして残す。SaaS form全画面の正式なa11y監査もこのA gateには含めない。
+
+### PB — 安全な通常production buildの受入
+
+PR #5の通常Windows工程完了（D）とcredential-free copy中断（C）は別結果である。中断後のPostCSS errorを自然発生のアプリ不具合・OOM・font errorと断定しない。`runAfterProductionCompile`完了はSentry upload実施/無効化の証拠でもない。
+
+1. 通常production configを使う別checkout/隔離copyと、pnpm12.9.1・lockfileに合う依存状態を用意する。既存`.env*`やbuild出力・`node_modules`を無条件copyしない。PR #5のjunction/copy layout、subprocess権限、pnpm project/store lockエラーを先に解決・記録する。依存導入が必要なら別途許可された環境で `pnpm install` を使い、packageManagerやverifyDepsを変更して回避しない。
+2. fresh process環境と追跡ファイルだけを使用し、Nextの `.env.production.local`, `.env.local`, `.env.production`, `.env` とSentryの `.env.sentry-build-plugin`、user/project `.sentryclirc`、shellのDSN/token/org/project/upload設定・provider/DB/auth/Redis/Inngest/preload設定が入らないことを確認する。`.env.sentry-build-plugin` はpluginがprocess.envへ上書きし得るため、shellのunsetだけでは足りない。値は出力しない。
+3. 本番DB/DEMO_WORKSPACE_IDを与えず、`PUBLIC_DEMO_MODE=true`、Next telemetry無効、Sentry DSN/build tokenなし、release/upload先なしで実施する。`withSentryConfig`の`telemetry:false`はsource map/release uploadの包括無効化ではない。C2 alias・inert fontに置き換えて通常buildの成功としない。font取得が必要なら認めたGoogle Fonts宛のtransportだけを使う。アプリサービスへのegressは拒否し、DB/OAuth/AI/Upstash/Inngest/Sentry接続が観測されたら停止する。
+4. 事前合意した時間・memory上限内で **`pnpm build` exit 0**、compile、組込TypeScript、page data/static generation、最終route出力が完了すること。`.next/BUILD_ID`と必要manifest/server/static出力の存在・非空、`/demo`と`/demo/research/[researchId]`のrouteを記録する。生成typeだけや途中chunkを完全artifactとしない。build時にDemoデータをqueryしない設計のまま確認する。
+5. 数値exit、stage、artifact一覧、warning分類、依存/環境確認、設定上の隔離と観測した通信の範囲を残す。意図しないcredential混入・upload・アプリサービス通信なしをgateにするが、packet観測が限定的なら完全egress監査と主張しない。生成物/logのsecret scanと元env/作業ツリー不変を確認し、build出力をGitへ追加しない。
+
+期待結果を満たさなければFail/Blockedとし、再実行で中断記録を消さない。対象外はdeploy、実運用、DB接続、OAuth/AI、Sentry実送信/ソースマップuploadの疎通。PB成功をPhase 11の本番稼働保証に拡張しない。今回はbuildを実行しない。
+
+## Remaining work by priority
+
+| 順位 | 作業 | 終了時の成果 / 依存 |
+| --- | --- | --- |
+| P0 | Source表示防御と375px overlap、build/env安全計画 | PR #9の入力制限だけで既存URL表示は安全にならない。Research Sources/SupportingとAI citationのHTTP(S)表示allowlist・非リンク表示を別PRで実装/renderer確認。DB既存値監査は別承認。overlapはA/Rのblocking defectとして追跡 |
+| P1 | U/V/AZ/Eの証拠対応、I offline不足、AI採点・version固定 | 既存caseの再利用表、必要な追加caseだけのdiff、範囲ごとの合否。実サービス待ちのない作業から進める |
+| P1 | Demo A/R補完とnative200%結果、DB/実Chatの設計 | 4詳細×3幅・zoom/keyboardの結果、未解決修正。DB transaction/競合・非C2 Chat harnessの仕様と承認対象を固定 |
+| P2 | PBの安全な再build | 完全artifactと隔離証拠。Eのproduction-mode確認の前提 |
+| P2 | 実DB整合性/rollback/競合 | DB不変条件を満たす。発見したraceは実装PRで修正後に同じcaseを再確認 |
+| P2 | I/E runtime、SaaS R、AI-B/AI-C | 各承認後にbounded実行。AI-BはDB不要なのでrubric・予算確定後に独立してよい。AI-CはDB/Iと通常SaaS実行環境に依存 |
+
+## Required safety gates
+
+この文書・過去の許可・PRのマージは新しい実行許可を与えない。以下は**将来の実行直前**に対象、操作、通信先、上限、停止/cleanup、証拠の扱いを具体化し、必要な明示許可を得るためのgateである。今回許可を求めたり実行したりしない。
+
+| Gate | 必要条件・承認単位 | 拒否・停止と終了条件 |
+| --- | --- | --- |
+| Offline | script import/設定ロードの副作用、pnpm自動依存検証、子processとネットワーク境界を確認。synthetic値だけでSDK/DB/Cloud境界をmock | 予期せぬ通信やreal credential読込は停止。EPERMなら実行なしとして記録し、勝手に別環境へ拡大しない |
+| 実DB | **read-onlyも含め明示許可**。host/port5433/database/role、実サーバー/コンテナー同一性、schema revisionを別々に確認。URL guardだけでidentityを証明しない。別manifest/使い捨てDB、接続数/timeout/操作範囲を固定 | migration/schema準備、insert/update/delete、cleanupを各許可に含める。既存C28件・実User/Account/Sessionと本番/開発DBは保護。曖昧target、所有権不明、cleanup失敗は停止し再試行しない |
+| C2 / Session / OAuth | server起動、fixture verify/write、Route B Session create/use/revoke、browser run、Google OAuthは**別操作として明示許可**。Route BはGoogleログイン検証ではない。最小app cookieをprivate/ignored stateに保存し録画・trace・raw errorを残さない | fixture前後8件、Session exact revoke、state不存在を確認。60分cookieでもAuth.jsによるDB期限更新があり明示revoke必須。旧許可を再利用しない。OAuthは今の限定EE判定に不要 |
+| 実AI / rate-limit | provider/model、syntheticデータ、prompt/rubric、18回答等の呼出数・token/費用上限・timeout・retry上限・保存先を事前承認。AI-CのDB/Redis等は接続先・書込・cleanupを別記 | privateデータ・secretのprovider送信禁止、上限/予期せぬ外部先/未承認retryで停止。Groq追加比較は別予算。Upstash/Inngest Cloud/Sentryをついでに起動しない |
+| Browser / Public Demo | read-only GET対象、non-GET/外部遷移拒否、target identity、記録範囲を確認。SaaSは別隔離targetでsynthetic値を使い、実form submitはIの許可範囲内だけ | 公開サービスへmutation/OAuth/AIなし。private Sessionやpage dataをcaptureしない。viewport変更を物理端末検証と表記しない |
+| Build / production-mode error確認 | PBのclean copy・fresh env・Sentry plugin env除外・fontだけのnetwork・resource/時間上限を承認。元envを移動/削除せず、通常/C2同時起動しない | 許可外サービス通信/secret混入/上限超過は対象processだけ停止しinconclusive記録。production-mode error確認は合成dataと外部mockで、実DB停止やSentry送信を誘発しない |
+
+C2で外部サービスが止まること、通常SaaS/DemoでDSN設定時のSentry送信があり得ることは別である。実Sentry配送・redaction・dedup、Inngest Cloud、Upstash実通信の確認が必要になれば独立scopeで承認し、capture mock・mode guardをその実績に読み替えない。
+
+## Known deferred risks
+
+- 保存済みの不許可Source URLは入力制限で修復されず、Source/Supporting/AI panelは現状保存URLを渡す。実DBの既存値・実browserでのexploitabilityは未確認。表示防御を先行し、データ監査/修復は別承認とする。SSRF/hostname/private-IP遮断は今回のHTTP(S)入力policyとは別要求。
+- raw streamは保存allowlistでfilterされず、History復元後とtext/引用が異なり得る。引用だけの出力はvalidation後に空で保存され得る。未解決のまま意味品質・正常会話の合格にしない。
+- last ADMINのread/count→update、認可とmutationの間の競合、index lock/rollback、scalar attributionの孤立はmockで実保証できない。DB gate完了までproduction競合安全性を主張しない。
+- C2 preflightはDBコンテナーidentity・egress全監査ではない。OAuth自動化の失敗歴、probeの制限、Route Bのrefresh/revoke caveatを保つ。EE完了を根拠に再ログインやSession操作を行わない。
+- A/Rは限定scope。375px overlapは未解決のblocking defect。DのChrome200%部分報告、light themeの5色sampleだけでは全page/reflow/支援技術の適合を証明しない。
+- Sentryの任意例外・extras・breadcrumbのredaction、実配送、Cloud署名交換、実provider障害と長会話/大量データ/負荷/複数browserは未検証。今回定義した限定gateの外に残し、公開SaaS全体の品質保証と表現しない。
+- PR #5の通常buildが読んだenvによる外部副作用は不明。隔離runのsecret scanを通常buildへ流用できない。pnpm依存再現性、copy/junction/resource問題は後続PBの前提。
+
+## Recommended follow-up PR sequence
+
+1. **表示境界の修正:** SourceリンクのHTTP(S)表示防御（保存値は変更しない）、375px sticky header overlapを各小PRで修正し、offline renderer/必要なDemo回帰だけ実行する。
+2. **Offline証拠と不足の整理:** U/Iのchunker・context/selection、V/AZの対応表とread入口、Eの未対応caller/stream契約、AI-Aの採点/version固定。既存assertionで足りる項目は結果と限界だけ記録し、完了候補は別PRで判定する。
+3. **Demo A/R:** 全詳細の狭幅・keyboard・native zoom/spacingを共同で検証し、結果表とblocking defect解消を提示する。既存14ケースを維持し、同じassertionを複製しない。
+4. **隔離build:** PB前提を具体化し許可後に通常production buildを再検証。exit0/完全artifact/安全証拠が揃ってからPBを判定する。
+5. **DB整合性と競合:** 使い捨てtarget・manifest・期待不変条件をレビューし、明示許可後にDB gateを実行。失敗は最小修正PR→同caseの再検証へ回す。
+6. **通常SaaSのI/EとR:** 安全なHTTP/Chat stub harness、production-mode合成error・browser回復、form/AI breakpointを検証。C2のサービス拒否は維持する。
+7. **承認済みAI品質:** AI-Bは2の採点固定後に独立して実施可。AI-Cは5/6と接続・セッション・予算承認後。全失敗と設定を残し、18回答だけで一般的なモデル信頼度を主張しない。
+8. **完了判定PR:** 11行のPass/Fail/Not run/Blocked、残るdeferred risk、証拠帰属と対象commitを再確認し、条件を満たす行だけチェック更新する。限定EEの既存チェックは維持する。
+
+## This PR verification
+
+今回の検証は静的な文書整合確認に限定した。
+
+- `git diff --check` は成功。新規未追跡ファイルも `git diff --no-index --check -- /dev/null docs/planning/phase10-quality-acceptance.md` でwhitespace診断なし（exit 1は追加差分の存在を表す）。LF→CRLFのGit通知はwhitespace違反ではない。
+- 相対ファイルリンクの存在、新文書へのroadmapリンク、受入表11行、Phase 10チェック11件のHEADとの完全一致を確認した。完了はE2Eの1件のみ。
+- roadmapから今回の2行の挿入だけを除いた内容のSHA-256は開始時と一致し、既存未コミット差分・PR #1〜#9の詳細記録を保持している。その他の追跡文書に差分はない。
+- statusはroadmap変更と新文書の未追跡追加のみ。通常の `git diff --stat` は既存roadmap差分も含み、新文書は含まないため、追加ファイルのstatを別に示す。
+
+テスト、tsc、lint、build、browser、DB、OAuth/Session、実AI、Cloud通信は今回実行していない。過去の1,287件成功と今回の静的検証は別結果である。commit・push・PR作成も行わない。
