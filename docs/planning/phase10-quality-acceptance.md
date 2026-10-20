@@ -932,3 +932,40 @@ pnpm exec playwright test e2e/public-demo.spec.ts --project=chromium --max-failu
 `scroll-margin-bottom` が実keyboard focus移動で作用しない場合は、computed値とキー前後のscrollY / 全fragment rectを採取し、rootのscroll padding、実scroll containerと最大scroll位置、祖先のoverflow / clipping、Sourceカード・折返しinlineリンクの構造を調べる。その結果に基づき、root scroll padding（影響範囲が全ページに広がる）、スクロール可能領域の末尾余白（最大scroll位置の不足時）、リンク領域の構造変更（fragment / clippingが原因の場合）を理由付きの代替案として提示する。現時点では無効と判明していないため、これらの追加修正は行わない。
 
 commit / push / PR作成は行わず、この2ファイルの未コミット差分をレビュー可能な状態で停止する。
+
+## PR #15 final Preview results — 20/20 passed (2026-10-20 JST)
+
+この追記は、上記の修正前Failおよび修正直後Not runに続く、修正版Previewでの別実行結果である。過去の記録・表はその時点の履歴として保持する。ブラウザ結果と配備情報は**ユーザー提供の実行結果（D）**であり、今回Codexがブラウザを再実行・外部照会して得た結果ではない。
+
+### 対象identityと成功報告
+
+- **PR / ブランチ:** #15 / `test/demo-narrow-viewport-coverage`。
+- **検証対象commit（ユーザー提供）:** `964a0be8651dc46b700976de0d09a3926215a542`。今回のローカルHEADも同じcommitで、開始時の作業ツリーはclean。
+- **Vercel Preview（ユーザー提供）:** `https://evidence-atlas-git-test-demo-narrow-viewpo-46de39-morimotodev93.vercel.app`。
+- **Vercel deployment / status（ユーザー提供）:** `D8UVTzaNn5okuCnAwjj6VAjWvQh3` / **success**。URL・配備commit・deploymentの対応は今回リモートで再照会していない。
+
+| 別実行 | 対象 | ユーザー提供の結果 |
+| --- | --- | --- |
+| 375px追加ケースの確認 | Code Quality & Reliability / Developer Experience / Adoption & Organizational Impact、375×812の追加3件 | **3 passed (40.7s)** |
+| Public Demo全体回帰 | 同じ修正版Preview、既存14件＋追加6件（375×812 / 768×1024の追加3詳細を含む） | **20 passed (1.7m)** |
+
+両実行とも修正版Previewを明示的に指定した手順で行ったとのユーザー報告である。3件の実行と全20件の実行は分けて記録し、23件の異なるケースがあるとは扱わない。正確な実行日時・timezone、実行者、OS / Chromium version、実際のコマンド全文・数値exit、修正後のcomputed style / rect / scroll値は今回確認できていないため補わない。本見出しの日付は記録日（JST）である。
+
+### ローカルartifactとの照合と限界
+
+Codexが今回read-onlyで確認した `test-results/pr15-bottom-fix/.last-run.json` と `test-results/pr15-full-964a0be/.last-run.json` は、どちらも `"status": "passed"` / `"failedTests": []` だった。各ディレクトリに残っていたのはこのJSONのみで、接続先ホスト、対象commit、テスト件数、所要時間は含まれていない。ローカルで確認した `test-results` のログ・JSON・テキスト、および `memo/a11y/review.log` に、今回のホストと3件 / 20件の成功を照合できる記載は見つからなかった。PR #14のログは別Previewの履歴であり流用しない。
+
+したがって残存artifactの成功状態は確認できるが、ホスト・件数・時間および配備identityとの対応を独立に証明するものではない。これらの具体値は上記のユーザー提供結果に帰属させる。ignored artifactは変更・追加追跡していない。
+
+### 修正前後と上下のフォーカス防御
+
+- **修正前 `910fe3d`:** 375px追加3件は、NIST Secure Software Development Framework、Copilotの生産性・幸福度研究、DORA Researchの各SourceでFail。共通してリンク下端812px＋outline最低4px＝816pxとなり、viewport下端812pxに対して4px不足した。既存の上端 `scroll-margin-top: 96px` は適用済みだった。
+- **PR #14の上端防御:** `[&_a]:scroll-mt-24 sm:[&_a]:scroll-mt-16` により、sticky headerと上端outlineのための余白（375pxで96px、sm以上64px）を指定する。
+- **PR #15の下端防御 / 修正commit `964a0be`:** `[&_a]:scroll-mb-2` により `scroll-margin-bottom: 8px` を追加した。今回ローカルGit差分で追加を確認した。PR #14の上端指定は維持され、`910fe3d` から `964a0be` のE2E specに差分はない。8pxのcomputed値そのものを今回実ブラウザで再観測したわけではない。
+- **修正後:** ユーザー提供結果では375px追加3件と同じPreviewの全20件が成功した。実Tab / Shift+Tab、`:focus-visible`、sticky headerとの非重複、全fragmentとoutline最低4pxのviewport内配置、部分重なり許容0px、横overflowなしという既存assertionを維持した範囲の成功報告として記録する。
+
+### 残る受入項目と今回の変更範囲
+
+**Phase 10 Accessibility review / Responsive UI review全体は引き続き未完了。** 今回のPublic Demo 20件成功を全体の受入完了へ拡張しない。全5ページのnative Chrome 200% zoomの環境値・ページ別結果、text-only 200% / text spacing、focus / hover / sticky背景・metadata / tag等のcontrast、通常SaaS各画面の375px / 768px / desktopおよびChatの1023 / 1024px配置・keyboard確認が残る。screen reader・他browser・物理device等の既存deferred riskも保持する。
+
+今回の変更はこの品質受入文書への追記だけ。CSS・テストassertion・roadmap・Phase 10チェックボックスは変更しない。実ブラウザ・server起動・外部接続、実DB・OAuth・AI・Cloud、build・deployを実行せず、commit・push・PRマージを行わない。未コミットのレビュー可能な状態で停止する。
