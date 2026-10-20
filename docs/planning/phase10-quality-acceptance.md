@@ -991,3 +991,40 @@ PR #16マージ後に提供された**ユーザーの手動レビュー結果（
 **B1: Browser-specific text-only 200%、B2: Text spacing（line-height 1.5 / paragraph spacing 2em / letter spacing 0.12em / word spacing 0.16em）は未実施のまま。** 次回はPR #16で準備した既存手順・表を使う。Contrast / hover / sticky header追加確認、通常SaaSのResponsive検証、Chatの1023px / 1024px境界確認も未実施であり、**Accessibility review / Responsive UI reviewは引き続き未完了**。roadmapおよびPhase 10チェック状態は変更しない。
 
 今回の変更はMarkdown文書2ファイルへの証拠追記のみ。既存Playwright 20件・Vitest・型検査・lintは今回再実行しておらず、過去の成功を今回の検証結果として扱わない。アプリCSS・Playwright・依存・roadmapは変更せず、ブラウザE2E・外部Previewアクセス・server起動・実DB / OAuth / Session・AI / Cloud・production build / deploy・commit / push / PR作成 / mergeは行わない。
+
+## PR #18 — B2 Text spacingユーザー提供結果（記録日: 2026-10-20 JST）
+
+開始時は `docs/demo-text-spacing-b2-evidence` / `553ba944db440ca67b5867891982a0129cc80436` / clean。worktreeは `C:/Users/owner/Desktop/sm-dev/evidence-atlas` の1つで、ローカルmainも同じHEAD。PR #17のマージをローカル履歴で確認した。fetch・リモート照会は行っておらず、開始HEADをレビュー対象の配備commitとは扱わない。
+
+**ユーザーによるブラウザ手動レビューの結果（証拠種別D: Developer-reported manual result）**を追記する。新規Playwright実行やCodexのブラウザ再実行・独立観測ではない。[レビュー文書のPR #18追記](public-demo-zoom-text-spacing-review.md#pr-18--b2-text-spacingユーザー提供結果記録日-2026-10-20-jst)に原文・対象条件・ページ別結果・環境情報・証拠の限界を記録した。PR #16の初期Not run、PR #17のnative Chrome 200%結果、PR #15のChromium 20/20成功は当時の履歴として保持する。
+
+### B2の条件と報告結果（D）
+
+対象はPublic Demoの一覧と4つのResearch詳細、計5ページ。PR #16で準備した条件はLine height `1.5` / Paragraph spacing `2em` / Letter spacing `0.12em` / Word spacing `0.16em`の**同時適用**。CSS PassはそのB2手順に対するユーザーのCSS適用報告として記録する。具体的なcomputed CSS数値は未提供で、指定値を数値測定済みとは推測しない。
+
+| Page | CSS | Readability | Keyboard/focus |
+| --- | --- | --- | --- |
+| Research list（`/demo`） | Pass | Pass | Pass |
+| Developer Productivity | Pass | Pass | Pass |
+| Code Quality & Reliability | Pass | Pass | Pass |
+| Developer Experience | Pass | Pass | Pass |
+| Adoption & Organizational Impact | Pass | Pass | Pass |
+
+**各項目5 Pass / 0 Fail（ユーザー手動報告・D）。** この報告を既存の内容別チェック全項目の合格に展開しない。
+
+### B2の環境情報と証拠の限界
+
+- Browser: Chrome 157（ユーザー申告）。
+- 対象URL: `https://evidence-atlas-o0cea7xpy-morimotodev93.vercel.app/demo`（ユーザー提供。今回アクセスしていない）。
+- Viewport: `1920`（原文）。単位・寸法の意味は未確定。
+- 証拠種別: D（Developer-reported manual result）。
+
+正確な実行日時・timezone、今回のWindows実行環境、Chromeの完全なversion / build番号、Viewportの縦寸法とCSS pxとしての測定方法、Chromeページzoom100%の今回の独立記録、Vercel deployment ID・配備commit・statusと対象URLとの対応は**未確認**。PR #17のWindows情報やローカルHEADを流用しない。本見出しの日付は文書記録日であり、実行日時ではない。
+
+CSSの具体的なcomputed値、キーボード操作の詳細ログや個別focus座標、スクリーンショット・動画等のartifactも**未提供・未確認**。詳細証拠の不足とユーザーのPass報告を分けて保持し、未提供の操作・個別focus状態を推測しない。4詳細の個別URLも未提供。
+
+### B2記録後の残項目と変更範囲
+
+**B1: Browser-specific text-only 200% — Not run**。B2の手動結果をB1の成功やWCAG全項目の適合証拠として扱わない。Contrast・hover・sticky背景・focus indicatorの追加確認、未表示のempty state（未表示・未検証）、通常SaaS画面のResponsive確認（375px / 768px / desktop）、Chatの1023px / 1024px境界・keyboard確認が残る。**Phase 10 Accessibility review / Responsive UI reviewは引き続き未完了**。roadmap・Phase 10チェック状態は変更しない。
+
+変更は指定Markdown文書2ファイルへの追記のみ。CodexはローカルGit状態・Markdown表・相対リンク・差分のoffline確認だけを行い、テストは再実行していない。アプリCSS・テスト・依存・roadmapは変更せず、ブラウザE2E・外部Previewアクセス・server起動・DB / OAuth / Session / AI / Cloud接続・production build / deploy・commit / push / PR作成 / mergeは行わない。レビュー可能な未コミット状態で停止する。
