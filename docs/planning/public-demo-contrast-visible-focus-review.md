@@ -338,3 +338,56 @@ No research / No conclusion / No sources / No findings / No discussion等の空�
 不具合を実観測した場合はページ・viewport・状態・操作・証拠・該当基準を固定して別タスクの修正範囲を判断する。今回の静的懸念だけでアプリを変更しない。通常SaaS・Chat・既存deferred riskも残るため、**Phase 10 Accessibility / Responsive UI review全体は未完了**。roadmap・既存チェックボックスは変更しない。
 
 今回の確認は指定のオフライン文書確認のみ。アプリテスト、テスト列挙、lint、型チェック、build、ブラウザE2Eは実行していない。変更は本新規文書とPhase 10文書末尾へのPR #20準備状況の追記だけとし、commit / push / PR作成を行わず、未コミットで停止する。
+
+## PR #21 — L1 Contrast / Visible Focusユーザー手動報告（記録日: 2026-10-20 JST）
+
+開始時は `docs/demo-contrast-focus-list-evidence` / `a482f635892d00548c8fb1a63a886609d8fdf4a9` / cleanで指定と一致。`git status --short --branch`はbranch行のみで、既存の未コミット変更なし。`git worktree list`は `C:/Users/owner/Desktop/sm-dev/evidence-atlas` の1件。開始HEADを配備commitとは扱わない。
+
+本節はSession **L1**の**D: Developer-reported manual review（開発者提供のユーザー手動報告）**を記録する。PR #21の詳細検査対象はResearch一覧（`/demo`）。既存表のページID `L`とSession ID `L1`を区別する。4詳細ページのPassは補足のページ単位報告として保持し、詳細検査の個別実測記録が揃ったとは扱わない。Codexによるブラウザ操作・再実行・独立観測ではなく、第1〜11節のPR #20準備記録・Not run表は当時の履歴として変更しない。
+
+### L1の環境・証拠情報（D）
+
+| 記録項目 | ユーザー提供情報 / 未確認事項 |
+| --- | --- |
+| Session ID / Evidence type | L1 / D（Developer-reported manual review） |
+| Date / Time | 2026-10-20 11:28（timezone未確認。JSTとは補完しない） |
+| OS / build | Windows 11（build未確認） |
+| Browser | Google Chrome 157（ユーザー申告。完全なversion / build未確認） |
+| URL | [Research一覧（ユーザー提供Preview）](https://evidence-atlas-git-docs-demo-contrast-visi-627546-morimotodev93.vercel.app/demo)（今回アクセスしていない） |
+| Deployment ID / Commit SHA | 未確認。配備statusも未確認 |
+| Viewport | 1280 × 720 CSS px（ユーザー申告、提供DevToolsスクリーンショットにも表示） |
+| Zoom | 100%（ユーザー申告） |
+| Theme | Light（ユーザーが明示的に訂正・確認。DOM / computed背景の独立確認なし） |
+| Keyboard | Tab / Shift+Tabの両方を確認したとの報告。各リンク・方向別の結果は未取得 |
+| Screenshot / capture ID / 保存先 | 会話で提供されたスクリーンショットあり。capture ID・保存先は未確認 |
+
+スクリーンショットはユーザー提供の補助証拠であり、新しい自動テストや完全な測定artifactとして扱わない。スクリーンショットの表示から配備identity、色・比率、個別focus結果を推測しない。window寸法・OS display scaling、操作順・scroll位置・pointer位置、検査後の設定復元記録も未確認。過去の別Sessionの値で補完しない。
+
+### Visible Focusのページ単位報告（D）
+
+| ページ | L1で報告されたVisible Focus | PR #21での扱い / 実URL |
+| --- | --- | --- |
+| Research list | Pass（ユーザー手動報告） | 詳細検査対象。上記 `/demo` URL。リンク別・方向別の個別結果は未取得 |
+| Developer Productivity | Pass（ユーザー手動報告） | 補足のページ単位報告。個別URL未確認 |
+| Code Quality & Reliability | Pass（ユーザー手動報告） | 補足のページ単位報告。個別URL未確認 |
+| Developer Experience | Pass（ユーザー手動報告） | 補足のページ単位報告。個別URL未確認 |
+| Adoption & Organizational Impact | Pass（ユーザー手動報告） | 補足のページ単位報告。個別URL未確認 |
+
+**全5ページPassとのユーザー手動報告（D）**を保持する。Tab / Shift+Tabの両方を確認したとの報告を、各リンクで両方向の個別確認が済んだ証拠には展開しない。以下の詳細項目は未確認であり、第8節のNot runをPassへ置換しない。
+
+- Evidence Atlas / Source code / 一覧4リンク / Backを含む、各リンクの個別Tab / Shift+Tab結果・順序・操作ログ。
+- Focus indicatorの色・幅・コントラスト比、各fragmentの輪郭と露出。
+- Sticky headerによる部分遮蔽・完全遮蔽、viewport端のindicator clipping。
+- Source / Supporting Sourceの個別focus結果と実リンク数、4詳細ページの個別URL。
+
+### Contrastの報告と測定の限界（D）
+
+ユーザーからは「目視では視認可能」との報告があるが、**厳密なコントラスト比率は未測定**。CSS Overviewでは **`Contrast issues`項目が表示されなかった**とのユーザー報告であり、「問題0件」とは断定しない。CSS OverviewだけでWCAG 2.2 AAへの適合を宣言せず、全面適合は未確認とする。
+
+前景色・実効背景色・比率は補完せず、**第6節のContrast測定表のNot run / 未測定を維持する**。Normalの数値測定に加え、Hover、透明度を含む合成色（card背景・Source opacity・半透明sticky headerと背面）、Focus indicatorの色・幅・隣接色との比率、FocusとHoverの併存状態は未確認。目視の報告を各状態や各要素の数値Contrast Passに展開しない。未表示の空状態・非リンク分岐は引き続きNot rendered / Not verified、測定ResultはNot run。
+
+### L1記録後の残項目と今回の確認範囲
+
+一覧の個別リンク・両方向focus記録、indicator実測、header遮蔽・viewport clipping、数値Contrast、配備identityの確認が残る。4詳細ページは補足のページ単位Pass報告にとどまり、Source / Supporting Sourceを含む詳細検査は未完了。他viewport、通常SaaS / Chat、既存deferred riskも完了扱いにしない。**Phase 10 Accessibility review / Responsive UI reviewは引き続き未完了**。受入状況は[Phase 10のPR #21追記](phase10-quality-acceptance.md#pr-21-l1-report)に記録し、roadmap・既存チェックボックスは変更しない。
+
+今回の変更は指定Markdown 2ファイルの末尾追記のみ。確認はGit差分・Markdown表・見出し・相対リンク・履歴保持のオフライン確認に限る。アプリコード・CSS・テストは変更せず、ブラウザ検査・E2E・外部Previewアクセス、DB / OAuth / Session / AI / Cloud操作、サーバー起動・production build、commit / push / PR作成 / mergeは行わず、未コミットで停止する。

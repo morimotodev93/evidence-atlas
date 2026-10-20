@@ -1084,3 +1084,15 @@ Public Demoの一覧と4つのResearch詳細におけるContrast / Visible Focus
 今回はCodexの静的確認とオフライン文書確認のみ。実際のcontrast測定、ブラウザ操作、Visible Focusの目視確認はすべて未実施であり、新しい検査表のResultはすべて **Not run**。前景色・実効背景色・比率は未測定、表示未確認の空状態は **Not rendered / Not verified** として区別した。詳細の実URLは後日の一覧リンクから取得する手順とし、Research IDは推測で固定していない。
 
 PR #15〜#19の既存証拠、ユーザー提供の手動結果、既存自動テストの記録、当時のNot run / Pendingは履歴としてそのまま保持する。それらを今回の自動検証・新しいcontrast実測・個別focusの目視成功へ読み替えない。**Phase 10 Accessibility review / Responsive UI reviewの全体受入は引き続き未完了**であり、既存チェックボックスは変更しない。
+
+<a id="pr-21-l1-report"></a>
+
+## PR #21 — L1 Contrast / Visible Focusユーザー手動報告（記録日: 2026-10-20 JST）
+
+Session L1の**D: Developer-reported manual review**を[Contrast / Visible Focusレビュー文書](public-demo-contrast-visible-focus-review.md)の末尾へ記録した。報告日時は2026-10-20 11:28（timezone未確認）。Windows 11（build未確認）/ Chrome 157 / viewport 1280 × 720 CSS px / zoom 100% / Light（ユーザーが明示的に訂正・確認）で、Tab / Shift+Tabの両方を確認し、**Visible Focusは全5ページPassとのユーザー手動報告**。PR #21の詳細検査対象はResearch一覧であり、4詳細ページのPassは補足のページ単位報告にとどめる。各リンク・方向別の結果、indicatorの色・幅・比率、sticky headerの部分・完全遮蔽、viewport clipping、Source / Supporting Sourceの個別focus結果は未確認。
+
+Contrastは目視では視認可能との報告だが、**数値Contrastは未測定**。CSS Overviewでは **`Contrast issues`項目が表示されなかった**との報告であり、問題0件とは断定しない。前景色・実効背景色・比率を補完せず、Hover・透明度・Focus indicator等も未確認。CSS Overviewだけで適合を宣言せず、**WCAG 2.2 AAへの全面適合は未確認**とする。
+
+Deployment ID / Commit SHA、4詳細の個別URL、会話で提供されたスクリーンショットの保存先・capture IDは未確認。スクリーンショットは新しい自動テストや完全な測定artifactとして扱わず、Codexによるブラウザ再実行・独立確認にも読み替えない。PR #20の準備記録・Contrast測定表および個別focus表のNot run、過去の履歴は保持する。**Accessibility review / Responsive UI reviewは引き続き未完了**であり、roadmap・既存チェックボックスは変更しない。
+
+今回の変更は指定文書2件の末尾追記のみ。オフライン文書確認だけを行い、アプリ・CSS・テストの変更、ブラウザ検査・E2E・外部Previewアクセス、DB / OAuth / Session / AI / Cloud操作、サーバー起動・production build、commit / push / PR作成 / mergeは行わず、未コミットで停止する。
