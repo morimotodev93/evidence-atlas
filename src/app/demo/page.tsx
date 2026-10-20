@@ -9,7 +9,7 @@ export default async function DemoPage() {
   const workspace = await getDemoWorkspace();
   if (!workspace) notFound();
 
-  return <main className="mx-auto w-full max-w-5xl px-4 py-6 sm:px-6 sm:py-8">
+  return <main className="mx-auto w-full max-w-5xl px-4 py-6 sm:px-6 sm:py-8 [&_a]:scroll-mt-24 sm:[&_a]:scroll-mt-16 [&_a]:scroll-mb-2">
     <header className="mb-6">
       <p className="text-sm text-muted-foreground">{workspace.organization.name}</p>
       <h1 className="mt-1 text-2xl font-semibold tracking-tight">{workspace.name}</h1>

@@ -391,3 +391,179 @@ No research / No conclusion / No sources / No findings / No discussion等の空�
 一覧の個別リンク・両方向focus記録、indicator実測、header遮蔽・viewport clipping、数値Contrast、配備identityの確認が残る。4詳細ページは補足のページ単位Pass報告にとどまり、Source / Supporting Sourceを含む詳細検査は未完了。他viewport、通常SaaS / Chat、既存deferred riskも完了扱いにしない。**Phase 10 Accessibility review / Responsive UI reviewは引き続き未完了**。受入状況は[Phase 10のPR #21追記](phase10-quality-acceptance.md#pr-21-l1-report)に記録し、roadmap・既存チェックボックスは変更しない。
 
 今回の変更は指定Markdown 2ファイルの末尾追記のみ。確認はGit差分・Markdown表・見出し・相対リンク・履歴保持のオフライン確認に限る。アプリコード・CSS・テストは変更せず、ブラウザ検査・E2E・外部Previewアクセス、DB / OAuth / Session / AI / Cloud操作、サーバー起動・production build、commit / push / PR作成 / mergeは行わず、未コミットで停止する。
+
+
+<a id="pr-22-codex-browser-batch"></a>
+
+## PR #22 — Codex実行 Chromium Contrast / Focus / Responsive batch（2026-10-20 JST）
+
+本節は **C22: Codexが今回実行したPlaywright Chromiumの独立観測**。PR #20の準備・143行の未実施表とPR #21のD: ユーザー手動結果は当時の履歴として変更しない。15条件を1 batchとして検査したが、**全条件Pass・知覚上の完全なfocus可視性・WCAG全面適合は宣言しない**。一覧の2 viewportで部分重なり / 下端余白不足が残り、数値化できない色はNot verifiedとした。
+
+### C22-1. 開始状態・実行環境・対象配備
+
+| 項目 | 今回の実測・確認 |
+| --- | --- |
+| branch / HEAD | `test/demo-contrast-focus-batch` / `c6d97caac748457bcaa042eda883ff342fffe9f8` |
+| working tree / worktree | 開始時clean。`C:/Users/owner/Desktop/sm-dev/evidence-atlas` の1件、想定branch / HEAD |
+| PR #21 | ローカル `main` と `origin/main` が同じ `c6d97ca`。commit messageは `Merge pull request #21`、parentsは `a482f63` / `dce6545`、mainへのancestor検査もexit 0。fetch・GitHubアクセスなし |
+| OS / Node / package manager | Windows NT `10.0.26200.0` / Node `v24.16.0` / 宣言・実行とも `pnpm@12.9.1` |
+| Playwright / Browser | 既存 `@playwright/test 1.63.0` / headless Chromium **153.0.8010.12**。PR #21のChrome 157とは別環境 |
+| 実行日時 | batch `2026-10-20T02:59:55.518Z`〜`03:02:04.920Z`、JST換算 **11:59:55.518〜12:02:04.920**。各ページの実採取時刻は下表とJSON。実行時計の値であり時刻同期の独立検証なし |
+| 時刻の注意 | 保存したpreflightのHTTP `Date` は `Tue, 20 Oct 2026 03:02:14 GMT`、実行側preflight時刻は `02:59:55.379Z`。両時計に約139秒の差があり、HTTP Dateで採取時刻を補正していない |
+| 実viewport / zoom | 各ページで `innerWidth/innerHeight` = **1280×720 / 375×812 / 768×1024**、DPR=1、`visualViewport.scale=1`、root / body computed zoom=`1`。新規contextの100%条件。native browser UI設定の手動検査ではない |
+| Light / font | `prefers-color-scheme: light=true`、rootにdark classなし、body背景 `lab(98.2716 0 0)` ≈ `#fafafa`。IBM Plex Sans、`document.fonts.ready` 待機、全15条件でfonts loaded |
+| 設定・依存 | package.json / lock由来のinstalled version / `playwright.config.ts`を読取。既存configはworker 1、serviceWorkers block、Chromiumのみ。configのdefault別originは使わず、今回の明示URLだけをrunnerに固定。依存導入・変更なし |
+| Browser起動 | sandbox内の初回launchは `spawn EPERM`。権限を伴う再試行で起動できた。失敗した起動をブラウザ検査成功に算入しない |
+| 対象Deployment | 下記Previewは200・期待表示を確認。**Deployment ID / 配備SHA / ローカルHEADとの一致は未確認**。`x-vercel-id`は応答識別子として保存し、Deployment IDとは扱わない。管理API / Cloud設定にはアクセスしない |
+
+一覧から取得した実URL（このorigin以外へ遷移していない）:
+
+| ID | ページ | 実URL |
+| --- | --- | --- |
+| L | Research list | [Preview /demo](https://evidence-atlas-git-docs-demo-contrast-visi-627546-morimotodev93.vercel.app/demo) |
+| D1 | Developer Productivity | [実一覧リンク](https://evidence-atlas-git-docs-demo-contrast-visi-627546-morimotodev93.vercel.app/demo/research/v0313wclyankpmyo4ujhmza2) |
+| D2 | Code Quality & Reliability | [実一覧リンク](https://evidence-atlas-git-docs-demo-contrast-visi-627546-morimotodev93.vercel.app/demo/research/c3q3cl35ne9iq5yuwxpx7bg5) |
+| D3 | Developer Experience | [実一覧リンク](https://evidence-atlas-git-docs-demo-contrast-visi-627546-morimotodev93.vercel.app/demo/research/qyjy9por32pcwpg8mhevznmw) |
+| D4 | Adoption & Organizational Impact | [実一覧リンク](https://evidence-atlas-git-docs-demo-contrast-visi-627546-morimotodev93.vercel.app/demo/research/ix53bd2y7be2zmk55h2sypn8) |
+
+Preflightは指定 `/demo` のHTTP 200、実URL不変、h1=`AI-Assisted Software Development`、`Read-only demo`、Research listの4リンクとタイトル・Demo href形式を検査した。詳細も全15条件で200・対応h1・Read-only表示を確認し、D1〜D4ではConclusion / Sources / Findings / Discussionの4セクションを確認した。Research IDのseed参照・推測はしていない。初回の環境確認preflightの後、保存したbatch開始時にもpreflightを実施した。
+
+通信はcontext全体のrouteで**GET・指定origin・`/demo` / Demo詳細 / `/_next/static/` / faviconに限定**。`route.fetch(maxRedirects:0)`でredirectを自動追従せずLocationも検査し、Service Workerはblock、WebSocketもcloseする。保存したbatch監査は **許可GET 483件 / 全200 / 通信エラー0**。Previewが要求した `vercel.live` のfeedback script **31件は送信前にrouteで遮断**した。外部Source / GitHubをclick・Enterで開いておらず、外部サイトを取得していない。Source hrefはDOM属性として記録しただけである。この制限で表示されないVercel feedback UIはDemoアプリの検査対象に含めない。
+
+### C22-2. 実行方法と証拠
+
+既存E2E全体は実行していない。`e2e/public-demo.spec.ts` の `expectResponsiveElement`、`expectExposedKeyboardFocus`、`expectUnobscuredSourceFocus` を参照し、同じRange / clipping ancestor、hit testing、全fragment＋最低4 CSS px余白の方法を一時runnerへ取り込んだ。helperはspec内の非export関数であり直接importするとscope外テストを登録するため、既存spec・configには変更しない。過去のE2E成功は今回の結果に算入しない。
+
+Normalはpointerをリンク外へ移し、各文字要素をscrollしてcomputed styleとRangeを採取した。Focusは新しいdocumentから実際のTabだけで前進し、最後に1回Tabでdocument境界へ出てShift+Tabで末尾に戻り、全リンクを逆順でも検査した。focusの直接代入・forced state・途中の手動scrollなし。Hoverはfocusを実keyboard操作でbodyへ外し、pointer hoverと200msのtransition待機で採取した。記録されたNormal / Hover / Focusに意図しないHover+Focus併存は0件。
+
+- [preflight.json](evidence/pr22-demo-browser-review/preflight.json): browser version、headers、取得リンク、環境値。
+- [summary.json](evidence/pr22-demo-browser-review/summary.json): 15条件の集計・実時刻・実viewport。
+- [measurements.json](evidence/pr22-demo-browser-review/measurements.json): 全文字sample、computed foreground・size / weight、祖先背景・opacity / filter、比率、実focus対象・両方向順序・全fragment・scrollY・outline / shadow、clippingの個別観測。`backgroundChainId`は同ファイルの`backgroundChains`配列を参照する重複排除で、値は元の採取結果と同じ。
+- [network.json](evidence/pr22-demo-browser-review/network.json): batchの許可GET・遮断・status・エラー。最初の別preflightの件数はこの483件へ合算していない。
+- [runner-source.txt](evidence/pr22-demo-browser-review/runner-source.txt) / [batch-source.txt](evidence/pr22-demo-browser-review/batch-source.txt): 実行した一時スクリプトの証拠用コピー。アプリコード・既存E2Eではない。
+- PNG 32枚: `L/D1/D2/D3/D4-{width}-normal.png` の15枚、D1のSource / 最後のSupporting Sourceの両方向sample 12枚、一覧の余白Fail 4枚、preflight 1枚。[SHA-256 manifest](evidence/pr22-demo-browser-review/sha256.json)で全証拠ファイルを照合できる。
+
+### C22-3. ページ・viewport別結果
+
+以下の「keyboard」は順序・実focus・`:focus-visible`・outline又はshadow・部分露出の自動assertion成功数。**4px余白判定・知覚上の可視性の合格数ではない**。「clipping」は意図的な省略を除いたRange検査。採取時刻はすべて2026-10-20 JST。全行とも実viewportは指定値と一致し、HTTP 200、横幅は `scrollWidth=clientWidth=viewport.width`。
+
+| ページ | 実viewport | 採取開始 JST | keyboard 両方向 | 4px余白 / 部分重なり | 横overflow / 非意図的clipping | 意図的省略の観測要素数 |
+| --- | --- | --- | --- | --- | --- | --- |
+| L | 1280×720 | 12:00:00.709 | 12/12 Pass | **Fail 2件（F1 / F2）** | なし / なし | 0 |
+| D1 | 1280×720 | 12:00:12.526 | 22/22 Pass | Pass | なし / なし | 0 |
+| D2 | 1280×720 | 12:00:20.610 | 24/24 Pass | Pass | なし / なし | 0 |
+| D3 | 1280×720 | 12:00:28.812 | 24/24 Pass | Pass | なし / なし | 0 |
+| D4 | 1280×720 | 12:00:37.035 | 22/22 Pass | Pass | なし / なし | 0 |
+| L | 375×812 | 12:00:45.147 | 12/12 Pass | **Fail 2件（F3 / F4）** | なし / なし | 5 |
+| D1 | 375×812 | 12:00:53.660 | 22/22 Pass | Pass | なし / なし | 2 |
+| D2 | 375×812 | 12:01:01.535 | 24/24 Pass | Pass | なし / なし | 1 |
+| D3 | 375×812 | 12:01:09.728 | 24/24 Pass | Pass | なし / なし | 2 |
+| D4 | 375×812 | 12:01:17.923 | 22/22 Pass | Pass | なし / なし | 0 |
+| L | 768×1024 | 12:01:26.035 | 12/12 Pass | Pass | なし / なし | 0 |
+| D1 | 768×1024 | 12:01:34.494 | 22/22 Pass | Pass | なし / なし | 1 |
+| D2 | 768×1024 | 12:01:42.465 | 24/24 Pass | Pass | なし / なし | 0 |
+| D3 | 768×1024 | 12:01:50.653 | 24/24 Pass | Pass | なし / なし | 1 |
+| D4 | 768×1024 | 12:01:58.909 | 22/22 Pass | Pass | なし / なし | 0 |
+
+### C22-4. 数値Contrastの結果と限界
+
+静的token比率ではなく、**対象Previewで実際の状態を作り採取したcomputed colorと祖先背景**を使用した。ChromiumのsRGB canvas（8bit RGBA）でLab / OKLab等を変換し、透明な背景を祖先順に既知の不透明面へsource-over合成した。通常文字4.5:1、24px以上又は18.67px以上・700以上の文字3:1、必要非文字3:1を用いる。600をboldとみなさない。比較は丸め前の比率、下表は表示用の丸め値。8bit変換・alphaの量子化を含む近似であり、glyphのantialias pixelや実画面の測色ではない。今回の判定値は閾値近傍ではない。
+
+前景の実computed値は、F=`lab(7.77868 1.58516 -14.2876)` ≈ **rgb(15 23 42)**、M=`lab(35.5352 -1.674 -13.4708)` ≈ **rgb(71 85 105)**。body背景は `lab(98.2716 0 0)` ≈ rgb(250 250 250)、cardは `lab(100 0 0)` = rgb(255 255 255)、tagは `lab(91.713 -0.96944 -4.62384)` ≈ rgb(226 232 240)。以下は全3 viewportで同じ色組を実測した共通部品の整理で、個別の要素・状態はJSONに保持した。
+
+| 対象・状態 | computed前景 | 実効背景 sRGB | font-size / weight | 比率 | 基準 / 結果 |
+| --- | --- | --- | --- | --- | --- |
+| L h1 / 詳細h1・Normal | F | 250,250,250 | L 24px/600、詳細375pxは24px/600、他30px/600 | 17.10 | 大文字3 / Pass |
+| 組織名・説明・Created / Updated等・Normal | M | 250,250,250 | 12/14/16px、400 | 7.26 | 4.5 / Pass |
+| 本文 / section h2・Normal | F | 250,250,250又は255,255,255 | 本文14px/400、h2 18px/600 | 17.10 / 17.85 | 4.5 / Pass |
+| 一覧title / status・Normal | F | 255,255,255 | title16px/500、status12px/500 | 17.85 | 4.5 / Pass |
+| 一覧説明・日付 / card内metadata・Normal | M | 255,255,255 | 12/14px、400又は補助label500 | 7.58 | 4.5 / Pass |
+| 詳細status・Normal | F | 250,250,250 | 12px/500 | 17.10 | 4.5 / Pass |
+| main内Tag・Normal / 一覧Tag・Hover | F | 226,232,240 | 12px/500 | 14.48 | 4.5 / Pass |
+| 一覧title / status・Hover | F | 約234.439,241.467,251.506 | 16px/500、12px/500 | 15.77 | 4.5 / Pass |
+| 一覧説明 / 日付・Hover | M | 同上 | 14px/400、12px/400 | **6.69** | 4.5 / Pass（今回の測定最小値） |
+| Back・Normal / Focus | M | 250,250,250 | 14px/400 | 7.26 | 4.5 / Pass |
+| Back・Hover | F | 250,250,250 | 14px/400 | 17.10 | 4.5 / Pass |
+| Source title・Normal / Focus | F | 255,255,255 | 16px/500 | 17.85 | 4.5 / Pass |
+| Source URL / Updated・Normal / Focus | M | 255,255,255 | 14px/400、12px/400 | 7.58 | 4.5 / Pass |
+| Supporting Source・Normal / Hover / Focus | F | 255,255,255 | 14px/400 | 17.85 | 4.5 / Pass |
+| Header内文字 / Demo Badge・各採取状態 | F又はM（Hover Source codeはF） | **未確定** | site16px/600、Demo12px/500、補助14px/400 | 未測定 | text4.5目安 / **Not verified**（半透明＋backdrop blur） |
+| Source・Hover | F / Mを取得、group opacity=`0.8` | 背面cardは白、group合成後の前景は未確定 | title16px/500、URL14px/400、Updated12px/400 | 未測定 | 4.5 / **Not verified** |
+| Focus indicator・全リンク | outline色は次節参照 | UA auto描画と半透明の実効pixel未確定 | outline auto 1px / offset 1px | 未測定 | 必要非文字3 / **Not verified** |
+
+Hoverのcard背景は既知のbody面へのalpha合成が可能で、祖先opacity=1、background image / filter / blur / blendなしを採取して数値化した。header blur、Source hoverのgroup opacityは同じ処理で確定できないため数値判定を抑止した。opaqueなHeader Demo Badgeも保守的にheader祖先のblurを理由にNot verifiedとし、他のTagのPassで補完しない。
+
+全3 viewportで各ページのsample数・判定件数は次のとおり同一。P=Pass、NV=Not verified。Focus textは実focus対象のBack / Source / Supporting Sourceと一覧説明のsampleで、**indicatorの比率ではない**。一覧title / tag / statusのFocus専用sampleは採取しておらず未確認。反復数は独立したWCAG適合項目数ではない。
+
+| ページ（各viewport） | Normal P / NV | Hover P / NV | Focus text P / NV（両方向合計） | 数値Fail |
+| --- | --- | --- | --- | --- |
+| L | 29 / 4 | 26 / 2 | 8 / 4 | 0 |
+| D1 | 53 / 4 | 6 / 11 | 30 / 4 | 0 |
+| D2 | 55 / 4 | 7 / 11 | 32 / 4 | 0 |
+| D3 | 54 / 4 | 7 / 11 | 32 / 4 | 0 |
+| D4 | 54 / 4 | 6 / 11 | 30 / 4 | 0 |
+
+合計: Normal **735 P / 60 NV**、Hover **156 P / 138 NV**、Focus text **396 P / 60 NV**、数値Fail 0。必要非文字情報の網羅判定は未完了であり、この文字測定の結果から3:1合格を宣言しない。
+
+### C22-5. Visible Focus・Responsiveの結果と限界
+
+実Tab順序はLで **Evidence Atlas → Source code → 一覧D1 → D2 → D3 → D4**。詳細は **Evidence Atlas → Source code → Back → Source各3件（DOM順）→ Supporting Source（DOM順）**。Supporting数はD1=5、D2=6、D3=6、D4=5。いずれもFindings 4件 / Discussion 1件で、全3 viewportで実リンク数はL=6、D1=11、D2=12、D3=12、D4=11。Shift+Tabは末尾を含む完全な逆順を実観測した。Sourceの実題名・href・各方向・順序はmeasurementsの`expectedOrder` / `focus`へ保持した。Source / Supporting SourceではEnterやclickをしていない。
+
+全 **312観測**で実focus対象が期待リンクに一致、`:focus-visible=true`、9点hit testingによる部分露出あり、computed indicatorあり。outlineはすべて **`auto / 1px / offset 1px / oklab(0.546089 -0.026687 -0.213521 / 0.5)`**、box-shadowは **`none`**。操作後は実URL不変、ページ数はpreflight用＋検査用の2枚を維持しpopup増加なし。header高は1280 / 768幅で49px、375幅で81px。
+
+4px余白は既存Source helperの保守的project検査を全リンクへ拡張した追加診断。全非空fragmentでheader下端以上かつviewport四辺内にoutline余白を要求した。**Source / Supporting Sourceの204観測とBackの24観測は全viewportでPass**、Header 60観測もPass。一覧24観測のうち4観測が下表のFail。最低4pxは実UA outlineの描画面積そのものの測定ではない。特に下端のFailは4px余白不足であり、それだけでWCAGの完全遮蔽・2.4.7違反と断定しない。
+
+Codexは保存画像の一覧3幅、一覧Fail 4枚、D1の375px Source / Supporting Sourceの前後方向sample、375pxの4詳細等を補助的に目視確認した。一覧のheader下へ入った上部輪郭と、下端余白の乏しさを確認でき、D1 sampleのfocus枠を識別できた。これは人による全リンク・全状態の知覚レビューではなく、**全15条件の知覚的Focus合格はNot verified**。UA auto outlineのalpha・描画・adjacent colorを数値確定していないため、`:focus-visible`とoutline存在だけでcontrast合格にしない。
+
+全15条件の横overflowは0、見出し・本文・Badge・補助文字に**非意図的なclippingの自動検出0**。主な文字はscrollしてRangeとclipping祖先を確認した。ただしviewport全域の全pixel・あらゆるscroll位置を証明するものではない。Back / SourceはTabで到達・余白内に露出した。375px一覧は4説明の2行clampとD4 titleのellipsisを観測し、全タイトルはDOMに保持されていた。Source URL previewはD1=375pxで2件/768pxで1件、D2=375pxで1件、D3=375pxで2件/768pxで1件の意図的truncateを観測した。省略を「全文が視覚表示できた」と報告しない。一覧カードの文字色は測定Passでも、keyboard時の重なりがあるため配置全体をPassとはしない。
+
+### C22-6. Fail / Not verified・修正候補
+
+全Failの実URLは **[Lの実Preview /demo](https://evidence-atlas-git-docs-demo-contrast-visi-627546-morimotodev93.vercel.app/demo)**。対象・値・期待・再現操作は以下。座標はCSS px、scrollはブラウザの実keyboard auto-scroll。上端は `top - 4 >= header.bottom`、下端は `bottom + 4 <= viewport.height` を期待する。
+
+| ID / viewport | 対象・方向 | 実測値 / 期待値 | 再現手順 | 証拠 / 判定 |
+| --- | --- | --- | --- | --- |
+| F1 / 1280×720 | Developer Experience・Tab | top561、bottom719、scrollY0。`719+4=723 > 720`、下端の実余地1px / 4px以上 | fresh `/demo`、Tab×5（Header 2件→一覧3件目） | [画像](evidence/pr22-demo-browser-review/L-1280-forward-4.png)。**4px余白Fail**、実paintの全輪郭露出は未確定 |
+| F2 / 1280×720 | Developer Productivity・Shift+Tab | top20、bottom178、scrollY201、header.bottom49。`20-4=16 < 49`、対象rectの上29pxがheader下 | fresh `/demo`、Tab×6でD4、Tabで境界、Shift+Tab×4でD1 | [画像](evidence/pr22-demo-browser-review/L-1280-reverse-3.png)。**部分重なりFail**、対象は一部露出 |
+| F3 / 375×812 | Developer Experience・Tab | top642、bottom812、scrollY47。`812+4=816 > 812`、下端の実余地0px / 4px以上 | fresh `/demo`、Tab×5 | [画像](evidence/pr22-demo-browser-review/L-375-forward-4.png)。**4px余白Fail**、全輪郭の実paint判定は未確定 |
+| F4 / 375×812 | Developer Productivity・Shift+Tab | top72、bottom242、scrollY253、header.bottom81。`72-4=68 < 81`、対象rectの上9pxがheader下 | fresh `/demo`、Tab×6、Tabで境界、Shift+Tab×4 | [画像](evidence/pr22-demo-browser-review/L-375-reverse-3.png)。**部分重なりFail**、対象は一部露出 |
+
+4件とも`:focus-visible`・outline・部分露出のassertionはPassし、完全遮蔽は検出していない。**2.4.11 AAの完全遮蔽Failとは区別する**。一方、一覧の上部輪郭の部分遮蔽は実画像でも確認でき、プロジェクトの重なりなしの期待は満たさない。PR #21のユーザー報告を訂正せず、別browser / 条件の新観測として記録する。
+
+修正候補（今回は未適用）: 詳細側にあるanchorの `scroll-mt-24 sm:scroll-mt-16 scroll-mb-2` 相当を一覧リンクにも適用し、49px / 81pxのsticky headerと最低4pxの余白を確保する。適用先はDemo表示内で検討し、共用Research listを不用意に変更しない。別タスクでF1〜F4と既存全詳細の順逆操作を再検査する。現時点では提案であり、解消・再検証済みとはしない。
+
+| Not verified / Not rendered | 残す理由・追加確認 |
+| --- | --- |
+| Deployment ID / 配備SHA / HEAD一致 | 公開応答だけでは確定できない。別の配備identity証拠が必要 |
+| Header内Normal / Hover / Focusの実効contrast | 半透明背景とbackdrop blur。computed前景を保持し、背面条件ごとのpixel / 合成確認が必要 |
+| Source Hoverの実効contrast | group opacity 0.8の合成後の色をrunnerは確定しない。通常時の比率を転用しない |
+| Focus indicator 3:1、面積・全輪郭の知覚的可視性 | auto outline＋alpha、UA描画・隣接色を未測定。312 assertion Passを知覚適合へ展開しない |
+| 一覧title / tag / statusのFocus専用文字sample、Focus+Hover併存 | 今回は専用sample / 併存条件を採取していない。Normal / Hoverで補完しない |
+| 非文字要素・リンクの非色手掛かりの全面判定 | border / iconの必要性を含む網羅的な1.4.1 / 1.4.11判定は未実施。Source codeのGithub iconは文字ラベルを補うaria-hidden装飾として観測したが、これで全要素を除外しない |
+| 空状態、descriptionなし、無tag、Archived / In progress、不許可URLの非リンク分岐 | 今回の実表示で未確認。表示されたCompleted、3 Sources・4 Findings・1 Discussionだけを結果にする。DB / seedで分岐を出していない |
+| その他の条件 | dark、他browser / 物理device / OS scaling、screen reader・全支援技術、全scroll位置・全pixel、通常SaaS / Chat。今回の100%条件をnative zoom / text-only / spacingの再実行結果にしない |
+
+### C22-7. 変更・オフライン検証・Phase 10の残課題
+
+変更は本節、Phase 10文書のPR #22追記、証拠ディレクトリ39ファイルのみ。アプリ・CSS・既存E2E・Playwright設定・package.json / lock・roadmapは変更していない。一時runnerとraw出力はgitignore対象の`test-results/`に置き、文書配下には監査用snapshot / JSON / PNGのみを保存した。
+
+オフライン確認はrunnerの`node --check`、元の2文書がHEAD内容とbyte単位でprefix一致する追記限定検査、既存チェックボックス保持、Markdown表の列数・追加相対リンクの存在、JSONの15条件・件数 / 比率 / viewport / focus順序・通信境界・元観測との一致、全証拠SHA-256照合、`git diff --check`。新しい観測の検算であり、アプリのunit / integration / 全E2E / lint / typecheck / build成功報告ではない。
+
+**Phase 10 Accessibility review / Responsive UI reviewは未完了。** 一覧focus余白の修正・同条件再確認、配備identityの確定、上記Not verifiedな合成色・focus indicatorと知覚レビューが残る。PR #17〜#19のnative 200% / text spacing / text-onlyは既存のユーザー結果として保持する。通常SaaS各画面の375 / 768 / desktop、Chat 1023 / 1024px境界・keyboard、既存の支援技術等deferred riskと他のPhase 10未完項目も継続する。roadmap・Phase 10の既存チェックボックスは変更しない。
+
+DB操作・migration・seed、OAuth / Session / AI API、Cloud設定・deploy、サーバー起動・production build、外部Source / GitHubへのアクセス、commit / push / PR作成 / mergeは行っていない。**未コミットで停止する。**
+
+
+<a id="pr-22-list-focus-offline-fix"></a>
+
+## PR #22 follow-up — Research一覧Focusのオフライン修正（2026-10-20 JST）
+
+**ローカル修正済み・ブラウザ再検証待ち。** [修正分析・証拠39件の安全確認・容量一覧](public-demo-list-focus-regression-fix.md)へ記録した。開始状態は `test/demo-contrast-focus-batch` / `c6d97ca`、既存の本書・Phase 10追記と証拠39件のみ。既存部分はbyte単位で保持し、証拠ファイルは変更していない。
+
+一覧mainに詳細と同じ `[&_a]:scroll-mt-24 sm:[&_a]:scroll-mt-16 [&_a]:scroll-mb-2` を追加した。コード差分は `src/app/demo/page.tsx` の1行で、Demo内のanchorへ上96px / sm以上64px・下8px相当のscroll marginを指定する。共通cardと認証済みSaaS・Demo詳細・色 / font / outlineは変更しない。
+
+C22のF1〜F4は**4px余白・部分重なりゼロのプロジェクト条件に対する修正前Failとして維持**する。WCAG AA違反の確定に読み替えず、解消済みPassにしない。修正後のContrastも未測定で、既存の数値結果を流用しない。
+
+対象ESLint、既存mock renderer **12 tests**、Tailwindの3 utilityだけのメモリ内CSS生成、TXT 2件のsyntax、39件のSHA-256 / 構造・参照 / 画像安全確認、既存文書とcheckbox保持、追加表・リンクと `git diff --check` は確認済み。総容量6,342,845 bytes、PNG 32件（28種類）、JSON 5件、TXT 2件。確認範囲で公開commitを妨げる秘密情報・非公開画面は検出せず、4組の画像重複も削除しない。
+
+今回はブラウザ起動・Previewアクセス・app server / production build・外部Source・DB / OAuth / Session / AI / Cloud操作を行っていない。新Previewと配備identityの確認・再検査は別途承認後で、旧Previewの再実行をローカル修正の検証にはしない。Phase 10の受入・既存checkbox・roadmapは変更せず、未コミットで停止する。

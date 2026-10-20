@@ -1,0 +1,60 @@
+{
+  "timestamp": "2026-10-20T02:59:55.379Z",
+  "browser": "153.0.8010.12",
+  "playwright": "1.63.0",
+  "status": 200,
+  "url": "https://evidence-atlas-git-docs-demo-contrast-visi-627546-morimotodev93.vercel.app/demo",
+  "headers": {
+    "age": "0",
+    "cache-control": "private, no-cache, no-store, max-age=0, must-revalidate",
+    "content-encoding": "br",
+    "content-type": "text/html; charset=utf-8",
+    "date": "Tue, 20 Oct 2026 03:02:14 GMT",
+    "link": "</_next/static/immutable/media/03fc1b4a8d284b5e-s.p.45487z7p3r8wm.woff2>; rel=preload; as=\"font\"; crossorigin=\"\"; type=\"font/woff2\", </_next/static/immutable/chunks/0vrik90lfclsn.css>; rel=preload; as=\"style\"",
+    "server": "Vercel",
+    "strict-transport-security": "max-age=63072000; includeSubDomains; preload",
+    "transfer-encoding": "chunked",
+    "vary": "rsc, next-router-state-tree, next-router-prefetch, next-router-segment-prefetch",
+    "x-matched-path": "/demo",
+    "x-powered-by": "Next.js",
+    "x-robots-tag": "noindex",
+    "x-vercel-cache": "MISS",
+    "x-vercel-id": "kix1::iad1::nqd4v-1792465330569-9da48a1d479e"
+  },
+  "h1": [
+    "AI-Assisted Software Development"
+  ],
+  "readOnly": 1,
+  "links": [
+    {
+      "title": "Developer Productivity",
+      "href": "/demo/research/v0313wclyankpmyo4ujhmza2"
+    },
+    {
+      "title": "Code Quality & Reliability",
+      "href": "/demo/research/c3q3cl35ne9iq5yuwxpx7bg5"
+    },
+    {
+      "title": "Developer Experience",
+      "href": "/demo/research/qyjy9por32pcwpg8mhevznmw"
+    },
+    {
+      "title": "Adoption & Organizational Impact",
+      "href": "/demo/research/ix53bd2y7be2zmk55h2sypn8"
+    }
+  ],
+  "environment": {
+    "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/153.0.8010.12 Safari/537.36",
+    "width": 1280,
+    "height": 720,
+    "dpr": 1,
+    "visualViewportScale": 1,
+    "rootZoom": "1",
+    "bodyZoom": "1",
+    "rootClass": "ibm_plex_sans_86232035-module__pHbLjq__variable antialiased",
+    "bodyBackground": "lab(98.2716 0 0)",
+    "rootBackground": "rgba(0, 0, 0, 0)",
+    "light": true,
+    "font": "\"IBM Plex Sans\", \"IBM Plex Sans Fallback\", ui-sans-serif, system-ui, sans-serif"
+  }
+}
