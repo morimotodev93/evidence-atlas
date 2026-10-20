@@ -282,3 +282,71 @@ PR #16で準備したB2の検証条件は、Line height `1.5`、Paragraph spacin
 **Phase 10 Accessibility review / Responsive UI reviewは引き続き未完了。** 本追記と[品質受入文書のPR #18追記](phase10-quality-acceptance.md#pr-18--b2-text-spacingユーザー提供結果記録日-2026-10-20-jst)のみを変更し、roadmap・Phase 10チェック状態は変更しない。
 
 今回のCodex確認はローカルGit状態・Markdown表・相対リンク・差分のoffline確認のみ。アプリCSS・テスト・依存は変更せず、テスト再実行、ブラウザE2E、外部Previewアクセス、server起動、DB / OAuth / Session / AI / Cloud接続、production build / deployは行っていない。commit / push / PR作成 / mergeを行わず、未コミットのレビュー可能な状態で停止する。
+
+## PR #19 — B1 Firefox Text-only 200%ユーザー提供結果（記録日: 2026-10-20 JST）
+
+開始時は `docs/demo-text-only-b1-evidence` / `583db239e505b3ab9c1487ceac533a8b2e5cba0a` / clean。worktreeは `C:/Users/owner/Desktop/sm-dev/evidence-atlas` の1つ。指定の開始状態との一致とPR #18のマージをローカルGit履歴で確認した。fetch・リモート照会は行っていない。このHEADは文書作業の開始状態であり、レビュー対象の配備commitとの対応は未確認。
+
+今回追記するのは**ユーザー提供の手動レビュー結果（証拠種別D: developer-reported manual review）**。Codexによるブラウザ再実行・独立確認ではない。PR #15〜#18および初期Not runは当時の履歴として保持し、B1の新しい実行記録を本節に追加する。本見出しの日付は文書記録日であり、実行日時ではない。
+
+### B1報告の原文
+
+```text
+B1 Firefox Text-only 200% review
+Zoom Text Only: enabled (verify)
+Zoom: 200% (verify)
+Research一覧（/demo）: Pass
+Developer Productivity: Pass
+Code Quality & Reliability: Pass
+Developer Experience: Pass
+Adoption & Organizational Impact: Pass
+Notes:
+url: https://evidence-atlas-o0cea7xpy-morimotodev93.vercel.app/
+firefox:158
+viewport:1920,768,425
+```
+
+### B1のページ別結果（D）
+
+| Page | B1 Text-only 200% |
+| --- | --- |
+| Research list（`/demo`） | Pass |
+| Developer Productivity | Pass |
+| Code Quality & Reliability | Pass |
+| Developer Experience | Pass |
+| Adoption & Organizational Impact | Pass |
+
+**総合結果: 5 Pass / 0 Fail（ユーザー手動報告・D）。** ページ単位の総合判定として記録し、既存B表の本文・Source・タグ・空状態・focus等の詳細セルをPassに展開しない。
+
+### B1の環境情報と未確認の証拠
+
+| 記録項目 | ユーザー提供情報 / 確認範囲 |
+| --- | --- |
+| 方法 / 証拠種別 | B1 Firefox Text-only 200% / D（developer-reported manual review） |
+| Browser | Firefox 158（ユーザー申告）。完全なversionは未確認 |
+| Zoom Text Only | `enabled (verify)`（原文）。有効化はユーザー報告であり、Codexの独立確認ではない |
+| Zoom | `200% (verify)`（原文）。200%設定はユーザー報告であり、Codexの独立確認ではない |
+| 対象URL | `https://evidence-atlas-o0cea7xpy-morimotodev93.vercel.app/`（ユーザー提供。今回アクセスしていない） |
+| Viewport note | `1920,768,425`（原文）。各数値の意味・単位は未確認 |
+| 実行日時 / timezone | 正確な実行日時・timezoneは未確認 |
+| OS / build | 未確認。PR #17等の環境情報を流用しない |
+| URLと配備identity | 対象URLから`/demo`へのリダイレクト実測、deployment ID・status・配備commitとの対応は未確認 |
+| ページ別詳細証拠 | 各ページの個別操作ログ、focus座標、スクロール実測は未提供・未確認。4詳細の個別URLも未提供 |
+| Artifact | 画像・動画などの証拠は未提供・未確認 |
+| 設定復元 | ブラウザ設定を100%および元の状態へ復元した記録は未確認 |
+
+原文の`(verify)`はそのまま保持する。**Zoom Text Onlyと200%について、詳細な設定画面の確認記録はない。** 有効化手順・設定保持・通常のページzoom値を推測せず、報告された設定と独立確認できる証拠の範囲を分ける。viewport noteをCSS pxの幅・高さや3つの検証幅と解釈しない。
+
+### B1・B2・Native 200%の区別と残る受入項目
+
+| 方法 | 記録 | ユーザー手動報告（D） |
+| --- | --- | --- |
+| A: Native Chrome 200% | PR #17 | 5ページすべてPass（5 Pass / 0 Fail） |
+| B2: Text spacing | PR #18 | 5ページすべてCSS・Readability・Keyboard/focusがPass（各項目5 Pass / 0 Fail） |
+| B1: Firefox Text-only 200% | PR #19（本節） | 5ページすべてPass（5 Pass / 0 Fail） |
+
+3つは異なる検証方法であり、相互の代替証拠として扱わない。過去の「B1未実施 / Not run」は当時の状態であり、今回のページ別報告で上書きしない。いずれのPassも全チェック項目やWCAG全項目の適合証拠に拡張しない。
+
+Contrast・hover・sticky header・focus indicatorの追加確認、未表示empty stateの視覚検証、通常SaaS画面のResponsive検証（375px / 768px / desktop）、Chatの1023px / 1024px境界・keyboard確認が残る。screen reader、他browser・物理device、dark theme、全contrast全状態等の既存deferred riskも保持する。**Phase 10 Accessibility review / Responsive UI reviewの全体受入は引き続き未完了。** roadmapのチェックボックスは変更しない。
+
+変更は本追記と[品質受入文書のPR #19追記](phase10-quality-acceptance.md#pr-19--b1-firefox-text-only-200ユーザー提供結果記録日-2026-10-20-jst)のみ。CodexはGit状態・Markdown表・相対リンク・差分のoffline確認だけを行い、アプリ修正・テスト追加や再実行、実ブラウザ・外部Previewアクセス、DB / OAuth / Session / AI / Cloud接続、build / deploy、commit / push / PR作成 / mergeは行わない。未コミットで停止する。

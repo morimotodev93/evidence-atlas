@@ -1028,3 +1028,51 @@ CSSの具体的なcomputed値、キーボード操作の詳細ログや個別foc
 **B1: Browser-specific text-only 200% — Not run**。B2の手動結果をB1の成功やWCAG全項目の適合証拠として扱わない。Contrast・hover・sticky背景・focus indicatorの追加確認、未表示のempty state（未表示・未検証）、通常SaaS画面のResponsive確認（375px / 768px / desktop）、Chatの1023px / 1024px境界・keyboard確認が残る。**Phase 10 Accessibility review / Responsive UI reviewは引き続き未完了**。roadmap・Phase 10チェック状態は変更しない。
 
 変更は指定Markdown文書2ファイルへの追記のみ。CodexはローカルGit状態・Markdown表・相対リンク・差分のoffline確認だけを行い、テストは再実行していない。アプリCSS・テスト・依存・roadmapは変更せず、ブラウザE2E・外部Previewアクセス・server起動・DB / OAuth / Session / AI / Cloud接続・production build / deploy・commit / push / PR作成 / mergeは行わない。レビュー可能な未コミット状態で停止する。
+
+## PR #19 — B1 Firefox Text-only 200%ユーザー提供結果（記録日: 2026-10-20 JST）
+
+開始時は `docs/demo-text-only-b1-evidence` / `583db239e505b3ab9c1487ceac533a8b2e5cba0a` / clean。worktreeは `C:/Users/owner/Desktop/sm-dev/evidence-atlas` の1つ。指定の開始状態との一致とPR #18のマージをローカルGit履歴で確認した。fetch・リモート照会は行っておらず、開始HEADをレビュー対象の配備commitとは扱わない。
+
+**ユーザー提供の手動レビュー結果（証拠種別D: developer-reported manual review）**を新しいB1実行記録として追記する。Codexによるブラウザ再実行・独立確認ではない。[レビュー文書のPR #19追記](public-demo-zoom-text-spacing-review.md#pr-19--b1-firefox-text-only-200ユーザー提供結果記録日-2026-10-20-jst)に原文・環境情報・証拠の限界を保存した。PR #15〜#18の記録と初期Not runは当時の履歴として保持する。本見出しの日付は文書記録日であり、実行日時ではない。
+
+### B1のページ別結果（D）
+
+| Page | B1 Text-only 200% |
+| --- | --- |
+| Research list（`/demo`） | Pass |
+| Developer Productivity | Pass |
+| Code Quality & Reliability | Pass |
+| Developer Experience | Pass |
+| Adoption & Organizational Impact | Pass |
+
+**総合結果: 5 Pass / 0 Fail（ユーザー手動報告・D）。** ページ単位の総合判定であり、未提供の詳細項目・操作ログ・個別focus状態を合格と推測しない。
+
+### B1の環境情報と証拠の限界
+
+- Browser: Firefox 158（ユーザー申告）。
+- URL: `https://evidence-atlas-o0cea7xpy-morimotodev93.vercel.app/`（ユーザー提供。今回アクセスしていない）。
+- Viewport note: `1920,768,425`（原文）。各数値の意味・単位は未確認。
+- 設定の原文: `Zoom Text Only: enabled (verify)` / `Zoom: 200% (verify)`。
+- Evidence: D / developer-reported manual review。
+
+FirefoxのZoom Text Only有効化と200%設定はユーザー報告であり、今回Codexが独立確認したものではない。**`(verify)`を原文に保持し、詳細な設定画面の確認記録はないものとして記録する。** 有効化手順・設定保持・通常のページzoom値は推測しない。
+
+以下は未確認のまま残す。
+
+- 正確な実行日時・timezone、OSとそのbuild、Firefoxの完全なversion。
+- `1920,768,425`の各数値の意味・単位。
+- 対象URLから`/demo`へのリダイレクト実測。
+- deployment ID・status・配備commitとの対応。
+- 各ページの個別操作ログ、focus座標、スクロール実測、4詳細の個別URL。
+- 画像・動画などの証拠。
+- ブラウザ設定を100%および元の状態へ復元した記録。
+
+PR #17等の環境値やローカルHEADを不足情報の補完に使わない。
+
+### 3つの方法の区別とB1記録後の残項目
+
+PR #17のNative Chrome 200%は5ページすべてPass、PR #18のB2 Text spacingは5ページすべてCSS・Readability・Keyboard/focusがPass、今回PR #19のB1 Firefox Text-only 200%は5ページすべてPassという**別々のユーザー手動報告（D）**である。B2の条件はline height `1.5` / paragraph spacing `2em` / letter spacing `0.12em` / word spacing `0.16em`の同時適用。3つは異なる検証方法であり、相互の代替証拠として扱わず、WCAG全項目の適合や詳細チェック全項目の合格に拡張しない。過去のB1 Not runは当時の履歴として残す。
+
+Contrast・hover・sticky header・focus indicatorの追加確認、未表示empty stateの視覚検証、通常SaaS画面のResponsive検証（375px / 768px / desktop）、Chatの1023px / 1024px境界・keyboard確認が残る。[既存deferred risk](#known-deferred-risks)も保持する。**Phase 10 Accessibility review / Responsive UI reviewの全体受入は引き続き未完了。** roadmapのチェックボックスは変更しない。
+
+変更は指定Markdown文書2ファイルへの追記のみ。CodexはGit状態・Markdown表・相対リンク・差分のoffline確認だけを行い、アプリ修正・テスト追加や再実行、実ブラウザ・外部Previewアクセス、DB / OAuth / Session / AI / Cloud接続、build / deploy、commit / push / PR作成 / mergeは行わない。未コミットで停止する。
