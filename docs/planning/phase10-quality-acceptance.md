@@ -814,3 +814,158 @@ pnpm exec playwright test e2e/public-demo.spec.ts --project=chromium --grep 'Pub
 $env:E2E_FOCUS_DIAGNOSTICS = '0'
 pnpm exec playwright test e2e/public-demo.spec.ts --project=chromium --trace=off --output=test-results/pr14-preview-full
 ```
+
+## PR #15 follow-up — Public Demo narrow-viewport coverage (2026-10-19 JST)
+
+この追記はPR #3 / #4 / #14の歴史的な観測・実行結果と区別した、Codexによるテスト追加とoffline検証の記録である。開始ブランチは `test/demo-narrow-viewport-coverage`、HEADは指定された `e5a6ad58c493c8a5978a5c3b098eb8e1537d635c`、`git status --short` は空（clean）。ローカルの `main` / `origin/main` も同じHEADだった。offline作業のためfetchやリモートの最新状態の再照会はしていない。Node.js **24.16.0** / pnpm **12.9.1**を使用し、packageManager・依存・設定は変更しない。
+
+### 対象と既存証拠との関係
+
+- **追加は6件:** Code Quality & Reliability、Developer Experience、Adoption & Organizational Impactの各詳細 × **375×812 / 768×1024**。Research IDは固定せず、`/demo` の該当タイトルの実リンクから取得する。
+- **既存14件は保持:** desktopのroot/list/代表詳細/read-only/404/無効endpoint確認、追加3詳細のdesktop表示、375px / 768pxの一覧・Developer Productivity表示、1280px / 375px / 768pxの代表詳細keyboard確認。Developer Productivityの狭幅や追加3詳細のdesktopケースは重複追加しない。
+- **過去のブラウザ証拠:** PR #14の確認済みPreviewは **14/14成功**、Vitestは **63ファイル / 1,395件成功**だった。PR #3の部分露出判定とPR #14の厳密な重なり判定の違いは上記の記録を維持する。PR #14のPreview host / deployment identityはPR #15の配備identityとして流用しない。
+- **共通化:** 既存desktop3件の構造・本文確認を `expectResearchDetailLayout`、件数・空状態・外部リンク属性確認を `expectResearchDetailCounts` に抽出し、新規6件でも利用する。desktopのHTTP 200 / URL確認、click / Back、一覧復帰確認は残す。既存assertionは緩めず、main / h1の一意性、h2順序、Research説明文、件数表示のclipping、Supporting sourceタイトルの全文検査を追加する。
+
+### 追加したassertionと受入条件
+
+1. **遷移・構造:** `/demo` の選択リンクへ実Tabで到達し、隣接する前のResearchとのShift+Tab / Tab順序も確認してEnterで開く。実hrefに一致するURL、単一main / h1、選択タイトル、他Researchのh1不在、Conclusion / Sources / Findings / Discussionの順序と存在を要求する。Backのhrefは `/demo`、Enterで一覧へ戻り4タイトルとリンク数を確認し、選んだResearchへ再びTabで到達できることを確認する。
+2. **表示:** `expectResponsiveElement` と `expectNoHorizontalOverflow` を再利用し、main、詳細タイトル・説明、4セクション見出し、本文、Sourceタイトル、Supporting sourceタイトル、件数、空状態、必要リンクのviewport内配置・全文のclippingを検査する。一覧タイトルの既存ellipsisとSource URL previewの意図的なtruncateは許容する。Sourcesは表示h3数、Findings / Discussionは表示article数から件数を算出し、表示件数と一致させる。0件なら既存の `No sources yet.` / `No findings yet.` / `No discussion yet.` を要求し、非0件なら空状態の不在を要求する。固定の件数を捏造せず、空のSource / Supporting source一覧にリンクを要求しない。
+3. **keyboard・focus:** 詳細ではheaderの2リンク→Back→全Source→全Supporting sourceを実Tabで順に検査し、末尾を含め逆順もShift+Tabで検査する。最初の到達には `expectTabReachable` を使い、隣接リンク間は1回のキー操作後にfocusedを要求して余分なtab stopを見逃さない。全対象に `:focus-visible`、outline / shadowのindicator、hit testによる露出を要求する。
+4. **PR #14の厳密判定:** 新規6件では**両幅・両方向**の全Source / Supporting sourceに、変更していない `expectUnobscuredSourceFocus` を適用する。全非空fragmentについてoutlineを最低4 CSS px（computed幅＋offsetが大きければその値）確保し、上端が実header下端以上、下端・左右がviewport内、**部分重なりの許容0px**を要求する。focus検査中は手動scroll / `locator.focus()`を使わず、実keyboard auto-scrollを観測する。computed style / hit testだけで知覚的contrastの合格とはしない。
+5. **外部遷移防止:** Source / Supporting sourceは非空accessible name、HTTP(S) href、`target="_blank"`だけを検査し、click / Enterしない。GitHubも開かない。focus往復後の詳細URL不変とpage数1を要求する。既存の明示的 `E2E_BASE_URL` 必須、Public Demo GET preflight、browser non-GET拒否・別origin拒否、service worker無効化を保持する。
+
+### 今回実行したoffline検証
+
+| コマンド | 今回の結果 |
+| --- | --- |
+| `pnpm exec playwright test e2e/public-demo.spec.ts --list` | exit 0、**20件列挙（既存14＋追加6）**。browser / preflightは実行しない |
+| `pnpm test --run` | 初回はesbuild `spawn EPERM`でconfig読込中にexit 1、テスト未実行。同一コマンドを子process起動可能な承認済み環境で再実行し、**63ファイル / 1,395件成功、exit 0** |
+| `pnpm exec tsc --noEmit` | exit 0 |
+| `pnpm lint` | exit 0 |
+| `git diff --check` | exit 0。GitのLF→CRLF通知のみでwhitespace違反なし |
+| `git diff --stat` | E2E specと本追記の2ファイルのみ。アプリ本体・roadmap・Playwright設定は変更なし |
+| `git status --short` | `M docs/planning/phase10-quality-acceptance.md`、`M e2e/public-demo.spec.ts` のみ |
+
+今回のVitest結果はPR #14と件数が同じでも別の再実行結果であり、offline/mock scopeである。静的レンダリングやC2名のVitestを実ブラウザ・実C2成功として扱わない。`--list`の成功もブラウザ成功の証拠ではない。
+
+### PR #15ブラウザ結果 — Not run
+
+**今回のPlaywright実行状態: Pass 0 / Fail 0 / Not run 20（うち新規6）。** PR #15のPreview URL・deployment ID / status・配備commitとの対応は**未確認**。現在の `E2E_BASE_URL` は未設定。ブラウザ起動・HTTP preflightを行っておらず、新しいUI不具合の再現や修正完了は主張しない。
+
+以下は別途承認されたブラウザ確認後に実測で埋める表。URL / 配備commit / 実行者 / Chromium version / 実行日時と、各行のPass / Fail、失敗時の操作・期待結果・実際の結果を併記する。
+
+| Research | viewport | 遷移・構造・Back | 表示・件数・空状態 | Tab / Shift+Tab / focus | 総合 |
+| --- | --- | --- | --- | --- | --- |
+| Code Quality & Reliability | 375×812 | Not run | Not run | Not run | Not run |
+| Developer Experience | 375×812 | Not run | Not run | Not run | Not run |
+| Adoption & Organizational Impact | 375×812 | Not run | Not run | Not run | Not run |
+| Code Quality & Reliability | 768×1024 | Not run | Not run | Not run | Not run |
+| Developer Experience | 768×1024 | Not run | Not run | Not run | Not run |
+| Adoption & Organizational Impact | 768×1024 | Not run | Not run | Not run | Not run |
+
+実行前にPR #15固有のPreview URLと配備commit / deployment successとの対応、およびPublic Demoのread-only接続先を確認し、追加承認を得たうえでそのURLを明示的な `E2E_BASE_URL` に設定する必要がある。未設定・identity不明のまま実行せず、既定公開aliasやPR #14のPreviewを代用しない。安全境界を維持して既存14件を含む20件の結果を記録する。ブラウザで不具合が再現した場合だけページ・viewport・操作・期待/実際を残し、実装修正の規模と独立PRへの分割を評価する。
+
+### 残る受入項目・停止状態
+
+**Phase 10のチェックボックスと `roadmap.md` は変更しない。Accessibility review / Responsive UI reviewは未完了のまま。** 新規6件のブラウザ検証に加え、全5ページのnative Chrome 200% zoomの環境値・ページ別結果、text-only 200% / text spacing、focus / hover / sticky背景・metadata / tag等のcontrast、SaaS各画面の375px / 768px / desktopとChatの1023 / 1024px配置・keyboard確認が残る。screen reader・他browser・物理device等のdeferred riskも既存契約どおり残す。
+
+今回はアプリ本体・PR #13のSource表示防御・PR #14のscroll margin / 厳密focus helper・通信境界に変更なし。server起動、実ブラウザ、実DB接続、migration / seed、OAuth / Session、実AI / embedding、Sentry / Upstash / Inngest Cloud通信、production build、deploy、commit / push / PR作成は行わず、未コミットのレビュー可能な状態で停止する。
+
+## PR #15 follow-up — Bottom-edge keyboard focus clearance (2026-10-19 JST)
+
+上記の「PR #15ブラウザ結果 — Not run」と結果表はテスト追加時点の履歴として保持する。以下は、その後の別実行についてユーザーから提供されたPreview実測（D）と、それを受けたCodexのoffline修正・検証の記録である。開始ブランチは `test/demo-narrow-viewport-coverage`、HEADは `910fe3d`、作業ツリーはclean。今回、外部接続・ブラウザ実行による独立確認は行っていない。
+
+### 後続のPreview実測 — 375px追加3件すべてFail（修正前）
+
+- **報告された接続先:** `https://evidence-atlas-git-test-demo-narrow-viewpo-46de39-morimotodev93.vercel.app`
+- **報告された対象commit:** `910fe3d`。deployment ID / success statusとの対応は今回再照会していない。
+- **実行環境・帰属:** Chromium実ブラウザ、375×812。報告提供者はユーザー。実行者、正確な実行日時・timezone、OS / Chromium version、キー方向・何番目のTabか、実ログartifactは未提供。これらを推測で補わない。
+
+| Research | 失敗したSourceリンク | viewport下端 | focus後リンク下端 | outline確保条件 | 判定値 / 不足 | 総合 |
+| --- | --- | --- | --- | --- | --- | --- |
+| Code Quality & Reliability | NIST Secure Software Development Framework | 812px | 812px | 最低4px | 816px / 4px不足 | Fail |
+| Developer Experience | Research: Quantifying GitHub Copilot's impact on developer productivity and happiness | 812px | 812px | 最低4px | 816px / 4px不足 | Fail |
+| Adoption & Organizational Impact | DORA Research | 812px | 812px | 最低4px | 816px / 4px不足 | Fail |
+
+共通のcomputed `scroll-margin-top` は **96px（適用確認済み）**、sticky header下端は **81px**。期待は各リンクの全非空fragmentとoutline余白がheaderより下かつviewport内に収まること。実際はリンク本体の下端がviewport下端に一致し、`812 + 4 = 816 > 812` で失敗した。報告された375px追加3件は **Pass 0 / Fail 3**。この報告だけで20件全体や768px追加3件、途中で到達しなかった操作の成否は確定しない。
+
+### 原因候補と最小CSS修正
+
+実測から、上端marginの未適用ではなく、keyboard auto-scrollがリンク本体をviewport内に収めても下端outline余白を確保していないことが原因候補となる。ただしChromium内部のscroll判断を今回独立して観測した結論ではない。
+
+`src/app/demo/research/[researchId]/page.tsx` のmain配下リンクに `[&_a]:scroll-mb-2` を追加する。既存の `[&_a]:scroll-mt-24 sm:[&_a]:scroll-mt-16` は維持し、上端の96px / sm以上64pxというPR #14の防御を変更しない。下端8pxは現在の最低4px条件を上回る値として採用する。レイアウト用paddingやリンク構造、rootのscroll paddingは変更しない。
+
+`e2e/public-demo.spec.ts` は変更不要。実Tab / Shift+Tab、`:focus-visible`、全fragmentの上端とsticky headerの比較、下端・左右のviewport内配置、最低4px（computed outlineが大きければその値）、部分重なり許容0px、横overflowなしのassertionをすべて維持する。`locator.focus()`への置換やfocus検査直前の強制scrollは追加しない。
+
+### 今回のoffline検証（修正後）
+
+実行者はCodex、Windows / Node.js **24.16.0** / pnpm **12.9.1**。packageManager・依存・設定は変更していない。
+
+| コマンド | 今回の結果 |
+| --- | --- |
+| `pnpm exec playwright test e2e/public-demo.spec.ts --list` | exit 0、**20件列挙（既存14＋追加6）**。browser / HTTP preflightは未実行 |
+| `pnpm test --run` | 初回はconfig読込時のesbuild `spawn EPERM`でexit 1、テスト未実行。同一コマンドを子process起動可能な承認済み環境で再実行し、**63ファイル / 1,395件成功、exit 0** |
+| `pnpm exec tsc --noEmit` | exit 0 |
+| `pnpm lint` | exit 0 |
+| `git diff --check` | exit 0 |
+
+`--list` は収集のみ。Vitestはoffline/mock scopeであり、これらはChromiumのkeyboard auto-scrollの証拠ではない。変更は本追記とDemo詳細ページのCSS / コメントのみで、E2E specは変更していない。
+
+### 修正後ブラウザ結果 — Not run / Preview再実行手順
+
+**修正後の実ブラウザ結果は未確認（Not run 20）。CSS追加だけで問題解消・受入完了とは判定しない。** server起動、Playwright実ブラウザ、build、deploy、外部接続は今回実行していない。Phase 10チェックボックス・roadmapは変更しない。
+
+1. 別途承認後、修正差分を含むPreviewを用意し、その配備commit / deployment success / URLとPublic Demoのread-only接続先を確認する。上記hostは修正前の報告先であり、修正版が配備された証拠として流用しない。
+2. 確認したURLを明示的に `E2E_BASE_URL` に設定し、下記の順に375px追加3件と既存14件を含む20件を実行する。既存preflight・GET同一origin制限・service worker無効化を維持し、Source / Source codeの外部リンクを開かない。
+3. 実Tab / Shift+Tabによる全Source / Supporting sourceの往復で、computed `scroll-margin-bottom` が8px、上端marginが375pxで96pxであることと、各fragmentの上下左右＋outline最低4pxが収まることを確認する。既存diagnosticsはtop margin等を記録するがbottom marginは出力しないため、bottom marginのcomputed値は別のread-only style観測で記録する。手動scrollやfocus代入で合格させない。横overflowも確認する。
+4. 配備identity、実行者・日時・timezone、OS / Chromium version、コマンド・exit、全件結果と失敗時のキー操作・rect / scroll値を別の実行記録に残す。診断と全体回帰は別実行として区別し、元のFail記録を保持する。
+
+```powershell
+# 別途承認・修正版Previewのidentity確認後にのみ実行（今回は未実行）
+$env:E2E_BASE_URL = 'https://<verified-preview-host-containing-this-fix>'
+$env:E2E_FOCUS_DIAGNOSTICS = '1'
+pnpm exec playwright test e2e/public-demo.spec.ts --project=chromium --grep 'Public Demo additional details at 375px' --max-failures=0 --trace=off --output=test-results/pr15-bottom-edge-diagnostics
+$env:E2E_FOCUS_DIAGNOSTICS = '0'
+pnpm exec playwright test e2e/public-demo.spec.ts --project=chromium --max-failures=0 --trace=off --output=test-results/pr15-bottom-edge-full
+```
+
+`scroll-margin-bottom` が実keyboard focus移動で作用しない場合は、computed値とキー前後のscrollY / 全fragment rectを採取し、rootのscroll padding、実scroll containerと最大scroll位置、祖先のoverflow / clipping、Sourceカード・折返しinlineリンクの構造を調べる。その結果に基づき、root scroll padding（影響範囲が全ページに広がる）、スクロール可能領域の末尾余白（最大scroll位置の不足時）、リンク領域の構造変更（fragment / clippingが原因の場合）を理由付きの代替案として提示する。現時点では無効と判明していないため、これらの追加修正は行わない。
+
+commit / push / PR作成は行わず、この2ファイルの未コミット差分をレビュー可能な状態で停止する。
+
+## PR #15 final Preview results — 20/20 passed (2026-10-20 JST)
+
+この追記は、上記の修正前Failおよび修正直後Not runに続く、修正版Previewでの別実行結果である。過去の記録・表はその時点の履歴として保持する。ブラウザ結果と配備情報は**ユーザー提供の実行結果（D）**であり、今回Codexがブラウザを再実行・外部照会して得た結果ではない。
+
+### 対象identityと成功報告
+
+- **PR / ブランチ:** #15 / `test/demo-narrow-viewport-coverage`。
+- **検証対象commit（ユーザー提供）:** `964a0be8651dc46b700976de0d09a3926215a542`。今回のローカルHEADも同じcommitで、開始時の作業ツリーはclean。
+- **Vercel Preview（ユーザー提供）:** `https://evidence-atlas-git-test-demo-narrow-viewpo-46de39-morimotodev93.vercel.app`。
+- **Vercel deployment / status（ユーザー提供）:** `D8UVTzaNn5okuCnAwjj6VAjWvQh3` / **success**。URL・配備commit・deploymentの対応は今回リモートで再照会していない。
+
+| 別実行 | 対象 | ユーザー提供の結果 |
+| --- | --- | --- |
+| 375px追加ケースの確認 | Code Quality & Reliability / Developer Experience / Adoption & Organizational Impact、375×812の追加3件 | **3 passed (40.7s)** |
+| Public Demo全体回帰 | 同じ修正版Preview、既存14件＋追加6件（375×812 / 768×1024の追加3詳細を含む） | **20 passed (1.7m)** |
+
+両実行とも修正版Previewを明示的に指定した手順で行ったとのユーザー報告である。3件の実行と全20件の実行は分けて記録し、23件の異なるケースがあるとは扱わない。正確な実行日時・timezone、実行者、OS / Chromium version、実際のコマンド全文・数値exit、修正後のcomputed style / rect / scroll値は今回確認できていないため補わない。本見出しの日付は記録日（JST）である。
+
+### ローカルartifactとの照合と限界
+
+Codexが今回read-onlyで確認した `test-results/pr15-bottom-fix/.last-run.json` と `test-results/pr15-full-964a0be/.last-run.json` は、どちらも `"status": "passed"` / `"failedTests": []` だった。各ディレクトリに残っていたのはこのJSONのみで、接続先ホスト、対象commit、テスト件数、所要時間は含まれていない。ローカルで確認した `test-results` のログ・JSON・テキスト、および `memo/a11y/review.log` に、今回のホストと3件 / 20件の成功を照合できる記載は見つからなかった。PR #14のログは別Previewの履歴であり流用しない。
+
+したがって残存artifactの成功状態は確認できるが、ホスト・件数・時間および配備identityとの対応を独立に証明するものではない。これらの具体値は上記のユーザー提供結果に帰属させる。ignored artifactは変更・追加追跡していない。
+
+### 修正前後と上下のフォーカス防御
+
+- **修正前 `910fe3d`:** 375px追加3件は、NIST Secure Software Development Framework、Copilotの生産性・幸福度研究、DORA Researchの各SourceでFail。共通してリンク下端812px＋outline最低4px＝816pxとなり、viewport下端812pxに対して4px不足した。既存の上端 `scroll-margin-top: 96px` は適用済みだった。
+- **PR #14の上端防御:** `[&_a]:scroll-mt-24 sm:[&_a]:scroll-mt-16` により、sticky headerと上端outlineのための余白（375pxで96px、sm以上64px）を指定する。
+- **PR #15の下端防御 / 修正commit `964a0be`:** `[&_a]:scroll-mb-2` により `scroll-margin-bottom: 8px` を追加した。今回ローカルGit差分で追加を確認した。PR #14の上端指定は維持され、`910fe3d` から `964a0be` のE2E specに差分はない。8pxのcomputed値そのものを今回実ブラウザで再観測したわけではない。
+- **修正後:** ユーザー提供結果では375px追加3件と同じPreviewの全20件が成功した。実Tab / Shift+Tab、`:focus-visible`、sticky headerとの非重複、全fragmentとoutline最低4pxのviewport内配置、部分重なり許容0px、横overflowなしという既存assertionを維持した範囲の成功報告として記録する。
+
+### 残る受入項目と今回の変更範囲
+
+**Phase 10 Accessibility review / Responsive UI review全体は引き続き未完了。** 今回のPublic Demo 20件成功を全体の受入完了へ拡張しない。全5ページのnative Chrome 200% zoomの環境値・ページ別結果、text-only 200% / text spacing、focus / hover / sticky背景・metadata / tag等のcontrast、通常SaaS各画面の375px / 768px / desktopおよびChatの1023 / 1024px配置・keyboard確認が残る。screen reader・他browser・物理device等の既存deferred riskも保持する。
+
+今回の変更はこの品質受入文書への追記だけ。CSS・テストassertion・roadmap・Phase 10チェックボックスは変更しない。実ブラウザ・server起動・外部接続、実DB・OAuth・AI・Cloud、build・deployを実行せず、commit・push・PRマージを行わない。未コミットのレビュー可能な状態で停止する。
