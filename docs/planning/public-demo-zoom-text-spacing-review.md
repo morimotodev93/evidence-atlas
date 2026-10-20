@@ -203,3 +203,82 @@ TabとShift+Tabそれぞれの結果、すべてのSource / Supporting Sourceリ
 **B1: Browser-specific text-only 200%とB2: Text spacingは引き続き未実施。** B2の値はline-height 1.5 / paragraph spacing 2em / letter spacing 0.12em / word spacing 0.16em。次回は既存の[方法・内容別方針・記録表](#b--text-only-200--text-spacingの手順)を使用し、B1 / B2を別実行として記録する。native zoomの総合PassをB1 / B2の結果に転用しない。
 
 Contrast / hover / sticky headerの追加確認、通常SaaS画面のResponsive検証、Chatの1023px / 1024px境界確認も未実施のまま。**Phase 10 Accessibility review / Responsive UI reviewは引き続き未完了**で、roadmapのチェック状態は変更しない。PR #15のChromium 20/20およびPR #16のoffline結果は既存証拠として保持し、今回は再実行していない。
+
+## PR #18 — B2 Text spacingユーザー提供結果（記録日: 2026-10-20 JST）
+
+開始時は `docs/demo-text-spacing-b2-evidence` / `553ba944db440ca67b5867891982a0129cc80436` / clean。worktreeは `C:/Users/owner/Desktop/sm-dev/evidence-atlas` の1つで、ローカルmainも同じHEAD。PR #17のマージをローカル履歴で確認した。fetch・リモート照会は行っていない。このHEADは文書作業の開始状態であり、手動レビュー対象の配備commitを示すものではない。
+
+今回追記するのは**ユーザーによるブラウザ手動レビューの報告（証拠種別D: Developer-reported manual result）**。新規Playwright実行やCodexによるブラウザ再実行・独立観測ではない。PR #16の初期Not run、PR #17のnative Chrome 200%結果、PR #15のChromium 20/20成功は当時の履歴として上書きしない。最新のB2報告は本節に分けて記録する。
+
+### B2報告の原文
+
+```yaml
+B2 Text spacing review
+Research一覧（/demo）
+ CSS: Pass
+ Readability: Pass
+ Keyboard/focus: Pass
+Developer Productivity
+ CSS: Pass
+ Readability: Pass
+ Keyboard/focus: Pass
+Code Quality & Reliability
+ CSS: Pass
+ Readability: Pass
+ Keyboard/focus: Pass
+Developer Experience
+ CSS: Pass
+ Readability: Pass
+ Keyboard/focus: Pass
+Adoption & Organizational Impact
+ CSS: Pass
+ Readability: Pass
+ Keyboard/focus: Pass
+Notes: url:https://evidence-atlas-o0cea7xpy-morimotodev93.vercel.app/demo
+chrome:157
+viewport:1920
+```
+
+### B2の対象条件とページ別結果（D）
+
+PR #16で準備したB2の検証条件は、Line height `1.5`、Paragraph spacing `2em`（paragraphの下側margin）、Letter spacing `0.12em`、Word spacing `0.16em`の**同時適用**。以下のCSS Passは、このB2手順に対するユーザーのCSS適用報告として記録する。具体的なcomputed CSS数値は提供されておらず、これらの値を実測済みとは扱わない。手順上の基準ページzoom100%も、今回の独立記録は未確認。
+
+| Page | CSS | Readability | Keyboard/focus |
+| --- | --- | --- | --- |
+| Research list（`/demo`） | Pass | Pass | Pass |
+| Developer Productivity | Pass | Pass | Pass |
+| Code Quality & Reliability | Pass | Pass | Pass |
+| Developer Experience | Pass | Pass | Pass |
+| Adoption & Organizational Impact | Pass | Pass | Pass |
+
+**CSS・Readability・Keyboard/focusの各項目: 5 Pass / 0 Fail（ユーザー手動報告・D）。** 報告された3項目の判定を保持し、既存B表の本文・Source・タグ・空状態等の各詳細セルをPassに展開しない。4詳細の個別URLは未提供のため補完しない。
+
+### B2の環境情報と未確認事項
+
+| 記録項目 | ユーザー提供情報 / 確認範囲 |
+| --- | --- |
+| 方法 / 証拠種別 | B2 Text spacing / D（Developer-reported manual result） |
+| Browser | Chrome 157（ユーザー申告）。完全なversion / build番号は未確認 |
+| 対象URL | `https://evidence-atlas-o0cea7xpy-morimotodev93.vercel.app/demo`（ユーザー提供。今回アクセスしていない） |
+| Viewport | `1920`（原文）。単位・寸法の意味は未確定。縦寸法とCSS pxとしての測定方法は未確認 |
+| 実行日時 / timezone | 正確な実行日時・timezoneは未確認。文書記録日から推測しない |
+| Windows | 今回の実行環境は未確認。PR #17のWindows 11 Homeを引き継がない |
+| Chromeページzoom | 基準100%の今回の独立記録は未確認 |
+| 配備identity | Vercel deployment ID・配備commit・statusと対象URLとの対応は未確認。ローカルHEADや過去の配備情報で補完しない |
+| CSS詳細証拠 | 具体的なcomputed値は未提供・未確認。CSS適用Passの報告と数値測定を区別する |
+| Keyboard/focus詳細証拠 | キーボード操作の詳細ログや個別focus座標は未提供・未確認 |
+| Artifact | スクリーンショット・動画等のartifactは未提供・未確認 |
+
+これらの不足はユーザーのPass報告を否定するものではなく、独立確認できる証拠の範囲を示す。操作順序・Tab / Shift+Tab別結果・個別リンクのfocusや輪郭について、未提供の詳細を推測しない。
+
+### B2記録後に残る検証と今回の変更範囲
+
+- **B1: Browser-specific text-only 200% — Not run**。B2をB1やnative zoomの成功証拠に転用せず、WCAG全項目の適合証拠にも拡張しない。
+- Contrast・hover・sticky背景・focus indicatorの追加確認。
+- 未表示のempty state（未表示・未検証）。
+- 通常SaaS画面のResponsive確認（375px / 768px / desktop）。
+- Chatの1023px / 1024px境界・keyboard確認。
+
+**Phase 10 Accessibility review / Responsive UI reviewは引き続き未完了。** 本追記と[品質受入文書のPR #18追記](phase10-quality-acceptance.md#pr-18--b2-text-spacingユーザー提供結果記録日-2026-10-20-jst)のみを変更し、roadmap・Phase 10チェック状態は変更しない。
+
+今回のCodex確認はローカルGit状態・Markdown表・相対リンク・差分のoffline確認のみ。アプリCSS・テスト・依存は変更せず、テスト再実行、ブラウザE2E、外部Previewアクセス、server起動、DB / OAuth / Session / AI / Cloud接続、production build / deployは行っていない。commit / push / PR作成 / mergeを行わず、未コミットのレビュー可能な状態で停止する。
