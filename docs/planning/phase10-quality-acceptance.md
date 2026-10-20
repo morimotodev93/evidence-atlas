@@ -969,3 +969,13 @@ Codexが今回read-onlyで確認した `test-results/pr15-bottom-fix/.last-run.j
 **Phase 10 Accessibility review / Responsive UI review全体は引き続き未完了。** 今回のPublic Demo 20件成功を全体の受入完了へ拡張しない。全5ページのnative Chrome 200% zoomの環境値・ページ別結果、text-only 200% / text spacing、focus / hover / sticky背景・metadata / tag等のcontrast、通常SaaS各画面の375px / 768px / desktopおよびChatの1023 / 1024px配置・keyboard確認が残る。screen reader・他browser・物理device等の既存deferred riskも保持する。
 
 今回の変更はこの品質受入文書への追記だけ。CSS・テストassertion・roadmap・Phase 10チェックボックスは変更しない。実ブラウザ・server起動・外部接続、実DB・OAuth・AI・Cloud、build・deployを実行せず、commit・push・PRマージを行わない。未コミットのレビュー可能な状態で停止する。
+
+## PR #16 preparation — Public Demo zoom / text spacing (2026-10-20 JST)
+
+開始時は `test/demo-zoom-text-spacing-review` / `15d5cb44d1a283a54fb1a6e28146c74381d09ea8` / clean、単一worktree。ローカルmainと一致するがfetchや外部照会はしていない。PR #4のnative Chrome部分報告とPR #14 / #15の履歴は保持し、上記PR #15のユーザー提供20/20成功を今回のブラウザ実行やnative zoom成功に読み替えない。
+
+[Public Demo zoom / text spacing review](public-demo-zoom-text-spacing-review.md)に、全5ページのnative Windows Chromeメニュー200%、browser固有text-only 200%、一時CSS text spacing（line height 1.5 / paragraph spacing 2em / letter spacing 0.12em / word spacing 0.16em）を区別した手順・環境欄・ページ別結果表を追加した。ユーザー手動結果（D）とCodex offline結果（C）を別記録にし、全ブラウザ項目は **Not run**。表示されない空状態は未検証として残す。
+
+既存20件のspec / helper / 安全境界は変更せず、追加テスト0件。今回の不足はブラウザUI設定・目視の証拠なので同じDOM assertionを複製しない。CSS上書きの検査案はnative zoom / text-only機能と同一視せず、実測した問題がないためアプリCSSも変更しない。A / Rは未完了、roadmapおよび全Phase 10チェック状態は変更しない。
+
+今回のCodex offline検証（C）は`pnpm exec playwright test e2e/public-demo.spec.ts --list`が20件列挙・exit 0、`pnpm test --run`が63ファイル / 1,395件成功・exit 0、`pnpm exec tsc --noEmit` / `pnpm lint` / `git diff --check`がexit 0。Vitest初回はesbuild `spawn EPERM`でテスト開始前に停止し、同一コマンドを承認済みの子process起動可能な環境で再実行した。列挙はブラウザ成功ではなく、VitestのC2名テストもoffline / mock範囲。ブラウザ・外部Preview・server・実DB / OAuth / Session・AI / Cloud・production build / deployは未実行。変更はこの追記と新規レビュー文書のみ、commit / push / PR作成を行わずレビュー可能な未コミット状態で停止する。
