@@ -153,3 +153,53 @@ CSS条件で再現した問題の回帰が必要になった場合だけ、既�
 Vitest内のC2 / Playwright名のテストはoffline / mock範囲であり、実C2やブラウザE2Eの実行ではない。今回のブラウザ結果はA / B1 / B2とも **Pass 0 / Fail 0 / Not run 5ページ**。CSS stress案も未実行。
 
 差分は本新規文書と`phase10-quality-acceptance.md`への追記のみ。アプリ・E2E spec・依存・roadmapに変更なし。既存履歴を保持し、commit / push / PR作成をせず未コミットで停止する。
+
+## PR #17 — Native Chrome 200%ユーザー提供結果（記録日: 2026-10-20 JST）
+
+PR #16マージ後に得た**ユーザー提供の手動レビュー結果（証拠種別D）**を追記する。上記のPR #16準備時のNot run表・未取得事項・Codex offline検証は、その時点の履歴として保持する。今回Codexはブラウザ操作・再実行・外部照会を行っていない。
+
+### 提供された原文
+
+```text
+Windows Chrome native 200% review
+Research一覧（/demo）: Pass
+Developer Productivity: Pass
+Code Quality & Reliability: Pass
+Developer Experience: Pass
+Adoption & Organizational Impact: Pass
+Notes: windows: win11 home
+chrome: 157
+実行日:10:20
+```
+
+| 記録項目 | ユーザー提供情報 / 確認範囲 |
+| --- | --- |
+| 実行結果の提供者 / 証拠種別 | ユーザー / D（ユーザー申告） |
+| OS | Windows 11 Home。Windows build番号は未確認 |
+| Browser | Google Chrome 157。完全なversion / build番号は未確認 |
+| 方法 | Native Chrome 200%（ユーザー申告）。Chromeメニューの確認操作・設定保持の個別ログは未提供 |
+| 対象 | 公開読み取り専用Demoの一覧と4つのResearch詳細、計5ページ |
+| 実行日時 / timezone | 未確認。原文の「実行日:10:20」は時刻10時20分か日付10月20日か明確でないため、解釈・補完しない |
+| 文書記録日 | 2026-10-20 JST。実行日時とは区別する |
+
+### ページ別の総合結果（D）
+
+| Page | Native Chrome 200% |
+| --- | --- |
+| Research list（`/demo`） | Pass（ユーザー申告） |
+| Developer Productivity | Pass（ユーザー申告） |
+| Code Quality & Reliability | Pass（ユーザー申告） |
+| Developer Experience | Pass（ユーザー申告） |
+| Adoption & Organizational Impact | Pass（ユーザー申告） |
+
+**ページ別総合結果: 5 Pass / 0 Fail（ユーザー申告）。** これは提供されたページ単位の総合判定の転記であり、上記A表の全チェック項目・環境記録が揃ったという受入判定ではない。既存の項目別Not runセルをPassへ変更せず、未提供の詳細は未確認・未取得として分けて記録する。
+
+### 詳細証拠の不足と残る受入条件
+
+対象origin / 実URL / deployment ID・status / 配備SHA、window寸法・最大化状態、100% / 200%のviewport寸法、OS display scalingは未確認。今回のローカルHEADやPR #15の配備情報を手動レビュー対象のSHA / URLとして代入しない。
+
+TabとShift+Tabそれぞれの結果、すべてのSource / Supporting Sourceリンクのfocus状態、各チェック項目（見出し・本文、4セクション、clipping、横・縦scroll、重なり、Enter / Back、外部遷移なし等）の詳細なPass / Failと操作ログは未取得。スクリーンショット・動画の有無も未確認で、存在や不具合の不在を推測しない。
+
+**B1: Browser-specific text-only 200%とB2: Text spacingは引き続き未実施。** B2の値はline-height 1.5 / paragraph spacing 2em / letter spacing 0.12em / word spacing 0.16em。次回は既存の[方法・内容別方針・記録表](#b--text-only-200--text-spacingの手順)を使用し、B1 / B2を別実行として記録する。native zoomの総合PassをB1 / B2の結果に転用しない。
+
+Contrast / hover / sticky headerの追加確認、通常SaaS画面のResponsive検証、Chatの1023px / 1024px境界確認も未実施のまま。**Phase 10 Accessibility review / Responsive UI reviewは引き続き未完了**で、roadmapのチェック状態は変更しない。PR #15のChromium 20/20およびPR #16のoffline結果は既存証拠として保持し、今回は再実行していない。

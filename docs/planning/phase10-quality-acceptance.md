@@ -979,3 +979,15 @@ Codexが今回read-onlyで確認した `test-results/pr15-bottom-fix/.last-run.j
 既存20件のspec / helper / 安全境界は変更せず、追加テスト0件。今回の不足はブラウザUI設定・目視の証拠なので同じDOM assertionを複製しない。CSS上書きの検査案はnative zoom / text-only機能と同一視せず、実測した問題がないためアプリCSSも変更しない。A / Rは未完了、roadmapおよび全Phase 10チェック状態は変更しない。
 
 今回のCodex offline検証（C）は`pnpm exec playwright test e2e/public-demo.spec.ts --list`が20件列挙・exit 0、`pnpm test --run`が63ファイル / 1,395件成功・exit 0、`pnpm exec tsc --noEmit` / `pnpm lint` / `git diff --check`がexit 0。Vitest初回はesbuild `spawn EPERM`でテスト開始前に停止し、同一コマンドを承認済みの子process起動可能な環境で再実行した。列挙はブラウザ成功ではなく、VitestのC2名テストもoffline / mock範囲。ブラウザ・外部Preview・server・実DB / OAuth / Session・AI / Cloud・production build / deployは未実行。変更はこの追記と新規レビュー文書のみ、commit / push / PR作成を行わずレビュー可能な未コミット状態で停止する。
+
+## PR #17 — Native Chrome 200%ユーザー提供結果（記録日: 2026-10-20 JST）
+
+開始時は `docs/demo-native-zoom-results` / `9c7127e242c3d70620aa038a9ab20a8cc46767d2` / clean、worktreeは `C:/Users/owner/Desktop/sm-dev/evidence-atlas` の1つ。ローカルmainも同じHEADで、PR #16のマージをローカル履歴で確認した。fetchやリモートの最新状態の照会はしていない。
+
+PR #16マージ後に提供された**ユーザーの手動レビュー結果（D）**は、Windows 11 Home / Google Chrome 157 / Native Chrome 200%（ユーザー申告）で、Research一覧（`/demo`）、Developer Productivity、Code Quality & Reliability、Developer Experience、Adoption & Organizational Impactのページ別総合結果が **5 Pass / 0 Fail（ユーザー申告）**。Codex自身による今回のブラウザ操作・再実行・独立確認ではない。[レビュー文書のPR #17追記](public-demo-zoom-text-spacing-review.md#pr-17--native-chrome-200ユーザー提供結果記録日-2026-10-20-jst)に原文・環境情報・ページ別総合表を記録した。PR #15 / #16と過去のNot run記録はその時点の履歴として保持する。
+
+原文の **「実行日:10:20」** は時刻か日付か明確でないため解釈せず、正確な実行日時・timezoneは未確認とする。本見出しの日付は文書記録日。Chromeの完全なversion / build、Windows build、対象URL / deployment SHA、window寸法、100% / 200%のviewport寸法、OS display scalingは未確認。Tab / Shift+Tab別結果、全Sourceリンクのfocus、その他各項目の詳細なPass / Fail・操作ログは未取得で、画像・動画の有無も未確認。ページ別総合Passをこれらの詳細項目の合格に展開しない。
+
+**B1: Browser-specific text-only 200%、B2: Text spacing（line-height 1.5 / paragraph spacing 2em / letter spacing 0.12em / word spacing 0.16em）は未実施のまま。** 次回はPR #16で準備した既存手順・表を使う。Contrast / hover / sticky header追加確認、通常SaaSのResponsive検証、Chatの1023px / 1024px境界確認も未実施であり、**Accessibility review / Responsive UI reviewは引き続き未完了**。roadmapおよびPhase 10チェック状態は変更しない。
+
+今回の変更はMarkdown文書2ファイルへの証拠追記のみ。既存Playwright 20件・Vitest・型検査・lintは今回再実行しておらず、過去の成功を今回の検証結果として扱わない。アプリCSS・Playwright・依存・roadmapは変更せず、ブラウザE2E・外部Previewアクセス・server起動・実DB / OAuth / Session・AI / Cloud・production build / deploy・commit / push / PR作成 / mergeは行わない。
