@@ -1076,3 +1076,11 @@ PR #17のNative Chrome 200%は5ページすべてPass、PR #18のB2 Text spacing
 Contrast・hover・sticky header・focus indicatorの追加確認、未表示empty stateの視覚検証、通常SaaS画面のResponsive検証（375px / 768px / desktop）、Chatの1023px / 1024px境界・keyboard確認が残る。[既存deferred risk](#known-deferred-risks)も保持する。**Phase 10 Accessibility review / Responsive UI reviewの全体受入は引き続き未完了。** roadmapのチェックボックスは変更しない。
 
 変更は指定Markdown文書2ファイルへの追記のみ。CodexはGit状態・Markdown表・相対リンク・差分のoffline確認だけを行い、アプリ修正・テスト追加や再実行、実ブラウザ・外部Previewアクセス、DB / OAuth / Session / AI / Cloud接続、build / deploy、commit / push / PR作成 / mergeは行わない。未コミットで停止する。
+
+## PR #20 preparation — Public Demo Contrast / Visible Focus（2026-10-20 JST）
+
+Public Demoの一覧と4つのResearch詳細におけるContrast / Visible Focusの手動レビュー準備として、[検査計画・未実施の記録表](public-demo-contrast-visible-focus-review.md)を作成した。静的調査対象は `src/app/globals.css`、`src/app/demo/layout.tsx`、`src/app/demo/page.tsx`、`src/app/demo/research/[researchId]/page.tsx`、`src/components/research/research-list-items.tsx`、`src/components/research/research-detail-content.tsx`、`src/components/ui/badge.tsx`、`e2e/public-demo.spec.ts` および必要な直接依存である。
+
+今回はCodexの静的確認とオフライン文書確認のみ。実際のcontrast測定、ブラウザ操作、Visible Focusの目視確認はすべて未実施であり、新しい検査表のResultはすべて **Not run**。前景色・実効背景色・比率は未測定、表示未確認の空状態は **Not rendered / Not verified** として区別した。詳細の実URLは後日の一覧リンクから取得する手順とし、Research IDは推測で固定していない。
+
+PR #15〜#19の既存証拠、ユーザー提供の手動結果、既存自動テストの記録、当時のNot run / Pendingは履歴としてそのまま保持する。それらを今回の自動検証・新しいcontrast実測・個別focusの目視成功へ読み替えない。**Phase 10 Accessibility review / Responsive UI reviewの全体受入は引き続き未完了**であり、既存チェックボックスは変更しない。
