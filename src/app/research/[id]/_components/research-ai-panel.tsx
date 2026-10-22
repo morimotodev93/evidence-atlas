@@ -2,7 +2,7 @@
 
 import { Button } from "@/components/ui/button";
 import { parseSourceCitations } from "@/lib/ai/source-citations";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { ResearchAiConversationsDialog } from "./research-ai-conversations-dialog";
 import { ResearchAiSupportingSources } from "./research-ai-supporting-sources";
 
@@ -18,8 +18,20 @@ type ResearchAiPanelProps = {
 };
 
 type ChatMessage = {
+  id?: string;
   role: "user" | "assistant";
   content: string;
+  provisional?: boolean;
+};
+
+const CHAT_STATUS_TEXT = {
+  streaming: "Generating a temporary response. Saving is not confirmed.",
+  checking: "Checking saved history...",
+  refreshed:
+    "Showing saved history from the server. The result of this send could not be confirmed individually.",
+  unconfirmed:
+    "The result of this send is unconfirmed. Open History to check saved messages.",
+  saved: "Showing saved history from the server.",
 };
 
 type ConversationMessage = {
@@ -38,6 +50,14 @@ type ConversationDetail = {
   sources?: ResearchAiSource[];
 };
 
+function restoredMessages(conversation: ConversationDetail): ChatMessage[] {
+  return conversation.messages.map((message) => ({
+    id: message.id,
+    role: message.authorType === "USER" ? "user" : "assistant",
+    content: message.content,
+  }));
+}
+
 export function ResearchAiPanel({ researchId, sources }: ResearchAiPanelProps) {
   const [conversationId, setConversationId] = useState<string | null>(null);
   const [input, setInput] = useState("");
@@ -55,6 +75,29 @@ export function ResearchAiPanel({ researchId, sources }: ResearchAiPanelProps) {
   const [conversationSources, setConversationSources] = useState<
     ResearchAiSource[]
   >([]);
+  const [chatStatus, setChatStatus] = useState<
+    keyof typeof CHAT_STATUS_TEXT | null
+  >(null);
+  const [pendingConversationIds, setPendingConversationIds] = useState<
+    ReadonlySet<string>
+  >(() => new Set());
+  const pendingRequests = useRef(new Set<string>());
+  const requestGeneration = useRef(0);
+  const savedMessages = useRef<ChatMessage[]>([]);
+  const isConversationPending =
+    conversationId !== null && pendingConversationIds.has(conversationId);
+
+  function ownsRequest(generation: number) {
+    return requestGeneration.current === generation;
+  }
+
+  function beginNavigation() {
+    const generation = ++requestGeneration.current;
+    setIsSending(false);
+    setMessages(savedMessages.current);
+    if (isSending) setChatStatus("unconfirmed");
+    return generation;
+  }
 
   function getSupportingSources(content: string) {
     const parsed = parseSourceCitations(content);
@@ -76,6 +119,8 @@ export function ResearchAiPanel({ researchId, sources }: ResearchAiPanelProps) {
   async function handleNewConversation() {
     if (isCreating) return;
 
+    const generation = beginNavigation();
+    setIsRestoring(false);
     setIsCreating(true);
     setCreateError(null);
 
@@ -95,41 +140,86 @@ export function ResearchAiPanel({ researchId, sources }: ResearchAiPanelProps) {
         createdAt: string;
       } = await response.json();
 
+      if (!ownsRequest(generation)) return;
       setConversationId(conversation.id);
+      savedMessages.current = [];
       setMessages([]);
+      setChatStatus(null);
       setConversationSources([]);
       setInput("");
 
       setSendError(null);
       setRestoreError(null);
     } catch (error) {
+      if (!ownsRequest(generation)) return;
       console.error(error);
       setCreateError("Failed to create conversation.");
     } finally {
-      setIsCreating(false);
+      if (ownsRequest(generation)) setIsCreating(false);
     }
   }
 
   async function handleSend() {
     const message = input.trim();
 
-    if (!conversationId || !message || isSending) {
+    if (
+      !conversationId || !message || isSending || isCreating || isRestoring ||
+      pendingRequests.current.has(conversationId)
+    ) {
       return;
     }
 
+    // Display ownership may change while this conversation's request is pending.
+    pendingRequests.current.add(conversationId);
+    setPendingConversationIds(new Set(pendingRequests.current));
+    const generation = ++requestGeneration.current;
     setIsSending(true);
+    setChatStatus("streaming");
     setSendError(null);
     setInput("");
     setRestoreError(null);
     setCreateError(null);
 
-    const previousMessageCount = messages.length;
+    const previousMessages = savedMessages.current;
+    let canRestoreHistory = false;
 
-    setMessages((current) => [
-      ...current,
-      { role: "user", content: message },
-      { role: "assistant", content: "" },
+    setMessages([
+      ...previousMessages,
+      { role: "user", content: message, provisional: true },
+      { role: "assistant", content: "", provisional: true },
     ]);
+
+    async function refreshHistory() {
+      if (!ownsRequest(generation)) return;
+      setMessages(previousMessages);
+      setChatStatus("checking");
+      try {
+        const response = await fetch(
+          `/research/${researchId}/chat/conversations/${conversationId}`,
+        );
+        if (!response.ok) {
+          throw new Error("Failed to refresh conversation history.");
+        }
+        const conversation: ConversationDetail = await response.json();
+        if (!ownsRequest(generation)) return;
+        if (
+          conversation.id !== conversationId ||
+          conversation.researchId !== researchId
+        ) {
+          throw new Error("Unexpected conversation history.");
+        }
+        const restored = restoredMessages(conversation);
+        savedMessages.current = restored;
+        setMessages(restored);
+        setConversationSources(conversation.sources ?? []);
+        // This GET identifies saved messages, not the result of this POST.
+        setChatStatus("refreshed");
+      } catch (error) {
+        if (!ownsRequest(generation)) return;
+        console.error("Failed to refresh conversation history.", error);
+        setChatStatus("unconfirmed");
+      }
+    }
 
     try {
       const response = await fetch(`/research/${researchId}/chat`, {
@@ -143,6 +233,7 @@ export function ResearchAiPanel({ researchId, sources }: ResearchAiPanelProps) {
         }),
       });
 
+      canRestoreHistory = response.ok;
       if (!response.ok || !response.body) {
         throw new Error("Failed to send message.");
       }
@@ -156,10 +247,13 @@ export function ResearchAiPanel({ researchId, sources }: ResearchAiPanelProps) {
         if (done) {
           break;
         }
+        // Keep consuming an old response until EOF/error without updating its UI.
+        if (!ownsRequest(generation)) continue;
 
         const chunk = decoder.decode(value, { stream: true });
 
         setMessages((current) => {
+          if (!ownsRequest(generation)) return current;
           const next = [...current];
           const lastMessage = next.at(-1);
 
@@ -174,30 +268,19 @@ export function ResearchAiPanel({ researchId, sources }: ResearchAiPanelProps) {
         });
       }
 
-      try {
-        const conversationResponse = await fetch(
-          `/research/${researchId}/chat/conversations/${conversationId}`,
-        );
-
-        if (!conversationResponse.ok) {
-          throw new Error("Failed to refresh conversation sources.");
-        }
-
-        const conversation: ConversationDetail =
-          await conversationResponse.json();
-
-        setConversationSources(conversation.sources ?? []);
-      } catch (error) {
-        console.error("Failed to refresh conversation sources.", error);
-      }
+      await refreshHistory();
     } catch (error) {
+      if (!ownsRequest(generation)) return;
       console.error(error);
 
-      setMessages((current) => current.slice(0, previousMessageCount));
-
+      setMessages(previousMessages);
       setSendError("Failed to send message.");
+      setChatStatus("unconfirmed");
+      if (canRestoreHistory) await refreshHistory();
     } finally {
-      setIsSending(false);
+      pendingRequests.current.delete(conversationId);
+      setPendingConversationIds(new Set(pendingRequests.current));
+      if (ownsRequest(generation)) setIsSending(false);
     }
   }
 
@@ -208,6 +291,8 @@ export function ResearchAiPanel({ researchId, sources }: ResearchAiPanelProps) {
       return false;
     }
 
+    const generation = beginNavigation();
+    setIsCreating(false);
     setIsRestoring(true);
     setRestoreError(null);
 
@@ -222,16 +307,14 @@ export function ResearchAiPanel({ researchId, sources }: ResearchAiPanelProps) {
 
       const conversation: ConversationDetail = await response.json();
 
-      const restoredMessages: ChatMessage[] = conversation.messages.map(
-        (message) => ({
-          role: message.authorType === "USER" ? "user" : "assistant",
-          content: message.content,
-        }),
-      );
+      if (!ownsRequest(generation)) return false;
+      const restored = restoredMessages(conversation);
 
       setConversationId(conversation.id);
       setSendError(null);
-      setMessages(restoredMessages);
+      savedMessages.current = restored;
+      setMessages(restored);
+      setChatStatus("saved");
       setConversationSources(conversation.sources ?? []);
       setRestoreError(null);
       setCreateError(null);
@@ -239,11 +322,12 @@ export function ResearchAiPanel({ researchId, sources }: ResearchAiPanelProps) {
 
       return true;
     } catch (error) {
+      if (!ownsRequest(generation)) return false;
       console.error(error);
       setRestoreError("Failed to restore conversation.");
       return false;
     } finally {
-      setIsRestoring(false);
+      if (ownsRequest(generation)) setIsRestoring(false);
     }
   }
 
@@ -319,9 +403,13 @@ export function ResearchAiPanel({ researchId, sources }: ResearchAiPanelProps) {
                   : null;
 
               return (
-                <div key={index}>
+                <div key={message.id ?? index}>
                   <p className="text-xs font-medium text-muted-foreground">
-                    {message.role === "user" ? "You" : "AI"}
+                    {message.role === "user"
+                      ? "You"
+                      : message.provisional
+                        ? "AI (temporary)"
+                        : "AI"}
                   </p>
 
                   <p className="mt-1 whitespace-pre-wrap text-sm leading-6">
@@ -343,12 +431,19 @@ export function ResearchAiPanel({ researchId, sources }: ResearchAiPanelProps) {
       </div>
 
       <div className="border-t p-3">
+        {chatStatus ? (
+          <p role="status" className="mb-2 text-xs leading-5 text-muted-foreground">
+            {CHAT_STATUS_TEXT[chatStatus]}
+          </p>
+        ) : null}
         <textarea
           value={input}
           onChange={(event) => setInput(event.target.value)}
           placeholder="Ask about this research..."
           rows={3}
-          disabled={!conversationId || isSending}
+          disabled={
+            !conversationId || isSending || isConversationPending || isCreating || isRestoring
+          }
           className="w-full resize-none rounded-md border bg-background px-3 py-2 text-sm outline-none placeholder:text-muted-foreground focus-visible:ring-2 focus-visible:ring-ring"
         />
 
@@ -357,9 +452,12 @@ export function ResearchAiPanel({ researchId, sources }: ResearchAiPanelProps) {
             type="button"
             size="sm"
             onClick={handleSend}
-            disabled={!conversationId || !input.trim() || isSending}
+            disabled={
+              !conversationId || !input.trim() || isSending || isConversationPending ||
+              isCreating || isRestoring
+            }
           >
-            {isSending ? "Sending..." : "Send"}
+            {isSending || isConversationPending ? "Sending..." : "Send"}
           </Button>
         </div>
         {sendError ? (
