@@ -539,7 +539,7 @@ Users who want to operate the application themselves should use their own databa
 
 **Quality acceptance baseline (2026-10-19 JST; PR #10 documentation):** [Phase 10 acceptance criteria](phase10-quality-acceptance.md) inventories evidence, gaps, safety gates and the follow-up sequence for all eleven items. E2E remains checked only for Public Demo + C2 authenticated read-only Smoke 4/4 + Chat mock-only 6/6; the other ten items remain open. PR #9's 58-file / 1,287-test success is historical evidence, not a new execution or completion decision. This documentation update runs no tests, build or live-service verification and changes no checklist state.
 
-- [ ] Unit tests
+- [x] Unit tests
 - [ ] Integration tests
 - [ ] Database tests
 - [ ] AI-related tests
@@ -550,6 +550,8 @@ Users who want to operate the application themselves should use their own databa
 - [ ] Accessibility review
 - [ ] Responsive UI review
 - [ ] Production build verification
+
+**Unit acceptance approved (2026-10-22 JST; PR #23/#24):** The finite Unit scope passed after the ASCII estimation precision and Unicode surrogate-pair boundary fixes. Chunker tests passed 34/34; full offline Vitest passed 66 files / 1,448 tests, with TypeScript, lint and Git diff checks successful. See the [acceptance record](phase10-quality-acceptance.md). This checklist update reuses those results; no tests were rerun.
 
 Vitest and Playwright dependencies and scripts are present. Phase 6 adds manual retrieval/citation inspection scripts and records manual chat E2E checks. Existing Vitest tests cover access control for the ten mutation actions described in Phase 7, using mocked authentication and database operations: missing Research, non-membership, unauthenticated requests, unexpected Research lookup failures, and authorized writes. Broader automated regression coverage, accessibility/responsive review, and Broader automated regression coverage, accessibility/responsive review, and comprehensive production deployment verification remain outstanding.
 

@@ -1152,3 +1152,43 @@ Error handlingは代表caller補完済み・runtime/stream gate未実行でParti
 3関数の整数スケール化で元の再現FailをPassにし、全offline Vitestは66ファイル / 1,439件成功、失敗0、exit 0。
 Unitは有限契約のPass・完了候補とする。IntegrationはHTTP gate、Error handlingはstream/runtime gateが残るためPartialを維持。
 補助平面文字を分断し得る既存の走査境界問題は今回修正せず別課題とし、過去Fail記録・roadmapのチェックボックスは保持した。
+
+## PR #24 — Unicode Chunk Boundaries / Unit受入（2026-10-22 JST）
+
+C: Codexによる09:55以降JSTのローカル実行。開始時は `fix/chunk-text-unicode-boundaries` /
+`eb451373458620407ba647df8adc873cffe83c15` / 単一worktree / clean。既存PR #23記録は保持した。
+指定入力 `"aaaaa" + String.fromCodePoint(0x1f600).repeat(600)` で先頭chunk末尾がhigh surrogateとなるFailを再現。
+原因は推定関数がcode point、分割/overlap/進捗保証がUTF-16 code unitで進む不一致だった。
+UTF-16 offsetを維持しつつ、前進と後退で有効なsurrogate pairを一緒に消費し、進捗保証も1 code point進むように修正した。
+整数6単位・ASCII=2/非ASCII=9・目標768/overlap96、trimと段落/文末優先は変更していない。
+
+| Unitの有限条件 | 証拠・今回の判断 |
+| --- | --- |
+| 純粋policyの成功/無効値/境界/拒否をassertionへ対応付ける | [PR #23対応表](phase10-offline-quality-gates-review.md)を再利用。実schema129件、引用20件、dataset31件、Demo mode13件、C2 policy/CLI設定の既存assertionは変更なし、全回帰成功 |
+| 実chunkerの空白・短いASCII/CJK・閾値前後・推定値 | 既存25件を削除・弱体化せず保持。ASCII2303/2304/2305文字、CJK511/512/513文字、混在768-token境界とPR #23の丸め再現は全成功 |
+| 複数chunk、overlap、本文保持、終了性 | 既存4長文fixtureと今回の補助平面文字/ASCII混在/日本語混在の再構成・有限出力・推定overlap96–98（最後のcode pointの端数分を許容）を検査 |
+| 報告されたUnicode分断を解消する | 再現1件＋Unicode回帰8件追加。全chunk内の孤立surrogateなし、511/512/513絵文字の推定/分割整合、短い句点/段落による進捗fallbackを検査 |
+| 対象suite exit 0・差分に応じたoffline回帰成功 | 下記34/34および1,448/1,448成功。**UはPass・完了候補**。有限条件に残る不足なし。レビュー承認待ちのためroadmapのチェックは更新しない |
+
+修正前後比較（offline Nodeメモリ内fixture、`node --input-type=module`、exit 0）では、指定入力のchunk UTF-16長は
+`[516,512,305]` → **`[1027,306]`**。新先頭はASCII5文字＋絵文字511個、次の開始offset899、overlapは絵文字64個＝96 token。
+補助平面文字を1回だけ数えるためchunkが長くなり、不完全なsurrogateがなくなる。重み・閾値の変更ではない。
+既存のASCII10,800文字、CJK2,400文字、段落/文末混在、早い句点の4fixtureは、全chunkのSHA-256が修正前と一致
+（chunk数は順に6/6/578/7）。BMPだけの既存正常結果を保持した。サーバーや実サービスには接続していない。
+
+| 実行コマンド | ファイル数 / 成功 / 失敗 / exit |
+| --- | --- |
+| `pnpm exec vitest run src/lib/ai/chunk-text.test.ts`（再現追加・修正前） | **1 / 25 / 1 / 1**。high surrogate末尾のassertionでFail |
+| 同上（修正後・最終） | **1 / 34 / 0 / 0**。初回追加回帰では32成功/2失敗/exit 1だったが、新規テストの文末優先・trim重複出力への誤った期待を訂正。既存25件は全段階で保持・成功 |
+| `pnpm test --run` | **66 / 1,448 / 0 / 0**（PR #23の1,439件＋今回9件）。Vitest 3.2.7 |
+| `pnpm exec tsc --noEmit` | **exit 0** |
+| `pnpm lint` | **exit 0、0 errors / 3 warnings**。PR #23と同じ既存ignored `test-results/pr22-retest/verify.mjs` と `test-results/pr22-verify.mjs` の未使用変数 |
+| `git diff --check` | **exit 0** |
+
+Windows 10.0.26200.0 / Node v24.16.0 / pnpm 12.9.1。chunker suiteは実関数のみでmockなし。
+全suiteはPR #23と同じDB/AI/auth/SDK等のダブル・通信前拒否と既存除外設定を維持したoffline検証で、実DB/AI/OAuth/Sessionの検証ではない。
+未解決の範囲は書記素クラスタ（ZWJ/結合文字等）全体の保持、元から不正な孤立surrogateを持つ入力の修復、全Unicode組合せ、実tokenizer精度・実AI品質。
+短い段落/文末で多数のchunkやtrim後の重複が出る既存挙動も変更しておらず、性能保証は追加しない。
+IntegrationのHTTP gate、Error handlingのstream/abort/production回復gateも今回未実行で、両項目はPartialを維持する。
+変更は `src/lib/ai/chunk-text.ts`、同 `.test.ts`、本受入文書の追記だけ。roadmap・過去記録を保持し、新規文書/依存なし。
+禁止された実サービス/DB/Cloud/server/browser/build操作およびcommit/push/PR作成/mergeは行わず、未コミットで停止する。
