@@ -1,0 +1,42 @@
+[
+  {
+    "file": "F1.png",
+    "bytes": 76687,
+    "sha256": "a2143d6991c71140104c251598fc1e5d0715860fd0e337f1d8c7f070827bb646"
+  },
+  {
+    "file": "F2.png",
+    "bytes": 76280,
+    "sha256": "b0c252686f5d54636c1d3cd2a933d9e905bc161add1abc9397d49f7c244c7ac1"
+  },
+  {
+    "file": "F3.png",
+    "bytes": 65935,
+    "sha256": "f6291b3642494c638bbb291e855b1c0dd4ae2da8138ab1fc4937d6eea9b8222d"
+  },
+  {
+    "file": "F4.png",
+    "bytes": 64012,
+    "sha256": "1a9a2f4521cf5312d5083df4f133e741a1862790fe264eb9204c16969f6dcb67"
+  },
+  {
+    "file": "helper-source.txt",
+    "bytes": 6638,
+    "sha256": "0aa5c11c2a01b76c67b1fe769a39b9d5349dc83f6cda1a0ec1deb72f56b64cdb"
+  },
+  {
+    "file": "results.json",
+    "bytes": 1601165,
+    "sha256": "fbcb2dcf5a0dbc5ace0926c1a627baa6dd6074f82c06179a0bbcf0b40e51b8a6"
+  },
+  {
+    "file": "runner-source.txt",
+    "bytes": 14331,
+    "sha256": "7040bf83459c2590b67000e8f8d9193f7abb59a07c85b19538ed70a6bec70fe6"
+  },
+  {
+    "file": "summary.json",
+    "bytes": 21628,
+    "sha256": "83f9a07b8166508f5673d6c8e8fc0cda9237ef8b2adfe3a724eefbdc49e1790a"
+  }
+]

@@ -1,0 +1,150 @@
+import { chromium } from '@playwright/test';
+import fs from 'node:fs';
+import { install } from './helper.mjs';
+const origin = 'https://evidence-atlas-git-test-demo-contrast-focus-batch-morimotodev93.vercel.app';
+const expectedSHA = '1231b5af5bf8cbb03c08424fe51cecae73a359d1';
+const temp = 'test-results/pr22-retest';
+const old = JSON.parse(fs.readFileSync('docs/planning/evidence/pr22-demo-browser-review/measurements.json'));
+const titles = ['Developer Productivity', 'Code Quality & Reliability', 'Developer Experience', 'Adoption & Organizational Impact'];
+const viewports = [{ width: 1280, height: 720 }, { width: 375, height: 812 }, { width: 768, height: 1024 }];
+const result = { evidence: 'C22R: Codex executed Chromium retest, independent of earlier/manual evidence', started: new Date().toISOString(), origin, expectedSHA, environment: {}, preflight: null, phaseA: [], phaseB: { status: 'Not run', results: [] }, errors: [] };
+const network = { allowed: 0, blocked: {}, responses: {}, errors: 0, paths: {}, methods: {}, allowedOrigins: [], redirectBlocked: 0, websocketBlocked: 0 };
+const save = () => fs.writeFileSync(temp + '/raw.json', JSON.stringify({ ...result, network }));
+function permitted(raw) {
+  const u = new URL(raw);
+  return u.origin === origin && (u.pathname === '/demo' || /^\/demo\/research\/[^/]+$/.test(u.pathname) || u.pathname.startsWith('/_next/static/') || u.pathname === '/favicon.ico');
+}
+function addCount(obj, key) { obj[key] = (obj[key] || 0) + 1; }
+let browser;
+async function context(viewport) {
+  const ctx = await browser.newContext({ viewport, deviceScaleFactor: 1, colorScheme: 'light', serviceWorkers: 'block' });
+  await ctx.route('**/*', async route => {
+    const req = route.request(), u = new URL(req.url());
+    if (req.method() !== 'GET' || !permitted(req.url())) {
+      addCount(network.blocked, req.method() + ' ' + u.origin + u.pathname);
+      return route.abort('blockedbyclient');
+    }
+    network.allowed++; addCount(network.methods, req.method()); addCount(network.paths, u.pathname);
+    if (!network.allowedOrigins.includes(u.origin)) network.allowedOrigins.push(u.origin);
+    try {
+      const response = await route.fetch({ maxRedirects: 0, timeout: 30000 });
+      const location = response.headers().location;
+      if (location && !permitted(new URL(location, req.url()).href)) { network.redirectBlocked++; return route.abort('blockedbyclient'); }
+      addCount(network.responses, response.status());
+      await route.fulfill({ response });
+    } catch { network.errors++; await route.abort(); }
+  });
+  await ctx.routeWebSocket('**/*', ws => { network.websocketBlocked++; ws.close(); });
+  return ctx;
+}
+async function environment(page) {
+  return page.evaluate(() => ({ userAgent: navigator.userAgent, width: innerWidth, height: innerHeight, dpr: devicePixelRatio, scale: visualViewport.scale, rootZoom: getComputedStyle(document.documentElement).zoom, bodyZoom: getComputedStyle(document.body).zoom, rootClass: document.documentElement.className, light: matchMedia('(prefers-color-scheme: light)').matches, bodyBackground: getComputedStyle(document.body).backgroundColor, font: getComputedStyle(document.body).fontFamily, fonts: document.fonts.status }));
+}
+async function load(page, href, title) {
+  const response = await page.goto(origin + href, { waitUntil: 'networkidle', timeout: 45000 });
+  await page.evaluate(() => document.fonts.ready);
+  if (response?.status() !== 200 || page.url() !== origin + href || (await page.locator('h1').textContent()) !== title || await page.getByText('Read-only demo', { exact: true }).count() !== 1) throw new Error('STOP: HTTP/content preflight mismatch');
+  await page.evaluate(install);
+  await page.mouse.move((await page.evaluate(() => innerWidth)) - 1, 1);
+  return response;
+}
+async function order(page) {
+  return page.locator('a').evaluateAll(es => es.filter(e => e.getClientRects().length && getComputedStyle(e).visibility !== 'hidden').map(e => ({ selector: window.__pr22.selector(e), text: e.textContent.trim(), href: e.getAttribute('href') })));
+}
+async function focused(page, expected, direction) {
+  // Wait only; never focus/scroll the target. Require four stable animation frames
+  // for scroll position/rect and stop after two seconds if animation persists.
+  const stable = await page.evaluate(async () => {
+    let previous, equal = 0;
+    for (let i = 0; i < 120; i++) {
+      await new Promise(requestAnimationFrame);
+      const e = document.activeElement, r = e?.getBoundingClientRect();
+      const value = JSON.stringify([scrollX, scrollY, r?.top, r?.bottom]);
+      equal = value === previous ? equal + 1 : 0; previous = value;
+      if (equal >= 4) return true;
+    }
+    return false;
+  });
+  const f = await page.evaluate(() => {
+    const v = window.__pr22.focus(); delete v.samples;
+    const e = document.activeElement, s = getComputedStyle(e);
+    return { ...v, boundingRect: (() => { const r=e.getBoundingClientRect(); return { left:r.left,right:r.right,top:r.top,bottom:r.bottom,width:r.width,height:r.height }; })(), scrollMarginTop: s.scrollMarginTop, scrollMarginBottom: s.scrollMarginBottom, bottomGap: Math.min(...v.rects.map(r => innerHeight-r.bottom)), topGap: Math.min(...v.rects.map(r => r.top-(v.kind==='Header'?0:v.header.bottom))) };
+  });
+  f.direction = direction; f.expectedSelector = expected.selector; f.orderPass = f.target === expected.selector; f.layoutStable = stable;
+  f.result = stable && f.orderPass && f.focusVisible && f.indicator && f.exposed && f.rects.length > 0 && f.clearanceIssues.length === 0 ? 'Pass' : 'Fail';
+  return f;
+}
+async function press(page, direction, expected) { await page.keyboard.press(direction); return focused(page, expected, direction); }
+try {
+  browser = await chromium.launch({ headless: true, args: ['--disable-background-networking', '--disable-component-update', '--no-pings'] });
+  result.environment = { playwright: JSON.parse(fs.readFileSync('node_modules/@playwright/test/package.json')).version, chromium: browser.version(), node: process.version, platform: process.platform, arch: process.arch };
+  const ctx = await context(viewports[0]), page = await ctx.newPage();
+  const response = await load(page, '/demo', 'AI-Assisted Software Development');
+  const allHeaders = await response.allHeaders();
+  const safeHeaderNames = ['date','server','x-vercel-id','x-vercel-cache','x-vercel-deployment-id','x-vercel-git-commit-sha','x-git-sha','x-commit-sha','x-matched-path','content-type'];
+  const html = await page.content();
+  const metadata = await page.locator('meta[name],meta[property]').evaluateAll(es => es.filter(e => /commit|deployment|vercel|git.*sha/i.test(e.getAttribute('name') || e.getAttribute('property'))).map(e => ({ key: e.getAttribute('name') || e.getAttribute('property'), value: e.getAttribute('content') })));
+  const explicitSHAs = [...new Set([...Object.entries(allHeaders).filter(([k]) => /^(x-vercel-git-commit-sha|x-git-sha|x-commit-sha)$/.test(k)).map(([,v]) => v), ...metadata.filter(m => /commit|sha/i.test(m.key)).map(m=>m.value), ...Array.from(html.matchAll(/(?:VERCEL_GIT_COMMIT_SHA|gitCommitSha|data-git-commit-sha)["'\s:=]+([a-f0-9]{40})/gi), m => m[1])].filter(v=>/^[a-f0-9]{40}$/i.test(v)))];
+  const deploymentHints = [...new Set(Array.from(html.matchAll(/\bdpl_[A-Za-z0-9]{10,80}\b/g), m=>m[0]))];
+  const links = await page.getByRole('region', { name: 'Research list', exact: true }).getByRole('link').evaluateAll(es => es.map(e=>({ title:e.querySelector('h2')?.textContent,href:e.getAttribute('href') })));
+  if (links.length !== 4 || JSON.stringify(links.map(l=>l.title)) !== JSON.stringify(titles) || !links.every(l=>/^\/demo\/research\/[^/?#]+$/.test(l.href))) throw new Error('STOP: four-list-links preflight mismatch');
+  result.preflight = { time:new Date().toISOString(), status:response.status(),url:page.url(),headers:Object.fromEntries(safeHeaderNames.filter(k=>allHeaders[k]).map(k=>[k,allHeaders[k]])),metadata,explicitSHAs,deploymentHints,identity:explicitSHAs.includes(expectedSHA)?'Git SHA matches; deployment ID may remain unverified':'配備identity未確認: provisional results',links,environment:await environment(page),httpServerDate:allHeaders.date };
+  save(); console.log(JSON.stringify({ event:'preflight',...result.preflight }));
+  if (explicitSHAs.some(sha=>sha.toLowerCase()!==expectedSHA)) throw new Error('STOP: confirmed deployment SHA mismatch');
+  await ctx.close();
+  for (const viewport of viewports.slice(0,2)) for (const direction of ['Tab','Shift+Tab']) {
+    const ctx = await context(viewport), page = await ctx.newPage();
+    await load(page,'/demo','AI-Assisted Software Development');
+    const expected = await order(page), steps = [];
+    const id = viewport.width===1280 ? direction==='Tab'?'F1':'F2' : direction==='Tab'?'F3':'F4';
+    if (direction==='Tab') for (let i=0;i<5;i++) steps.push(await press(page,'Tab',expected[i]));
+    else {
+      for (let i=0;i<6;i++) steps.push(await press(page,'Tab',expected[i]));
+      await page.keyboard.press('Tab');
+      const boundary = await page.evaluate(()=>document.activeElement===document.body);
+      if (!boundary) throw new Error('STOP: unexpected document boundary');
+      for (let i=5;i>=2;i--) steps.push(await press(page,'Shift+Tab',expected[i]));
+    }
+    // In reverse, the fourth Shift+Tab is D1 (index 2), matching the old run.
+    const f = steps.at(-1), before = old.failures.find(v=>v.viewport.width===viewport.width && v.observation.direction===direction).observation;
+    const screenshot=id+'.png'; await page.screenshot({path:temp+'/'+screenshot});
+    const a = { id,time:new Date().toISOString(),url:page.url(),environment:await environment(page),sequence:steps.map(s=>({direction:s.direction,target:s.target,href:s.href,orderPass:s.orderPass,result:s.result})),before:{rects:before.rects,header:before.header,scrollY:before.scrollY,bottomGap:Math.min(...before.rects.map(r=>viewport.height-r.bottom)),topGap:Math.min(...before.rects.map(r=>r.top-before.header.bottom)),extent:before.extent},after:f,screenshot,result:f.result==='Pass'&&steps.every(s=>s.orderPass&&s.layoutStable)?'Pass':'Fail' };
+    result.phaseA.push(a); save(); console.log(JSON.stringify({event:'Phase A',id,result:a.result,top:f.boundingRect.top,bottom:f.boundingRect.bottom,headerBottom:f.header.bottom,bottomGap:f.bottomGap,topGap:f.topGap,marginTop:f.scrollMarginTop,marginBottom:f.scrollMarginBottom}));
+    await ctx.close();
+  }
+  if(result.phaseA.some(a=>a.result!=='Pass')) { result.phaseB.status='Not run: Phase A failed'; save(); console.log('STOP: Phase A failure; no Phase B or application changes'); }
+  else {
+    result.phaseB.status='Running'; save();
+    const pages = [{id:'L',title:'AI-Assisted Software Development',href:'/demo'},...result.preflight.links.map((l,i)=>({id:'D'+(i+1),...l}))];
+    for(const viewport of viewports) for(const item of pages) {
+      const ctx=await context(viewport), page=await ctx.newPage();
+      const response=await load(page,item.href,item.title);
+      const r={page:item.id,title:item.title,url:page.url(),time:new Date().toISOString(),status:response.status(),environment:await environment(page),normal:[],responsive:[],focus:[]};
+      result.phaseB.results.push(r);save();
+      if(item.id!=='L'&&JSON.stringify(await page.locator('main h2').allTextContents())!==JSON.stringify(['Conclusion','Sources','Findings','Discussion']))throw new Error('STOP: detail headings mismatch');
+      const targets=await page.evaluate(()=>window.__pr22.textTargets());
+      for(const t of targets) {
+        const el=page.locator(t.selector); await el.evaluate(e=>e.scrollIntoView({block:'center',inline:'nearest',behavior:'instant'}));
+        r.normal.push(await el.evaluate(e=>window.__pr22.sample(e)));
+        r.responsive.push(await el.evaluate(e=>window.__pr22.clipping(e)));
+      }
+      r.dimensions=await page.evaluate(()=>({scrollWidth:document.documentElement.scrollWidth,clientWidth:document.documentElement.clientWidth,headerHeight:document.querySelector('body > header').getBoundingClientRect().height}));
+      await page.evaluate(()=>scrollTo(0,0));
+      await page.reload({waitUntil:'networkidle'});await page.evaluate(()=>document.fonts.ready);await page.evaluate(install);await page.mouse.move(viewport.width-1,1);
+      r.expectedOrder=await order(page);const n=r.expectedOrder.length;
+      for(const direction of ['Tab','Shift+Tab']) {
+        if(direction==='Shift+Tab') {await page.keyboard.press('Tab');r.documentBoundary=await page.evaluate(()=>document.activeElement===document.body);}
+        for(let k=0;k<n;k++) {
+          const expected=r.expectedOrder[direction==='Tab'?k:n-k-1]; const f=await press(page,direction,expected);r.focus.push(f);
+          if(f.result==='Fail'){f.screenshot=`${item.id}-${viewport.width}-${direction==='Tab'?'forward':'reverse'}-${k}.png`;await page.screenshot({path:temp+'/'+f.screenshot});}
+        }
+      }
+      r.linksReachable=r.focus.every(f=>f.orderPass);r.urlUnchanged=page.url()===r.url;r.pageCount=ctx.pages().length;
+      const unexpected=r.responsive.filter(v=>v.clipped.length&&!v.intentional), intentional=r.responsive.filter(v=>v.clipped.length&&v.intentional);
+      r.summary={focusObservations:r.focus.length,focusFailures:r.focus.filter(f=>f.result==='Fail').length,contrast:Object.fromEntries(['Pass','Fail','Not verified'].map(s=>[s,r.normal.filter(v=>v.result===s).length])),horizontalOverflow:r.dimensions.scrollWidth>r.dimensions.clientWidth,unexpectedClipping:unexpected.map(v=>({selector:v.selector,text:v.text,clipped:v.clipped})),intentionalClipping:intentional.map(v=>({selector:v.selector,text:v.text})),result:r.focus.every(f=>f.result==='Pass')&&r.documentBoundary&&r.linksReachable&&r.urlUnchanged&&r.pageCount===1&&r.dimensions.scrollWidth<=r.dimensions.clientWidth&&!unexpected.length?'Pass':'Fail'};
+      r.finished=new Date().toISOString();save();console.log(JSON.stringify({event:'Phase B',page:item.id,viewport,summary:r.summary}));await ctx.close();
+    }
+    result.phaseB.status=result.phaseB.results.every(r=>r.summary.result==='Pass')?'Pass':'Fail';
+  }
+} catch(e) {result.errors.push(String(e));process.exitCode=1;console.error(String(e));}
+finally{result.finished=new Date().toISOString();save();await browser?.close();}

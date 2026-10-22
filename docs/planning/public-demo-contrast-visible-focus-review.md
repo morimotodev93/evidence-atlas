@@ -567,3 +567,124 @@ C22のF1〜F4は**4px余白・部分重なりゼロのプロジェクト条件�
 対象ESLint、既存mock renderer **12 tests**、Tailwindの3 utilityだけのメモリ内CSS生成、TXT 2件のsyntax、39件のSHA-256 / 構造・参照 / 画像安全確認、既存文書とcheckbox保持、追加表・リンクと `git diff --check` は確認済み。総容量6,342,845 bytes、PNG 32件（28種類）、JSON 5件、TXT 2件。確認範囲で公開commitを妨げる秘密情報・非公開画面は検出せず、4組の画像重複も削除しない。
 
 今回はブラウザ起動・Previewアクセス・app server / production build・外部Source・DB / OAuth / Session / AI / Cloud操作を行っていない。新Previewと配備identityの確認・再検査は別途承認後で、旧Previewの再実行をローカル修正の検証にはしない。Phase 10の受入・既存checkbox・roadmapは変更せず、未コミットで停止する。
+
+
+<a id="pr-22-browser-retest"></a>
+
+## PR #22 — 修正後PreviewのChromium再検証 C22R（2026-10-20 JST）
+
+**C22R: 今回Codexが実行した独立したブラウザ観測。F1〜F4と15条件の自動検査はPass。ただし配備identity未確認のため暫定結果**とする。修正前C22の4件Fail・測定値・39ファイル、PR #20 / #21の記録は変更していない。今回のPassはプロジェクトの4px余白・部分重なりゼロ条件の判定で、WCAG AA全面適合や知覚上の完全なfocus可視性の宣言ではない。
+
+### 対象・preflight・環境
+
+- 開始branch: `test/demo-contrast-focus-batch`、HEAD: **`1231b5af5bf8cbb03c08424fe51cecae73a359d1`**。`git status --short --branch`に変更なし。worktreeは `C:/Users/owner/Desktop/sm-dev/evidence-atlas` の1件で同branch / HEAD。検査中にアプリを変更していない。
+- 対象は [指定の修正後Preview /demo](https://evidence-atlas-git-test-demo-contrast-focus-batch-morimotodev93.vercel.app/demo) のoriginだけ。HTTP **200**、h1=`AI-Assisted Software Development`、Read-only表示、Research list内の4タイトル・4リンク・Demo href形式を確認した。詳細URLは今回の一覧リンクから取得した。
+- 公開応答はserver=`Vercel`、`x-vercel-id=kix1::iad1::nqd4v-1792467726390-1d47bc9a4a52`。これはrequest識別子でありDeployment IDとはみなさない。HTML内には **`dpl_67s8akZXvKz2SbuWxHdVSUYQqj2k`** の識別子候補を観測したが、明示的なGit SHA response header / meta / `VERCEL_GIT_COMMIT_SHA`等は得られず、**Deployment IDの正式な確認・`1231b5a`との対応は未確認**。SHA不一致は検出していないが、一致を推測しない。Cloud / GitHub / 管理APIへ照会していない。
+- Windows NT `10.0.26200.0`、Node `v24.16.0`、既存 `pnpm@12.9.1`、Playwright **1.63.0** / headless Chromium **153.0.8010.12**。修正前と同じbrowser version / helperを使用。package.json / Playwright設定を確認し、設定のdefault originではなく上記originを一時runnerへ固定した。依存追加なし。
+- 実行日時はNode実行時計で **2026-10-20 12:39:44.317〜12:41:50.488 JST**（`03:39:44.317Z`〜`03:41:50.488Z`）。preflightは12:39:50.070 JST。HTTP Dateは `03:42:09 GMT` で実行時計と約139秒差があり、時計同期は独立検証せず、測定時刻をHTTP Dateで補正していない。
+- 全条件でLight、実viewport **1280×720 / 375×812 / 768×1024 CSS px**、DPR1、visual viewport scale1、root / body computed zoom1、dark classなし、body背景 `lab(98.2716 0 0)`、IBM Plex Sans / fonts loadedを確認。fresh contextの100%条件で、native browser UIの手動zoom検査ではない。
+
+| ページID | ページ | 今回の実href（上記origin配下） |
+| --- | --- | --- |
+| L | Research一覧 | `/demo` |
+| D1 | Developer Productivity | `/demo/research/v0313wclyankpmyo4ujhmza2` |
+| D2 | Code Quality & Reliability | `/demo/research/c3q3cl35ne9iq5yuwxpx7bg5` |
+| D3 | Developer Experience | `/demo/research/qyjy9por32pcwpg8mhevznmw` |
+| D4 | Adoption & Organizational Impact | `/demo/research/ix53bd2y7be2zmk55h2sypn8` |
+
+### 通信境界と再利用した方法
+
+context全体で**GET・指定originのDemo / Demo詳細・表示用`/_next/static/`・faviconだけ**を許可した。非GET・その他の同一origin path・外部originをabortし、Service Workerをblock、WebSocketをclose、`route.fetch(maxRedirects:0)`とLocation検査で不許可redirectへの追従を防止した。全 **567件の許可GETは200**、通信エラー0。外部Vercel feedback script **35件は送信前に遮断**。外部Source / GitHub / Analyticsへ遷移・送信していない。Source hrefは属性として読み取り、Enter / clickはしていない。
+
+旧 `batch-source.txt` の `install()`（色変換・祖先背景合成・Range clipping・9点hit testing・全fragment＋最低4px余白の処理）を内容変更せずexportして再利用した。今回のrunnerではfocusにcomputed scroll-margin-top / bottom・bounding rectangle・上下余地を追加し、**実Tab操作後にscroll位置 / rectが4フレーム連続で安定するまで待機**した。focusの代入やkeyboard検査中の手動scrollはしない。Normal採取のscroll後は先頭へ戻してreloadし、freshなkeyboard traversalと分けた。
+
+Phase Aは**4ケースそれぞれ新しいcontextとfresh navigation**。F1 / F3はTab×5、F2 / F4はTab×6→Tabでdocument境界→Shift+Tab×4を使用し、全途中target・href・順序も記録した。全4件がPassした後にのみPhase Bへ進んだ。Phase Bは15条件それぞれ新しいcontextで、全リンクをTab順とdocument境界からの完全な逆順で観測した。旧E2Eの成功を流用せず、既存E2E全体も実行していない。
+
+### Phase A — 修正前後の実測比較
+
+F1 / F3の実focusはD3 Developer Experience、F2 / F4はD1 Developer Productivity。全4件でhref・操作順序・`:focus-visible=true`・indicator存在・部分露出・レイアウト安定を確認し、全非空fragmentの上下左右4px余白もPass。実URLは上記新Previewの `/demo`。下表の旧値は保存済み修正前C22、新値は今回の独立観測である。
+
+| ケース / viewport | 採取時刻 JST | 主な改善（旧→新） | rect top / bottom（旧→新） | header.bottom | scrollY（旧→新） | computed margin top / bottom | 結果・画像 |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| F1 / 1280×720 | 12:39:55.912 | 下端余地 **1→8px** | 561/719 → 554/712 | 49 | 0→7 | 64px / 8px | Pass / [F1](evidence/pr22-demo-browser-retest/F1.png) |
+| F2 / 1280×720 | 12:39:59.131 | header重なり **29→0px**、header下端からの余地 **−29→15px** | 20/178 → 64/222 | 49 | 201→157 | 64px / 8px | Pass / [F2](evidence/pr22-demo-browser-retest/F2.png) |
+| F3 / 375×812 | 12:40:04.106 | 下端余地 **0→8px** | 642/812 → 634/804 | 81 | 47→55 | 96px / 8px | Pass / [F3](evidence/pr22-demo-browser-retest/F3.png) |
+| F4 / 375×812 | 12:40:07.216 | header重なり **9→0px**、header下端からの余地 **−9→15px** | 72/242 → 96/266 | 81 | 253→229 | 96px / 8px | Pass / [F4](evidence/pr22-demo-browser-retest/F4.png) |
+
+F1 / F3は `bottom+4 <= viewport.height` を満たし、F2 / F4も `top−4 >= header.bottom` を満たした。4枚を今回表示して、cardの上下輪郭と余白を補助的に確認した。画像からindicatorの数値contrastや全条件の知覚適合を推測しない。
+
+### Phase B — 15条件の回帰結果
+
+以下のPassは**focus対象・順逆順序・indicator存在 / 露出・全fragmentの4px余白・横overflowなし・非意図的clippingなし・リンク到達性**の自動判定。全15条件はHTTP 200で期待h1 / Read-only表示を確認し、詳細は4セクションの見出しも確認した。**配備identityは全行でNot verified（結果は暫定）、知覚上の完全な可視性も全行でNot verified**と分ける。時刻は2026-10-20 JST、focus件数は両方向合計。
+
+| ページ | 実viewport | 採取開始 JST | 自動判定（暫定） | focus | Normal Contrast Pass / NV | 意図的省略要素 |
+| --- | --- | --- | --- | --- | --- | --- |
+| L | 1280×720 | 12:40:09.668 | Pass | 12 | 29 / 4 | 0 |
+| D1 | 1280×720 | 12:40:15.266 | Pass | 22 | 53 / 4 | 0 |
+| D2 | 1280×720 | 12:40:22.086 | Pass | 24 | 55 / 4 | 0 |
+| D3 | 1280×720 | 12:40:29.098 | Pass | 24 | 54 / 4 | 0 |
+| D4 | 1280×720 | 12:40:35.949 | Pass | 22 | 54 / 4 | 0 |
+| L | 375×812 | 12:40:42.667 | Pass | 12 | 29 / 4 | 5 |
+| D1 | 375×812 | 12:40:50.330 | Pass | 22 | 53 / 4 | 2 |
+| D2 | 375×812 | 12:40:56.854 | Pass | 24 | 55 / 4 | 1 |
+| D3 | 375×812 | 12:41:03.574 | Pass | 24 | 54 / 4 | 2 |
+| D4 | 375×812 | 12:41:10.610 | Pass | 22 | 54 / 4 | 0 |
+| L | 768×1024 | 12:41:17.986 | Pass | 12 | 29 / 4 | 0 |
+| D1 | 768×1024 | 12:41:25.702 | Pass | 22 | 53 / 4 | 1 |
+| D2 | 768×1024 | 12:41:32.452 | Pass | 24 | 55 / 4 | 0 |
+| D3 | 768×1024 | 12:41:39.202 | Pass | 24 | 54 / 4 | 1 |
+| D4 | 768×1024 | 12:41:45.907 | Pass | 22 | 54 / 4 | 0 |
+
+新しいFail / 回帰は今回の測定範囲で0。全 **312観測**（Header 60、一覧card 24、Back 24、Source 72、Supporting Source 132）の対象・href・順序は修正前と一致した。すべて`:focus-visible` / outline / 露出 / 4px余白を確認。main内focusのheader下端からの最小余地は15px、全focusのviewport下端までの最小余地は8px。outlineはauto / 1px / offset 1px、色 `oklab(0.546089 -0.026687 -0.213521 / 0.5)`、shadow none。header高は375幅81px、他49px。
+
+横幅は全行 `scrollWidth=clientWidth=viewport.width`、非意図的clipping 0。375px一覧の4説明clampとD4 titleのellipsis、Source URLのtruncateは修正前と同じ意図的省略として保持し、全文表示Passにしない。各条件でURL不変・popupなし（context内page数1）、Back / Source / Supporting Sourceを実keyboardで到達した。
+
+### 今回のNormal ContrastとNot verified
+
+旧比率の転用ではなく、今回の配信DOMから各文字をscrollしてcomputed foreground・font-size / weight・祖先背景を採取した。旧helperと同じsRGB canvasの8bit変換・既知の不透明面への合成とWCAG比率式を使用し、通常文字4.5:1、実24px以上の見出し3:1で判定した。半透明 / filter / blur / group opacity等を確定できないsampleは数値判定しない。
+
+Normal **795 samples: 735 Pass / 0 Fail / 60 Not verified**。最小の測定値はM前景 `lab(35.5352 -1.674 -13.4708)` ≈ rgb(71 85 105) / body背景 ≈ rgb(250 250 250)の **約7.26:1**。他の今回の代表値は、通常前景rgb(15 23 42) / bodyで17.10、同前景 / 白cardで17.85、M / 白cardで7.58、通常前景 / tag rgb(226 232 240)で14.48。個別font・前景・背景・比率はresultsへ保持した。これは8bit変換を含む近似で、glyphのantialias pixelや物理画面の測色ではない。
+
+60 NVはheader内の半透明背景＋blurを含む文字。**Source Hoverのopacity合成、focus indicatorの実効contrast、他Hover / Focus文字の再測定は今回未実施 / Not verified**。修正前Hover最小値6.69を今回の測定値として扱わない。必要非文字情報全体の3:1、知覚上の完全な可視性、Focus+Hover、空状態 / 無tag / description省略 / 不許可URL等の未表示分岐、dark / 他browser / 支援技術 / SaaS / Chatも未確認のまま。未表示の状態をPassで補完しない。
+
+### 証拠保存・安全確認・オフライン検証
+
+保存先は新規 `docs/planning/evidence/pr22-demo-browser-retest/`、**9ファイル / 1,927,769 bytes（約1.84 MiB）**。F1〜F4のPNG 4枚だけで重複画像なし。`results.json`にpreflight・環境・実URL・全時刻・前後比較・全15条件の個別focus / 通常色 / clipping観測を保持し、祖先背景だけ`backgroundChainId`で89件の辞書に重複排除した。raw観測との全値一致を検査した。通信はpath別 / status別集計だけで、query・request header・巨大な逐次ログは保存しない。
+
+- [summary.json](evidence/pr22-demo-browser-retest/summary.json): 比較・15条件集計・暫定identity・未確認条件・通信集計。
+- [results.json](evidence/pr22-demo-browser-retest/results.json): 個別観測とpreflight。背景辞書IDの参照795件を検算。
+- [runner-source.txt](evidence/pr22-demo-browser-retest/runner-source.txt) / [helper-source.txt](evidence/pr22-demo-browser-retest/helper-source.txt): 今回実行した一時runnerと再利用helperのsnapshot。
+- [sha256.json](evidence/pr22-demo-browser-retest/sha256.json): 自身を除く8件の名前・容量・SHA-256。
+
+JSON / TXTのparse・syntaxと文字列 / URL / credential形式 / cookie・認証header等の検査で秘密情報・非公開メールは検出していない。保存URLにquery / userinfoなし。response headerは公開情報の限定keyのみ。4 PNGは全画像を表示し、Public Demo以外の非公開画面・認証情報・desktop映り込みは観測せず、text / EXIF等の付加metadataも0。証拠内のSource hrefは公開表示文字列であり、外部取得結果ではない。
+
+オフライン確認は、新旧manifestと旧39件の全開始時hash一致、既存2文書のbyte prefix保持、保護対象（アプリ・既存E2E・依存 / 設定・roadmap・Phase 10）不変、rawと保存JSONの一致、F1〜F4の実href・操作順・全fragment、15条件 / 312観測の順逆順序・viewport・比率・件数検算、PNG容量 / 重複 / SHA、追加表・相対リンク、`node --check`、`git diff --check`。アプリテスト / buildを実行した報告ではない。
+
+### マージ判断と残る条件
+
+**ブラウザの限定した自動検査は全Passで、観測したPreviewでは一覧4件の症状は再現しなかった。ただしPR #22の無条件マージ可の確定判断は保留する。** 採取時のDeployment識別子候補を修正commit `1231b5a` に対応づける証拠が残る。branch aliasが別配備へ変わった場合はこの結果をそのまま転用せず、対象identityを固定して再評価する。知覚可視性・contrastのNot verifiedを含むPhase 10 Accessibility / Responsive全体は未完了のまま。
+
+変更は既存レビュー2文書の末尾追記と上記新証拠だけ。アプリ・既存テスト・依存・Phase 10文書・roadmap / checkboxは変更していない。DB / OAuth / Session / AI API、Cloud設定 / deploy、server / production build、外部サイトへの遷移、commit / push / PR作成 / mergeは実行せず、**未コミットで停止する**。
+
+<a id="pr-22-deployment-identity-2026-10-22"></a>
+
+### 後日補足 — Deployment / Commit / Preview aliasの直接照合（2026-10-22）
+
+ユーザー提供の独立確認結果として、**2026-10-22にChatGPTがGitHubおよびVercelの読み取り専用連携で直接照合した対応関係**を追記する。本追記作業で外部連携への再照会や新しいブラウザ検査は行っていない。
+
+| 項目 | 2026-10-22の直接照合結果 |
+| --- | --- |
+| Repository / PR | `morimotodev93/evidence-atlas` / [PR #22](https://github.com/morimotodev93/evidence-atlas/pull/22)、Open |
+| Branch | `test/demo-contrast-focus-batch` |
+| GitHub PR HEAD（full SHA） | `1231b5af5bf8cbb03c08424fe51cecae73a359d1` |
+| Vercel project | `evidence-atlas` |
+| Deployment ID / status | `dpl_67s8akZXvKz2SbuWxHdVSUYQqj2k` / READY（[Deployment記録](https://vercel.com/morimotodev93/evidence-atlas/67s8akZXvKz2SbuWxHdVSUYQqj2k)） |
+| Vercel記録のGit commit SHA | `1231b5af5bf8cbb03c08424fe51cecae73a359d1`。GitHub PR HEADと完全一致 |
+| Preview alias | `evidence-atlas-git-test-demo-contrast-focus-batch-morimotodev93.vercel.app` |
+| alias照会先のDeployment ID | `dpl_67s8akZXvKz2SbuWxHdVSUYQqj2k`。上記Deployment IDと一致 |
+
+根拠はVercel `get_deployment`のgit metadataとalias、Vercel `get_alias`のDeployment ID、GitHub PR #22のHEADとcommit status、およびPR #22のVercel公式BotによるDeployment記録。修正commit・Deployment ID・Preview aliasの対応が独立に確認され、Deployment IDはC22RでHTML中に観測した識別子候補とも一致する。
+
+**証拠の限界:** これは2026-10-22時点の直接照合であり、2026-10-20のCodex検査時点にブラウザへ配信されたバイト列を直接取得・保存した証拠ではない。検査時点の「Deployment identity未確認」・暫定結果・マージ判断は当時の履歴として保持し、後日の対応確認で遡及的に書き換えない。F1〜F4の実測値、15/15の自動判定結果、Contrast等のNot verified、Phase 10 Accessibility / Responsiveの未完了とcheckboxは変更しない。
+
+本追記のオフライン確認では、新証拠9件の名称・容量（合計1,927,769 bytes）、保存済みSHA-256 manifestの8件の一致、manifest自身を含む9件の作業前後hash不変、既存2文書の追記前byte prefix、文書リンク・表・既存履歴、`git diff --check`を確認した。追記対象以外の追跡済みファイルは不変。証拠の削除・上書き、アプリ・テスト・依存・roadmapの変更、新しいテスト・ブラウザ操作・Vercel操作・deploy、commit / push / mergeは行わず、未コミットで停止する。

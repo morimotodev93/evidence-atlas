@@ -132,3 +132,54 @@ Fail画像は [F1](evidence/pr22-demo-browser-review/L-1280-forward-4.png) / [F3
 | sha256.json | 5490 | 38件のmanifest |
 | summary.json | 18906 | 構造化記録 |
 | **合計39件** | **6342845** | 変更なし |
+
+
+<a id="pr-22-browser-retest"></a>
+
+## PR #22 — 修正後Previewのブラウザ再検証 C22R（2026-10-20 JST）
+
+**今回Codexが実行したChromium再検証ではF1〜F4と15条件が自動Pass。ただし配備identity未確認のため暫定結果。** 本書のオフライン修正当時の「再検証待ち」・4件の修正前Fail・39件の証拠は当時の履歴として保持し、上書きしていない。[詳細・実URL・全15条件の表](public-demo-contrast-visible-focus-review.md#pr-22-browser-retest)と[新しい集計](evidence/pr22-demo-browser-retest/summary.json)を参照。
+
+開始時は `test/demo-contrast-focus-batch` / `1231b5af5bf8cbb03c08424fe51cecae73a359d1` / clean、worktreeは1件。対象は指定の [新Preview /demo](https://evidence-atlas-git-test-demo-contrast-focus-batch-morimotodev93.vercel.app/demo)。preflightは200、期待一覧4件とhrefを確認し、詳細IDは実リンクから取得した。HTMLに `dpl_67s8akZXvKz2SbuWxHdVSUYQqj2k` の候補を観測したが、正式Deployment ID確認・Git SHAと `1231b5a` の対応は未確認。不一致も検出しておらず、一致を推測しない。
+
+Playwright 1.63.0 / headless Chromium 153.0.8010.12、Light / fresh contextの100%条件（DPR1・scale1・root/body zoom1）、実viewport1280×720 / 375×812 / 768×1024。2026-10-20 **12:39:44〜12:41:50 JST**。修正前helperを再利用し、実Tab操作後のscroll位置 / rectの4フレーム安定待ちとcomputed scroll margin採取を追加した。focus代入・keyboard検査中の手動scrollなし。
+
+| ケース | 修正前 → 今回 | 今回のscrollY / rect top–bottom / header.bottom | computed margin top / bottom | 自動結果 |
+| --- | --- | --- | --- | --- |
+| F1: 1280×720 / Developer Experience / Tab | 下端余地1→8px | 7 / 554–712 / 49 | 64px / 8px | Pass（暫定） |
+| F2: 1280×720 / Developer Productivity / Shift+Tab | header重なり29→0px、上余地15px | 157 / 64–222 / 49 | 64px / 8px | Pass（暫定） |
+| F3: 375×812 / Developer Experience / Tab | 下端余地0→8px | 55 / 634–804 / 81 | 96px / 8px | Pass（暫定） |
+| F4: 375×812 / Developer Productivity / Shift+Tab | header重なり9→0px、上余地15px | 229 / 96–266 / 81 | 96px / 8px | Pass（暫定） |
+
+4ケースそれぞれ新context / fresh navigationで、以前と同じTab×5又はTab×6→境界Tab→Shift+Tab×4を実行した。実focus / href・順序・`:focus-visible`・indicator存在・露出と4px余白を確認した後にPhase Bへ進み、全5ページ×3幅 **15/15の自動判定Pass**、312 focus観測でFail 0、横overflow / 非意図的clipping 0。意図的ellipsis / clamp / URL truncateは修正前と同じで、省略を全文表示Passにしていない。新しい回帰は今回の範囲で検出しなかった。
+
+Normal文字は今回再採取し **735 Pass / 0 Fail / 60 Not verified**、測定最小値は約7.26:1。60件は半透明＋blurを含むheader。Source Hover、focus indicatorの実効contrast、他Hover / Focus文字の再測定、知覚上の完全な可視性と未表示分岐はNot verified。以前の数値Contrastを修正後結果へ転用していない。自動Passはプロジェクトの4px余白・部分重なりゼロ条件の結果で、WCAG AA全面適合を宣言しない。
+
+通信は指定originのDemo / 表示用静的assetのGETだけを許可し、567件すべて200。外部feedback 35件は送信前に遮断し、Source / GitHub等へ遷移していない。新証拠は `docs/planning/evidence/pr22-demo-browser-retest/` の**9ファイル / 1,927,769 bytes**で、比較JSON・15条件の観測 / 集計・runner / helperのTXT・F1〜F4のPNG 4枚・SHA-256。重複画像・巨大な逐次通信ログなし。JSON / TXT・全4画像とPNG metadataを確認した範囲で秘密情報・非公開画面は検出していない。旧39件は全hash一致で保持した。
+
+オフラインでは旧証拠 / 既存文書prefix・保護対象の保持、保存JSONとrawの一致、順序 / 比率 / viewport / 件数 / 画像 / SHA・表 / リンク・`node --check`・`git diff --check`を確認した。変更はレビュー2文書の末尾追記と新証拠のみで、アプリ・既存テスト・依存・Phase 10文書・roadmapは変更していない。
+
+**無条件のマージ可判定は保留**。今回観測した配備と `1231b5a` の対応確認が残る。限定したブラウザ回帰は成功したが、知覚可視性・合成色等の既存Not verified、Phase 10全体の未完了は維持する。deploy / Cloud / server / build・DB / OAuth / Session / AI操作、commit / push / PR作成 / mergeは行わず、未コミットで停止する。
+
+<a id="pr-22-deployment-identity-2026-10-22"></a>
+
+### 後日補足 — Deployment / Commit / Preview aliasの直接照合（2026-10-22）
+
+ユーザー提供の独立確認結果として、2026-10-22にChatGPTがGitHubおよびVercelの読み取り専用連携で直接確認した事実を記録する。本追記作業での再照会・新しいブラウザ検査ではない。[レビュー文書の同日補足](public-demo-contrast-visible-focus-review.md#pr-22-deployment-identity-2026-10-22)も参照。
+
+| 項目 | 2026-10-22の直接照合結果 |
+| --- | --- |
+| Repository / PR | `morimotodev93/evidence-atlas` / [PR #22](https://github.com/morimotodev93/evidence-atlas/pull/22)、Open |
+| Branch | `test/demo-contrast-focus-batch` |
+| GitHub PR HEAD（full SHA） | `1231b5af5bf8cbb03c08424fe51cecae73a359d1` |
+| Vercel project | `evidence-atlas` |
+| Deployment ID / status | `dpl_67s8akZXvKz2SbuWxHdVSUYQqj2k` / READY（[Deployment記録](https://vercel.com/morimotodev93/evidence-atlas/67s8akZXvKz2SbuWxHdVSUYQqj2k)） |
+| Vercel記録のGit commit SHA | `1231b5af5bf8cbb03c08424fe51cecae73a359d1`。GitHub PR HEADと完全一致 |
+| Preview alias | `evidence-atlas-git-test-demo-contrast-focus-batch-morimotodev93.vercel.app` |
+| alias照会先のDeployment ID | `dpl_67s8akZXvKz2SbuWxHdVSUYQqj2k`。上記Deployment IDと一致 |
+
+根拠はVercel `get_deployment`のgit metadataとalias、`get_alias`のDeployment ID、GitHub PR #22のHEADとcommit status、PR #22のVercel公式BotによるDeployment記録。これにより修正commit・Deployment ID・Preview aliasの対応が独立に確認され、C22Rで観測したHTML内の識別子候補とも一致した。
+
+**証拠の限界:** 2026-10-22時点の直接照合であり、2026-10-20のCodex検査時点にブラウザへ配信されたバイト列を直接取得・保存したものではない。従来の「Deployment identity未確認」・暫定結果・マージ判断は検査時点の履歴として保持する。F1〜F4の実測値、15/15の自動判定結果、Contrast等のNot verified、Phase 10 Accessibility / Responsiveの未完了とcheckboxを変更しない。
+
+本追記では新証拠9件の名称・容量（合計1,927,769 bytes）と保存済みSHA-256の8件の一致を確認し、manifest自身を含む9件は作業前後hash不変。既存2文書の追記前byte prefix、文書リンク・表・履歴、`git diff --check`、追記対象以外の追跡済みファイル不変もオフラインで確認した。証拠の削除・上書き、アプリ・テスト・依存・roadmapの変更、新しいテスト・ブラウザ操作・Vercel操作・deploy、commit / push / mergeは行わず、未コミットで停止する。
