@@ -16,7 +16,10 @@ import {
 } from "@/lib/ai/model";
 import { buildResearchContext } from "@/lib/ai/research-context";
 import { retrieveWorkspaceContext } from "@/lib/ai/retrieve-workspace-context";
-import { validateSourceCitations } from "@/lib/ai/source-citations";
+import {
+  parseSourceCitations,
+  validateSourceCitations,
+} from "@/lib/ai/source-citations";
 import { db } from "@/prisma/db";
 
 import { buildChatSystemPrompt } from "@/lib/ai/chat-system-prompt";
@@ -192,6 +195,13 @@ export async function POST(request: Request, { params }: RouteContext) {
       }
 
       const validatedText = validateSourceCitations(text, allowedSourceIds);
+
+      if (
+        validatedText.trim().length === 0 ||
+        parseSourceCitations(validatedText).text.trim().length === 0
+      ) {
+        return;
+      }
 
       await db.orm.public.Message.create({
         conversationId,

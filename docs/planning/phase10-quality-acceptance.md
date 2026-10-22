@@ -1367,3 +1367,165 @@ Chat route、request/response、abortSignal、retry冪等性、USER/AI/usage保�
 ## PR #26 — Chat Stream Reliability Design（2026-10-22 JST）
 
 再送・Abort・部分保存・完了通知の仕様比較と受入テスト案は [Chat Stream Reliability Design](phase10-chat-stream-reliability-design.md) を参照。設計提案のみで採用・実装・検証完了ではなく、Error handlingはPartialを維持する。過去記録・roadmapチェックは変更しない。
+
+## PR #28 — Chat B Limited Reliability Improvements（2026-10-22 JST）
+
+### 採用範囲と開始条件
+
+今回のユーザー指示に基づき、[PR #27 Section 3](phase10-chat-reliability-i0-decisions.md#3-scope-alternatives)の
+**B案の限定改善だけ**を実装した。ChatAttempt・API v2・SSE・Stop・SDK Abort・usage独立保存等のA案は未採用。
+plain text Chat API、DB/API契約、依存、provider/SDK設定、既存Messageの保存形式は維持する。
+過去のPR #25の不具合発見記録とfollow-up、PR #26/#27の提案時点の記録は履歴として保持し、本節で今回の差分を記録する。
+
+開始時にローカルGitで次のすべてを確認した。リモートへの照会はしていない。
+
+| 項目 | 結果 |
+| --- | --- |
+| branch | `fix/phase10-chat-b-limited-reliability` |
+| HEAD / 指定Base HEAD | `f3f2eebbc1001c2709234a64e571201662ba6f31`（一致） |
+| worktree | `C:/Users/owner/Desktop/sm-dev/evidence-atlas` の1件のみ |
+| 開始時working tree | clean、未追跡ファイルなし |
+| origin | `https://github.com/morimotodev93/evidence-atlas.git`（fetch/pushとも一致） |
+
+### 修正前の問題と修正後の契約
+
+修正前のrouteはstop/raw非空だけを条件とし、引用検証後の空文字AIや、表示本文がない引用markerだけのAIも保存できた。
+panelは正常EOF後にdetail GETを呼んでもSourcesしか反映せず、raw暫定本文と保存履歴が異なる場合やAI保存がない場合にも、
+raw回答を通常の回答として残した。GET失敗もconsoleのみで保存状態の不明を示さず、read失敗後はHistoryを取得しなかった。
+古いsendErrorの残留はPR #25 follow-upで既に修正済みであり、今回の未修正問題には数えない。
+
+今回の限定契約は次のとおり。
+
+- routeの`onFinish`は従来どおりusageを先に記録する。その後、stop/raw非空に加え、
+  `validateSourceCitations`後のtrim本文と`parseSourceCitations`後の表示本文の両方が非空の場合だけAI Messageを作る。
+  保存するのは従来どおりvalidatedTextそのものであり、表示用parse結果に保存形式を変えていない。
+  引用許可集合、認証・認可・rate limit、context/retrieval、履歴読取、USER保存、Conversation更新の順序は維持する。
+- stream中は生成中の暫定回答で保存未確認と示す。正常EOF後は暫定USER/AIを除き、送信前の取得済み履歴を表示しながら
+  「保存履歴を確認中」とする。Conversation detail GETは1回だけ行い、成功時は返ったmessages全体とSourcesで置換する。
+  サーバーのMessage IDを保持して描画keyに使い、本文もGETを正とする。本文一致・末尾AI・件数からPOSTとの対応を推定しない。
+- GET成功後の表示は「サーバーの保存履歴を表示中」と「今回の送信結果を個別には確認できない」を併記する。
+  **HTTP 200・正常EOF・GET成功・履歴中のAIの存在のいずれも、今回のPOSTの保存成功の証拠にはしない。**
+- GETのHTTP拒否・JSON解析失敗・通信失敗では、以前の取得済みmessages/Sourcesを保持する。
+  今回のraw暫定回答は残さず、送信結果は未確認と示し、finallyで送信中状態と入力disabledを解除する。
+  取得失敗をAI未保存確定とも扱わない。
+- 成功HTTP応答のbody読取がError/AbortErrorで失敗した場合も暫定表示を除き、既存detail GETを1回だけ試みる。
+  取得成功でも通信エラーは残し、表示した履歴を当該送信成功に結び付けない。POSTが401/403/404等の非成功なら復元GETを行わず、
+  GET自体が認証・認可拒否ならそこで終了する。fetch自体の失敗にも自動GET/POST再送を追加していない。
+- client内のgenerationと取得済みmessagesのrefだけで、New/History開始時に古い送信の表示更新権限を失効させる。
+  古いPOST応答・chunk・履歴応答・catch/finallyが新しい会話や送信中状態を上書きしない。
+  NewとHistory相互の遅延応答も同じ境界で防ぐ。切替待ちでは入力/送信を一時disabledにし、切替失敗時にも旧暫定回答を戻さず未確認を維持する。
+  これはclient表示の所有制御であり、server/providerの生成停止・保存停止・永続的なattempt識別ではない。
+- 有効な送信開始時の`setSendError(null)`、編集だけ/空白送信では既存エラーを保持する動作、過去turnの保持、
+  New/History成功時のエラー解除、Sources表示と安全なSource URLガードを維持する。
+  自動retry、再生成、polling、状態照会API、sessionStorage、Stop、usage警告は追加していない。
+
+### 回帰テスト
+
+本番修正前に既存テストを期待動作へ更新・拡張し、**route 3件、panel 18件のassertion失敗**を確認した。
+この時点はroute68＋panel24＝92件で、71件成功・21件失敗。その後、切替要求同士の遅延応答と切替失敗を確認する3件を補完した。
+
+| 対象 | 追加・更新内容 / 最終件数 |
+| --- | --- |
+| route | 空AI再現1件を、実validator/parserによる未許可markerのみ・許可markerのみ・正規化後空表示・通常本文＋引用・日本語本文＋引用の5ケースへ変更（純増4）。既存raw空白・非stop・認可・rate limit・保存順序・usage/AI書込失敗等も維持。**64→68件** |
+| panel | 既存9件を更新し、read Error/AbortError後のHistory復元、正常EOFの空/部分本文とAIなし履歴、HTTP/JSON/通信によるGET失敗時の旧turn/Sources保持、rawと異なる保存本文/IDへの全置換、確認中disabled、POST認証/認可拒否時のGETなし、New/History後の遅延chunk/read error/GET成功/GET失敗と古いfinally、新旧切替応答、切替失敗を確認。旧sendError解除・再入力・自動POST retryなしも維持。**9→27件** |
+
+panelは既存のuseState doubleを拡張してuseRefも同じfixture内で保持し、実panel関数のhandler・functional setter・JSX props/分岐を検査する。
+実React mount・batch/scheduling・DOM・focus・spinnerの実描画・dialog操作・unmountは**未検証**。
+routeとpanelは別fixtureで、同一HTTP経路を端から端まで検証した結果ではない。
+
+### 実行結果とoffline/mock境界
+
+Windows / Node **v24.16.0** / pnpm **12.9.1**（packageManager一致）/ Vitest **3.2.7**。
+初回のPowerShell profileにfnmの権限制限があり、以降は`login:false`で実行した。
+Vitest初回はconfig読込時のesbuild `spawn EPERM`で失敗し、**収集前・assertion未実行**。
+同じ許可済みofflineコマンドを子プロセス起動可能な承認付き実行で再試行した。外部環境・通信・依存変更に検証範囲を拡大していない。
+
+| 実行コマンド / 段階 | ファイル数 / 成功 / 失敗 / exit code |
+| --- | --- |
+| `pnpm exec vitest run src/auth/chatRoutes.test.ts 'src/app/research/[id]/_components/research-ai-panel.test.tsx'` 初回 | **0件収集、成功/失敗件数なし、exit 1**。起動制限 |
+| 同上・本番修正前、子プロセス起動可能な実行 | **2 / 71 / 21 / exit 1**（92件）。期待動作に対するassertion失敗 |
+| 同上・最初の修正後 | **2 / 92 / 0 / exit 0** |
+| 同上・切替失敗/遅延切替応答の補完後 | **2 / 95 / 0 / exit 0**（route68＋panel27） |
+| `pnpm test --run` | **67 / 1,488 / 0 / exit 0**（開始時1,466＋純増22） |
+| `pnpm exec tsc --noEmit` | **exit 0**、型エラー0 |
+| `pnpm lint` | **exit 0、0 errors / 3 warnings**。既存`test-results/pr22-retest/verify.mjs`のformat、`test-results/pr22-verify.mjs`のformat/backgroundChainsのみ |
+| `git diff --check` | **exit 0** |
+
+全回帰は既存のサービスmock/通信前拒否/除外設定を維持するVitest。DB・auth/access・rate limit・context/retrieval・model・AI SDKのI/Oはmock。
+panelのfetchは固定mockで、未指定呼出は例外になる。Request/Response/ReadableStreamはNode内メモリの合成データ。
+実validator/parserを使うが、実DB commit/rollback/競合、実SDK/providerのcallback順序・EOF・切断伝播は検証していない。
+SDKに関する参照はインストール済み`ai@6.0.280`の同梱docs/sourceの静的確認のみ。
+実DB、OAuth/Session、実AI/embedding、Redis/Upstash/Inngest/Sentry Cloud、外部通信、HTTP server、Browser/Playwright E2E、production build/deployは実行していない。
+
+### 残るリスクと最終状態
+
+- attempt識別がなく、GETで取得したUSER/AIと特定POSTの対応・今回の保存成功/未保存確定を証明できない。
+  GETが保存callbackより先に完了する場合や、別tab/memberの同時送信、GET後の保存にも対応付けはない。再取得1回で、追跡pollingはしない。
+- usage保存失敗は従来どおりAI保存を中断する。USER・Conversation・usage・AIの部分保存、commit応答喪失、callback未到達/重複への永続的な解決はない。
+- 手動再POSTはUSERや生成を重複させ得る。draft自動復元・冪等retry・保存だけのretry・再生成契約は追加していない。
+- request.signal/SDK Abortの接続、Stop、provider停止/課金停止保証はない。clientのgeneration失効は通信やserver処理を止めない。
+- 引用の許可検査は主張の真偽・根拠の十分性を証明しない。raw暫定表示中の引用、既存の空AI履歴の修復は対象外。
+- 実SDK・HTTP・DB・React/browserの未取得証拠が残るため、限定offlineテスト成功でError handling全体の受入完了とはしない。
+
+**Phase 10は4/11完了、Error handlingはPartialを維持する。** roadmapチェック・既存記録は変更しない。
+変更は指定の5ファイルだけ：Chat route、panel本体、両者の既存テスト、本受入文書の末尾追記。
+追加ファイル・設定/lockfile・DB/API/依存変更はない。最終Gitは開始時と同branch/HEAD、上記5ファイルがmodified、未追跡ファイルなし。
+commit・push・PR作成・mergeは行わず、未コミットで停止する。
+
+### PR #28 追加レビュー — 会話切替後の同一Conversationへの並行POST防止（2026-10-22 JST）
+
+前節の未コミット5ファイルを保持したまま、panel本体・panelテスト・本節の末尾追記だけを変更した。
+前回の**67ファイル / 1,488件成功**は当時の実行記録として保持し、以下に今回の検証を別途記録する。
+開始時のbranch/HEADは前節と同一で、working treeは前節の5ファイルがmodified、未追跡ファイルなし。
+
+追加レビューの指摘どおり、従来の`beginNavigation`は表示のgenerationを失効させると同時に`isSending=false`にするため、
+New作成に失敗して元のAに留まる場合、またはHistoryで同じAを再選択した場合に、
+Aの`reader.read()`が未完了のまま2本目のChat POSTを開始できた。
+表示のgeneration失効は、先行リクエストが終了したことを意味しない。
+
+今回の変更は、表示の所有権とConversationごとのローカル実行中状態を分ける限定防御である。
+
+- 実行中Conversation IDをrefのSetで保持し、`handleSend`はPOST開始前に同期的に確認・登録する。
+  UIの再描画やdisabledだけに依存せず、handlerを直接呼ばれても同じConversationへの並行POSTを拒否する。
+- Setのsnapshotをstateに保持して、選択中のConversationが実行中なら入力とSendをdisabledにし、`Sending...`を表示する。
+  New/Historyの表示切替で`isSending`が解除されてもこの制限は残る。
+  Newや別ConversationのHistory閲覧・送信は、既存の作成/復元中ガードの範囲で維持する。
+- 表示所有権を失った先行応答もEOFまたは読取エラーまで読み続け、後着chunkは表示へ反映しない。
+  旧POST応答や旧chunkを受け取っただけでは早期returnせず、同一Conversationの制限を途中で解放しない。
+  古い処理からのHistory復元・エラー表示は既存のgeneration判定で抑止する。
+- 処理終了時のfinallyは自分のConversation IDだけをSetから除き、snapshotを更新する。
+  他Conversationの実行中IDは保持し、`isSending`の解除は従来どおり表示所有権がある処理だけが行う。
+  履歴確認を行う現行処理ではその終了まで制限を保持し、先行処理終了後は明示的に再送できる。
+  解放による自動POST・retryは追加しない。
+
+既存panelテストへdeferred streamを使う回帰ケースを**2件追加（27→29件）**した。
+「New失敗でAに留まる」「Historyで同じAを再選択する」の両方で、read未完了の間にhandlerを直接呼んでも
+POSTが1件のままであること、途中の後着chunkでも制限が解けないこと、旧暫定回答が戻らないことを確認する。
+前者はEOF、後者はAbortErrorで旧処理を終了し、表示/status/errorを旧finallyが上書きせず、disabledが解除され、
+その後の明示Sendだけが2件目のPOSTになることを確認した。
+別Conversationへ切り替えて新しいSendを保留中に旧処理が終了する既存8ケースも維持・再実行し、
+旧finallyが新しい送信のdisabledを解除しないことを確認した。
+
+| 今回の実行コマンド / 段階 | ファイル数 / 成功 / 失敗 / exit code |
+| --- | --- |
+| `pnpm exec vitest run 'src/app/research/[id]/_components/research-ai-panel.test.tsx'`（追加テスト先行・本体修正前） | **1 / 27 / 2 / exit 1**。両ケースでPOSTが1→2件となるassertion失敗 |
+| `pnpm exec vitest run src/auth/chatRoutes.test.ts 'src/app/research/[id]/_components/research-ai-panel.test.tsx'`（修正後） | **2 / 97 / 0 / exit 0**（route68＋panel29） |
+| `pnpm test --run` | **67 / 1,490 / 0 / exit 0**（前回1,488＋今回2） |
+| `pnpm exec tsc --noEmit` | **exit 0**、型エラー0 |
+| `pnpm lint` | **exit 0、0 errors / 3 warnings**。前節と同じ既存`test-results/pr22-retest/verify.mjs`および`test-results/pr22-verify.mjs`の未使用変数のみ |
+| `git diff --check` | **exit 0** |
+
+実行環境とoffline/mock境界は前節と同一。Vitestは既知のesbuild起動制限を避ける承認付き実行で、今回は起動前失敗なし。
+上記修正前の2件失敗は起動制限ではなく、収集・実行後のassertion失敗である。
+実DB・OAuth/Session・HTTP server・browser・AI/embedding・Cloud・外部通信・production buildは実行していない。
+テストは既存hook doubleによるhandler/state/JSX propsの検査であり、実React mount・DOM・focus・spinner描画は未検証。
+
+制限は現在のpanelインスタンスのメモリ内だけで、reload/remount・別tab/memberの並行実行・serverの永続的冪等性は対象外。
+EOF/読取エラーやローカル制限の解放は、provider停止・DB書込完了・今回のPOSTの保存成功/未保存確定を保証しない。
+読取が終了しなければ当該Conversationの制限は継続する。timeout・Stop・SDK Abortは追加していない。
+usage保存依存、部分保存、手動再送の重複、HistoryとPOSTの対応不明という前節の残リスクも維持する。
+**Phase 10は4/11完了、Error handlingはPartial**。ChatAttempt・DB/API変更・API v2・自動retry・依存追加・roadmap変更はない。
+
+Chat routeとrouteテストは追加レビュー開始時のSHA-256と一致し、既存修正を保持している。
+本書も追加レビュー開始時の内容をprefixとして保持した末尾追記のみ。
+最終Gitは同branch/HEAD、累積5ファイルmodified・未追跡0件。commit・push・PR作成・mergeは行わず、未コミットで停止する。

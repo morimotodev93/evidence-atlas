@@ -233,7 +233,7 @@ describe("Public Demo deployment chat lock", () => {
 });
 
 describe("research chat route authorization", () => {
-  beforeEach(() => {
+  beforeEach(async () => {
     vi.clearAllMocks();
 
     mocks.auth.mockResolvedValue({
@@ -283,9 +283,10 @@ describe("research chat route authorization", () => {
       toTextStreamResponse: () => new Response("stream"),
     }));
 
-    mocks.parseSourceCitations.mockReturnValue({
-      sourceIds: [],
-    });
+    const { parseSourceCitations } = await vi.importActual<
+      typeof import("@/lib/ai/source-citations")
+    >("@/lib/ai/source-citations");
+    mocks.parseSourceCitations.mockImplementation(parseSourceCitations);
 
     mocks.resolveWorkspaceSources.mockResolvedValue([]);
   });
@@ -1059,25 +1060,37 @@ describe("research chat route authorization", () => {
     expect(mocks.conversationQuery.update).toHaveBeenCalledOnce();
   });
 
-  it("currently persists empty validated AI text when the raw output contains only unauthorized citations", async () => {
-    const { validateSourceCitations } = await vi.importActual<
+  it.each([
+    { name: "unauthorized markers only", text: "[source:unauthorized-a][source:unauthorized-b]", validated: "", saved: false },
+    { name: "allowed marker only", text: "[source:allowed-source]", validated: "[source:allowed-source]", saved: false },
+    { name: "normalized markers and whitespace only", text: " \n【source:allowed‑source】 [ source:unauthorized ]\t", validated: " \n[source:allowed-source] \t", saved: false },
+    { name: "normal text with markers", text: "Answer [source:allowed-source] [source:unauthorized]", validated: "Answer [source:allowed-source] ", saved: true },
+    { name: "Japanese text with a normalized marker", text: "根拠を確認しました。【source:allowed‑source】", validated: "根拠を確認しました。[source:allowed-source]", saved: true },
+  ])("checks validated and parsed display text before saving: $name", async ({ text, validated, saved }) => {
+    const { validateSourceCitations, parseSourceCitations } = await vi.importActual<
       typeof import("@/lib/ai/source-citations")
     >("@/lib/ai/source-citations");
     mocks.validateSourceCitations.mockImplementation(validateSourceCitations);
+    mocks.parseSourceCitations.mockImplementation(parseSourceCitations);
+    mocks.buildResearchContext.mockResolvedValue({
+      findings: [{ sources: [{ id: "allowed-source" }] }],
+    });
     await sendChatMessage(chatRequest(), routeContext());
     await completionCallback()({
-      text: "[source:unauthorized-a][source:unauthorized-b]",
+      text,
       finishReason: "stop",
       totalUsage: { inputTokens: 10, outputTokens: 5, totalTokens: 15 },
     });
 
-    // Characterize the existing missing post-validation blank check; do not fix it here.
     expect(mocks.aiUsageEventCreate).toHaveBeenCalledOnce();
     expect(mocks.messageCreate.mock.calls).toEqual([
       [{ conversationId, authorType: "USER", content: "What does the evidence show?" }],
-      [{ conversationId, authorType: "AI", content: "" }],
+      ...(saved ? [[{ conversationId, authorType: "AI", content: validated }]] : []),
     ]);
-    expect(mocks.validateSourceCitations).toHaveReturnedWith("");
+    expect(mocks.validateSourceCitations).toHaveReturnedWith(validated);
+    expect(mocks.aiUsageEventCreate.mock.invocationCallOrder[0])
+      .toBeLessThan(mocks.validateSourceCitations.mock.invocationCallOrder[0]);
+    expect(parseSourceCitations(validated).text.length > 0).toBe(saved);
     expect(mocks.conversationQuery.update).toHaveBeenCalledOnce();
   });
 
