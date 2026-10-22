@@ -359,6 +359,32 @@ describe("research chat route authorization", () => {
     expect(mocks.streamText).not.toHaveBeenCalled();
   });
 
+  it("propagates Conversation list read failure instead of returning a successful empty list", async () => {
+    const error = new Error("Synthetic Conversation list failure");
+    mocks.conversationQuery.all.mockRejectedValueOnce(error);
+
+    await expect(getConversations(new Request("http://localhost/chat/conversations"), routeContext())).rejects.toBe(error);
+    expect(mocks.conversationWhere).toHaveBeenCalledExactlyOnceWith({ researchId });
+    expect(mocks.messageWhere).not.toHaveBeenCalled();
+    expect(mocks.resolveWorkspaceSources).not.toHaveBeenCalled();
+    expect(mocks.streamText).not.toHaveBeenCalled();
+    expectNoChatWrites();
+  });
+
+  it.each(["Conversation", "Message", "Source resolution"])("propagates detail %s failure instead of returning 404 or partial success", async (stage) => {
+    const error = new Error("Synthetic Conversation detail failure");
+    if (stage === "Conversation") mocks.conversationQuery.first.mockRejectedValueOnce(error);
+    if (stage === "Message") mocks.messageQuery.all.mockRejectedValueOnce(error);
+    if (stage === "Source resolution") mocks.resolveWorkspaceSources.mockRejectedValueOnce(error);
+
+    await expect(getConversation(new Request("http://localhost/chat/conversations/detail"), conversationRouteContext())).rejects.toBe(error);
+    expect(mocks.conversationWhere).toHaveBeenCalledExactlyOnceWith({ id: conversationId, researchId });
+    if (stage === "Conversation") expect(mocks.messageWhere).not.toHaveBeenCalled();
+    if (stage !== "Source resolution") expect(mocks.resolveWorkspaceSources).not.toHaveBeenCalled();
+    expect(mocks.streamText).not.toHaveBeenCalled();
+    expectNoChatWrites();
+  });
+
   it.each(["rate limit", "Research context"])("propagates %s failure before writes or generation", async (stage) => {
     const error = new Error("Synthetic internal service failure");
     (stage === "rate limit" ? mocks.chatRateLimit.limit : mocks.buildResearchContext).mockRejectedValueOnce(error);

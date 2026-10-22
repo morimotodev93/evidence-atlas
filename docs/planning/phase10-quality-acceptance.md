@@ -1138,3 +1138,17 @@ Deployment ID / Commit SHA、4詳細の個別URL、会話で提供されたス�
 修正前F1〜F4はプロジェクトの最低4px余白・部分重なりゼロ条件に対するFailとして維持し、WCAG AA違反確定や修正後Passにはしない。既存Contrastも修正後の測定には転用しない。対象ESLint、既存mock renderer1 file / 12 tests、3 utilityのメモリ内CSS生成、証拠の構造・参照・SHA-256・全28種類の画像安全確認、既存文書 / checkbox保持とGit差分確認を実施した。
 
 ブラウザ・Preview・server・buildは今回未実行。修正版の新Preview配備とidentity確認・全5ページ×3幅の再検査は別途承認後に行う。旧Previewでの成功をローカル修正の成功とは扱わない。**A / Accessibility、R / Responsiveは未完了のまま**。配備SHA、実auto-scrollの4件解消、知覚上のfocus可視性、合成色等のNot verifiedは残り、Phase 10 checkbox・roadmapは変更しない。DB / OAuth / Session / AI / Cloud、外部Sourceアクセス、commit / push / merge / PR作成は行わず、未コミットで停止する。
+
+## PR #23 — Offline Quality Gates（2026-10-22 JST）
+
+[今回のレビュー・受入対応・実行結果](phase10-offline-quality-gates-review.md)を参照。
+Unitは推定token数の丸め誤差を再現してFail、Integrationはoffline gate Pass・全体Partial、
+Error handlingは代表caller補完済み・runtime/stream gate未実行でPartial。Validation / Authorizationの既存限定Passとチェックを維持する。
+過去記録・roadmapのチェックボックスは変更せず、本番アプリ修正・実サービス・build・commitは行っていない。
+
+### PR #23 follow-up — Token推定の精度修正（2026-10-22 JST）
+
+[修正後の証拠・分割への影響・別件Unicode課題](phase10-offline-quality-gates-review.md#pr-23-follow-up--chunk-token-estimation-precision-fix2026-10-22-jst)を追記した。
+3関数の整数スケール化で元の再現FailをPassにし、全offline Vitestは66ファイル / 1,439件成功、失敗0、exit 0。
+Unitは有限契約のPass・完了候補とする。IntegrationはHTTP gate、Error handlingはstream/runtime gateが残るためPartialを維持。
+補助平面文字を分断し得る既存の走査境界問題は今回修正せず別課題とし、過去Fail記録・roadmapのチェックボックスは保持した。
