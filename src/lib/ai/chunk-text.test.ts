@@ -2,6 +2,97 @@ import { describe, expect, it } from "vitest";
 
 import { chunkText, estimateTokenCount } from "./chunk-text";
 
+it("does not split the surrogate pairs in the reported ASCII/emoji input", () => {
+  const text = "aaaaa" + String.fromCodePoint(0x1f600).repeat(600);
+  const chunks = chunkText(text);
+  for (const chunk of chunks) {
+    expect(chunk).not.toMatch(/[\uD800-\uDBFF]$/);
+    expect(chunk).not.toMatch(/^[\uDC00-\uDFFF]/);
+  }
+  expect(chunks).toEqual([text.slice(0, 1027), text.slice(899)]);
+});
+
+describe("Unicode code point boundaries", () => {
+  const emoji = String.fromCodePoint(0x1f600);
+  const symbols = Array.from({ length: 1400 }, (_, index) => String.fromCodePoint(0x1f300 + index));
+
+  function expectIntactChunks(text: string, checkOverlap: boolean) {
+    const chunks = chunkText(text);
+    expect(chunks.length).toBeGreaterThan(1);
+    expect(chunks.length).toBeLessThan(Array.from(text).length);
+    let previousStart = -1;
+    let previousChunk = "";
+    let coveredEnd = 0;
+    let reconstructed = "";
+    for (const chunk of chunks) {
+      expect(chunk.length).toBeGreaterThan(0);
+      expect(chunk).not.toMatch(/[\uD800-\uDBFF]$/);
+      expect(chunk).not.toMatch(/^[\uDC00-\uDFFF]/);
+      // Inspect every code point, including internal boundaries.
+      expect(Array.from(chunk).some((char) => {
+        const codePoint = char.codePointAt(0)!;
+        return codePoint >= 0xd800 && codePoint <= 0xdfff;
+      })).toBe(false);
+      // Trimming can yield the same chunk as the cursor crosses newlines.
+      const start = chunk === previousChunk
+        ? previousStart
+        : text.indexOf(chunk, previousStart + 1);
+      expect(start).toBeGreaterThanOrEqual(Math.max(0, previousStart));
+      expect(text.slice(coveredEnd, start).trim()).toBe("");
+      if (previousStart >= 0 && checkOverlap) {
+        expect(start).toBeLessThan(coveredEnd);
+        const overlapTokens = estimateTokenCount(text.slice(start, coveredEnd));
+        // The last whole code point can overshoot 96 by less than 1.5 tokens.
+        expect(overlapTokens).toBeGreaterThanOrEqual(96);
+        expect(overlapTokens).toBeLessThanOrEqual(98);
+      }
+      reconstructed += chunk.slice(Math.max(0, coveredEnd - start));
+      previousStart = start;
+      previousChunk = chunk;
+      coveredEnd = start + chunk.length;
+    }
+    expect(coveredEnd).toBe(text.length);
+    expect(reconstructed.replace(/\s/g, "")).toBe(text.replace(/\s/g, ""));
+    return chunks;
+  }
+
+  it.each([
+    { label: "supplementary symbols including emoji", text: symbols.join("") },
+    { label: "ASCII and emoji", text: symbols.map((char, index) => `word${index}_${char}`).join("") },
+    { label: "Japanese and emoji", text: symbols.map((char, index) => `観測${index}_${char}`).join("") },
+  ])("retains whole code points, overlap, body and finite progress for $label", ({ text }) => {
+    expectIntactChunks(text, true);
+  });
+
+  it.each([
+    { count: 511, tokens: 767, chunks: 1 },
+    { count: 512, tokens: 768, chunks: 1 },
+    { count: 513, tokens: 770, chunks: 2 },
+  ])("aligns estimation and splitting for $count emoji", ({ count, tokens, chunks }) => {
+    const text = emoji.repeat(count);
+    expect(estimateTokenCount(text)).toBe(tokens);
+    const result = chunkText(text);
+    expect(result).toHaveLength(chunks);
+    expect(result[0]).toBe(emoji.repeat(Math.min(count, 512)));
+    if (chunks === 2) expect(result[1]).toBe(emoji.repeat(65));
+  });
+
+  it("advances by a whole code point when an early sentence leaves less than the requested overlap", () => {
+    const text = `${symbols[0]}。${symbols.slice(1).join("")}`;
+    const chunks = expectIntactChunks(text, false);
+    expect(chunks[0]).toBe(`${symbols[0]}。`);
+    expect(chunks[1]).toBe("。");
+    expect(chunks[2]).toBe(text.slice(3, 1027));
+  });
+
+  it("keeps paragraph priority over a later sentence and preserves code points during fallback progress", () => {
+    const prefix = `${symbols.slice(0, 20).join("")}.\n\n`;
+    const text = `${prefix}${symbols.slice(20, 40).join("")}!${symbols.slice(40).join("")}`;
+    const chunks = expectIntactChunks(text, false);
+    expect(chunks[0]).toBe(prefix.trim());
+  });
+});
+
 describe("chunkText offline boundaries", () => {
   it.each(["", " \t\r\n ", "　\n　"])("omits empty or whitespace input %j", (text) => {
     expect(chunkText(text)).toEqual([]);

@@ -42,7 +42,7 @@ export function chunkText(text: string): string[] {
       CHUNK_OVERLAP_TOKENS,
     );
 
-    start = Math.max(start + 1, overlapStart);
+    start = Math.max(nextCodePointIndex(normalized, start), overlapStart);
   }
 
   return chunks;
@@ -59,12 +59,20 @@ export function estimateTokenCount(text: string): number {
   return Math.ceil(tokenUnits / TOKEN_SCALE);
 }
 
+function nextCodePointIndex(text: string, index: number): number {
+  return index + (text.codePointAt(index)! > 0xffff ? 2 : 1);
+}
+
 function findChunkEnd(text: string, start: number): number {
   let tokenUnits = 0;
   let lastParagraphBoundary = -1;
   let lastSentenceBoundary = -1;
 
-  for (let index = start; index < text.length; index++) {
+  for (
+    let index = start;
+    index < text.length;
+    index = nextCodePointIndex(text, index)
+  ) {
     const char = text[index];
 
     tokenUnits +=
@@ -87,7 +95,7 @@ function findChunkEnd(text: string, start: number): number {
         return lastSentenceBoundary;
       }
 
-      return index + 1;
+      return nextCodePointIndex(text, index);
     }
   }
 
@@ -102,7 +110,18 @@ function findOverlapStart(
 ): number {
   let tokenUnits = 0;
 
-  for (let index = chunkEnd - 1; index > chunkStart; index--) {
+  for (let index = chunkEnd; index > chunkStart; ) {
+    index--;
+    // Consume a valid surrogate pair together when walking backwards.
+    if (
+      index > chunkStart &&
+      text.charCodeAt(index) >= 0xdc00 &&
+      text.charCodeAt(index) <= 0xdfff &&
+      text.charCodeAt(index - 1) >= 0xd800 &&
+      text.charCodeAt(index - 1) <= 0xdbff
+    ) {
+      index--;
+    }
     const char = text[index];
 
     tokenUnits +=
