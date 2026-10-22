@@ -118,6 +118,7 @@ export function ResearchAiPanel({ researchId, sources }: ResearchAiPanelProps) {
     }
 
     setIsSending(true);
+    setSendError(null);
     setInput("");
     setRestoreError(null);
     setCreateError(null);
