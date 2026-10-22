@@ -1363,3 +1363,7 @@ Chat route、request/response、abortSignal、retry冪等性、USER/AI/usage保�
 開始時の文書148,908 bytesは同一prefixとして保持し、元の不具合発見記録と実行履歴を変更していない。
 累積Git差分はpanel本体・routeテスト・本受入文書のmodified 3ファイルと、panelテストのuntracked 1ファイル。
 実DB/OAuth/Session/AI API/Redis/Cloud、server/browser/production build、新規依存/migration、commit/push/PR作成/mergeは実行せず、未コミットで停止する。
+
+## PR #26 — Chat Stream Reliability Design（2026-10-22 JST）
+
+再送・Abort・部分保存・完了通知の仕様比較と受入テスト案は [Chat Stream Reliability Design](phase10-chat-stream-reliability-design.md) を参照。設計提案のみで採用・実装・検証完了ではなく、Error handlingはPartialを維持する。過去記録・roadmapチェックは変更しない。
