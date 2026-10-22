@@ -1,0 +1,58 @@
+import { chromium } from '@playwright/test';
+import fs from 'node:fs';
+const origin = 'https://evidence-atlas-git-docs-demo-contrast-visi-627546-morimotodev93.vercel.app';
+const out = 'test-results/pr22';
+fs.mkdirSync(out, { recursive: true });
+const audit = { started: new Date().toISOString(), allowed: [], blocked: [], responses: [], errors: [] };
+function permitted(raw) {
+  const u = new URL(raw);
+  return u.origin === origin && (u.pathname === '/demo' || /^\/demo\/research\/[^/]+$/.test(u.pathname) || u.pathname.startsWith('/_next/static/') || u.pathname === '/favicon.ico');
+}
+let browser;
+try {
+  browser = await chromium.launch({ headless: true, args: ['--disable-background-networking', '--disable-component-update', '--no-pings'] });
+  const context = await browser.newContext({ viewport: { width: 1280, height: 720 }, deviceScaleFactor: 1, colorScheme: 'light', serviceWorkers: 'block' });
+  await context.route('**/*', async route => {
+    const req = route.request();
+    if (req.method() !== 'GET' || !permitted(req.url())) {
+      audit.blocked.push({ method: req.method(), url: req.url() });
+      return route.abort('blockedbyclient');
+    }
+    audit.allowed.push({ method: req.method(), url: req.url(), type: req.resourceType() });
+    try {
+      const response = await route.fetch({ maxRedirects: 0, timeout: 30000 });
+      const location = response.headers().location;
+      if (location && !permitted(new URL(location, req.url()).href)) {
+        audit.blocked.push({ redirectFrom: req.url(), location });
+        return route.abort('blockedbyclient');
+      }
+      audit.responses.push({ url: req.url(), status: response.status() });
+      await route.fulfill({ response });
+    } catch (e) { audit.errors.push(String(e)); await route.abort(); }
+  });
+  await context.routeWebSocket('**/*', ws => { audit.blocked.push({ websocket: ws.url() }); ws.close(); });
+  const page = await context.newPage();
+  const response = await page.goto(origin + '/demo', { waitUntil: 'networkidle', timeout: 45000 });
+  await page.evaluate(() => document.fonts.ready);
+  const preflight = {
+    timestamp: new Date().toISOString(), browser: browser.version(), playwright: JSON.parse(fs.readFileSync('node_modules/@playwright/test/package.json')).version,
+    status: response?.status(), url: page.url(), headers: response ? await response.allHeaders() : {},
+    h1: await page.locator('h1').allTextContents(), readOnly: await page.getByText('Read-only demo', { exact: true }).count(),
+    links: await page.getByRole('region', { name: 'Research list', exact: true }).getByRole('link').evaluateAll(es => es.map(e => ({ title: e.querySelector('h2')?.textContent, href: e.getAttribute('href') }))),
+    environment: await page.evaluate(() => ({ userAgent: navigator.userAgent, width: innerWidth, height: innerHeight, dpr: devicePixelRatio, visualViewportScale: visualViewport.scale, rootZoom: getComputedStyle(document.documentElement).zoom, bodyZoom: getComputedStyle(document.body).zoom, rootClass: document.documentElement.className, bodyBackground: getComputedStyle(document.body).backgroundColor, rootBackground: getComputedStyle(document.documentElement).backgroundColor, light: matchMedia('(prefers-color-scheme: light)').matches, font: getComputedStyle(document.body).fontFamily }))
+  };
+  fs.writeFileSync(out + '/preflight.json', JSON.stringify(preflight, null, 2));
+  console.log(JSON.stringify(preflight, null, 2));
+  const expected = ['Developer Productivity', 'Code Quality & Reliability', 'Developer Experience', 'Adoption & Organizational Impact'];
+  if (preflight.status !== 200 || preflight.url !== origin + '/demo' || preflight.h1.join('') !== 'AI-Assisted Software Development' || preflight.readOnly !== 1 || JSON.stringify(preflight.links.map(l => l.title)) !== JSON.stringify(expected) || !preflight.links.every(l => /^\/demo\/research\/[^/?#]+$/.test(l.href))) throw new Error('STOP: preflight mismatch');
+  await page.screenshot({ path: out + '/preflight.png', fullPage: true });
+  if (process.argv.includes('--batch')) {
+    const { runBatch } = await import('./pr22-batch.mjs');
+    await runBatch({ context, browser, origin, out, preflight });
+  }
+} catch (e) {
+  audit.errors.push(String(e)); console.error(String(e)); process.exitCode = 1;
+} finally {
+  audit.finished = new Date().toISOString(); fs.writeFileSync(out + '/network-preflight.json', JSON.stringify(audit, null, 2));
+  await browser?.close();
+}

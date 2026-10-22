@@ -1,0 +1,159 @@
+import fs from 'node:fs';
+
+// This browser helper reads the rendered DOM and computed styles. It does not
+// insert styles, force hover/focus, activate links, or change application data.
+function install() {
+  function rect(r) { return { left: r.left, right: r.right, top: r.top, bottom: r.bottom, width: r.width, height: r.height }; }
+  function selector(e) {
+    const parts = [];
+    for (; e && e !== document.documentElement; e = e.parentElement) {
+      parts.unshift(e.tagName.toLowerCase() + ':nth-child(' + (Array.from(e.parentElement.children).indexOf(e) + 1) + ')');
+    }
+    return 'html > ' + parts.join(' > ');
+  }
+  const canvas = document.createElement('canvas'); canvas.width = canvas.height = 1;
+  const ctx = canvas.getContext('2d', { willReadFrequently: true, colorSpace: 'srgb' });
+  function rgba(color) { ctx.clearRect(0, 0, 1, 1); ctx.fillStyle = color; ctx.fillRect(0, 0, 1, 1); return Array.from(ctx.getImageData(0, 0, 1, 1).data).map((n, i) => i === 3 ? n / 255 : n); }
+  function over(a, b) { const alpha = a[3] + b[3] * (1 - a[3]); return [0, 1, 2].map(i => (a[i] * a[3] + b[i] * b[3] * (1 - a[3])) / (alpha || 1)).concat(alpha); }
+  function luminance(a) { return a.slice(0, 3).map(n => { const v = n / 255; return v <= .04045 ? v / 12.92 : ((v + .055) / 1.055) ** 2.4; }).reduce((s, n, i) => s + n * [.2126, .7152, .0722][i], 0); }
+  function contrast(a, b) { const x = luminance(a), y = luminance(b); return (Math.max(x, y) + .05) / (Math.min(x, y) + .05); }
+  function sample(e) {
+    const s = getComputedStyle(e), chain = [], reasons = [];
+    for (let a = e; a; a = a.parentElement) {
+      const c = getComputedStyle(a);
+      chain.push({ selector: selector(a), background: c.backgroundColor, rgba: rgba(c.backgroundColor), opacity: c.opacity, image: c.backgroundImage, filter: c.filter, backdrop: c.backdropFilter, blend: c.mixBlendMode });
+      if (Number(c.opacity) !== 1) reasons.push('ancestor/group opacity: ' + c.opacity);
+      if (c.backgroundImage !== 'none') reasons.push('background image');
+      if (c.filter !== 'none' || c.backdropFilter !== 'none' || c.mixBlendMode !== 'normal') reasons.push('filter/backdrop/blend');
+      if (c.textShadow !== 'none') reasons.push('text shadow');
+    }
+    let bg = [0, 0, 0, 0];
+    for (const a of [...chain].reverse()) bg = over(a.rgba, bg);
+    if (bg[3] < .999) reasons.push('no established opaque background');
+    const computed = rgba(s.color), fg = over(computed, bg);
+    const size = parseFloat(s.fontSize), weight = Number(s.fontWeight), threshold = size >= 24 || (size >= 18.6666667 && weight >= 700) ? 3 : 4.5;
+    const ratio = reasons.length ? null : contrast(fg, bg);
+    return { selector: selector(e), text: e.textContent.trim(), tag: e.tagName, foreground: s.color, foregroundSRGB: computed, effectiveForegroundSRGB: ratio === null ? null : fg, effectiveBackgroundSRGB: ratio === null ? null : bg, fontSize: s.fontSize, fontWeight: s.fontWeight, fontFamily: s.fontFamily, threshold, ratio, result: ratio === null ? 'Not verified' : ratio >= threshold ? 'Pass' : 'Fail', reasons: [...new Set(reasons)], backgroundChain: chain, rect: rect(e.getBoundingClientRect()), scrollY, hover: !!e.closest('a:hover'), focusWithin: !!e.closest('a:focus-visible') };
+  }
+  function clipping(e) {
+    let left = 0, right = document.documentElement.clientWidth, top = -Infinity, bottom = Infinity;
+    for (let a = e; a; a = a.parentElement) {
+      const s = getComputedStyle(a), r = a.getBoundingClientRect();
+      if (/(hidden|clip|auto|scroll)/.test(s.overflowX)) { left = Math.max(left, r.left + a.clientLeft); right = Math.min(right, r.left + a.clientLeft + a.clientWidth); }
+      if (/(hidden|clip|auto|scroll)/.test(s.overflowY)) { top = Math.max(top, r.top + a.clientTop); bottom = Math.min(bottom, r.top + a.clientTop + a.clientHeight); }
+    }
+    const rects = [];
+    for (const n of e.childNodes) if (n.nodeType === Node.TEXT_NODE && n.textContent.trim()) {
+      const range = document.createRange(); range.selectNode(n);
+      rects.push(...Array.from(range.getClientRects()));
+    }
+    return { selector: selector(e), text: e.textContent.trim(), intentional: e.matches('.truncate,.line-clamp-2'), rect: rect(e.getBoundingClientRect()), clipped: rects.filter(r => r.left < left - 1 || r.right > right + 1 || r.top < top - 1 || r.bottom > bottom + 1).map(rect), textRects: rects.map(rect), scrollY };
+  }
+  function focus() {
+    const e = document.activeElement;
+    if (!e || e === document.body) return { target: 'BODY', focusVisible: false };
+    const s = getComputedStyle(e), rects = Array.from(e.getClientRects()).filter(r => r.width > 0 && r.height > 0);
+    const header = document.querySelector('body > header'), hb = header.getBoundingClientRect();
+    const extent = Math.max(4, (parseFloat(s.outlineWidth) || 0) + (parseFloat(s.outlineOffset) || 0));
+    const exposed = rects.some(r => {
+      const l = Math.max(0, r.left), t = Math.max(0, r.top), b = Math.min(innerHeight, r.bottom), rr = Math.min(innerWidth, r.right);
+      return l < rr && t < b && [.1, .5, .9].some(y => [.1, .5, .9].some(x => e.contains(document.elementFromPoint(l + (rr-l)*x, t+(b-t)*y))));
+    });
+    const issues = [];
+    for (const r of rects) {
+      if (r.top - extent < (header.contains(e) ? 0 : hb.bottom)) issues.push('top/header clearance');
+      if (r.bottom + extent > innerHeight) issues.push('bottom clearance');
+      if (r.left - extent < 0 || r.right + extent > innerWidth) issues.push('horizontal clearance');
+    }
+    return { target: selector(e), text: e.textContent.trim(), href: e.getAttribute('href'), kind: header.contains(e) ? 'Header' : e.querySelector('h3') ? 'Source' : e.target === '_blank' ? 'Supporting Source' : e.getAttribute('href') === '/demo' ? 'Back' : 'Research card', focusVisible: e.matches(':focus-visible'), indicator: (s.outlineStyle !== 'none' && parseFloat(s.outlineWidth) > 0) || s.boxShadow !== 'none', exposed, outline: { style: s.outlineStyle, width: s.outlineWidth, color: s.outlineColor, offset: s.outlineOffset }, boxShadow: s.boxShadow, rects: rects.map(rect), header: rect(hb), scrollY, extent, clearanceIssues: [...new Set(issues)], viewport: { width: innerWidth, height: innerHeight }, samples: [e, ...e.querySelectorAll('h3,p')].filter(n => Array.from(n.childNodes).some(c => c.nodeType === Node.TEXT_NODE && c.textContent.trim())).map(sample) };
+  }
+  window.__pr22 = { selector, sample, clipping, focus, textTargets: () => Array.from(document.querySelectorAll('body > header *, main *')).filter(e => !/^(SCRIPT|STYLE|SVG|PATH)$/.test(e.tagName) && Array.from(e.childNodes).some(n => n.nodeType === Node.TEXT_NODE && n.textContent.trim()) && getComputedStyle(e).display !== 'none').map(e => ({ selector: selector(e), text: e.textContent.trim() })) };
+}
+
+export async function runBatch({ context, browser, origin, out, preflight }) {
+  const batch = { evidence: 'Codex executed Playwright Chromium; independent from PR20/21 and developer manual reports', started: new Date().toISOString(), browser: browser.version(), pages: [{ id: 'L', title: 'AI-Assisted Software Development', href: '/demo' }, ...preflight.links.map((l, i) => ({ id: 'D' + (i + 1), ...l }))], results: [], failures: [] };
+  const save = () => fs.writeFileSync(out + '/batch.json', JSON.stringify(batch, null, 2));
+  for (const viewport of [{ width: 1280, height: 720 }, { width: 375, height: 812 }, { width: 768, height: 1024 }]) {
+    for (const item of batch.pages) {
+      const page = await context.newPage();
+      await page.setViewportSize(viewport);
+      const response = await page.goto(origin + item.href, { waitUntil: 'networkidle', timeout: 45000 });
+      await page.evaluate(() => document.fonts.ready);
+      const r = { page: item.id, title: item.title, requestedViewport: viewport, url: page.url(), timestamp: new Date().toISOString(), status: response?.status(), normal: [], hover: [], focus: [], responsive: [] };
+      batch.results.push(r); save();
+      if (r.status !== 200 || r.url !== origin + item.href || (await page.locator('h1').textContent()) !== item.title || await page.getByText('Read-only demo', { exact: true }).count() !== 1) throw new Error('STOP: detail/page preflight mismatch ' + r.url);
+      if (item.id !== 'L' && JSON.stringify(await page.locator('main h2').allTextContents()) !== JSON.stringify(['Conclusion', 'Sources', 'Findings', 'Discussion'])) throw new Error('STOP: expected detail content mismatch');
+      await page.evaluate(install);
+      r.environment = await page.evaluate(() => ({ width: innerWidth, height: innerHeight, dpr: devicePixelRatio, scale: visualViewport.scale, rootZoom: getComputedStyle(document.documentElement).zoom, bodyZoom: getComputedStyle(document.body).zoom, rootClass: document.documentElement.className, light: matchMedia('(prefers-color-scheme: light)').matches, bodyBackground: getComputedStyle(document.body).backgroundColor, fontsLoaded: document.fonts.status }));
+      r.sections = await page.locator('main section').evaluateAll(es => es.map(e => ({ title: e.querySelector('h2')?.textContent ?? e.getAttribute('aria-label'), sources: e.querySelectorAll('h3').length, articles: e.querySelectorAll('article').length, links: e.querySelectorAll('a').length, empty: Array.from(e.querySelectorAll('p')).map(p => p.textContent).filter(t => /^No .+ yet\.$/.test(t)) })));
+      await page.mouse.move(viewport.width - 1, viewport.height - 1);
+      const targets = await page.evaluate(() => window.__pr22.textTargets());
+      for (const target of targets) {
+        const el = page.locator(target.selector);
+        await el.evaluate(e => e.scrollIntoView({ block: 'center', inline: 'nearest', behavior: 'instant' }));
+        r.normal.push(await el.evaluate(e => window.__pr22.sample(e)));
+        r.responsive.push(await el.evaluate(e => window.__pr22.clipping(e)));
+      }
+      r.dimensions = await page.evaluate(() => ({ scrollWidth: document.documentElement.scrollWidth, clientWidth: document.documentElement.clientWidth, scrollHeight: document.documentElement.scrollHeight, headerHeight: document.querySelector('body > header').getBoundingClientRect().height }));
+      await page.evaluate(() => scrollTo(0, 0));
+      r.screenshot = `${item.id}-${viewport.width}-normal.png`;
+      await page.screenshot({ path: out + '/' + r.screenshot, fullPage: true });
+
+      // A fresh document gives a real initial keyboard traversal without .focus().
+      await page.reload({ waitUntil: 'networkidle' });
+      await page.evaluate(() => document.fonts.ready);
+      await page.evaluate(install);
+      await page.mouse.move(viewport.width - 1, 1);
+      r.expectedOrder = await page.locator('a').evaluateAll(es => es.filter(e => e.getClientRects().length && getComputedStyle(e).visibility !== 'hidden').map(e => ({ selector: window.__pr22.selector(e), text: e.textContent.trim(), href: e.getAttribute('href') })));
+      const n = r.expectedOrder.length;
+      for (const direction of ['Tab', 'Shift+Tab']) {
+        // At the end of forward traversal, leave the final link then return via
+        // Shift+Tab, so the last link is also checked in the reverse direction.
+        if (direction === 'Shift+Tab') {
+          await page.keyboard.press('Tab');
+          r.documentBoundary = await page.evaluate(() => window.__pr22.focus());
+        }
+        for (let k = 0; k < n; k++) {
+          await page.keyboard.press(direction);
+          const f = await page.evaluate(() => window.__pr22.focus());
+          const expected = r.expectedOrder[direction === 'Tab' ? k : n - k - 1];
+          f.direction = direction; f.expected = expected; f.orderPass = f.target === expected.selector;
+          f.assertionPass = f.orderPass && f.focusVisible && f.indicator && f.exposed;
+          r.focus.push(f);
+          if (!f.assertionPass || f.clearanceIssues?.length) batch.failures.push({ page: item.id, viewport, url: r.url, type: f.assertionPass ? 'focus clearance' : 'focus assertion', observation: f });
+          const captureSample = item.id === 'D1' && (f.kind === 'Source' && r.focus.filter(x => x.direction === direction && x.kind === 'Source').length === 1 || f.kind === 'Supporting Source' && k === (direction === 'Tab' ? n - 1 : 0));
+          if (!f.assertionPass || f.clearanceIssues?.length || captureSample) {
+            f.screenshot = `${item.id}-${viewport.width}-${direction === 'Tab' ? 'forward' : 'reverse'}-${k}.png`;
+            await page.screenshot({ path: out + '/' + f.screenshot });
+          }
+        }
+      }
+      r.keyboardNavigation = { urlUnchanged: page.url() === r.url, pageCount: context.pages().length };
+      // Only pointer hover; external links are never clicked or activated.
+      // Blur through the real Tab order to BODY before hover-only measurement.
+      for (let i = 0; i < n + 2; i++) { await page.keyboard.press('Shift+Tab'); if (await page.evaluate(() => document.activeElement === document.body)) break; }
+      for (const link of r.expectedOrder) {
+        const el = page.locator(link.selector);
+        await el.hover();
+        await page.waitForTimeout(200); // Wait beyond the CSS color transition.
+        const values = await el.evaluate(e => {
+          const ns = [e, ...e.querySelectorAll('*')].filter(n => Array.from(n.childNodes).some(c => c.nodeType === Node.TEXT_NODE && c.textContent.trim()));
+          return { target: window.__pr22.selector(e), text: e.textContent.trim(), hover: e.matches(':hover'), focus: e.matches(':focus'), samples: ns.map(n => window.__pr22.sample(n)) };
+        });
+        r.hover.push(values);
+        await page.mouse.move(viewport.width - 1, 1);
+      }
+      r.summary = {
+        contrastNormal: Object.fromEntries(['Pass', 'Fail', 'Not verified'].map(s => [s, r.normal.filter(v => v.result === s).length])),
+        contrastHover: Object.fromEntries(['Pass', 'Fail', 'Not verified'].map(s => [s, r.hover.flatMap(h => h.samples).filter(v => v.result === s).length])),
+        keyboardTargets: n, keyboardObservations: r.focus.length, keyboardAssertionFailures: r.focus.filter(f => !f.assertionPass).length, focusClearanceFailures: r.focus.filter(f => f.clearanceIssues?.length).length,
+        horizontalOverflow: r.dimensions.scrollWidth > r.dimensions.clientWidth,
+        unexpectedClipping: r.responsive.filter(v => v.clipped.length && !v.intentional), intentionalClipping: r.responsive.filter(v => v.clipped.length && v.intentional)
+      };
+      r.finished = new Date().toISOString(); save();
+      console.log(JSON.stringify({ page: item.id, viewport, status: r.status, summary: r.summary }));
+      await page.close();
+    }
+  }
+  batch.finished = new Date().toISOString(); save();
+}

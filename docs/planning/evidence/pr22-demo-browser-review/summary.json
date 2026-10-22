@@ -1,0 +1,706 @@
+{
+  "started": "2026-10-20T02:59:55.518Z",
+  "finished": "2026-10-20T03:02:04.920Z",
+  "normal": {
+    "Pass": 735,
+    "Fail": 0,
+    "Not verified": 60
+  },
+  "hover": {
+    "Pass": 156,
+    "Fail": 0,
+    "Not verified": 138
+  },
+  "focusText": {
+    "Pass": 396,
+    "Fail": 0,
+    "Not verified": 60
+  },
+  "keyboard": {
+    "observations": 312,
+    "assertionFailures": 0,
+    "clearanceFailures": 4
+  },
+  "network": {
+    "allowed": 483,
+    "blocked": 31,
+    "errors": 0
+  },
+  "pages": [
+    {
+      "page": "L",
+      "viewport": {
+        "width": 1280,
+        "height": 720,
+        "dpr": 1,
+        "scale": 1,
+        "rootZoom": "1",
+        "bodyZoom": "1",
+        "rootClass": "ibm_plex_sans_86232035-module__pHbLjq__variable antialiased",
+        "light": true,
+        "bodyBackground": "lab(98.2716 0 0)",
+        "fontsLoaded": "loaded"
+      },
+      "url": "https://evidence-atlas-git-docs-demo-contrast-visi-627546-morimotodev93.vercel.app/demo",
+      "timestamp": "2026-10-20T03:00:00.709Z",
+      "finished": "2026-10-20T03:00:08.443Z",
+      "status": 200,
+      "dimensions": {
+        "scrollWidth": 1280,
+        "clientWidth": 1280,
+        "scrollHeight": 921,
+        "headerHeight": 49
+      },
+      "normal": {
+        "Pass": 29,
+        "Fail": 0,
+        "Not verified": 4
+      },
+      "hover": {
+        "Pass": 26,
+        "Fail": 0,
+        "Not verified": 2
+      },
+      "focusText": {
+        "Not verified": 4,
+        "Pass": 8
+      },
+      "keyboardTargets": 6,
+      "keyboardObservations": 12,
+      "keyboardAssertionFailures": 0,
+      "focusClearanceFailures": 2,
+      "unexpectedClipping": 0,
+      "intentionalClipping": 0
+    },
+    {
+      "page": "D1",
+      "viewport": {
+        "width": 1280,
+        "height": 720,
+        "dpr": 1,
+        "scale": 1,
+        "rootZoom": "1",
+        "bodyZoom": "1",
+        "rootClass": "ibm_plex_sans_86232035-module__pHbLjq__variable antialiased",
+        "light": true,
+        "bodyBackground": "lab(98.2716 0 0)",
+        "fontsLoaded": "loaded"
+      },
+      "url": "https://evidence-atlas-git-docs-demo-contrast-visi-627546-morimotodev93.vercel.app/demo/research/v0313wclyankpmyo4ujhmza2",
+      "timestamp": "2026-10-20T03:00:12.526Z",
+      "finished": "2026-10-20T03:00:18.693Z",
+      "status": 200,
+      "dimensions": {
+        "scrollWidth": 1280,
+        "clientWidth": 1280,
+        "scrollHeight": 1961,
+        "headerHeight": 49
+      },
+      "normal": {
+        "Pass": 53,
+        "Fail": 0,
+        "Not verified": 4
+      },
+      "hover": {
+        "Pass": 6,
+        "Fail": 0,
+        "Not verified": 11
+      },
+      "focusText": {
+        "Not verified": 4,
+        "Pass": 30
+      },
+      "keyboardTargets": 11,
+      "keyboardObservations": 22,
+      "keyboardAssertionFailures": 0,
+      "focusClearanceFailures": 0,
+      "unexpectedClipping": 0,
+      "intentionalClipping": 0
+    },
+    {
+      "page": "D2",
+      "viewport": {
+        "width": 1280,
+        "height": 720,
+        "dpr": 1,
+        "scale": 1,
+        "rootZoom": "1",
+        "bodyZoom": "1",
+        "rootClass": "ibm_plex_sans_86232035-module__pHbLjq__variable antialiased",
+        "light": true,
+        "bodyBackground": "lab(98.2716 0 0)",
+        "fontsLoaded": "loaded"
+      },
+      "url": "https://evidence-atlas-git-docs-demo-contrast-visi-627546-morimotodev93.vercel.app/demo/research/c3q3cl35ne9iq5yuwxpx7bg5",
+      "timestamp": "2026-10-20T03:00:20.610Z",
+      "finished": "2026-10-20T03:00:26.887Z",
+      "status": 200,
+      "dimensions": {
+        "scrollWidth": 1280,
+        "clientWidth": 1280,
+        "scrollHeight": 1909,
+        "headerHeight": 49
+      },
+      "normal": {
+        "Pass": 55,
+        "Fail": 0,
+        "Not verified": 4
+      },
+      "hover": {
+        "Pass": 7,
+        "Fail": 0,
+        "Not verified": 11
+      },
+      "focusText": {
+        "Not verified": 4,
+        "Pass": 32
+      },
+      "keyboardTargets": 12,
+      "keyboardObservations": 24,
+      "keyboardAssertionFailures": 0,
+      "focusClearanceFailures": 0,
+      "unexpectedClipping": 0,
+      "intentionalClipping": 0
+    },
+    {
+      "page": "D3",
+      "viewport": {
+        "width": 1280,
+        "height": 720,
+        "dpr": 1,
+        "scale": 1,
+        "rootZoom": "1",
+        "bodyZoom": "1",
+        "rootClass": "ibm_plex_sans_86232035-module__pHbLjq__variable antialiased",
+        "light": true,
+        "bodyBackground": "lab(98.2716 0 0)",
+        "fontsLoaded": "loaded"
+      },
+      "url": "https://evidence-atlas-git-docs-demo-contrast-visi-627546-morimotodev93.vercel.app/demo/research/qyjy9por32pcwpg8mhevznmw",
+      "timestamp": "2026-10-20T03:00:28.812Z",
+      "finished": "2026-10-20T03:00:35.069Z",
+      "status": 200,
+      "dimensions": {
+        "scrollWidth": 1280,
+        "clientWidth": 1280,
+        "scrollHeight": 1933,
+        "headerHeight": 49
+      },
+      "normal": {
+        "Pass": 54,
+        "Fail": 0,
+        "Not verified": 4
+      },
+      "hover": {
+        "Pass": 7,
+        "Fail": 0,
+        "Not verified": 11
+      },
+      "focusText": {
+        "Not verified": 4,
+        "Pass": 32
+      },
+      "keyboardTargets": 12,
+      "keyboardObservations": 24,
+      "keyboardAssertionFailures": 0,
+      "focusClearanceFailures": 0,
+      "unexpectedClipping": 0,
+      "intentionalClipping": 0
+    },
+    {
+      "page": "D4",
+      "viewport": {
+        "width": 1280,
+        "height": 720,
+        "dpr": 1,
+        "scale": 1,
+        "rootZoom": "1",
+        "bodyZoom": "1",
+        "rootClass": "ibm_plex_sans_86232035-module__pHbLjq__variable antialiased",
+        "light": true,
+        "bodyBackground": "lab(98.2716 0 0)",
+        "fontsLoaded": "loaded"
+      },
+      "url": "https://evidence-atlas-git-docs-demo-contrast-visi-627546-morimotodev93.vercel.app/demo/research/ix53bd2y7be2zmk55h2sypn8",
+      "timestamp": "2026-10-20T03:00:37.035Z",
+      "finished": "2026-10-20T03:00:43.003Z",
+      "status": 200,
+      "dimensions": {
+        "scrollWidth": 1280,
+        "clientWidth": 1280,
+        "scrollHeight": 1913,
+        "headerHeight": 49
+      },
+      "normal": {
+        "Pass": 54,
+        "Fail": 0,
+        "Not verified": 4
+      },
+      "hover": {
+        "Pass": 6,
+        "Fail": 0,
+        "Not verified": 11
+      },
+      "focusText": {
+        "Not verified": 4,
+        "Pass": 30
+      },
+      "keyboardTargets": 11,
+      "keyboardObservations": 22,
+      "keyboardAssertionFailures": 0,
+      "focusClearanceFailures": 0,
+      "unexpectedClipping": 0,
+      "intentionalClipping": 0
+    },
+    {
+      "page": "L",
+      "viewport": {
+        "width": 375,
+        "height": 812,
+        "dpr": 1,
+        "scale": 1,
+        "rootZoom": "1",
+        "bodyZoom": "1",
+        "rootClass": "ibm_plex_sans_86232035-module__pHbLjq__variable antialiased",
+        "light": true,
+        "bodyBackground": "lab(98.2716 0 0)",
+        "fontsLoaded": "loaded"
+      },
+      "url": "https://evidence-atlas-git-docs-demo-contrast-visi-627546-morimotodev93.vercel.app/demo",
+      "timestamp": "2026-10-20T03:00:45.147Z",
+      "finished": "2026-10-20T03:00:51.779Z",
+      "status": 200,
+      "dimensions": {
+        "scrollWidth": 375,
+        "clientWidth": 375,
+        "scrollHeight": 1065,
+        "headerHeight": 81
+      },
+      "normal": {
+        "Pass": 29,
+        "Fail": 0,
+        "Not verified": 4
+      },
+      "hover": {
+        "Pass": 26,
+        "Fail": 0,
+        "Not verified": 2
+      },
+      "focusText": {
+        "Not verified": 4,
+        "Pass": 8
+      },
+      "keyboardTargets": 6,
+      "keyboardObservations": 12,
+      "keyboardAssertionFailures": 0,
+      "focusClearanceFailures": 2,
+      "unexpectedClipping": 0,
+      "intentionalClipping": 5
+    },
+    {
+      "page": "D1",
+      "viewport": {
+        "width": 375,
+        "height": 812,
+        "dpr": 1,
+        "scale": 1,
+        "rootZoom": "1",
+        "bodyZoom": "1",
+        "rootClass": "ibm_plex_sans_86232035-module__pHbLjq__variable antialiased",
+        "light": true,
+        "bodyBackground": "lab(98.2716 0 0)",
+        "fontsLoaded": "loaded"
+      },
+      "url": "https://evidence-atlas-git-docs-demo-contrast-visi-627546-morimotodev93.vercel.app/demo/research/v0313wclyankpmyo4ujhmza2",
+      "timestamp": "2026-10-20T03:00:53.660Z",
+      "finished": "2026-10-20T03:00:59.623Z",
+      "status": 200,
+      "dimensions": {
+        "scrollWidth": 375,
+        "clientWidth": 375,
+        "scrollHeight": 2517,
+        "headerHeight": 81
+      },
+      "normal": {
+        "Pass": 53,
+        "Fail": 0,
+        "Not verified": 4
+      },
+      "hover": {
+        "Pass": 6,
+        "Fail": 0,
+        "Not verified": 11
+      },
+      "focusText": {
+        "Not verified": 4,
+        "Pass": 30
+      },
+      "keyboardTargets": 11,
+      "keyboardObservations": 22,
+      "keyboardAssertionFailures": 0,
+      "focusClearanceFailures": 0,
+      "unexpectedClipping": 0,
+      "intentionalClipping": 2
+    },
+    {
+      "page": "D2",
+      "viewport": {
+        "width": 375,
+        "height": 812,
+        "dpr": 1,
+        "scale": 1,
+        "rootZoom": "1",
+        "bodyZoom": "1",
+        "rootClass": "ibm_plex_sans_86232035-module__pHbLjq__variable antialiased",
+        "light": true,
+        "bodyBackground": "lab(98.2716 0 0)",
+        "fontsLoaded": "loaded"
+      },
+      "url": "https://evidence-atlas-git-docs-demo-contrast-visi-627546-morimotodev93.vercel.app/demo/research/c3q3cl35ne9iq5yuwxpx7bg5",
+      "timestamp": "2026-10-20T03:01:01.535Z",
+      "finished": "2026-10-20T03:01:07.777Z",
+      "status": 200,
+      "dimensions": {
+        "scrollWidth": 375,
+        "clientWidth": 375,
+        "scrollHeight": 2297,
+        "headerHeight": 81
+      },
+      "normal": {
+        "Pass": 55,
+        "Fail": 0,
+        "Not verified": 4
+      },
+      "hover": {
+        "Pass": 7,
+        "Fail": 0,
+        "Not verified": 11
+      },
+      "focusText": {
+        "Not verified": 4,
+        "Pass": 32
+      },
+      "keyboardTargets": 12,
+      "keyboardObservations": 24,
+      "keyboardAssertionFailures": 0,
+      "focusClearanceFailures": 0,
+      "unexpectedClipping": 0,
+      "intentionalClipping": 1
+    },
+    {
+      "page": "D3",
+      "viewport": {
+        "width": 375,
+        "height": 812,
+        "dpr": 1,
+        "scale": 1,
+        "rootZoom": "1",
+        "bodyZoom": "1",
+        "rootClass": "ibm_plex_sans_86232035-module__pHbLjq__variable antialiased",
+        "light": true,
+        "bodyBackground": "lab(98.2716 0 0)",
+        "fontsLoaded": "loaded"
+      },
+      "url": "https://evidence-atlas-git-docs-demo-contrast-visi-627546-morimotodev93.vercel.app/demo/research/qyjy9por32pcwpg8mhevznmw",
+      "timestamp": "2026-10-20T03:01:09.728Z",
+      "finished": "2026-10-20T03:01:15.990Z",
+      "status": 200,
+      "dimensions": {
+        "scrollWidth": 375,
+        "clientWidth": 375,
+        "scrollHeight": 2429,
+        "headerHeight": 81
+      },
+      "normal": {
+        "Pass": 54,
+        "Fail": 0,
+        "Not verified": 4
+      },
+      "hover": {
+        "Pass": 7,
+        "Fail": 0,
+        "Not verified": 11
+      },
+      "focusText": {
+        "Not verified": 4,
+        "Pass": 32
+      },
+      "keyboardTargets": 12,
+      "keyboardObservations": 24,
+      "keyboardAssertionFailures": 0,
+      "focusClearanceFailures": 0,
+      "unexpectedClipping": 0,
+      "intentionalClipping": 2
+    },
+    {
+      "page": "D4",
+      "viewport": {
+        "width": 375,
+        "height": 812,
+        "dpr": 1,
+        "scale": 1,
+        "rootZoom": "1",
+        "bodyZoom": "1",
+        "rootClass": "ibm_plex_sans_86232035-module__pHbLjq__variable antialiased",
+        "light": true,
+        "bodyBackground": "lab(98.2716 0 0)",
+        "fontsLoaded": "loaded"
+      },
+      "url": "https://evidence-atlas-git-docs-demo-contrast-visi-627546-morimotodev93.vercel.app/demo/research/ix53bd2y7be2zmk55h2sypn8",
+      "timestamp": "2026-10-20T03:01:17.923Z",
+      "finished": "2026-10-20T03:01:23.905Z",
+      "status": 200,
+      "dimensions": {
+        "scrollWidth": 375,
+        "clientWidth": 375,
+        "scrollHeight": 2309,
+        "headerHeight": 81
+      },
+      "normal": {
+        "Pass": 54,
+        "Fail": 0,
+        "Not verified": 4
+      },
+      "hover": {
+        "Pass": 6,
+        "Fail": 0,
+        "Not verified": 11
+      },
+      "focusText": {
+        "Not verified": 4,
+        "Pass": 30
+      },
+      "keyboardTargets": 11,
+      "keyboardObservations": 22,
+      "keyboardAssertionFailures": 0,
+      "focusClearanceFailures": 0,
+      "unexpectedClipping": 0,
+      "intentionalClipping": 0
+    },
+    {
+      "page": "L",
+      "viewport": {
+        "width": 768,
+        "height": 1024,
+        "dpr": 1,
+        "scale": 1,
+        "rootZoom": "1",
+        "bodyZoom": "1",
+        "rootClass": "ibm_plex_sans_86232035-module__pHbLjq__variable antialiased",
+        "light": true,
+        "bodyBackground": "lab(98.2716 0 0)",
+        "fontsLoaded": "loaded"
+      },
+      "url": "https://evidence-atlas-git-docs-demo-contrast-visi-627546-morimotodev93.vercel.app/demo",
+      "timestamp": "2026-10-20T03:01:26.035Z",
+      "finished": "2026-10-20T03:01:32.553Z",
+      "status": 200,
+      "dimensions": {
+        "scrollWidth": 768,
+        "clientWidth": 768,
+        "scrollHeight": 1024,
+        "headerHeight": 49
+      },
+      "normal": {
+        "Pass": 29,
+        "Fail": 0,
+        "Not verified": 4
+      },
+      "hover": {
+        "Pass": 26,
+        "Fail": 0,
+        "Not verified": 2
+      },
+      "focusText": {
+        "Not verified": 4,
+        "Pass": 8
+      },
+      "keyboardTargets": 6,
+      "keyboardObservations": 12,
+      "keyboardAssertionFailures": 0,
+      "focusClearanceFailures": 0,
+      "unexpectedClipping": 0,
+      "intentionalClipping": 0
+    },
+    {
+      "page": "D1",
+      "viewport": {
+        "width": 768,
+        "height": 1024,
+        "dpr": 1,
+        "scale": 1,
+        "rootZoom": "1",
+        "bodyZoom": "1",
+        "rootClass": "ibm_plex_sans_86232035-module__pHbLjq__variable antialiased",
+        "light": true,
+        "bodyBackground": "lab(98.2716 0 0)",
+        "fontsLoaded": "loaded"
+      },
+      "url": "https://evidence-atlas-git-docs-demo-contrast-visi-627546-morimotodev93.vercel.app/demo/research/v0313wclyankpmyo4ujhmza2",
+      "timestamp": "2026-10-20T03:01:34.494Z",
+      "finished": "2026-10-20T03:01:40.534Z",
+      "status": 200,
+      "dimensions": {
+        "scrollWidth": 768,
+        "clientWidth": 768,
+        "scrollHeight": 1961,
+        "headerHeight": 49
+      },
+      "normal": {
+        "Pass": 53,
+        "Fail": 0,
+        "Not verified": 4
+      },
+      "hover": {
+        "Pass": 6,
+        "Fail": 0,
+        "Not verified": 11
+      },
+      "focusText": {
+        "Not verified": 4,
+        "Pass": 30
+      },
+      "keyboardTargets": 11,
+      "keyboardObservations": 22,
+      "keyboardAssertionFailures": 0,
+      "focusClearanceFailures": 0,
+      "unexpectedClipping": 0,
+      "intentionalClipping": 1
+    },
+    {
+      "page": "D2",
+      "viewport": {
+        "width": 768,
+        "height": 1024,
+        "dpr": 1,
+        "scale": 1,
+        "rootZoom": "1",
+        "bodyZoom": "1",
+        "rootClass": "ibm_plex_sans_86232035-module__pHbLjq__variable antialiased",
+        "light": true,
+        "bodyBackground": "lab(98.2716 0 0)",
+        "fontsLoaded": "loaded"
+      },
+      "url": "https://evidence-atlas-git-docs-demo-contrast-visi-627546-morimotodev93.vercel.app/demo/research/c3q3cl35ne9iq5yuwxpx7bg5",
+      "timestamp": "2026-10-20T03:01:42.465Z",
+      "finished": "2026-10-20T03:01:48.697Z",
+      "status": 200,
+      "dimensions": {
+        "scrollWidth": 768,
+        "clientWidth": 768,
+        "scrollHeight": 2029,
+        "headerHeight": 49
+      },
+      "normal": {
+        "Pass": 55,
+        "Fail": 0,
+        "Not verified": 4
+      },
+      "hover": {
+        "Pass": 7,
+        "Fail": 0,
+        "Not verified": 11
+      },
+      "focusText": {
+        "Not verified": 4,
+        "Pass": 32
+      },
+      "keyboardTargets": 12,
+      "keyboardObservations": 24,
+      "keyboardAssertionFailures": 0,
+      "focusClearanceFailures": 0,
+      "unexpectedClipping": 0,
+      "intentionalClipping": 0
+    },
+    {
+      "page": "D3",
+      "viewport": {
+        "width": 768,
+        "height": 1024,
+        "dpr": 1,
+        "scale": 1,
+        "rootZoom": "1",
+        "bodyZoom": "1",
+        "rootClass": "ibm_plex_sans_86232035-module__pHbLjq__variable antialiased",
+        "light": true,
+        "bodyBackground": "lab(98.2716 0 0)",
+        "fontsLoaded": "loaded"
+      },
+      "url": "https://evidence-atlas-git-docs-demo-contrast-visi-627546-morimotodev93.vercel.app/demo/research/qyjy9por32pcwpg8mhevznmw",
+      "timestamp": "2026-10-20T03:01:50.653Z",
+      "finished": "2026-10-20T03:01:56.938Z",
+      "status": 200,
+      "dimensions": {
+        "scrollWidth": 768,
+        "clientWidth": 768,
+        "scrollHeight": 1981,
+        "headerHeight": 49
+      },
+      "normal": {
+        "Pass": 54,
+        "Fail": 0,
+        "Not verified": 4
+      },
+      "hover": {
+        "Pass": 7,
+        "Fail": 0,
+        "Not verified": 11
+      },
+      "focusText": {
+        "Not verified": 4,
+        "Pass": 32
+      },
+      "keyboardTargets": 12,
+      "keyboardObservations": 24,
+      "keyboardAssertionFailures": 0,
+      "focusClearanceFailures": 0,
+      "unexpectedClipping": 0,
+      "intentionalClipping": 1
+    },
+    {
+      "page": "D4",
+      "viewport": {
+        "width": 768,
+        "height": 1024,
+        "dpr": 1,
+        "scale": 1,
+        "rootZoom": "1",
+        "bodyZoom": "1",
+        "rootClass": "ibm_plex_sans_86232035-module__pHbLjq__variable antialiased",
+        "light": true,
+        "bodyBackground": "lab(98.2716 0 0)",
+        "fontsLoaded": "loaded"
+      },
+      "url": "https://evidence-atlas-git-docs-demo-contrast-visi-627546-morimotodev93.vercel.app/demo/research/ix53bd2y7be2zmk55h2sypn8",
+      "timestamp": "2026-10-20T03:01:58.909Z",
+      "finished": "2026-10-20T03:02:04.844Z",
+      "status": 200,
+      "dimensions": {
+        "scrollWidth": 768,
+        "clientWidth": 768,
+        "scrollHeight": 1985,
+        "headerHeight": 49
+      },
+      "normal": {
+        "Pass": 54,
+        "Fail": 0,
+        "Not verified": 4
+      },
+      "hover": {
+        "Pass": 6,
+        "Fail": 0,
+        "Not verified": 11
+      },
+      "focusText": {
+        "Not verified": 4,
+        "Pass": 30
+      },
+      "keyboardTargets": 11,
+      "keyboardObservations": 22,
+      "keyboardAssertionFailures": 0,
+      "focusClearanceFailures": 0,
+      "unexpectedClipping": 0,
+      "intentionalClipping": 0
+    }
+  ]
+}

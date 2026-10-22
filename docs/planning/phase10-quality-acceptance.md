@@ -1096,3 +1096,45 @@ Contrastは目視では視認可能との報告だが、**数値Contrastは未�
 Deployment ID / Commit SHA、4詳細の個別URL、会話で提供されたスクリーンショットの保存先・capture IDは未確認。スクリーンショットは新しい自動テストや完全な測定artifactとして扱わず、Codexによるブラウザ再実行・独立確認にも読み替えない。PR #20の準備記録・Contrast測定表および個別focus表のNot run、過去の履歴は保持する。**Accessibility review / Responsive UI reviewは引き続き未完了**であり、roadmap・既存チェックボックスは変更しない。
 
 今回の変更は指定文書2件の末尾追記のみ。オフライン文書確認だけを行い、アプリ・CSS・テストの変更、ブラウザ検査・E2E・外部Previewアクセス、DB / OAuth / Session / AI / Cloud操作、サーバー起動・production build、commit / push / PR作成 / mergeは行わず、未コミットで停止する。
+
+
+<a id="pr-22-codex-browser-batch"></a>
+
+## PR #22 — Codex実行 Public Demo Chromium batch（2026-10-20 JST）
+
+開始時は `test/demo-contrast-focus-batch` / `c6d97caac748457bcaa042eda883ff342fffe9f8` / clean、worktreeは1件。ローカルmainもPR #21マージcommit `c6d97ca`を指し、mainへのancestor確認はexit 0。PR #20・#21の記録を保持して追記した。**今回のC22: Codex実行結果**は、PR #21のD: ユーザー手動報告と別の証拠である。
+
+ユーザーが明示許可したPreviewのみで、既存Playwright 1.63.0 / headless Chromium 153.0.8010.12を使い、Public Demo **5ページ×3 viewport（実測1280×720 / 375×812 / 768×1024）**を1 batchで検査した。測定は2026-10-20 **11:59:55〜12:02:04 JST**、Light / DPR1 / visual viewport scale1 / root・body zoom1。HTTP 200・一覧4リンクと期待表示をpreflightで確認し、Research IDは実一覧から取得、詳細4ページも全幅で対応h1・4セクションを確認した。Deployment ID / 配備SHAは未確認で、HEADとの一致を推測しない。
+
+通信制限はGET・指定originのDemo / static assetのみ、redirect自動追従なし・Location検査、Service Worker block / WebSocket close。保存したbatch通信監査で許可GET **483件すべて200**、外部Vercel feedback script **31件は送信前に遮断**、通信エラー0。Source / GitHubはhref読取・Tab・hoverに限り、click / Enterは行っていない。既存E2E全体は実行せず、既存helperの判定方法を一時runnerへ取り込んだ。既存テストの成功記録は今回へ転用しない。
+
+詳細な実URL・採取時刻・15条件の結果・再現手順は[Contrast / Visible FocusのC22節](public-demo-contrast-visible-focus-review.md#pr-22-codex-browser-batch)、個別観測は[測定JSON](evidence/pr22-demo-browser-review/measurements.json)、集計は[summary](evidence/pr22-demo-browser-review/summary.json)に保持した。
+
+| ページ | 1280×720 | 375×812 | 768×1024 |
+| --- | --- | --- | --- |
+| Research list | keyboard 12/12、余白 **Fail 2件** | keyboard 12/12、余白 **Fail 2件**、意図的省略5要素 | keyboard 12/12、余白Pass |
+| Developer Productivity | keyboard 22/22、余白Pass | 同左、URL省略2要素 | 同左、URL省略1要素 |
+| Code Quality & Reliability | keyboard 24/24、余白Pass | 同左、URL省略1要素 | keyboard 24/24、余白Pass |
+| Developer Experience | keyboard 24/24、余白Pass | 同左、URL省略2要素 | 同左、URL省略1要素 |
+| Adoption & Organizational Impact | keyboard 22/22、余白Pass | keyboard 22/22、余白Pass | keyboard 22/22、余白Pass |
+
+全15条件で横overflow・非意図的な文字clippingの自動検出は0。実Tab / Shift+Tab **312観測**で期待順序・実focus・`:focus-visible`・computed indicator・部分露出assertionは成功したが、知覚上の完全な可視性とは分ける。outlineはauto / 1px / offset 1px、半透明OKLab色、shadow none。Source / Supporting Source **204観測**とBack **24観測**は全fragment＋4px余白もPassした。
+
+**新しいFail:** 一覧でShift+TabするとDeveloper Productivityの上部がheaderに部分重なり（1280px: top20 / header.bottom49、375px: top72 / header.bottom81）。前進TabのDeveloper Experienceでは下端余地1px / 0pxで、既存Source helperを拡張した最低4px余白基準を満たさない。対象の完全遮蔽は検出しておらず、4px不足や部分重なりを2.4.11 AAの完全遮蔽Failへ読み替えない。実URL・値・期待・操作・4枚の画像はC22のF1〜F4表に記録した。詳細側と同等のanchor scroll marginをDemo一覧にも適用する修正案を提示したが、**アプリ修正・解消確認は今回は行っていない**。
+
+数値Contrastは実computed色と既知の祖先背景を採取しsRGBへ変換・合成した限定測定。Normal **735 Pass / 60 Not verified**、Hover **156 Pass / 138 Not verified**、Focus text **396 Pass / 60 Not verified**、数値Fail 0。測定できた最小値は一覧Hoverの補助文字 **約6.69:1**（通常文字4.5:1基準）。静的tokenだけの比率ではなく実状態の色を使用したが、8bit色変換の近似・サンプル範囲に限る。Headerの半透明＋blur、Source Hoverのgroup opacity、focus indicatorの合成後contrastと知覚可視性、一覧title / tag / statusのFocus専用sample、Focus+Hover、未表示分岐・必要非文字の網羅判定は **Not verified**。自動assertionだけでWCAG全面適合を宣言しない。
+
+**A / Accessibility review、R / Responsive UI review全体は引き続き未完了。** 残作業は一覧focusの修正・再検証、配備identity、未確定の実効色 / focus indicator / 知覚レビュー、未表示状態、通常SaaS画面の375 / 768 / desktop・Chat 1023 / 1024px境界等。PR #17〜#19のユーザー報告と既存deferred riskは保持し、roadmap・既存チェックボックスは変更しない。
+
+変更は指定Markdown 2ファイルへの末尾追記と証拠39ファイル（JSON / 32 PNG / runner snapshot等）。オフラインでは`node --check`、元文書のbyte prefix・既存チェックボックス保持、表・追加相対リンク、JSONの15条件・各件数 / 比率 / 順序 / 通信境界と原観測の一致、SHA-256、`git diff --check`を確認した。アプリ・CSS・既存E2E・設定・依存は変更せず、DB / OAuth / Session / AI / Cloud / server / build操作やcommit / push / PR作成 / mergeは実行せず、未コミットで停止する。
+
+
+## PR #22 follow-up — Research list Focus regressionの最小修正（2026-10-20 JST）
+
+**ローカル修正済み・ブラウザ再検証待ち**。[分析・証拠安全確認・容量一覧](public-demo-list-focus-regression-fix.md)と[Contrast / Focus追記](public-demo-contrast-visible-focus-review.md#pr-22-list-focus-offline-fix)を参照。開始時は `test/demo-contrast-focus-batch` / `c6d97ca` で、既存の2文書変更と証拠39件だけ。既存記録は上書きせず、証拠39件の全hash一致を確認して保持した。
+
+一覧に詳細側のscroll marginがない実装差とC22の実測を根拠に、Demo一覧mainへ上96px / sm以上64px・下8px相当のanchor scroll marginを追加した。コード変更は `src/app/demo/page.tsx` のclassName 1行。共用Research card・認証済みSaaS・詳細・色 / font / outline・既存E2E・依存は変更しない。
+
+修正前F1〜F4はプロジェクトの最低4px余白・部分重なりゼロ条件に対するFailとして維持し、WCAG AA違反確定や修正後Passにはしない。既存Contrastも修正後の測定には転用しない。対象ESLint、既存mock renderer1 file / 12 tests、3 utilityのメモリ内CSS生成、証拠の構造・参照・SHA-256・全28種類の画像安全確認、既存文書 / checkbox保持とGit差分確認を実施した。
+
+ブラウザ・Preview・server・buildは今回未実行。修正版の新Preview配備とidentity確認・全5ページ×3幅の再検査は別途承認後に行う。旧Previewでの成功をローカル修正の成功とは扱わない。**A / Accessibility、R / Responsiveは未完了のまま**。配備SHA、実auto-scrollの4件解消、知覚上のfocus可視性、合成色等のNot verifiedは残り、Phase 10 checkbox・roadmapは変更しない。DB / OAuth / Session / AI / Cloud、外部Sourceアクセス、commit / push / merge / PR作成は行わず、未コミットで停止する。

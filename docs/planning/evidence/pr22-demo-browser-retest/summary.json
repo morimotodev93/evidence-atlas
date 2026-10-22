@@ -1,0 +1,649 @@
+{
+  "evidence": "C22R / Codex executed Chromium retest",
+  "started": "2026-10-20T03:39:44.317Z",
+  "finished": "2026-10-20T03:41:50.488Z",
+  "origin": "https://evidence-atlas-git-test-demo-contrast-focus-batch-morimotodev93.vercel.app",
+  "expectedSHA": "1231b5af5bf8cbb03c08424fe51cecae73a359d1",
+  "identity": "配備identity未確認: provisional results",
+  "deploymentHints": [
+    "dpl_67s8akZXvKz2SbuWxHdVSUYQqj2k"
+  ],
+  "environment": {
+    "playwright": "1.63.0",
+    "chromium": "153.0.8010.12",
+    "node": "v24.16.0",
+    "platform": "win32",
+    "arch": "x64"
+  },
+  "phaseA": [
+    {
+      "id": "F1",
+      "time": "2026-10-20T03:39:55.912Z",
+      "url": "https://evidence-atlas-git-test-demo-contrast-focus-batch-morimotodev93.vercel.app/demo",
+      "viewport": {
+        "width": 1280,
+        "height": 720
+      },
+      "result": "Pass",
+      "href": "/demo/research/qyjy9por32pcwpg8mhevznmw",
+      "focusVisible": true,
+      "indicator": true,
+      "rect": {
+        "left": 152,
+        "right": 1128,
+        "top": 554,
+        "bottom": 712,
+        "width": 976,
+        "height": 158
+      },
+      "headerBottom": 49,
+      "scrollY": 7,
+      "scrollMarginTop": "64px",
+      "scrollMarginBottom": "8px",
+      "before": {
+        "top": 561,
+        "bottom": 719,
+        "scrollY": 0,
+        "topGap": 512,
+        "bottomGap": 1
+      },
+      "after": {
+        "top": 554,
+        "bottom": 712,
+        "topGap": 505,
+        "bottomGap": 8
+      },
+      "screenshot": "F1.png"
+    },
+    {
+      "id": "F2",
+      "time": "2026-10-20T03:39:59.131Z",
+      "url": "https://evidence-atlas-git-test-demo-contrast-focus-batch-morimotodev93.vercel.app/demo",
+      "viewport": {
+        "width": 1280,
+        "height": 720
+      },
+      "result": "Pass",
+      "href": "/demo/research/v0313wclyankpmyo4ujhmza2",
+      "focusVisible": true,
+      "indicator": true,
+      "rect": {
+        "left": 152,
+        "right": 1128,
+        "top": 64,
+        "bottom": 222,
+        "width": 976,
+        "height": 158
+      },
+      "headerBottom": 49,
+      "scrollY": 157,
+      "scrollMarginTop": "64px",
+      "scrollMarginBottom": "8px",
+      "before": {
+        "top": 20,
+        "bottom": 178,
+        "scrollY": 201,
+        "topGap": -29,
+        "bottomGap": 542
+      },
+      "after": {
+        "top": 64,
+        "bottom": 222,
+        "topGap": 15,
+        "bottomGap": 498
+      },
+      "screenshot": "F2.png"
+    },
+    {
+      "id": "F3",
+      "time": "2026-10-20T03:40:04.106Z",
+      "url": "https://evidence-atlas-git-test-demo-contrast-focus-batch-morimotodev93.vercel.app/demo",
+      "viewport": {
+        "width": 375,
+        "height": 812
+      },
+      "result": "Pass",
+      "href": "/demo/research/qyjy9por32pcwpg8mhevznmw",
+      "focusVisible": true,
+      "indicator": true,
+      "rect": {
+        "left": 16,
+        "right": 359,
+        "top": 634,
+        "bottom": 804,
+        "width": 343,
+        "height": 170
+      },
+      "headerBottom": 81,
+      "scrollY": 55,
+      "scrollMarginTop": "96px",
+      "scrollMarginBottom": "8px",
+      "before": {
+        "top": 642,
+        "bottom": 812,
+        "scrollY": 47,
+        "topGap": 561,
+        "bottomGap": 0
+      },
+      "after": {
+        "top": 634,
+        "bottom": 804,
+        "topGap": 553,
+        "bottomGap": 8
+      },
+      "screenshot": "F3.png"
+    },
+    {
+      "id": "F4",
+      "time": "2026-10-20T03:40:07.216Z",
+      "url": "https://evidence-atlas-git-test-demo-contrast-focus-batch-morimotodev93.vercel.app/demo",
+      "viewport": {
+        "width": 375,
+        "height": 812
+      },
+      "result": "Pass",
+      "href": "/demo/research/v0313wclyankpmyo4ujhmza2",
+      "focusVisible": true,
+      "indicator": true,
+      "rect": {
+        "left": 16,
+        "right": 359,
+        "top": 96,
+        "bottom": 266,
+        "width": 343,
+        "height": 170
+      },
+      "headerBottom": 81,
+      "scrollY": 229,
+      "scrollMarginTop": "96px",
+      "scrollMarginBottom": "8px",
+      "before": {
+        "top": 72,
+        "bottom": 242,
+        "scrollY": 253,
+        "topGap": -9,
+        "bottomGap": 570
+      },
+      "after": {
+        "top": 96,
+        "bottom": 266,
+        "topGap": 15,
+        "bottomGap": 546
+      },
+      "screenshot": "F4.png"
+    }
+  ],
+  "phaseB": {
+    "status": "Pass",
+    "conditions": 15,
+    "focusObservations": 312,
+    "focusFailures": 0,
+    "contrast": {
+      "Pass": 735,
+      "Fail": 0,
+      "Not verified": 60
+    },
+    "minimumMeasuredContrast": 7.259931444887766,
+    "pages": [
+      {
+        "page": "L",
+        "title": "AI-Assisted Software Development",
+        "url": "https://evidence-atlas-git-test-demo-contrast-focus-batch-morimotodev93.vercel.app/demo",
+        "time": "2026-10-20T03:40:09.668Z",
+        "finished": "2026-10-20T03:40:13.269Z",
+        "viewport": {
+          "width": 1280,
+          "height": 720
+        },
+        "focusObservations": 12,
+        "focusFailures": 0,
+        "contrast": {
+          "Pass": 29,
+          "Fail": 0,
+          "Not verified": 4
+        },
+        "horizontalOverflow": false,
+        "unexpectedClipping": [],
+        "intentionalClipping": [],
+        "result": "Pass",
+        "scrollWidth": 1280,
+        "headerHeight": 49
+      },
+      {
+        "page": "D1",
+        "title": "Developer Productivity",
+        "url": "https://evidence-atlas-git-test-demo-contrast-focus-batch-morimotodev93.vercel.app/demo/research/v0313wclyankpmyo4ujhmza2",
+        "time": "2026-10-20T03:40:15.266Z",
+        "finished": "2026-10-20T03:40:20.016Z",
+        "viewport": {
+          "width": 1280,
+          "height": 720
+        },
+        "focusObservations": 22,
+        "focusFailures": 0,
+        "contrast": {
+          "Pass": 53,
+          "Fail": 0,
+          "Not verified": 4
+        },
+        "horizontalOverflow": false,
+        "unexpectedClipping": [],
+        "intentionalClipping": [],
+        "result": "Pass",
+        "scrollWidth": 1280,
+        "headerHeight": 49
+      },
+      {
+        "page": "D2",
+        "title": "Code Quality & Reliability",
+        "url": "https://evidence-atlas-git-test-demo-contrast-focus-batch-morimotodev93.vercel.app/demo/research/c3q3cl35ne9iq5yuwxpx7bg5",
+        "time": "2026-10-20T03:40:22.086Z",
+        "finished": "2026-10-20T03:40:26.921Z",
+        "viewport": {
+          "width": 1280,
+          "height": 720
+        },
+        "focusObservations": 24,
+        "focusFailures": 0,
+        "contrast": {
+          "Pass": 55,
+          "Fail": 0,
+          "Not verified": 4
+        },
+        "horizontalOverflow": false,
+        "unexpectedClipping": [],
+        "intentionalClipping": [],
+        "result": "Pass",
+        "scrollWidth": 1280,
+        "headerHeight": 49
+      },
+      {
+        "page": "D3",
+        "title": "Developer Experience",
+        "url": "https://evidence-atlas-git-test-demo-contrast-focus-batch-morimotodev93.vercel.app/demo/research/qyjy9por32pcwpg8mhevznmw",
+        "time": "2026-10-20T03:40:29.098Z",
+        "finished": "2026-10-20T03:40:33.964Z",
+        "viewport": {
+          "width": 1280,
+          "height": 720
+        },
+        "focusObservations": 24,
+        "focusFailures": 0,
+        "contrast": {
+          "Pass": 54,
+          "Fail": 0,
+          "Not verified": 4
+        },
+        "horizontalOverflow": false,
+        "unexpectedClipping": [],
+        "intentionalClipping": [],
+        "result": "Pass",
+        "scrollWidth": 1280,
+        "headerHeight": 49
+      },
+      {
+        "page": "D4",
+        "title": "Adoption & Organizational Impact",
+        "url": "https://evidence-atlas-git-test-demo-contrast-focus-batch-morimotodev93.vercel.app/demo/research/ix53bd2y7be2zmk55h2sypn8",
+        "time": "2026-10-20T03:40:35.949Z",
+        "finished": "2026-10-20T03:40:40.487Z",
+        "viewport": {
+          "width": 1280,
+          "height": 720
+        },
+        "focusObservations": 22,
+        "focusFailures": 0,
+        "contrast": {
+          "Pass": 54,
+          "Fail": 0,
+          "Not verified": 4
+        },
+        "horizontalOverflow": false,
+        "unexpectedClipping": [],
+        "intentionalClipping": [],
+        "result": "Pass",
+        "scrollWidth": 1280,
+        "headerHeight": 49
+      },
+      {
+        "page": "L",
+        "title": "AI-Assisted Software Development",
+        "url": "https://evidence-atlas-git-test-demo-contrast-focus-batch-morimotodev93.vercel.app/demo",
+        "time": "2026-10-20T03:40:42.667Z",
+        "finished": "2026-10-20T03:40:46.178Z",
+        "viewport": {
+          "width": 375,
+          "height": 812
+        },
+        "focusObservations": 12,
+        "focusFailures": 0,
+        "contrast": {
+          "Pass": 29,
+          "Fail": 0,
+          "Not verified": 4
+        },
+        "horizontalOverflow": false,
+        "unexpectedClipping": [],
+        "intentionalClipping": [
+          {
+            "selector": "html > body:nth-child(2) > main:nth-child(3) > section:nth-child(2) > div:nth-child(1) > a:nth-child(1) > div:nth-child(1) > div:nth-child(1) > p:nth-child(2)",
+            "text": "How AI coding assistants affect development speed, task completion, and engineering productivity."
+          },
+          {
+            "selector": "html > body:nth-child(2) > main:nth-child(3) > section:nth-child(2) > div:nth-child(1) > a:nth-child(2) > div:nth-child(1) > div:nth-child(1) > p:nth-child(2)",
+            "text": "How AI-assisted coding affects correctness, maintainability, review requirements, and software reliability."
+          },
+          {
+            "selector": "html > body:nth-child(2) > main:nth-child(3) > section:nth-child(2) > div:nth-child(1) > a:nth-child(3) > div:nth-child(1) > div:nth-child(1) > p:nth-child(2)",
+            "text": "How AI coding tools affect developer satisfaction, cognitive load, learning, trust, and day-to-day workflow."
+          },
+          {
+            "selector": "html > body:nth-child(2) > main:nth-child(3) > section:nth-child(2) > div:nth-child(1) > a:nth-child(4) > div:nth-child(1) > div:nth-child(1) > h2:nth-child(1)",
+            "text": "Adoption & Organizational Impact"
+          },
+          {
+            "selector": "html > body:nth-child(2) > main:nth-child(3) > section:nth-child(2) > div:nth-child(1) > a:nth-child(4) > div:nth-child(1) > div:nth-child(1) > p:nth-child(2)",
+            "text": "What teams should consider when adopting AI-assisted software development across an engineering organization."
+          }
+        ],
+        "result": "Pass",
+        "scrollWidth": 375,
+        "headerHeight": 81
+      },
+      {
+        "page": "D1",
+        "title": "Developer Productivity",
+        "url": "https://evidence-atlas-git-test-demo-contrast-focus-batch-morimotodev93.vercel.app/demo/research/v0313wclyankpmyo4ujhmza2",
+        "time": "2026-10-20T03:40:50.330Z",
+        "finished": "2026-10-20T03:40:54.856Z",
+        "viewport": {
+          "width": 375,
+          "height": 812
+        },
+        "focusObservations": 22,
+        "focusFailures": 0,
+        "contrast": {
+          "Pass": 53,
+          "Fail": 0,
+          "Not verified": 4
+        },
+        "horizontalOverflow": false,
+        "unexpectedClipping": [],
+        "intentionalClipping": [
+          {
+            "selector": "html > body:nth-child(2) > main:nth-child(3) > div:nth-child(3) > section:nth-child(2) > div:nth-child(2) > div:nth-child(1) > a:nth-child(1) > p:nth-child(2)",
+            "text": "https://github.blog/news-insights/research/research-quantifying-github-copilots-impact-on-developer-productivity-and-happiness/"
+          },
+          {
+            "selector": "html > body:nth-child(2) > main:nth-child(3) > div:nth-child(3) > section:nth-child(2) > div:nth-child(2) > div:nth-child(2) > a:nth-child(1) > p:nth-child(2)",
+            "text": "https://metr.org/blog/2025-07-10-early-2025-ai-experienced-os-dev-study/"
+          }
+        ],
+        "result": "Pass",
+        "scrollWidth": 375,
+        "headerHeight": 81
+      },
+      {
+        "page": "D2",
+        "title": "Code Quality & Reliability",
+        "url": "https://evidence-atlas-git-test-demo-contrast-focus-batch-morimotodev93.vercel.app/demo/research/c3q3cl35ne9iq5yuwxpx7bg5",
+        "time": "2026-10-20T03:40:56.854Z",
+        "finished": "2026-10-20T03:41:01.573Z",
+        "viewport": {
+          "width": 375,
+          "height": 812
+        },
+        "focusObservations": 24,
+        "focusFailures": 0,
+        "contrast": {
+          "Pass": 55,
+          "Fail": 0,
+          "Not verified": 4
+        },
+        "horizontalOverflow": false,
+        "unexpectedClipping": [],
+        "intentionalClipping": [
+          {
+            "selector": "html > body:nth-child(2) > main:nth-child(3) > div:nth-child(3) > section:nth-child(2) > div:nth-child(2) > div:nth-child(1) > a:nth-child(1) > p:nth-child(2)",
+            "text": "https://docs.github.com/en/copilot/responsible-use-of-github-copilot-features"
+          }
+        ],
+        "result": "Pass",
+        "scrollWidth": 375,
+        "headerHeight": 81
+      },
+      {
+        "page": "D3",
+        "title": "Developer Experience",
+        "url": "https://evidence-atlas-git-test-demo-contrast-focus-batch-morimotodev93.vercel.app/demo/research/qyjy9por32pcwpg8mhevznmw",
+        "time": "2026-10-20T03:41:03.574Z",
+        "finished": "2026-10-20T03:41:08.654Z",
+        "viewport": {
+          "width": 375,
+          "height": 812
+        },
+        "focusObservations": 24,
+        "focusFailures": 0,
+        "contrast": {
+          "Pass": 54,
+          "Fail": 0,
+          "Not verified": 4
+        },
+        "horizontalOverflow": false,
+        "unexpectedClipping": [],
+        "intentionalClipping": [
+          {
+            "selector": "html > body:nth-child(2) > main:nth-child(3) > div:nth-child(3) > section:nth-child(2) > div:nth-child(2) > div:nth-child(1) > a:nth-child(1) > p:nth-child(2)",
+            "text": "https://github.blog/news-insights/research/research-quantifying-github-copilots-impact-on-developer-productivity-and-happiness/"
+          },
+          {
+            "selector": "html > body:nth-child(2) > main:nth-child(3) > div:nth-child(3) > section:nth-child(2) > div:nth-child(2) > div:nth-child(3) > a:nth-child(1) > p:nth-child(2)",
+            "text": "https://blog.jetbrains.com/research/2025/06/software-developers-on-ai/"
+          }
+        ],
+        "result": "Pass",
+        "scrollWidth": 375,
+        "headerHeight": 81
+      },
+      {
+        "page": "D4",
+        "title": "Adoption & Organizational Impact",
+        "url": "https://evidence-atlas-git-test-demo-contrast-focus-batch-morimotodev93.vercel.app/demo/research/ix53bd2y7be2zmk55h2sypn8",
+        "time": "2026-10-20T03:41:10.610Z",
+        "finished": "2026-10-20T03:41:15.771Z",
+        "viewport": {
+          "width": 375,
+          "height": 812
+        },
+        "focusObservations": 22,
+        "focusFailures": 0,
+        "contrast": {
+          "Pass": 54,
+          "Fail": 0,
+          "Not verified": 4
+        },
+        "horizontalOverflow": false,
+        "unexpectedClipping": [],
+        "intentionalClipping": [],
+        "result": "Pass",
+        "scrollWidth": 375,
+        "headerHeight": 81
+      },
+      {
+        "page": "L",
+        "title": "AI-Assisted Software Development",
+        "url": "https://evidence-atlas-git-test-demo-contrast-focus-batch-morimotodev93.vercel.app/demo",
+        "time": "2026-10-20T03:41:17.986Z",
+        "finished": "2026-10-20T03:41:23.687Z",
+        "viewport": {
+          "width": 768,
+          "height": 1024
+        },
+        "focusObservations": 12,
+        "focusFailures": 0,
+        "contrast": {
+          "Pass": 29,
+          "Fail": 0,
+          "Not verified": 4
+        },
+        "horizontalOverflow": false,
+        "unexpectedClipping": [],
+        "intentionalClipping": [],
+        "result": "Pass",
+        "scrollWidth": 768,
+        "headerHeight": 49
+      },
+      {
+        "page": "D1",
+        "title": "Developer Productivity",
+        "url": "https://evidence-atlas-git-test-demo-contrast-focus-batch-morimotodev93.vercel.app/demo/research/v0313wclyankpmyo4ujhmza2",
+        "time": "2026-10-20T03:41:25.702Z",
+        "finished": "2026-10-20T03:41:30.420Z",
+        "viewport": {
+          "width": 768,
+          "height": 1024
+        },
+        "focusObservations": 22,
+        "focusFailures": 0,
+        "contrast": {
+          "Pass": 53,
+          "Fail": 0,
+          "Not verified": 4
+        },
+        "horizontalOverflow": false,
+        "unexpectedClipping": [],
+        "intentionalClipping": [
+          {
+            "selector": "html > body:nth-child(2) > main:nth-child(3) > div:nth-child(3) > section:nth-child(2) > div:nth-child(2) > div:nth-child(1) > a:nth-child(1) > p:nth-child(2)",
+            "text": "https://github.blog/news-insights/research/research-quantifying-github-copilots-impact-on-developer-productivity-and-happiness/"
+          }
+        ],
+        "result": "Pass",
+        "scrollWidth": 768,
+        "headerHeight": 49
+      },
+      {
+        "page": "D2",
+        "title": "Code Quality & Reliability",
+        "url": "https://evidence-atlas-git-test-demo-contrast-focus-batch-morimotodev93.vercel.app/demo/research/c3q3cl35ne9iq5yuwxpx7bg5",
+        "time": "2026-10-20T03:41:32.452Z",
+        "finished": "2026-10-20T03:41:37.136Z",
+        "viewport": {
+          "width": 768,
+          "height": 1024
+        },
+        "focusObservations": 24,
+        "focusFailures": 0,
+        "contrast": {
+          "Pass": 55,
+          "Fail": 0,
+          "Not verified": 4
+        },
+        "horizontalOverflow": false,
+        "unexpectedClipping": [],
+        "intentionalClipping": [],
+        "result": "Pass",
+        "scrollWidth": 768,
+        "headerHeight": 49
+      },
+      {
+        "page": "D3",
+        "title": "Developer Experience",
+        "url": "https://evidence-atlas-git-test-demo-contrast-focus-batch-morimotodev93.vercel.app/demo/research/qyjy9por32pcwpg8mhevznmw",
+        "time": "2026-10-20T03:41:39.202Z",
+        "finished": "2026-10-20T03:41:43.921Z",
+        "viewport": {
+          "width": 768,
+          "height": 1024
+        },
+        "focusObservations": 24,
+        "focusFailures": 0,
+        "contrast": {
+          "Pass": 54,
+          "Fail": 0,
+          "Not verified": 4
+        },
+        "horizontalOverflow": false,
+        "unexpectedClipping": [],
+        "intentionalClipping": [
+          {
+            "selector": "html > body:nth-child(2) > main:nth-child(3) > div:nth-child(3) > section:nth-child(2) > div:nth-child(2) > div:nth-child(1) > a:nth-child(1) > p:nth-child(2)",
+            "text": "https://github.blog/news-insights/research/research-quantifying-github-copilots-impact-on-developer-productivity-and-happiness/"
+          }
+        ],
+        "result": "Pass",
+        "scrollWidth": 768,
+        "headerHeight": 49
+      },
+      {
+        "page": "D4",
+        "title": "Adoption & Organizational Impact",
+        "url": "https://evidence-atlas-git-test-demo-contrast-focus-batch-morimotodev93.vercel.app/demo/research/ix53bd2y7be2zmk55h2sypn8",
+        "time": "2026-10-20T03:41:45.907Z",
+        "finished": "2026-10-20T03:41:50.447Z",
+        "viewport": {
+          "width": 768,
+          "height": 1024
+        },
+        "focusObservations": 22,
+        "focusFailures": 0,
+        "contrast": {
+          "Pass": 54,
+          "Fail": 0,
+          "Not verified": 4
+        },
+        "horizontalOverflow": false,
+        "unexpectedClipping": [],
+        "intentionalClipping": [],
+        "result": "Pass",
+        "scrollWidth": 768,
+        "headerHeight": 49
+      }
+    ]
+  },
+  "notVerified": [
+    "Deployment identity mapping to expected SHA",
+    "Perceptual visibility for every link/state",
+    "Header translucent/blur effective contrast",
+    "Source Hover group-opacity effective contrast (not remeasured)",
+    "Focus indicator effective contrast",
+    "Other Hover/Focus text contrast not remeasured",
+    "Not rendered branches, dark, other browsers, assistive technology, SaaS/Chat"
+  ],
+  "network": {
+    "allowed": 567,
+    "blocked": {
+      "GET https://vercel.live/_next-live/feedback/feedback.js": 35
+    },
+    "responses": {
+      "200": 567
+    },
+    "errors": 0,
+    "paths": {
+      "/demo": 70,
+      "/_next/static/immutable/media/03fc1b4a8d284b5e-s.p.45487z7p3r8wm.woff2": 35,
+      "/_next/static/immutable/chunks/1hprhcx6r02sa.css": 35,
+      "/_next/static/immutable/chunks/3vdr4gtuu4hwf.js": 35,
+      "/_next/static/immutable/chunks/1u5du6dcdcd-8.js": 35,
+      "/_next/static/immutable/chunks/1jr6_k9m76xps.js": 35,
+      "/_next/static/immutable/chunks/17klswfnyrugb.js": 35,
+      "/_next/static/immutable/chunks/1gxj8qu-ds-4e.js": 35,
+      "/_next/static/immutable/chunks/turbopack-2_ubjtvpziy_d.js": 35,
+      "/_next/static/immutable/chunks/2b-dlm_g2q5of.js": 35,
+      "/_next/static/immutable/chunks/0ws2tuiyj0zz3.js": 35,
+      "/_next/static/immutable/chunks/0vidsy8in6rpc.js": 35,
+      "/demo/research/v0313wclyankpmyo4ujhmza2": 28,
+      "/demo/research/c3q3cl35ne9iq5yuwxpx7bg5": 28,
+      "/demo/research/qyjy9por32pcwpg8mhevznmw": 28,
+      "/demo/research/ix53bd2y7be2zmk55h2sypn8": 28
+    },
+    "methods": {
+      "GET": 567
+    },
+    "allowedOrigins": [
+      "https://evidence-atlas-git-test-demo-contrast-focus-batch-morimotodev93.vercel.app"
+    ],
+    "redirectBlocked": 0,
+    "websocketBlocked": 0
+  }
+}
