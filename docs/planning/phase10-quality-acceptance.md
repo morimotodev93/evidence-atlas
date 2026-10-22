@@ -1192,3 +1192,174 @@ Windows 10.0.26200.0 / Node v24.16.0 / pnpm 12.9.1。chunker suiteは実関数�
 IntegrationのHTTP gate、Error handlingのstream/abort/production回復gateも今回未実行で、両項目はPartialを維持する。
 変更は `src/lib/ai/chunk-text.ts`、同 `.test.ts`、本受入文書の追記だけ。roadmap・過去記録を保持し、新規文書/依存なし。
 禁止された実サービス/DB/Cloud/server/browser/build操作およびcommit/push/PR作成/mergeは行わず、未コミットで停止する。
+
+## PR #25 — Chat Stream / Abort Error Handling（2026-10-22 JST）
+
+C: Codexによるローカル固定モックの調査・実行。開始時にHEAD / branch / worktree / statusを確認し、
+`45dff9c194dd9a3902275e3e0fbabfe57d96b522` / `test/phase10-chat-stream-error-offline` /
+単一worktree / clean / origin `morimotodev93/evidence-atlas` と一致した。
+実DB・実AI・実Session/OAuth・Redis・Cloud・HTTPサーバー・外部通信・ブラウザ・production buildは使用していない。
+**Error handlingはPartialを維持する。テスト成功は現状の再現を意味し、下記の問題解消・受入完了を意味しない。**
+本番コードの修正案は記録だけに留め、未修正・未コミットで停止する。
+
+### Phase A: 現行契約と根拠
+
+根拠は実[Chat route](../../src/app/research/[id]/chat/route.ts)、
+[既存・追加routeテスト](../../src/auth/chatRoutes.test.ts)、
+[Chat panel](../../src/app/research/[id]/_components/research-ai-panel.tsx)、
+[History dialog](../../src/app/research/[id]/_components/research-ai-conversations-dialog.tsx)、
+[mobile wrapper](../../src/app/research/[id]/_components/research-ai-mobile-dialog.tsx)、
+[PR #23レビュー](phase10-offline-quality-gates-review.md)。仕様の成功条件と実装の不足を分け、仕様は変更しない。
+
+- 認証・Research/Conversation確認・rate limit・context/retrieval・過去Message読取の後、USERを保存する。
+  続いてConversationの `updatedAt` を `Temporal.Now.instant()` で1回更新し、`streamText` → `toTextStreamResponse()` を呼ぶ。
+  AI完成時の追加Conversation更新・全writeを包むtransaction・失敗時のUSER削除はない。
+- routeが登録する保存callbackは `onFinish` のみ。実行された場合はfinishReason/本文に関係なくusageを先に保存する。
+  token値未提供はnull。usage保存がrejectすると同じ例外をthrowし、引用検証・AI保存へ進まない。
+- usage保存後、`finishReason === "stop"` かつ**検証前**の `text.trim()` が非空の場合だけ引用検証とAI保存へ進む。
+  非stopまたはraw空白ならusageだけを追加し、AIは保存しない。AI保存reject時はUSER・usageを巻き戻さない。
+  引用検証後の空白チェックはなく、未許可引用だけの本文は空文字AIとして保存される（PR #23既知）。
+- `onFinish` の呼出条件はSDKに依存し、routeは全error/abortでの実行を保証しない。
+  SDKを完全モックし、テスト側がcallbackを明示的に呼ぶ/呼ばない。
+  インストール済み `ai@6.0.280` の `src/generate-text/stream-text.ts` を**静的読取のみ**行った。
+  event processorのflushにはrecorded stepなし/NoOutput時の早期returnがあり、`onFinish` を一律のfinallyとは扱えない。
+  `textStream` はtext-deltaを選択する実装で、finish/error/abortの全情報が本文に届く契約ではない。
+  SDKのerror part、stream自体のreject、callback例外は区別が必要。実SDKによる通知順序・消費/cancel伝播・HTTP変換は未実行。
+- routeは `request.signal` を `streamText.abortSignal` へ渡さず、独自の `onError` / `onAbort` も登録しない。
+  Response開始後の失敗をroute独自のJSON/statusへ変換する処理や、保存完了を示すstreamイベントはない。
+  同期開始例外はdirect-callでrejectし、Next.jsのproduction HTTP status/bodyは今回確認していない。
+- UIは送信開始でinputを空にし、USER＋空assistantを仮表示して `isSending=true`。
+  `fetch`/body read失敗は今回の仮表示ペアを除去し、汎用sendErrorを表示、finallyで `isSending=false`。
+  既存turnは残るがinputは復元しない。自動再送はなく、入力し直して再送できる。
+  `sendError` は送信開始時/成功時にclearされず、失敗後の成功でも残る。New/History復元成功ではclearされる。
+- UIはclean EOFを受けるとsources再取得へ進む。再取得後はsourcesだけを反映し、保存済みmessagesと照合しない。
+  refresh失敗はconsoleへ記録するだけで送信alertを表示しない。空/部分本文・AI保存欠如を正常回答と区別できない。
+  History選択callbackは保存済みmessages全体を復元する。dialogの実操作・paintは未検証。
+  UIにはStop操作・AbortController・fetch signal・unmount cleanupがなく、mobile wrapperも中断処理を追加しない。
+
+### Phase B: ケース対応と保存状態
+
+保存欄はwrite doubleが正常resolveした経路の観測であり、実DB commit/rollbackの証拠ではない。
+「なし」はこのfixtureでcallbackを呼んでいない/保存へ到達しない意味。実SDKの全abort/errorにも同じになるとは主張しない。
+
+| 要求ケース / 証拠 | Response / stream | USER / AI / usage | Conversation / 判定 |
+| --- | --- | --- | --- |
+| 1 同期開始例外：PR #23 `propagates generation startup failure...` を再利用 | handlerが元例外でreject。Responseなし | 1 / 0 / 0 | 更新1、部分保存あり。実HTTP未確認 |
+| 2 非同期エラー：追加 `rejects a pending body read...` | 200後に1chunk読取、保留readと後続readが同じ例外でreject | 1 / 0 / 0 | 更新1、onFinishなしの固定条件。200を完了証拠にしない |
+| 3 reader cancel：追加 `cancels a synthetic response reader...` | 1chunk後にAbortErrorを理由にcancel、ダブルのcancel1回、readはdone | 1 / 0 / 0 | 更新1、onFinishなし。SDK/providerの中断確認ではない |
+| 3 request abort：追加 `does not forward request abort...` | request.signal.abortedでもSDK optionにabortSignalなし。明示stop callback後にclean EOF | 1 / 1 / 1 | 更新1。abort後のstopでも保存を抑止しない。実切断時の継続は未実測 |
+| 4 非stop：既存length＋追加content-filter/tool-calls/error/otherの4件 | 合成partial本文＋clean EOF、200。finishReasonを本文に通知しない | 各1 / 0 / 1 | 各更新1、validator未実行。UIで完了と区別できないリスク |
+| 5 usage保存失敗：PR #23 `propagates usage-write failure...` を拡張 | 固定Responseの200/bodyと、手動callbackのrejectを別々にassert | 1 / 0 / 0（usage試行1失敗） | 更新1、AI/validatorなし。SDKがcallback例外をclientへ通知するかは未確認 |
+| 6 AI保存失敗：PR #23 `records usage before an AI-message write failure...` を拡張 | 固定Responseは200/body、手動callbackは元例外でreject | 1 / 0（AI試行1失敗）/ 1 | 更新1、usage保持。wire/HTTPは未確認 |
+| 7 検証後空本文：既存 `currently persists empty validated AI text...` を拡張 | 手動stop、実validatorで未許可引用を除去 | 1 / 空AI 1 / 1 | 更新1、既知問題を保持。正常回答の受入に数えない |
+| 8 stream失敗後の手動再送：追加 `retains two identical USER writes...` | 1回目partial→reject、2回目stop→clean EOF | 合計2 / 1 / 1 | 更新2、生成2回。2回目promptにも同じUSERが2つ。意図した再質問との区別なし |
+| 8 callback再実行：追加 `has no callback replay deduplication...` | callbackを手動で2回実行 | 1 / 2 / 2 | 更新1、生成呼出1。SDKが再配信するとの主張ではなく冪等性の限界 |
+
+開始例外、length、raw空白stop、usage/AI保存途中失敗、検証後空本文には重複テストを追加していない。
+既存3件のassertionだけ補強し、routeに**9件追加（55→64）**。
+[panelテスト](../../src/app/research/[id]/_components/research-ai-panel.test.tsx)には**7件追加**：
+read rejectのError/AbortError 2件、fetch失敗→手動再送でも残るsendError 1件、部分/空本文のclean EOF 2件、
+sources refresh失敗 1件、既存turn保持→History callbackでUSER復元 1件。新規合計**16件**。
+
+UIテストは実panel関数のhandler closureとfunctional setterを、最小useState doubleで実行しJSXの分岐/propsを検査する。
+実Request/Response/ReadableStreamはNode内メモリだけ。fetchは未指定呼出も例外にする固定mock、DB/auth/access/rate limit/model/SDKもmock。
+React mount、batch/scheduling、DOM、spinnerの描画、focus、dialog操作、unmount、ネットワーク切断は再現していない。
+routeとUIは別fixtureであり、同じHTTP経路を端から端まで実行した証拠ではない。
+この境界で送信中disabled→例外後解除、汎用alert、再入力可、旧turn保持、保存済みUSERの復元callbackを確認した。
+成功後の古いalert、空/部分回答の無alert、messagesを照合しないrefreshも再現したため、**UI回復の全面Passとはしない**。
+
+### Phase C: 未修正の問題・仕様選択と推奨案
+
+新たにassertionで確認したのは、成功再送後のsendError残留、clean EOFでの部分/空本文・未保存AIの判別不能、
+request abort未転送、再送時のUSER重複とprompt重複。callback再実行も保存を重複させるが、実SDKでの発生証拠はない。
+引用除去後の空AI、usage/AI保存途中失敗での部分保存、raw streamと保存後本文の差はPR #23以前の既知事項。
+Eの「未完了AI非成功扱い・spinner解除と再操作」という受入条件に対し、現状のEOF判定とエラー残留には不足がある。
+以下は**後続で合意する提案であり、今回の仕様決定・実装修正ではない**。
+
+| 判断対象 | 現状とリスク | 選択肢 / 推奨理由 | 本番変更の要否・修正案 |
+| --- | --- | --- | --- |
+| abortのUSER / usage | USERは先に残る。usageはonFinish次第で欠落し得る。request abortだけでは生成停止を要求しない | USER削除 / 保持のみ / attempt状態付き保持を選べる。**状態付き保持を推奨**：送信意図と課金・失敗履歴を失わず、未完了を正常回答と区別できる。usageは観測できた値だけ保存し、未知を0と推定しない | 合意後にattempt識別/状態、signal伝播、onAbort/onError時の観測設計が必要。実SDKで取れるusageと切断挙動は別検証 |
+| 完了・保存通知 | plain text/200/EOFではfinishReasonと保存結果をUIが知らない。部分回答が通常表示で残り得る | EOF後に履歴と照合する案 / 完了・失敗・保存結果を明示する構造化stream案。**明示通知を推奨**：生成終了と保存完了を区別できる | transport/UI変更が必要。非stop・callback保存失敗・空本文を完了と表示しない再現テストを実装PRで期待動作へ変更する |
+| usage保存失敗 / AI保存失敗 | usage失敗はAI保存も止める。AI失敗ではusageだけ残る | 全write原子化 / 計測と回答保存を分ける案。**計測を独立保持し保存失敗状態を明示する案を推奨**：生成コストと回答の有無を別に追跡できる。AI保存をusage必須にするかは要判断 | エラー通知・retry単位・計測の耐久性設計が必要。現状の部分保存をrollback済みと扱わない |
+| 再送・重複 | 同じ内容の新規POSTはUSERを追加し直す。callbackにも重複防止なし | 毎回別turn / 前回USERを明示して再生成 / attempt keyで冪等化。**論理送信keyをretryで再利用する案を推奨**：内容一致だけで意図した再質問を消さずに重複を防げる | client/API/保存制約の設計が必要。callback再配信の実発生は未確認で、冪等化の要否は想定retry契約と合わせて判断 |
+| 送信error・draft回復 | inputは消え、成功再送後も古いalertが残る。Historyでは保存済みUSERが戻る | 送信開始/成功で旧error解除、失敗時draft復元 / 明示retry / History再読込を選べる。**旧error解除＋保存状態に沿うretryを推奨**：画面と保存履歴のずれを抑えられる | panel変更が必要。まず旧error解除の小修正、draft復元は重複防止契約と合わせる。今回の再現assertionを後続で変更しmount/browser再検証する |
+| 検証後空本文 | 空AI保存ができ、raw表示と履歴も異なり得る | 現状許容 / 保存しない＋明示error / 固定fallback。**検証後trim確認＋未完了通知を推奨**：空回答を成功と記録しない | routeとUIの通知変更が必要。usageは観測分を残す提案。既存空AI再現テストは修正せず保持 |
+
+### Phase D: オフライン実行結果
+
+Windows / Node **v24.16.0** / pnpm **12.9.1**（packageManager一致）/ Vitest **3.2.7**。
+初回PowerShell profileのfnm multishell作成はアクセス拒否を出したが、Git確認は成功。以降 `login:false` を使用した。
+Vitest初回はsandboxのesbuild子プロセス起動が `spawn EPERM` で失敗した。
+同じ許可済みコマンドを承認付き実行で再実行し成功。config・除外・依存・期待値を緩めていない。
+
+| 実行コマンド / 段階 | ファイル数 / 成功 / 失敗 / exit code |
+| --- | --- |
+| `pnpm exec vitest run src/auth/chatRoutes.test.ts 'src/app/research/[id]/_components/research-ai-panel.test.tsx'` 初回 | **0件収集、テスト成功/失敗件数なし、exit 1**。config読込中の `spawn EPERM` |
+| 同上・再実行 | **2 / 71 / 0 / exit 0**（route64＋panel7） |
+| `pnpm test --run`（既存assertion補強後の最終コード） | **67 / 1,464 / 0 / exit 0**。開始時1,448件＋追加16件 |
+| `pnpm exec tsc --noEmit` | **exit 0**、型エラー0 |
+| `pnpm lint` | **exit 0、0 errors / 3 warnings**。既存 `test-results/pr22-retest/verify.mjs` のformat、`test-results/pr22-verify.mjs` のformat/backgroundChainsのみ |
+| `git diff --check` | **exit 0** |
+
+補助的な文書保持検査では、`node --input-type=module -e ...` はPowerShellのquote変換によるSyntaxErrorでexit 1、
+stdin版の `node --input-type=module` はgit子プロセスの `spawnSync EPERM` でexit 1（いずれもテスト未実行）。
+最終的にPowerShellで `git show HEAD:docs/planning/phase10-quality-acceptance.md` とUTF-8読取を行単位で照合し、
+既存**1,194行すべて一致**・追加は元の末尾以降、exit 0を確認した。改行形式をbyte単位で保持したとの主張はしない。
+
+全回帰は既存のサービスmock/通信前拒否/除外設定を維持するVitestであり、suite名にSession/Cloud/browser等があっても実サービス検証ではない。
+追加テストは実SDKのruntimeを使わず、実HTTP・providerのerror/abort順序、実DB耐久性/競合/rollback、実React描画を確認していない。
+
+### Phase E: 受入の残条件と変更範囲
+
+**Error handlingはPartial・未完了を維持し、roadmapおよび既存チェックボックスは変更しない。**
+残条件は部分保存/abort/usage/retryの仕様合意、上記の実装不足を別PRで修正して再現テストを期待動作へ更新すること、
+実SDKと固定providerによるerror part/throw/abort/callback保存失敗の通知確認、PB後の隔離production-mode HTTP/HTML/RSC応答と
+browserでのspinner・再送・History復元・error解除・未完了AI非成功扱い・秘密marker非露出の確認。
+実provider障害・実DB停止・完全監視監査は既存の別gate。今回の固定モック成功でこれらを代替しない。
+
+変更は次の3ファイルのみ。既存実行履歴は保持し、本番実装・設定・lockfile・依存・roadmapは変更していない。
+
+- `src/auth/chatRoutes.test.ts`（9件追加、既存保存失敗/空本文テストのassertion補強）
+- `src/app/research/[id]/_components/research-ai-panel.test.tsx`（新規7件、helperは同ファイル内）
+- `docs/planning/phase10-quality-acceptance.md`（本節の末尾追記）
+
+最終Git状態は同branch / 同HEAD、上記追跡済み2ファイルがmodified、panelテスト1ファイルがuntracked。
+commit / push / PR作成 / mergeは実行していない。
+
+### PR #25 follow-up — Clear Stale Chat Send Error（2026-10-22 JST）
+
+開始時は `test/phase10-chat-stream-error-offline` / `45dff9c194dd9a3902275e3e0fbabfe57d96b522` /
+単一worktree。未コミット差分は上記PR #25のrouteテスト・untrackedのpanelテスト・本受入文書だけと確認した。
+これらを保持し、今回の本番修正は `research-ai-panel.tsx` の `handleSend` に追加した **`setSendError(null)` 1行のみ**。
+Conversation未選択・空白入力・送信中の早期returnより後、有効な送信開始時に実行する。
+入力編集だけや空白送信で既存エラーを消す処理は追加していない。
+
+修正前は初回送信失敗後、有効な再送開始・成功後にも古いsendErrorが残った。
+修正後は有効な再送開始で解除し、成功後も復活しない。再送も失敗した場合はcatchが新たなsendErrorを設定する。
+上記PR #25の不具合発見・未修正という記述は当時の実行履歴として保持し、このfollow-upでエラー残留だけを修正した。
+
+既存panelテストの再送ケースを期待動作に更新し、成功/再失敗の2ケースへ拡張した。
+いずれも初回エラー、編集だけでは保持、再送開始時の解除、送信中disabled、finally解除、各終了後のエラー状態を検査する。
+空白送信のhandler guardではエラーと入力が残り、追加fetchがないケースを1件追加した。
+UIテストは **7→9件（純増2件）**。他の既存stream/error/abort/History復元テストは削除・弱体化していない。
+routeテストは開始時のSHA-256と同一で、今回追加変更していない。
+
+| 実行コマンド / 段階 | ファイル数 / 成功 / 失敗 / exit code |
+| --- | --- |
+| `pnpm exec vitest run 'src/app/research/[id]/_components/research-ai-panel.test.tsx'`（本番修正前） | **1 / 7 / 2 / exit 1**。成功/再失敗の両ケースで再送開始時alertが残りFail |
+| `pnpm exec vitest run src/auth/chatRoutes.test.ts 'src/app/research/[id]/_components/research-ai-panel.test.tsx'`（修正後） | **2 / 73 / 0 / exit 0**（route64＋panel9） |
+| `pnpm test --run` | **67 / 1,466 / 0 / exit 0**（前回1,464＋今回2） |
+| `pnpm exec tsc --noEmit` | **exit 0**、型エラー0 |
+| `pnpm lint` | **exit 0、0 errors / 3 warnings**。上記PR #25と同じ既存 `test-results/pr22-retest/verify.mjs` と `test-results/pr22-verify.mjs` の未使用変数 |
+| `git diff --check` | **exit 0** |
+
+Node v24.16.0 / pnpm 12.9.1 / Vitest 3.2.7、同じオフラインモック境界。Vitestは既知のesbuild起動制限を避ける承認付き実行。
+これはmockされたstate/handlerとJSX propsの結果であり、**実React mount・DOM・ブラウザ描画の成功証拠ではない**。
+Chat route、request/response、abortSignal、retry冪等性、USER/AI/usage保存順序、citation、SDK設定は変更していない。
+部分保存/abort/retryの仕様判断、完了・保存結果の通知、検証後空AI、実SDKの通知、production-mode HTTP・ブラウザ回復は残課題。
+**Error handling全体はPartialを維持**し、roadmapのチェックボックスは変更しない。
+
+今回の変更はpanel本体1行・既存untrackedのpanelテスト拡張・本節の末尾追記。
+開始時の文書148,908 bytesは同一prefixとして保持し、元の不具合発見記録と実行履歴を変更していない。
+累積Git差分はpanel本体・routeテスト・本受入文書のmodified 3ファイルと、panelテストのuntracked 1ファイル。
+実DB/OAuth/Session/AI API/Redis/Cloud、server/browser/production build、新規依存/migration、commit/push/PR作成/mergeは実行せず、未コミットで停止する。

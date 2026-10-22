@@ -1016,7 +1016,10 @@ describe("research chat route authorization", () => {
 
   it("propagates usage-write failure before validation and AI persistence while retaining the user write", async () => {
     const failure = new Error("Synthetic usage write failure");
-    await sendChatMessage(chatRequest(), routeContext());
+    const response = await sendChatMessage(chatRequest(), routeContext());
+    expect(response.status).toBe(200);
+    // This response is a fixed stub, not evidence of SDK error notification.
+    await expect(response.text()).resolves.toBe("stream");
     mocks.aiUsageEventCreate.mockRejectedValueOnce(failure);
 
     await expect(completionCallback()({
@@ -1036,7 +1039,9 @@ describe("research chat route authorization", () => {
 
   it("records usage before an AI-message write failure without rolling back the user write", async () => {
     const failure = new Error("Synthetic AI message write failure");
-    await sendChatMessage(chatRequest(), routeContext());
+    const response = await sendChatMessage(chatRequest(), routeContext());
+    expect(response.status).toBe(200);
+    await expect(response.text()).resolves.toBe("stream");
     mocks.messageCreate.mockRejectedValueOnce(failure);
 
     await expect(completionCallback()({
@@ -1051,6 +1056,7 @@ describe("research chat route authorization", () => {
       [{ conversationId, authorType: "USER", content: "What does the evidence show?" }],
       [{ conversationId, authorType: "AI", content: "Completed answer" }],
     ]);
+    expect(mocks.conversationQuery.update).toHaveBeenCalledOnce();
   });
 
   it("currently persists empty validated AI text when the raw output contains only unauthorized citations", async () => {
@@ -1071,6 +1077,8 @@ describe("research chat route authorization", () => {
       [{ conversationId, authorType: "USER", content: "What does the evidence show?" }],
       [{ conversationId, authorType: "AI", content: "" }],
     ]);
+    expect(mocks.validateSourceCitations).toHaveReturnedWith("");
+    expect(mocks.conversationQuery.update).toHaveBeenCalledOnce();
   });
 
   it("restores unchanged messages and resolves first-seen AI citations in the authorized Workspace", async () => {
@@ -1221,6 +1229,178 @@ describe("research chat route authorization", () => {
       content:
         "Current [source:current-source]. Retrieved [source:retrieved-source]. " +
         "Unlinked . Metadata . Conclusion . History . Finding . Research . Unknown .",
+    });
+  });
+
+  describe("synthetic text stream boundary (not the real SDK)", () => {
+    type Finish = Parameters<ReturnType<typeof completionCallback>>[0];
+    const usage = { inputTokens: 10, outputTokens: 5, totalTokens: 15 };
+
+    function syntheticStream() {
+      let controller: ReadableStreamDefaultController<Uint8Array>;
+      const cancel = vi.fn();
+      const body = new ReadableStream<Uint8Array>({
+        start(value) { controller = value; },
+        cancel,
+      });
+      mocks.streamText.mockImplementationOnce(() => ({
+        toTextStreamResponse: () => new Response(body),
+      }));
+      return {
+        cancel,
+        chunk(text: string) { controller.enqueue(new TextEncoder().encode(text)); },
+        error(error: Error) { controller.error(error); },
+        async finish(result: Finish, requestIndex = 0) {
+          // The fixture explicitly chooses whether/when onFinish runs. This is
+          // not an emulation of SDK callback/error/abort scheduling.
+          const options = mocks.streamText.mock.calls[requestIndex][0] as {
+            onFinish: (result: Finish) => Promise<void>;
+          };
+          await options.onFinish(result);
+          controller.close();
+        },
+      };
+    }
+
+    function expectUserWrites(count: number) {
+      expect(mocks.messageCreate.mock.calls).toEqual(Array.from({ length: count }, () => [{
+        conversationId, authorType: "USER", content: "What does the evidence show?",
+      }]));
+      expect(mocks.conversationQuery.update).toHaveBeenCalledTimes(count);
+      for (const [update] of mocks.conversationQuery.update.mock.calls) {
+        expect(update.updatedAt).toBeInstanceOf(Temporal.Instant);
+      }
+      expect(mocks.conversationCreate).not.toHaveBeenCalled();
+    }
+
+    it("rejects a pending body read after partial bytes without inventing completion writes", async () => {
+      const stream = syntheticStream();
+      const response = await sendChatMessage(chatRequest(), routeContext());
+      expect(response.status).toBe(200);
+      const reader = response.body!.getReader();
+      stream.chunk("Partial answer");
+      expect(new TextDecoder().decode((await reader.read()).value)).toBe("Partial answer");
+      const failure = new Error("Synthetic asynchronous stream failure");
+      const pendingRead = reader.read();
+      stream.error(failure);
+      await expect(pendingRead).rejects.toBe(failure);
+      await expect(reader.read()).rejects.toBe(failure);
+      expectUserWrites(1);
+      expect(mocks.aiUsageEventCreate).not.toHaveBeenCalled();
+      expect(mocks.validateSourceCitations).not.toHaveBeenCalled();
+      const options = mocks.streamText.mock.calls[0][0];
+      expect(options).not.toHaveProperty("onError");
+      expect(options).not.toHaveProperty("onAbort");
+    });
+
+    it("cancels a synthetic response reader after a chunk while retaining only the USER write", async () => {
+      const stream = syntheticStream();
+      const response = await sendChatMessage(chatRequest(), routeContext());
+      const reader = response.body!.getReader();
+      stream.chunk("Partial answer");
+      expect((await reader.read()).done).toBe(false);
+      const reason = new DOMException("Synthetic cancellation", "AbortError");
+      await reader.cancel(reason);
+      expect(stream.cancel).toHaveBeenCalledExactlyOnceWith(reason);
+      await expect(reader.read()).resolves.toEqual({ done: true, value: undefined });
+      expect(response.status).toBe(200); // Headers do not certify completion.
+      expectUserWrites(1);
+      expect(mocks.aiUsageEventCreate).not.toHaveBeenCalled();
+      expect(mocks.validateSourceCitations).not.toHaveBeenCalled();
+    });
+
+    it("does not forward request abort to streamText; an explicitly delivered stop still persists", async () => {
+      const stream = syntheticStream();
+      const abort = new AbortController();
+      const request = new Request(chatRequest(), { signal: abort.signal });
+      const response = await sendChatMessage(request, routeContext());
+      abort.abort();
+      expect(request.signal.aborted).toBe(true);
+      expect(mocks.streamText.mock.calls[0][0]).not.toHaveProperty("abortSignal");
+      const body = response.text();
+      stream.chunk("Completed answer");
+      await stream.finish({ text: "Completed answer", finishReason: "stop", totalUsage: usage });
+      await expect(body).resolves.toBe("Completed answer");
+      expect(mocks.messageCreate.mock.calls).toEqual([
+        [{ conversationId, authorType: "USER", content: "What does the evidence show?" }],
+        [{ conversationId, authorType: "AI", content: "Completed answer" }],
+      ]);
+      expect(mocks.aiUsageEventCreate).toHaveBeenCalledOnce();
+      expect(mocks.conversationQuery.update).toHaveBeenCalledOnce();
+    });
+
+    // "length" and blank "stop" already have PR #23 coverage above.
+    it.each(["content-filter", "tool-calls", "error", "other"])(
+      "returns partial text with clean EOF but saves only usage for finishReason=%s",
+      async (finishReason) => {
+        const stream = syntheticStream();
+        const response = await sendChatMessage(chatRequest(), routeContext());
+        const body = response.text();
+        stream.chunk("Partial answer");
+        await stream.finish({ text: "Partial answer", finishReason, totalUsage: usage });
+        expect(response.status).toBe(200);
+        await expect(body).resolves.toBe("Partial answer");
+        expectUserWrites(1);
+        expect(mocks.aiUsageEventCreate).toHaveBeenCalledExactlyOnceWith({
+          workspaceId, userId, researchId, conversationId,
+          operation: "CHAT", provider: "google", model: "gemini-3.6-flash",
+          ...usage, finishReason,
+        });
+        expect(mocks.validateSourceCitations).not.toHaveBeenCalled();
+      },
+    );
+
+    it("retains two identical USER writes after a failed stream is manually resent, with one AI and usage", async () => {
+      const failed = syntheticStream();
+      const first = await sendChatMessage(chatRequest(), routeContext());
+      const reader = first.body!.getReader();
+      failed.chunk("Discarded partial answer");
+      await reader.read();
+      const failure = new Error("Synthetic first attempt failure");
+      failed.error(failure);
+      await expect(reader.read()).rejects.toBe(failure);
+      expectUserWrites(1);
+      expect(mocks.aiUsageEventCreate).not.toHaveBeenCalled();
+
+      // Represent the first committed USER in the second request's history.
+      mocks.messageQuery.all.mockResolvedValueOnce([
+        { authorType: "USER", content: "What does the evidence show?" },
+      ]);
+      const retry = syntheticStream();
+      const second = await sendChatMessage(chatRequest(), routeContext());
+      expectUserWrites(2);
+      expect(mocks.streamText).toHaveBeenCalledTimes(2);
+      expect(mocks.streamText.mock.calls[1][0].messages).toEqual([
+        { role: "user", content: "What does the evidence show?" },
+        { role: "user", content: "What does the evidence show?" },
+      ]);
+      const body = second.text();
+      retry.chunk("Retry answer");
+      await retry.finish({ text: "Retry answer", finishReason: "stop", totalUsage: usage }, 1);
+      await expect(body).resolves.toBe("Retry answer");
+      expect(mocks.messageCreate.mock.calls).toEqual([
+        [{ conversationId, authorType: "USER", content: "What does the evidence show?" }],
+        [{ conversationId, authorType: "USER", content: "What does the evidence show?" }],
+        [{ conversationId, authorType: "AI", content: "Retry answer" }],
+      ]);
+      expect(mocks.aiUsageEventCreate).toHaveBeenCalledOnce();
+      expect(mocks.conversationQuery.update).toHaveBeenCalledTimes(2);
+    });
+
+    it("has no callback replay deduplication (manual replay, not an SDK delivery claim)", async () => {
+      await sendChatMessage(chatRequest(), routeContext());
+      const finish = completionCallback();
+      const result = { text: "Completed answer", finishReason: "stop", totalUsage: usage };
+      await finish(result);
+      await finish(result);
+      expect(mocks.streamText).toHaveBeenCalledOnce();
+      expect(mocks.conversationQuery.update).toHaveBeenCalledOnce();
+      expect(mocks.messageCreate.mock.calls).toEqual([
+        [{ conversationId, authorType: "USER", content: "What does the evidence show?" }],
+        [{ conversationId, authorType: "AI", content: "Completed answer" }],
+        [{ conversationId, authorType: "AI", content: "Completed answer" }],
+      ]);
+      expect(mocks.aiUsageEventCreate).toHaveBeenCalledTimes(2);
     });
   });
 
