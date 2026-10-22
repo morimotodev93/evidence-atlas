@@ -4,8 +4,10 @@ const CHUNK_OVERLAP_TOKENS = 96;
 // Conservative local approximation for Gemini text token counts.
 // ASCII text is estimated at roughly 1 token per 3 characters.
 // Non-ASCII text, including Japanese/CJK, is estimated more conservatively.
-const ASCII_TOKEN_WEIGHT = 1 / 3;
-const NON_ASCII_TOKEN_WEIGHT = 1.5;
+// Count sixths of a token to avoid rounding drift from repeated 1/3 addition.
+const TOKEN_SCALE = 6;
+const ASCII_TOKEN_UNITS = 2;
+const NON_ASCII_TOKEN_UNITS = 9;
 
 export function chunkText(text: string): string[] {
   const normalized = text.trim();
@@ -47,26 +49,26 @@ export function chunkText(text: string): string[] {
 }
 
 export function estimateTokenCount(text: string): number {
-  let tokens = 0;
+  let tokenUnits = 0;
 
   for (const char of text) {
-    tokens +=
-      char.charCodeAt(0) <= 127 ? ASCII_TOKEN_WEIGHT : NON_ASCII_TOKEN_WEIGHT;
+    tokenUnits +=
+      char.charCodeAt(0) <= 127 ? ASCII_TOKEN_UNITS : NON_ASCII_TOKEN_UNITS;
   }
 
-  return Math.ceil(tokens);
+  return Math.ceil(tokenUnits / TOKEN_SCALE);
 }
 
 function findChunkEnd(text: string, start: number): number {
-  let estimatedTokens = 0;
+  let tokenUnits = 0;
   let lastParagraphBoundary = -1;
   let lastSentenceBoundary = -1;
 
   for (let index = start; index < text.length; index++) {
     const char = text[index];
 
-    estimatedTokens +=
-      char.charCodeAt(0) <= 127 ? ASCII_TOKEN_WEIGHT : NON_ASCII_TOKEN_WEIGHT;
+    tokenUnits +=
+      char.charCodeAt(0) <= 127 ? ASCII_TOKEN_UNITS : NON_ASCII_TOKEN_UNITS;
 
     if (char === "\n" && text[index + 1] === "\n") {
       lastParagraphBoundary = index + 2;
@@ -76,7 +78,7 @@ function findChunkEnd(text: string, start: number): number {
       lastSentenceBoundary = index + 1;
     }
 
-    if (estimatedTokens >= TARGET_CHUNK_TOKENS) {
+    if (tokenUnits >= TARGET_CHUNK_TOKENS * TOKEN_SCALE) {
       if (lastParagraphBoundary > start) {
         return lastParagraphBoundary;
       }
@@ -98,15 +100,15 @@ function findOverlapStart(
   chunkEnd: number,
   overlapTokens: number,
 ): number {
-  let estimatedTokens = 0;
+  let tokenUnits = 0;
 
   for (let index = chunkEnd - 1; index > chunkStart; index--) {
     const char = text[index];
 
-    estimatedTokens +=
-      char.charCodeAt(0) <= 127 ? ASCII_TOKEN_WEIGHT : NON_ASCII_TOKEN_WEIGHT;
+    tokenUnits +=
+      char.charCodeAt(0) <= 127 ? ASCII_TOKEN_UNITS : NON_ASCII_TOKEN_UNITS;
 
-    if (estimatedTokens >= overlapTokens) {
+    if (tokenUnits >= overlapTokens * TOKEN_SCALE) {
       return index;
     }
   }

@@ -190,6 +190,22 @@ describe("createInitialWorkspace", () => {
     expect(mocks.cookieSet).not.toHaveBeenCalled();
   });
 
+  it("propagates an accessible Workspace lookup failure before provisioning or cookie changes", async () => {
+    const error = new Error("Synthetic onboarding Workspace read failure");
+    mocks.getAccessibleWorkspaces.mockRejectedValueOnce(error);
+
+    await expect(createInitialWorkspace(state, onboardingForm())).rejects.toBe(error);
+    expect(mocks.getAccessibleWorkspaces).toHaveBeenCalledExactlyOnceWith("user-id");
+    expect(mocks.transaction).not.toHaveBeenCalled();
+    expect(mocks.organizationCreate).not.toHaveBeenCalled();
+    expect(mocks.membershipCreate).not.toHaveBeenCalled();
+    expect(mocks.workspaceCreate).not.toHaveBeenCalled();
+    expect(mocks.workspaceMembershipCreate).not.toHaveBeenCalled();
+    expect(mocks.cookies).not.toHaveBeenCalled();
+    expect(mocks.cookieSet).not.toHaveBeenCalled();
+    expect(mocks.redirect).not.toHaveBeenCalled();
+  });
+
   it("rejects invalid onboarding input before writing", async () => {
     await expect(
       createInitialWorkspace(state, onboardingForm("", "")),

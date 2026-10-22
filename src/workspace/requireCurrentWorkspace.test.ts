@@ -62,4 +62,16 @@ describe("current Workspace error boundary", () => {
     await expect(requireCurrentWorkspace("user")).rejects.toBe(redirectError);
     expect(mocks.redirect).toHaveBeenCalledExactlyOnceWith("/onboarding");
   });
+
+  it("propagates fallback lookup failure instead of treating it as an unprovisioned User", async () => {
+    const error = new Error("Synthetic accessible Workspace read failure");
+    mocks.cookieGet.mockReturnValueOnce(undefined);
+    mocks.getAccessibleWorkspaces.mockRejectedValueOnce(error);
+
+    await expect(requireCurrentWorkspace("user")).rejects.toBe(error);
+    expect(mocks.getAccessibleWorkspaces).toHaveBeenCalledExactlyOnceWith("user");
+    expect(mocks.membershipFirst).not.toHaveBeenCalled();
+    expect(mocks.workspaceFirst).not.toHaveBeenCalled();
+    expect(mocks.redirect).not.toHaveBeenCalled();
+  });
 });
