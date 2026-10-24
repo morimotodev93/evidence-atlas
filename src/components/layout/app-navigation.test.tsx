@@ -48,6 +48,7 @@ describe("Application navigation", () => {
     expect(html).toContain("font-semibold");
     expect(html).toContain("border-primary");
     expect(html).toContain("focus-visible:ring-2");
+    expect(html).toContain("Appearance");
   });
 
   it("does not mark lookalike route prefixes active", () => {
@@ -64,6 +65,14 @@ describe("Application navigation", () => {
     // Delegate focus containment, Escape and outside dismissal to Base UI.
     expect(nodes[0].props.modal).toBe(true);
     expect(nodes[0].props.disablePointerDismissal).not.toBe(true);
+  });
+
+  it("includes Appearance in the overlay Settings group", () => {
+    const html = renderToStaticMarkup(<AppNavigationMenu />);
+    expect(html).toContain("Settings");
+    expect(html).toContain("Appearance");
+    expect(html).toContain('data-slot="appearance-placeholder"');
+    expect(html).not.toContain('data-slot="select-trigger"');
   });
 
   it("accepts Base UI open/close events and closes on every navigation link, including the current page", () => {

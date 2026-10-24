@@ -280,6 +280,10 @@ Use the defined Light theme tokens.
 
 Use the defined Dark theme tokens.
 
+### Preference
+
+PR #36 adds browser-local Light / Dark / System selection, defaulting to System and following OS changes until an explicit Light or Dark preference is selected. A single root provider serves both application and Public Demo. Appearance is located in the application's Settings navigation group (persistent sidebar and overlay) and as a secondary control in the independent Demo header. It does not create a Settings route or database preference. Existing semantic palettes are reused. The user reports completed visual checks in Firefox normal and private windows and Chromium, covering Light/Dark display, mobile navigation, and Firefox browser 200% zoom; remaining verification limits are recorded in [Design System §17](design-system.md#17-light--dark-verification).
+
 ## 7. Typography
 
 Use a distinctive, well-balanced font family rather than an overly generic default choice, giving the interface a deliberate and considered visual identity.
@@ -298,7 +302,7 @@ The direction above remains the design baseline. The current implementation diff
 - Research-scoped AI exploration uses a sticky right-side panel at `lg` and above, with the width and internal message scrolling described above. Below `lg`, a fixed bottom Ask AI button opens the `90dvh` dialog; scrolling belongs to the shared panel's messages. The primary Research content remains a single column. The desktop panel is always visible rather than opening on demand; the intended on-demand interaction remains a design gap.
 - Both layouts reuse the AI panel, including New, History, streaming messages, and Supporting sources. They do not share live conversation selection or draft state across layouts. Phase 6 adds same-Workspace knowledge retrieval to these Research conversations; there is no separate Workspace chat destination.
 - Supporting sources can include Sources from other Research items in the same Workspace. The panel refreshes Source metadata after streaming and restores it with history. It displays Source titles and external links without a separate originating-Research label or retrieval-results view. UI copy still describes asking about the current Research, so the broader retrieval scope is not explicitly communicated in the panel.
-- Light and dark palettes are defined, but automatic system-theme selection is not wired up.
+- Light / Dark / System selection is implemented, with the scoped user-reported visual checks described above. All OS-change tracking conditions, all-screen contrast, and comprehensive WCAG 2.2 AA conformance remain unverified.
 - Research content uses a single-column flow, but responsive navigation and end-to-end accessibility verification remain outstanding.
 
 These gaps are recorded for implementation follow-up. They do not replace the intended navigation, evidence flow, or theme behavior.
