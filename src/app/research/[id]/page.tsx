@@ -80,7 +80,7 @@ export default async function ResearchDetailPage({
     <>
       <AppHeader />
 
-      <main className="mx-auto w-full max-w-5xl px-4 pb-24 pt-6 sm:px-6 sm:pb-24 sm:pt-8 lg:pb-8">
+      <main className="mx-auto w-full max-w-5xl px-4 pb-24 pt-6 sm:px-6 sm:pb-24 sm:pt-8 lg:pb-8 xl:max-w-7xl">
         {" "}
         {/* Back */}
         <div className="mb-6">
@@ -103,7 +103,7 @@ export default async function ResearchDetailPage({
           }}
         />
         {/* 2Column */}
-        <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_20rem]">
+        <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_20rem] xl:grid-cols-[minmax(0,1fr)_24rem]">
           {" "}
           <ResearchDetailContent
             research={research}
@@ -139,7 +139,7 @@ export default async function ResearchDetailPage({
             }}
           />
           {/* Sidebar */}
-          <aside className="hidden py-6 lg:block">
+          <aside className="hidden min-w-0 py-6 lg:block">
             <div className="sticky top-20">
               <ResearchAiPanel
                 researchId={research.id}

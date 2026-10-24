@@ -81,20 +81,18 @@ export function ResearchAiConversationsDialog({
         }
       />
 
-      <DialogContent>
-        <DialogHeader>
+      <DialogContent className="flex max-h-[90dvh] min-w-0 flex-col overflow-hidden">
+        <DialogHeader className="shrink-0 pr-8">
           <DialogTitle>Select Conversation</DialogTitle>
 
           <DialogDescription>
             Select a previous conversation to continue.
           </DialogDescription>
         </DialogHeader>
-        <div className="max-h-[60vh] overflow-y-auto">
-          <p className="text-sm text-muted-foreground">
+        <div className="min-h-0 overflow-y-auto overscroll-contain [overflow-wrap:anywhere]">
+          <p className="mb-3 text-sm text-muted-foreground">
             Conversations will appear here.
           </p>
-        </div>
-        <div className="max-h-[60vh] overflow-y-auto">
           {isLoading ? (
             <p className="text-sm text-muted-foreground">
               Loading conversations...

@@ -1,7 +1,7 @@
 # Design Direction
 
 > Status: Draft
-> Last Updated: 2026-10-01
+> Last Updated: 2026-10-24
 
 ## 1. Design Concept
 
@@ -49,6 +49,12 @@ AI-generated supplementary information should be available without disrupting th
 - The main Research content should remain visible while supplementary AI information is being explored.
 - On mobile, where horizontal space is limited, a modal or bottom sheet may be more appropriate.
 - AI-related UI should remain secondary to the research content rather than dominating the interface.
+
+Research AI Chat uses restrained Markdown typography for AI answers and plain text for user messages. A subtle semantic-token background and explicit role labels distinguish user messages from AI text; temporary-response and saved-history state labels remain visible. Generated links are noninteractive text, images are omitted, and raw HTML is not rendered. Evidence links remain in Supporting sources after the existing citation resolution.
+
+At `lg`, the Research detail layout retains its `max-w-5xl` container and 20rem AI column. At `xl` and above, it expands to `max-w-7xl` with a 24rem AI column, preserving the primary Research content as a single column. The desktop panel fits below its sticky offset with a viewport-relative height; only messages scroll, keeping the header and composer in place. New output follows the bottom while the reader is near it; reading older messages or selecting text pauses automatic following. Sending a question or selecting saved history returns to the latest messages, and a Latest messages control allows an explicit return.
+
+Below `lg`, the existing Ask AI dialog remains capped at `90dvh`. The shared panel fills its available space with a compact header and composer; the dialog wrapper does not add a second message scroll area. History has its own dialog, capped at `90dvh`, with one scrollable list. Long words and code wrap within the chat width.
 
 > **Principle:** The interface should remain quiet until additional information is needed.
 
@@ -289,7 +295,7 @@ The direction above remains the design baseline. The current implementation diff
 - Research screens use a simple header; the primary sidebar and mobile overlay navigation are not implemented.
 - The Research detail page places the stored, editable Conclusion before Sources. The intended sequence above places Conclusion after Discussion; this ordering difference remains an implementation gap, not an approved design change.
 - Research list search, status filtering, and sorting are implemented as an inline form above the list. Sidebar-based global search and Related Research are not implemented.
-- Research-scoped AI exploration uses a sticky right-side panel at `lg` and above. Below `lg`, a fixed bottom Ask AI button opens a dialog capped at `90dvh` with scrollable content. The primary Research content remains a single column. The desktop panel is always visible rather than opening on demand; the intended on-demand interaction remains a design gap.
+- Research-scoped AI exploration uses a sticky right-side panel at `lg` and above, with the width and internal message scrolling described above. Below `lg`, a fixed bottom Ask AI button opens the `90dvh` dialog; scrolling belongs to the shared panel's messages. The primary Research content remains a single column. The desktop panel is always visible rather than opening on demand; the intended on-demand interaction remains a design gap.
 - Both layouts reuse the AI panel, including New, History, streaming messages, and Supporting sources. They do not share live conversation selection or draft state across layouts. Phase 6 adds same-Workspace knowledge retrieval to these Research conversations; there is no separate Workspace chat destination.
 - Supporting sources can include Sources from other Research items in the same Workspace. The panel refreshes Source metadata after streaming and restores it with history. It displays Source titles and external links without a separate originating-Research label or retrieval-results view. UI copy still describes asking about the current Research, so the broader retrieval scope is not explicitly communicated in the panel.
 - Light and dark palettes are defined, but automatic system-theme selection is not wired up.

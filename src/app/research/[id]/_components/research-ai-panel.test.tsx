@@ -1,8 +1,14 @@
 import { isValidElement, type ReactElement, type ReactNode } from "react";
+import { renderToStaticMarkup } from "react-dom/server";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { ResearchAiPanel } from "./research-ai-panel";
+import { ResearchAiMarkdown } from "./research-ai-markdown";
+import { ResearchAiMobileDialog } from "./research-ai-mobile-dialog";
 
-const hooks = vi.hoisted(() => ({ slots: [] as unknown[], cursor: 0 }));
+const hooks = vi.hoisted(() => ({
+  slots: [] as unknown[], cursor: 0,
+  effects: [] as (() => void | (() => void))[],
+}));
 vi.mock("react", async (importOriginal) => ({
   ...await importOriginal<typeof import("react")>(),
   useState<T>(initial: T | (() => T)) {
@@ -20,6 +26,9 @@ vi.mock("react", async (importOriginal) => ({
     if (!(index in hooks.slots)) hooks.slots[index] = { current: initial };
     return hooks.slots[index];
   },
+  useEffect(effect: () => void | (() => void)) {
+    hooks.effects.push(effect);
+  },
 }));
 vi.mock("@/components/ui/button", () => ({ Button: "button" }));
 vi.mock("./research-ai-conversations-dialog", () => ({ ResearchAiConversationsDialog: "history-dialog" }));
@@ -34,9 +43,10 @@ function elements(node: ReactNode): Element[] {
   if (!isValidElement<Element["props"]>(node)) return [];
   return [node, ...elements(node.props.children)];
 }
-function view() {
+function view(variant: "desktop" | "mobile" = "desktop") {
   hooks.cursor = 0;
-  return elements(ResearchAiPanel({ researchId: "research-id", sources: [] }));
+  hooks.effects = [];
+  return elements(ResearchAiPanel({ researchId: "research-id", sources: [], variant }));
 }
 function button(label: string) {
   const element = view().find((node) => node.type === "button" && node.props.children === label);
@@ -66,8 +76,8 @@ function deferred<T>() {
   return { promise, resolve, reject };
 }
 function messageTexts() {
-  return view().filter((node) => node.type === "p" &&
-    String(node.props.className).includes("whitespace-pre-wrap")).map((node) => node.props.children);
+  return view().filter((node) => node.type === ResearchAiMarkdown || (node.type === "p" &&
+    String(node.props.className).includes("whitespace-pre-wrap"))).map((node) => node.props.children);
 }
 function typeMessage(text: string) {
   (textarea().props.onChange as (event: { target: { value: string } }) => void)({ target: { value: text } });
@@ -526,5 +536,219 @@ describe("Chat panel synthetic stream handlers (not mounted browser recovery)", 
     });
     expect(messageTexts()).toEqual(["Earlier question", "Earlier answer", "Next question", "New saved answer"]);
     expect(textarea().props.disabled).toBe(false);
+  });
+});
+
+describe("Chat presentation and synthetic inner scroll offsets (not browser layout)", () => {
+  function scrollFixture() {
+    let offset = 0;
+    let selection: unknown = null;
+    const selectedText = {};
+    const viewport = {
+      scrollHeight: 1000, clientHeight: 200,
+      get scrollTop() { return offset; },
+      set scrollTop(value: number) {
+        offset = Math.max(0, Math.min(value, this.scrollHeight - this.clientHeight));
+      },
+      contains: (node: unknown) => node === selectedText,
+    };
+    let resize = () => {};
+    const disconnect = vi.fn();
+    const observe = vi.fn();
+    vi.stubGlobal("window", { getSelection: () => selection });
+    vi.stubGlobal("ResizeObserver", class {
+      constructor(callback: () => void) { resize = callback; }
+      observe = observe;
+      disconnect = disconnect;
+    });
+    const region = view().find((node) => node.props.role === "region")!;
+    (region.props.ref as { current: unknown }).current = viewport;
+    const content = elements(region.props.children)[0];
+    (content.props.ref as { current: unknown }).current = {};
+    const cleanup = hooks.effects[0]();
+    return {
+      viewport, observe, disconnect,
+      resize: () => resize(),
+      cleanup: () => { if (typeof cleanup === "function") cleanup(); },
+      selectText: () => { selection = { isCollapsed: false, anchorNode: selectedText, focusNode: selectedText }; },
+      update: () => { view(); hooks.effects[1](); },
+      scroll: (top: number) => {
+        viewport.scrollTop = top;
+        const region = view().find((node) => node.props.role === "region")!;
+        (region.props.onScroll as (event: unknown) => void)({ currentTarget: viewport });
+      },
+    };
+  }
+
+  it("uses a bounded desktop panel and a mobile panel that fills its dialog", () => {
+    const desktop = view();
+    expect(desktop[0].props.className).toContain("h-[calc(100dvh-6rem)]");
+    expect(desktop[0].props.className).toContain("min-h-0");
+    const region = desktop.find((node) => node.props.role === "region")!;
+    expect(region.props.className).toContain("flex-1 overflow-y-auto");
+    expect(region.props.className).toContain("min-h-0");
+    expect(region.props.tabIndex).toBe(0);
+    expect(region.props.className).toContain("focus-visible:ring");
+    const composer = desktop.find((node) => elements(node.props.children).some((child) => child.type === "textarea") &&
+      String(node.props.className).includes("border-t"))!;
+    expect(composer.props.className).toContain("shrink-0");
+    expect(desktop.some((node) => String(node.props.className).includes("shrink-0 border-b"))).toBe(true);
+    const mobile = view("mobile");
+    expect(mobile[0].props.className).toContain("h-full flex-1");
+    expect(mobile[0].props.className).not.toContain("100dvh");
+    expect(mobile.find((node) => node.type === "textarea")?.props.rows).toBe(2);
+  });
+
+  it("bounds the mobile Dialog to 90dvh and delegates its sole message scroll area to the shared panel", () => {
+    const nodes = elements(ResearchAiMobileDialog({ researchId: "research-id", sources: [] }));
+    const dialog = nodes.find((node) => String(node.props.className).includes("h-[90dvh]"))!;
+    expect(dialog.props.className).toContain("max-h-[90dvh]");
+    expect(dialog.props.className).toContain("overflow-hidden");
+    expect(nodes.some((node) => String(node.props.className).includes("overflow-y-auto"))).toBe(false);
+    const panel = nodes.find((node) => node.type === ResearchAiPanel)!;
+    expect(panel.props.variant).toBe("mobile");
+    expect(panel.props.researchId).toBe("research-id");
+  });
+
+  it("fits desktop below the Research header before sticky positioning, and updates on scroll/resize", () => {
+    let top = 300;
+    const panel = { style: { maxHeight: "" }, getBoundingClientRect: () => ({ top }) };
+    const listeners = new Map<string, () => void>();
+    const remove = vi.fn();
+    const windowDouble = {
+      innerHeight: 900,
+      addEventListener: (name: string, callback: () => void) => listeners.set(name, callback),
+      removeEventListener: remove,
+    };
+    vi.stubGlobal("window", windowDouble);
+    const root = view()[0];
+    (root.props.ref as { current: unknown }).current = panel;
+    const cleanup = hooks.effects[2]();
+    expect(panel.style.maxHeight).toBe("584px");
+    top = 80;
+    listeners.get("scroll")!();
+    expect(panel.style.maxHeight).toBe("804px");
+    windowDouble.innerHeight = 600;
+    listeners.get("resize")!();
+    expect(panel.style.maxHeight).toBe("504px");
+    if (typeof cleanup === "function") cleanup();
+    expect(remove).toHaveBeenCalledTimes(2);
+    expect(panel.style.maxHeight).toBe("");
+    view("mobile");
+    expect(hooks.effects[2]()).toBeUndefined();
+    expect(panel.style.maxHeight).toBe("");
+  });
+
+  it("keeps History within 90dvh with one scroll area and closes only after successful restoration", async () => {
+    const { ResearchAiConversationsDialog: HistoryDialog } = await vi.importActual<typeof import("./research-ai-conversations-dialog")>("./research-ai-conversations-dialog");
+    const restore = vi.fn<(id: string) => Promise<boolean>>().mockResolvedValueOnce(false).mockResolvedValueOnce(true);
+    function historyView() {
+      hooks.cursor = 0;
+      return elements(HistoryDialog({ researchId: "research-id", onSelectConversation: restore }));
+    }
+    let nodes = historyView();
+    const dialog = nodes.find((node) => String(node.props.className).includes("max-h-[90dvh]"))!;
+    expect(dialog.props.className).toContain("overflow-hidden");
+    expect(nodes.filter((node) => String(node.props.className).includes("overflow-y-auto"))).toHaveLength(1);
+    fetchMock.mockResolvedValueOnce(Response.json([{
+      id: "saved-conversation", preview: "Earlier question", updatedAt: "2026-10-24T00:00:00Z",
+    }]));
+    (nodes[0].props.onOpenChange as (open: boolean) => void)(true);
+    for (let i = 0; i < 30; i++) await Promise.resolve();
+    nodes = historyView();
+    expect(fetchMock).toHaveBeenCalledOnce();
+    expect(fetchMock.mock.calls[0][0]).toBe("/research/research-id/chat/conversations");
+    async function select() {
+      const item = nodes.find((node) => node.type === "button" && typeof node.props.onClick === "function")!;
+      await (item.props.onClick as () => Promise<void>)();
+      nodes = historyView();
+    }
+    await select();
+    expect(nodes[0].props.open).toBe(true);
+    await select();
+    expect(nodes[0].props.open).toBe(false);
+    expect(restore.mock.calls).toEqual([["saved-conversation"], ["saved-conversation"]]);
+  });
+
+  it("keeps User Markdown as plain text and sends only citation-stripped AI text to the renderer", async () => {
+    const user = "**User** [source:do-not-parse] <img src=x>";
+    const source = { id: "saved-source", title: "Stored Source", url: "https://example.invalid/stored" };
+    fetchMock.mockResolvedValueOnce(detail([
+      { authorType: "USER", content: user },
+      { authorType: "AI", content: "**AI** [source:saved-source] [source:unknown]" },
+      { authorType: "AI", content: "[source:saved-source]" },
+    ], [source]));
+    expect(await selectConversation()).toBe(true);
+    const nodes = view();
+    const plain = nodes.find((node) => node.type === "p" && node.props.children === user)!;
+    expect(plain.props.className).toContain("whitespace-pre-wrap");
+    const plainHtml = renderToStaticMarkup(plain);
+    expect(plainHtml).toContain("**User** [source:do-not-parse] &lt;img src=x&gt;");
+    expect(plainHtml).not.toMatch(/<(img|a|strong)\b/);
+    expect(nodes.filter((node) => node.type === ResearchAiMarkdown).map((node) => node.props.children)).toEqual(["**AI**", ""]);
+    expect(nodes.filter((node) => node.type === "supporting-sources").map((node) => node.props.sources)).toEqual([[source], [source]]);
+    expect(nodes.some((node) => String(node.props.className).includes("bg-muted/50 p-3"))).toBe(true);
+    expect(statuses()).toEqual(["Showing saved history from the server."]);
+  });
+
+  it("follows new output near the bottom, preserves a reader's older position, and allows explicit return", async () => {
+    await startConversation();
+    const scroll = scrollFixture();
+    expect(scroll.viewport.scrollTop).toBe(800);
+    expect(scroll.observe).toHaveBeenCalledTimes(2);
+    typeMessage("Question");
+    const stream = streamResponse();
+    fetchMock.mockResolvedValueOnce(stream.response).mockResolvedValueOnce(detail(earlierTurns));
+    const sending = click("Send");
+    try {
+      stream.chunk("**Partial");
+      await expectPartial("**Partial");
+      scroll.viewport.scrollHeight = 1400;
+      scroll.update();
+      expect(scroll.viewport.scrollTop).toBe(1200);
+      scroll.scroll(200);
+      stream.chunk(" answer**");
+      await expectPartial("**Partial answer**");
+      scroll.viewport.scrollHeight = 1800;
+      scroll.update();
+      scroll.resize();
+      expect(scroll.viewport.scrollTop).toBe(200);
+      await click("Latest messages");
+      expect(scroll.viewport.scrollTop).toBe(1600);
+      // Near-bottom scrolling resumes following when the viewport is resized.
+      scroll.scroll(1570);
+      scroll.viewport.clientHeight = 150;
+      scroll.resize();
+      expect(scroll.viewport.scrollTop).toBe(1650);
+    } finally {
+      stream.close();
+      await sending;
+      scroll.cleanup();
+    }
+    expect(scroll.disconnect).toHaveBeenCalledOnce();
+  });
+
+  it("returns to readable saved history even when selecting the same conversation after scrolling up", async () => {
+    fetchMock.mockResolvedValueOnce(detail(earlierTurns));
+    await selectConversation();
+    const scroll = scrollFixture();
+    scroll.scroll(50);
+    fetchMock.mockResolvedValueOnce(detail(earlierTurns));
+    expect(await selectConversation()).toBe(true);
+    scroll.viewport.scrollHeight = 1600;
+    scroll.update();
+    expect(scroll.viewport.scrollTop).toBe(1400);
+    expect(messageTexts()).toEqual(["Earlier question", "Earlier answer"]);
+    scroll.cleanup();
+  });
+
+  it("leaves selected answer text in place during automatic updates and resizing", () => {
+    const scroll = scrollFixture();
+    scroll.selectText();
+    scroll.viewport.scrollHeight = 1600;
+    scroll.update();
+    scroll.resize();
+    expect(scroll.viewport.scrollTop).toBe(800);
+    scroll.cleanup();
   });
 });

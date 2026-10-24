@@ -2,8 +2,9 @@
 
 import { Button } from "@/components/ui/button";
 import { parseSourceCitations } from "@/lib/ai/source-citations";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { ResearchAiConversationsDialog } from "./research-ai-conversations-dialog";
+import { ResearchAiMarkdown } from "./research-ai-markdown";
 import { ResearchAiSupportingSources } from "./research-ai-supporting-sources";
 
 export type ResearchAiSource = {
@@ -15,6 +16,7 @@ export type ResearchAiSource = {
 type ResearchAiPanelProps = {
   researchId: string;
   sources: ResearchAiSource[];
+  variant?: "desktop" | "mobile";
 };
 
 type ChatMessage = {
@@ -58,7 +60,14 @@ function restoredMessages(conversation: ConversationDetail): ChatMessage[] {
   }));
 }
 
-export function ResearchAiPanel({ researchId, sources }: ResearchAiPanelProps) {
+function scrollToLatest(viewport: HTMLDivElement) {
+  const selection = window.getSelection();
+  if (selection && !selection.isCollapsed &&
+    (viewport.contains(selection.anchorNode) || viewport.contains(selection.focusNode))) return;
+  viewport.scrollTop = viewport.scrollHeight;
+}
+
+export function ResearchAiPanel({ researchId, sources, variant = "desktop" }: ResearchAiPanelProps) {
   const [conversationId, setConversationId] = useState<string | null>(null);
   const [input, setInput] = useState("");
 
@@ -86,6 +95,65 @@ export function ResearchAiPanel({ researchId, sources }: ResearchAiPanelProps) {
   const savedMessages = useRef<ChatMessage[]>([]);
   const isConversationPending =
     conversationId !== null && pendingConversationIds.has(conversationId);
+
+  const panelElement = useRef<HTMLDivElement>(null);
+  const messagesViewport = useRef<HTMLDivElement>(null);
+  const messagesContent = useRef<HTMLDivElement>(null);
+  const followLatest = useRef(true);
+  const [isAtBottom, setIsAtBottom] = useState(true);
+
+  // Change only the inner scroll offset; never move focus or scroll the page.
+  // Pause automatic following while the reader is selecting answer text.
+  useEffect(() => {
+    const viewport = messagesViewport.current;
+    const content = messagesContent.current;
+    if (!viewport || !content) return;
+
+    function followIfNeeded() {
+      if (!viewport || !followLatest.current) return;
+      scrollToLatest(viewport);
+    }
+
+    followIfNeeded();
+    const observer = new ResizeObserver(followIfNeeded);
+    observer.observe(viewport);
+    observer.observe(content);
+    return () => observer.disconnect();
+  }, []);
+
+  useEffect(() => {
+    const viewport = messagesViewport.current;
+    if (!viewport || !followLatest.current) return;
+    scrollToLatest(viewport);
+  }, [messages, conversationId, conversationSources]);
+
+  // Before the sticky panel reaches top-20, Research's header can put it farther
+  // down the page. Cap the fallback height against that actual position too.
+  useEffect(() => {
+    if (variant !== "desktop") return;
+    const panel = panelElement.current;
+    if (!panel) return;
+    function fitPanel() {
+      if (!panel) return;
+      const top = Math.max(80, panel.getBoundingClientRect().top);
+      panel.style.maxHeight = `${Math.max(0, window.innerHeight - top - 16)}px`;
+    }
+    fitPanel();
+    window.addEventListener("scroll", fitPanel, { passive: true });
+    window.addEventListener("resize", fitPanel);
+    return () => {
+      window.removeEventListener("scroll", fitPanel);
+      window.removeEventListener("resize", fitPanel);
+      panel.style.maxHeight = "";
+    };
+  }, [variant]);
+
+  function showLatestMessages() {
+    followLatest.current = true;
+    setIsAtBottom(true);
+    const viewport = messagesViewport.current;
+    if (viewport) viewport.scrollTop = viewport.scrollHeight;
+  }
 
   function ownsRequest(generation: number) {
     return requestGeneration.current === generation;
@@ -141,6 +209,7 @@ export function ResearchAiPanel({ researchId, sources }: ResearchAiPanelProps) {
       } = await response.json();
 
       if (!ownsRequest(generation)) return;
+      showLatestMessages();
       setConversationId(conversation.id);
       savedMessages.current = [];
       setMessages([]);
@@ -173,6 +242,7 @@ export function ResearchAiPanel({ researchId, sources }: ResearchAiPanelProps) {
     pendingRequests.current.add(conversationId);
     setPendingConversationIds(new Set(pendingRequests.current));
     const generation = ++requestGeneration.current;
+    showLatestMessages();
     setIsSending(true);
     setChatStatus("streaming");
     setSendError(null);
@@ -314,6 +384,7 @@ export function ResearchAiPanel({ researchId, sources }: ResearchAiPanelProps) {
       if (!ownsRequest(generation)) return false;
       const restored = restoredMessages(conversation);
 
+      showLatestMessages();
       setConversationId(conversation.id);
       setSendError(null);
       savedMessages.current = restored;
@@ -336,105 +407,131 @@ export function ResearchAiPanel({ researchId, sources }: ResearchAiPanelProps) {
   }
 
   return (
-    <div className="flex min-h-96 flex-col rounded-lg border bg-card">
-      <div className="border-b p-3">
-        <div className="flex items-start justify-between gap-3">
-          <div className="min-w-0">
-            <div className="flex items-start justify-between gap-3">
-              <div className="min-w-0">
-                <h2 className="text-sm font-semibold">AI Assistant</h2>
+    <div
+      ref={panelElement}
+      className={`flex min-h-0 min-w-0 flex-col overflow-hidden rounded-lg border bg-card ${
+        variant === "mobile" ? "h-full flex-1" : "h-[calc(100dvh-6rem)]"
+      }`}
+    >
+      <div className="shrink-0 border-b p-3">
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div className="min-w-0 flex-1 basis-20">
+            <h2 className="text-sm font-semibold">AI Assistant</h2>
 
-                <p className="mt-1 text-xs leading-5 text-muted-foreground">
-                  Ask questions about this research.
+            <p className={variant === "mobile" ? "sr-only" : "mt-1 text-xs leading-5 text-muted-foreground"}>
+              Ask questions about this research.
+            </p>
+          </div>
+
+          <div className="flex shrink-0 gap-2">
+            <ResearchAiConversationsDialog
+              researchId={researchId}
+              onSelectConversation={handleSelectConversation}
+            />
+
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={handleNewConversation}
+              disabled={isCreating}
+            >
+              {isCreating ? "Creating..." : "New"}
+            </Button>
+          </div>
+        </div>
+        {restoreError ? (
+          <p role="alert" className="mt-2 text-sm text-destructive">
+            {restoreError}
+          </p>
+        ) : null}
+        {createError ? (
+          <p role="alert" className="text-sm text-destructive">
+            {createError}
+          </p>
+        ) : null}
+      </div>
+
+      <div
+        ref={messagesViewport}
+        role="region"
+        aria-label="Conversation messages"
+        tabIndex={0}
+        onScroll={(event) => {
+          const viewport = event.currentTarget;
+          const atBottom = viewport.scrollHeight - viewport.scrollTop - viewport.clientHeight <= 48;
+          followLatest.current = atBottom;
+          setIsAtBottom(atBottom);
+        }}
+        className="min-h-0 min-w-0 flex-1 overflow-y-auto overscroll-contain p-3 outline-none [overflow-wrap:anywhere] focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring"
+      >
+        <div ref={messagesContent}>
+          {messages.length === 0 ? (
+            <div className="flex min-h-48 items-center justify-center text-center">
+              <div>
+                <p className="text-sm font-medium">
+                  {conversationId
+                    ? "Conversation started"
+                    : "No conversation yet"}
                 </p>
 
-                {restoreError ? (
-                  <p role="alert" className="text-sm text-destructive">
-                    {restoreError}
-                  </p>
-                ) : null}
-              </div>
-
-              <div className="flex gap-2">
-                <ResearchAiConversationsDialog
-                  researchId={researchId}
-                  onSelectConversation={handleSelectConversation}
-                />
-
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={handleNewConversation}
-                  disabled={isCreating}
-                >
-                  {isCreating ? "Creating..." : "New"}
-                </Button>
+                <p className="mt-1 text-xs leading-5 text-muted-foreground">
+                  {conversationId
+                    ? "Ask a question about this research."
+                    : "Start a conversation grounded in this research."}
+                </p>
               </div>
             </div>
-            {createError ? (
-              <p role="alert" className="text-sm text-destructive">
-                {createError}
-              </p>
-            ) : null}
-          </div>
+          ) : (
+            <div className="space-y-4">
+              {messages.map((message, index) => {
+                const parsedMessage =
+                  message.role === "assistant" && message.content
+                    ? getSupportingSources(message.content)
+                    : null;
+
+                return (
+                  <div
+                    key={message.id ?? index}
+                    className={message.role === "user"
+                      ? "min-w-0 rounded-md bg-muted/50 p-3"
+                      : "min-w-0 px-1 py-2"}
+                  >
+                    <p className="mb-2 text-xs font-medium text-muted-foreground">
+                      {message.role === "user"
+                        ? "You"
+                        : message.provisional
+                          ? "AI (temporary)"
+                          : "AI"}
+                    </p>
+
+                    {message.role === "assistant" ? (
+                      <ResearchAiMarkdown>
+                        {parsedMessage?.text ?? (isSending ? "Thinking..." : "")}
+                      </ResearchAiMarkdown>
+                    ) : (
+                      <p className="whitespace-pre-wrap text-sm leading-6 [overflow-wrap:anywhere]">
+                        {message.content}
+                      </p>
+                    )}
+
+                    {parsedMessage && parsedMessage.sources.length > 0 ? (
+                      <ResearchAiSupportingSources sources={parsedMessage.sources} />
+                    ) : null}
+                  </div>
+                );
+              })}
+            </div>
+          )}
         </div>
       </div>
 
-      <div className="flex-1 p-3">
-        {messages.length === 0 ? (
-          <div className="flex min-h-48 items-center justify-center text-center">
-            <div>
-              <p className="text-sm font-medium">
-                {conversationId
-                  ? "Conversation started"
-                  : "No conversation yet"}
-              </p>
-
-              <p className="mt-1 text-xs leading-5 text-muted-foreground">
-                {conversationId
-                  ? "Ask a question about this research."
-                  : "Start a conversation grounded in this research."}
-              </p>
-            </div>
-          </div>
-        ) : (
-          <div className="space-y-4">
-            {messages.map((message, index) => {
-              const parsedMessage =
-                message.role === "assistant" && message.content
-                  ? getSupportingSources(message.content)
-                  : null;
-
-              return (
-                <div key={message.id ?? index}>
-                  <p className="text-xs font-medium text-muted-foreground">
-                    {message.role === "user"
-                      ? "You"
-                      : message.provisional
-                        ? "AI (temporary)"
-                        : "AI"}
-                  </p>
-
-                  <p className="mt-1 whitespace-pre-wrap text-sm leading-6">
-                    {parsedMessage?.text ||
-                      message.content ||
-                      (message.role === "assistant" && isSending
-                        ? "Thinking..."
-                        : "")}
-                  </p>
-
-                  {parsedMessage && parsedMessage.sources.length > 0 ? (
-                    <ResearchAiSupportingSources sources={parsedMessage.sources} />
-                  ) : null}
-                </div>
-              );
-            })}
-          </div>
-        )}
-      </div>
-
-      <div className="border-t p-3">
+      <div className="shrink-0 border-t p-3 [overflow-wrap:anywhere]">
+        {!isAtBottom ? (
+          <Button type="button" variant="ghost" size="sm" className="mb-2" onClick={showLatestMessages}>
+            Latest messages
+          </Button>
+        ) : null}
         {chatStatus ? (
           <p role="status" className="mb-2 text-xs leading-5 text-muted-foreground">
             {CHAT_STATUS_TEXT[chatStatus]}
@@ -444,7 +541,8 @@ export function ResearchAiPanel({ researchId, sources }: ResearchAiPanelProps) {
           value={input}
           onChange={(event) => setInput(event.target.value)}
           placeholder="Ask about this research..."
-          rows={3}
+          aria-label="Message to AI"
+          rows={variant === "mobile" ? 2 : 3}
           disabled={
             !conversationId || isSending || isConversationPending || isCreating || isRestoring
           }

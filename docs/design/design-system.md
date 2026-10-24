@@ -1,7 +1,7 @@
 # Design System
 
 > **Status:** Design baseline; implementation gaps noted below
-> **Last Updated:** 2026-10-01
+> **Last Updated:** 2026-10-24
 
 This document defines the intended design system. Statements about required behavior are not a claim that every screen has been verified against it.
 
@@ -263,7 +263,20 @@ Content should remain clear and readable even when decorative elements are reduc
 
 ### Current AI Answer Presentation
 
-The Research AI panel separates user and AI messages with role labels and presents supporting evidence under **Supporting sources**. Recognized citation markers are removed from displayed answer text; resolvable Sources appear as titles linked to their stored URLs. The evidence section is omitted when no Sources resolve.
+The Research AI panel separates user and AI messages with role labels and presents supporting evidence under **Supporting sources**. User messages retain plain text and whitespace, with a restrained `bg-muted/50` surface. AI text uses `react-markdown` for paragraphs and line breaks, bold/italic, nested bullet and numbered lists, inline code, code blocks, and modest headings (`text-base` for level 1, `text-sm` for levels 2–6). Body text remains `text-sm` with `leading-6`. Long words and code blocks wrap within the panel instead of widening the page; code uses the existing muted surface and monospace typography. Color and focus styling use semantic tokens.
+
+Markdown is a display transformation only, including while a streamed answer is incomplete. Raw HTML is skipped; no raw-HTML plugin or HTML injection is used. Markdown images are omitted, and all generated links (including autolinks) render as noninteractive text with no URL-bearing attributes. User input does not pass through Markdown or citation parsing. Stored message content, generation, and citation validation are unchanged.
+
+The existing `parseSourceCitations()` runs before AI Markdown rendering. Recognized citation markers are removed from displayed answer text; only Sources resolved against supplied Source metadata appear in Supporting sources, with the existing stored-URL safety check. A citation-only answer may have an empty body and still show its Sources. Generated Markdown URLs never become evidence links. The evidence section is omitted when no Sources resolve.
+
+### Research Chat Layout and Scrolling
+
+- At `lg`, the page uses `max-w-5xl` and a 20rem chat column; at `xl` and above, `max-w-7xl` and a 24rem chat column. Research content remains a single column alongside it, with a zero-minimum-width grid track.
+- The desktop panel has fallback height `calc(100dvh - 6rem)` inside its `top-20` sticky wrapper, leaving space below the viewport edge. Its maximum height is also capped against its actual top position on mount, page scroll, and window resize, so the Research header above it does not put the composer below the initial viewport. A `min-h-0` flex layout keeps header and composer from shrinking and gives the message region the remaining height with `overflow-y-auto`.
+- The message region is keyboard-focusable, labelled, and has a visible focus ring. Automatic following changes only its scroll offset, never focus or the page scroll. It follows while within 48px of the bottom, pauses when reading older text or selecting answer text, and resumes through Latest messages, a new send, or successful history selection. Resizing follows the same rule. Existing temporary, checking, saved-history, unconfirmed-send, and error feedback retain their meanings.
+- Below `lg`, the Ask AI dialog uses `90dvh`; the shared panel's mobile variant fills the remaining height rather than applying the desktop viewport calculation. Repeated header descriptions remain accessible but visually hidden, and the composer uses two textarea rows. The outer dialog clips overflow while messages own the scroll area. History is a separate dialog capped at `90dvh` with a single scrollable list and its existing selection/focus behavior.
+
+These are UI contracts, not browser-verification results. Small viewports, virtual keyboards, long conversations, text selection, focus, and light/dark rendering still require visual checks in a real browser. Existing navigation, evidence-label, and theme gaps remain recorded in Design Direction; this change does not advance Phase 10 acceptance.
 
 Phase 6 allows these Sources to come from other Research items in the same Workspace. After streaming, the panel refreshes Source metadata; history restoration loads messages and Sources together. Source titles and links are currently the only evidence labels: originating Research and retrieval distances are not displayed. Generated answers remain separate from editable Research knowledge.
 
