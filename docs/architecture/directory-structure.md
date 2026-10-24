@@ -15,6 +15,8 @@ evidence-atlas/
 │   ├── architecture/       # Data model, AI/RAG, and application structure
 │   ├── design/             # Design direction and design system
 │   └── planning/           # Product definition and roadmap
+├── e2e/                    # Public Demo Playwright smoke, mobile, and bounded accessibility checks
+├── e2e-c2/                 # Opt-in authenticated C2 smoke and mock-only Chat Playwright suites
 ├── migrations/
 │   ├── app/                # Migration packages and database refs
 │   ├── pgvector/           # Vector extension migration
@@ -93,6 +95,14 @@ evidence-atlas/
 - `planning/` defines the product scope and implementation roadmap.
 - `reference/` and `usage/` are reserved for future technical and operational documentation and are not currently checked in.
 
+`planning/getAccessibleWorkspaces.ts` and `planning/requireCurrentWorkspace.ts` are planning-stage code snapshots, not runtime entry points or the current implementation specification. The former currently matches the corresponding helper in `src/workspace/`; the latter predates cookie-based selection, access revalidation, and onboarding redirects. Current behavior lives in `src/workspace/`. Preserve these snapshots as historical context.
+
+### Development artifacts and TypeScript scope
+
+Store new review ZIPs, source copies, diffs, SHA-256 manifests, and review READMEs outside the repository, preferably in `../review-archive/`. Existing `build/` verification artifacts remain in place; this policy does not require deleting or moving historical evidence.
+
+Both TypeScript configurations exclude `build/` from file discovery while retaining the broad first-party TS/TSX/MTS includes (including `.d.ts`). Normal checks explicitly include `.next/types/` and `.next/dev/types/` and exclude `.next-c2/`; C2 explicitly includes `.next-c2/types/` and `.next-c2/dev/types/` and excludes `.next/`. Exclusions do not block explicit imports: a shared generated `next-env.d.ts` can still pull in types from the other output directory. Check actual dependencies when validating scope; these settings alone do not establish C2 runtime isolation or safe simultaneous startup. Do not import archived source copies into first-party code.
+
 ### `src/app/`
 
 Next.js App Router pages and route-local application behavior.
@@ -140,7 +150,7 @@ Authenticated application pages require an authenticated User; `/demo` routes us
 
 `workspace/` lists accessible Workspaces, resolves the current Workspace, and switches it through a Server Action. The selected ID is stored in an HTTP-only cookie and revalidated against WorkspaceMembership. An absent, stale, or unauthorized selection falls back to an accessible Workspace; Users with none are redirected to onboarding.
 
-Access-control Vitest tests are colocated in `auth/`. They cover Research mutations and creation-related actions, chat routes, onboarding provisioning, and Organization/Workspace role management. `vitest.config.ts` supplies the `@` source alias. Playwright is available through the package script, but no E2E test suite is currently checked in.
+Access-control Vitest tests are colocated in `auth/`. They cover Research mutations and creation-related actions, chat routes, onboarding provisioning, and Organization/Workspace role management. `vitest.config.ts` supplies the `@` source alias. Playwright suites are checked in under `e2e/` (Public Demo) and `e2e-c2/` (authenticated C2). Phase 10 records deployed Public Demo smoke, mobile, and bounded accessibility checks, plus developer-reported C2 read-only Smoke 4/4 and Chat mock-only 6/6. These results do not verify automated Google OAuth, unmocked Chat/AI behavior, or comprehensive authenticated workflows; see the [Phase 10 evidence](../planning/roadmap.md#phase-10--testing--quality).
 
 ### `src/inngest/` and `src/app/api/inngest/`
 
@@ -204,7 +214,7 @@ The Research list uses GET parameters: `query` searches title and description wi
 
 ## Planned Architecture and Known Gaps
 
-The earlier proposed `(public)` and `(dashboard)` route groups are not implemented. JSON and streaming APIs exist as Route Handlers under the Research chat routes; Auth.js uses a separate handler under `src/app/api/auth/`. Authenticated application navigation uses the shared application shell, with a persistent left sidebar at `xl` and a header-triggered modal navigation below `xl`. `/demo` has its own public read-only shell and no authenticated header, controls, or AI panel. Curated data provisioning remains a separate seed profile, verified with indexing against the isolated database as recorded in the roadmap; deployed verification remains pending.
+The earlier proposed `(public)` and `(dashboard)` route groups are not implemented. JSON and streaming APIs exist as Route Handlers under the Research chat routes; Auth.js uses a separate handler under `src/app/api/auth/`. Authenticated application navigation uses the shared application shell, with a persistent left sidebar at `xl` and a header-triggered modal navigation below `xl`. `/demo` has its own public read-only shell and no authenticated header, controls, or AI panel. Curated data provisioning remains a separate seed profile, verified with indexing against the isolated database as recorded in the roadmap. Phase 9 records deployed Public Demo page and route-boundary checks, including the root redirect and unavailable Research/Auth/Inngest endpoints; Phase 10 adds the bounded Playwright evidence described above. These are limited verification results, not comprehensive production validation.
 
 Research-scoped AI conversations and same-Workspace retrieval with pgvector are implemented. Authentication and membership-based authorization are implemented for application pages, mutations, and chat routes. Chat routes check both Workspace access and that a conversation belongs to the requested Research. Retrieval scope supplements these access checks; it is not itself an authorization boundary. Billing remains planned. AI chat rate limiting, chat-generation usage tracking, and Inngest background Research indexing are implemented. Transactional outbox and general reconciliation remain future work.
 
@@ -214,7 +224,7 @@ The public Demo uses server-only `src/lib/demo/read.ts` with `getDemoWorkspace()
 
 Detail parent queries include both Research ID and Demo Workspace ID before child reads. The public display shape filters supporting Sources and Tags to their intended domains and strips private User/authentication metadata. Comments expose an author label, content, and dates only. `components/research/` shares list items, header, and detail content with optional controls supplied exclusively by authenticated pages. Shared display modules import no auth, DB, Server Actions, or AI. Demo pages supply no controls; normal-mode authenticated member write permissions remain unchanged. Missing/invalid Demo Workspace configuration does not disable the deployment lock or reopen SaaS.
 
-Visitor-originated SaaS write restrictions are implemented and locally verified in Phase 9.3. Public Demo Inngest endpoint/configuration hardening is implemented separately: Demo serving is disabled and normal production dev configuration is rejected. Public AI chat, live authenticated browser checks, deployed verification, normal-SaaS Sentry event-URL redaction, database-role hardening, actual Inngest Cloud key/integration verification, and Preview separation remain outstanding. The deployment gate does not claim to stop normal-SaaS background or all database writes. See the [Phase 9 roadmap](../planning/roadmap.md#phase-9--public-demo) for configuration and manual checks.
+Visitor-originated SaaS write restrictions are implemented and locally verified in Phase 9.3, with selected deployed route-boundary checks recorded separately. Public Demo Inngest endpoint/configuration hardening is implemented separately: Demo serving is disabled and normal production dev configuration is rejected. Public AI chat, live normal-SaaS Google login and authenticated CRUD, comprehensive production verification, normal-SaaS Sentry event-URL redaction, database-role hardening, actual Inngest Cloud key/integration verification, and Preview separation remain outstanding. The deployment gate does not claim to stop normal-SaaS background or all database writes. See the [Phase 9 roadmap](../planning/roadmap.md#phase-9--public-demo) for configuration and manual checks.
 
 ## Architecture Principles
 
