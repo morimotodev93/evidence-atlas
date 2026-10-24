@@ -130,7 +130,7 @@ Workspace
 - [x] Define responsive behavior
 - [x] Define light/dark theme strategy
 
-**Status: Baseline established.** These items establish design conventions and UI primitives. Automatic system-theme selection, sidebar navigation, semantic icon wrappers, and full accessibility/theme verification remain outstanding; see the [design system](../design/design-system.md) and [design direction](../design/design-direction.md).
+**Status: Baseline established.** These items establish design conventions and UI primitives. PR #34 added the authenticated application sidebar and mobile navigation. A Public Demo-specific sidebar, sidebar-integrated Global Search, automatic system-theme selection/Dark Mode behavior, semantic icon wrappers, and full accessibility/theme verification remain outstanding; see the [design system](../design/design-system.md) and [design direction](../design/design-direction.md).
 
 ---
 
@@ -162,7 +162,7 @@ Workspace
 
 - [x] Comments / discussion
 
-Comment CRUD is implemented. New Comments currently use the Research creator as the author; authenticated authorship and permissions remain part of Phase 7.
+Comment CRUD is implemented. Following Phase 7, new Comments use the current authenticated User as the author after Research Workspace access is verified, as covered by the authentication/authorization tests. The earlier Phase 4 baseline used the Research creator; that is historical behavior, not the current authorship rule.
 
 #### 4.5 Research Organization
 
