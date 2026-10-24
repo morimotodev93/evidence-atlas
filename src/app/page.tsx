@@ -4,7 +4,7 @@ import { isPublicDemoMode } from "@/lib/deployment-mode";
 
 import { db } from "@/prisma/db";
 
-import { AppHeader } from "@/components/layout/app-header";
+import { AppShell } from "@/components/layout/app-shell";
 import { formatDate } from "@/lib/date";
 
 import { requireUser } from "@/auth/requireUser";
@@ -60,14 +60,14 @@ export default async function Home() {
   }).all();
 
   return (
-    <>
-      <AppHeader>
+    <AppShell
+      header={
         <WorkspaceSelector
           workspaces={workspaceOptions}
           currentWorkspaceId={workspace.id}
         />
-      </AppHeader>
-
+      }
+    >
       <main className="mx-auto w-full max-w-5xl px-4 py-6 sm:px-6 sm:py-8">
         <header className="mb-8">
           <p className="text-sm text-muted-foreground">Workspace</p>
@@ -177,6 +177,6 @@ export default async function Home() {
           </div>
         </section>
       </main>
-    </>
+    </AppShell>
   );
 }

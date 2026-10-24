@@ -261,6 +261,18 @@ Typography, spacing, color, layout, and component styling should reinforce the i
 
 Content should remain clear and readable even when decorative elements are reduced or removed.
 
+### Authenticated Application Navigation
+
+Home, Research list/detail/create/edit, and Organization/Workspace settings use a shared server-rendered AppShell with AppHeader and a small client navigation component. Page authentication and data fetching remain server-side. The header keeps the Evidence Atlas brand and the guarded sign-out Server Action; Home and Research list retain their Workspace selector, on a second header row below `sm`.
+
+At `xl` (80rem) and above, the 13rem sidebar sits below the 3.5rem sticky header with its own viewport-bounded vertical scroll area. A subtle muted background and right border separate it from the flexible, zero-minimum-width content area. Below `xl`, a labelled Menu button opens a left-side Base UI Dialog with a labelled title, close button, modal focus containment, Escape/outside dismissal, and focus restoration. Selecting any destination closes it; resizing to `xl` also closes the modal and releases its scroll lock. The popup is bounded by the viewport with a scrollable navigation area, including on short screens. No navigation animation is added.
+
+Primary navigation contains Home (`/`) and Research (`/research`); Settings contains Organization (`/settings/organization`) and Workspace (`/settings/workspace`). Lucide icons accompany visible labels. Active destinations use `aria-current="page"`, a leading border, and semibold text in addition to color; Research detail/new/edit activate Research. Links and controls have hover and visible keyboard-focus states. Contextual Back links remain in the content.
+
+At `lg`, the existing 20rem Chat column remains; at `xl`, the shell allocates the 13rem left navigation while retaining the 24rem Chat column and the Research detail container's `max-w-7xl` cap. The content flex item and Research grid track can shrink without widening the page. Chat message scrolling, sticky positioning, viewport height limits, and composer behavior remain unchanged. Zoom uses the available CSS viewport width to switch navigation presentation.
+
+Public Demo keeps its independent read-only shell and URLs. Global Search, Related Research, a Demo-specific sidebar, explicit theme selection, and on-demand desktop AI remain outside this implementation. This navigation work does not advance Phase 10.
+
 ### Research Detail Presentation
 
 Research detail and Public Demo detail share a display-only header and content component. The title uses `text-3xl` / `sm:text-4xl` with tight leading; descriptions preserve line breaks. Status retains an explicit text label, while tags and creation/update dates remain secondary. The Edit action stacks below the title on narrow screens; status and tag controls wrap independently. Long titles, tags, body text, and URLs wrap within the available width.

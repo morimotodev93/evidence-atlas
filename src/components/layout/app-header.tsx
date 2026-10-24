@@ -3,6 +3,7 @@ import type { ReactNode } from "react";
 
 import { signOut } from "@/auth";
 import { requireApplicationEnabled } from "@/lib/deployment-mode";
+import { AppNavigationMenu } from "./app-navigation";
 
 type AppHeaderProps = {
   children?: ReactNode;
@@ -11,29 +12,16 @@ type AppHeaderProps = {
 export function AppHeader({ children }: AppHeaderProps) {
   return (
     <header className="sticky top-0 z-10 border-b bg-background/95 backdrop-blur">
-      <div className="mx-auto w-full max-w-5xl px-4 py-2 sm:px-6 sm:py-0">
+      <div className="w-full px-3 py-2 sm:px-6 sm:py-0">
         <div className="flex items-center justify-between gap-3 sm:h-14">
-          <Link href="/" className="shrink-0 font-semibold">
-            Evidence Atlas
-          </Link>
-
-          <div className="flex items-center gap-2">
-            <Link
-              href="/settings/organization"
-              className="text-sm text-muted-foreground hover:text-foreground"
-            >
-              <span className="sm:hidden">Org</span>
-              <span className="hidden sm:inline">Organization</span>
+          <div className="flex min-w-0 items-center gap-2 sm:gap-3">
+            <AppNavigationMenu />
+            <Link href="/" className="min-w-0 rounded-sm text-sm font-semibold outline-none focus-visible:ring-2 focus-visible:ring-ring sm:text-base">
+              Evidence Atlas
             </Link>
+          </div>
 
-            <Link
-              href="/settings/workspace"
-              className="text-sm text-muted-foreground hover:text-foreground"
-            >
-              <span className="sm:hidden">WS</span>
-              <span className="hidden sm:inline">Workspace</span>
-            </Link>
-
+          <div className="flex shrink-0 items-center gap-3">
             <form
               action={async () => {
                 "use server";
@@ -47,7 +35,7 @@ export function AppHeader({ children }: AppHeaderProps) {
             >
               <button
                 type="submit"
-                className="text-sm text-muted-foreground hover:text-foreground"
+                className="min-h-9 rounded-md px-1 text-sm text-muted-foreground outline-none hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring"
               >
                 Sign out
               </button>

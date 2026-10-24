@@ -12,7 +12,7 @@ const mocks = vi.hoisted(() => {
 });
 vi.mock("@/prisma/db", () => ({ db: { orm: { public: mocks.models } } }));
 vi.mock("@/auth", () => ({ auth: mocks.auth, signOut: vi.fn() }));
-vi.mock("next/navigation", () => ({ redirect: mocks.redirect, notFound: mocks.notFound }));
+vi.mock("next/navigation", () => ({ usePathname: () => "/research/research-id", redirect: mocks.redirect, notFound: mocks.notFound }));
 vi.mock("@/app/research/[id]/_actions/detachFindingSource", () => ({ detachFindingSource: vi.fn() }));
 
 const components = {

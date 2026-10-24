@@ -32,7 +32,7 @@ vi.mock("@/prisma/db", () => ({
   },
 }));
 vi.mock("next/navigation", () => ({
-  redirect: mocks.redirect,
+  usePathname: () => "/research/new", redirect: mocks.redirect,
   notFound: mocks.notFound,
 }));
 vi.mock("next/link", () => ({
@@ -100,6 +100,8 @@ describe("Research create page authorization", () => {
     expect(html).toContain("<form");
     expect(html).toContain('name="title"');
     expect(html).toContain('name="description"');
+    expect(html).toContain('aria-label="Application"');
+    expect(html).toContain('href="/research" aria-current="page"');
     expect(mocks.redirect).not.toHaveBeenCalled();
     expect(mocks.membershipWhere).not.toHaveBeenCalled();
   });
@@ -155,6 +157,8 @@ describe("Research edit page authorization", () => {
     expect(html).toContain("<form");
     expect(html).toContain(research.title);
     expect(html).toContain(research.description);
+    expect(html).toContain('aria-label="Application"');
+    expect(html).toContain('href="/research" aria-current="page"');
     expect(mocks.redirect).not.toHaveBeenCalled();
     expect(mocks.notFound).not.toHaveBeenCalled();
   });
