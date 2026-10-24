@@ -1,7 +1,7 @@
 # Directory Structure
 
 > **Status:** Current implementation; future areas remain provisional
-> **Last Updated:** 2026-10-12
+> **Last Updated:** 2026-10-24
 
 This document describes the implemented architecture of **Evidence Atlas**.
 The tree below highlights the application-relevant structure.
@@ -52,7 +52,7 @@ evidence-atlas/
 │   ├── auth/               # Auth database adapter, access guards, and tests
 │   ├── components/
 │   │   ├── icons/
-│   │   ├── layout/         # Shared application header
+│   │   ├── layout/         # Application shell, header, and navigation
 │   │   ├── research/       # Shared display-only Research list, header, and content
 │   │   ├── ui/
 │   │   └── workspace/      # Workspace selector
@@ -130,7 +130,7 @@ Additional shared areas such as `common/` or `features/` may be introduced later
 
 `icons/` provides the application icon entry point, currently exporting the Lucide X icon used by the Tag detachment control.
 
-`layout/` contains the shared application header with Organization/Workspace settings links and sign-out. `workspace/` contains the client Workspace selector used by the overview and Research list.
+`layout/` contains the shared server-rendered application shell and header with guarded sign-out, plus client navigation shared by the persistent desktop sidebar and mobile Base UI Dialog. Home, all Research pages, and Organization/Workspace settings opt into this shell without route relocation or changes to their server-side access checks. `workspace/` contains the client Workspace selector used by the overview and Research list.
 
 ### `src/auth.ts`, `src/auth/`, and `src/workspace/`
 
@@ -204,7 +204,7 @@ The Research list uses GET parameters: `query` searches title and description wi
 
 ## Planned Architecture and Known Gaps
 
-The earlier proposed `(public)` and `(dashboard)` route groups are not implemented. JSON and streaming APIs exist as Route Handlers under the Research chat routes; Auth.js uses a separate handler under `src/app/api/auth/`. Authenticated application navigation uses the shared application header. `/demo` has its own public read-only shell and no authenticated header, controls, or AI panel. Curated data provisioning remains a separate seed profile, verified with indexing against the isolated database as recorded in the roadmap; deployed verification remains pending.
+The earlier proposed `(public)` and `(dashboard)` route groups are not implemented. JSON and streaming APIs exist as Route Handlers under the Research chat routes; Auth.js uses a separate handler under `src/app/api/auth/`. Authenticated application navigation uses the shared application shell, with a persistent left sidebar at `xl` and a header-triggered modal navigation below `xl`. `/demo` has its own public read-only shell and no authenticated header, controls, or AI panel. Curated data provisioning remains a separate seed profile, verified with indexing against the isolated database as recorded in the roadmap; deployed verification remains pending.
 
 Research-scoped AI conversations and same-Workspace retrieval with pgvector are implemented. Authentication and membership-based authorization are implemented for application pages, mutations, and chat routes. Chat routes check both Workspace access and that a conversation belongs to the requested Research. Retrieval scope supplements these access checks; it is not itself an authorization boundary. Billing remains planned. AI chat rate limiting, chat-generation usage tracking, and Inngest background Research indexing are implemented. Transactional outbox and general reconciliation remain future work.
 

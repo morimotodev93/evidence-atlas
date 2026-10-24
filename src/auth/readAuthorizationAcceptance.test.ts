@@ -29,7 +29,7 @@ vi.mock("@/auth", () => ({ auth: mocks.auth }));
 vi.mock("@/prisma/db", () => ({ db: {
   orm: { public: mocks.models }, transaction: mocks.transaction,
 } }));
-vi.mock("next/navigation", () => ({ redirect: mocks.redirect, notFound: mocks.notFound }));
+vi.mock("next/navigation", () => ({ usePathname: () => "/", redirect: mocks.redirect, notFound: mocks.notFound }));
 vi.mock("next/headers", () => ({ cookies: async () => ({
   get: mocks.cookieGet, set: mocks.cookieSet,
 }) }));

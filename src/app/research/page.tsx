@@ -1,5 +1,5 @@
 import { ResearchListItems } from "@/components/research/research-list-items";
-import { AppHeader } from "@/components/layout/app-header";
+import { AppShell } from "@/components/layout/app-shell";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { db } from "@/prisma/db";
@@ -99,14 +99,14 @@ export default async function Research({ searchParams }: ResearchPageProps) {
       : [];
 
   return (
-    <>
-      <AppHeader>
+    <AppShell
+      header={
         <WorkspaceSelector
           workspaces={workspaceOptions}
           currentWorkspaceId={workspace.id}
         />
-      </AppHeader>
-
+      }
+    >
       <main className="mx-auto w-full max-w-5xl px-4 py-6 sm:px-6 sm:py-8">
         <header className="mb-6 flex items-end justify-between gap-4">
           <div>
@@ -207,6 +207,6 @@ export default async function Research({ searchParams }: ResearchPageProps) {
           )}
         </section>
       </main>
-    </>
+    </AppShell>
   );
 }

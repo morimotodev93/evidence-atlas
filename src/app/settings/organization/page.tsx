@@ -2,7 +2,7 @@ import { notFound } from "next/navigation";
 
 import { requireOrganizationAccess } from "@/auth/requireOrganizationAccess";
 import { requireUser } from "@/auth/requireUser";
-import { AppHeader } from "@/components/layout/app-header";
+import { AppShell } from "@/components/layout/app-shell";
 import { Badge } from "@/components/ui/badge";
 import { db } from "@/prisma/db";
 import { requireCurrentWorkspace } from "@/workspace/requireCurrentWorkspace";
@@ -28,8 +28,7 @@ export default async function OrganizationSettingsPage() {
   }
 
   return (
-    <>
-      <AppHeader />
+    <AppShell>
 
       <main className="mx-auto w-full max-w-5xl px-4 py-6 sm:px-6 sm:py-8">
         <header className="mb-8">
@@ -90,6 +89,6 @@ export default async function OrganizationSettingsPage() {
           </div>
         </section>
       </main>
-    </>
+    </AppShell>
   );
 }

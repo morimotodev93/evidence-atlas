@@ -1,5 +1,5 @@
 import { ResearchHeader, ResearchDetailContent } from "@/components/research/research-detail-content";
-import { AppHeader } from "@/components/layout/app-header";
+import { AppShell } from "@/components/layout/app-shell";
 import { Button } from "@/components/ui/button";
 import { db } from "@/prisma/db";
 import Link from "next/link";
@@ -77,8 +77,7 @@ export default async function ResearchDetailPage({
     .all();
 
   return (
-    <>
-      <AppHeader />
+    <AppShell>
 
       <main className="mx-auto w-full max-w-5xl px-4 pb-24 pt-6 sm:px-6 sm:pb-24 sm:pt-8 lg:pb-8 xl:max-w-7xl">
         {" "}
@@ -170,6 +169,6 @@ export default async function ResearchDetailPage({
           </div>
         </div>
       </main>
-    </>
+    </AppShell>
   );
 }
