@@ -261,6 +261,16 @@ Typography, spacing, color, layout, and component styling should reinforce the i
 
 Content should remain clear and readable even when decorative elements are reduced or removed.
 
+### Research Detail Presentation
+
+Research detail and Public Demo detail share a display-only header and content component. The title uses `text-3xl` / `sm:text-4xl` with tight leading; descriptions preserve line breaks. Status retains an explicit text label, while tags and creation/update dates remain secondary. The Edit action stacks below the title on narrow screens; status and tag controls wrap independently. Long titles, tags, body text, and URLs wrap within the available width.
+
+Conclusion, Sources, Findings, and Discussion use the same `text-lg` section heading, explanatory text, and `py-8` spacing. Counts sit beside headings as muted metadata; optional actions wrap beside or below the heading group. Empty states use short, muted text inside compact dashed borders, without additional calls to action. The existing section controls remain available in editable Research; Public Demo receives no controls or editing invitations.
+
+Conclusion, Finding, and Discussion bodies preserve whitespace with `text-base` / `leading-7`. Conclusion remains plain human-authored text, distinct from AI answers and evidence rows. Sources prioritize titles over full wrapping URLs and update dates, with separate action rows outside the evidence links. Findings indent Supporting sources with a subtle left border; source attachment controls precede the secondary display-style/update/action footer. Discussion retains body-first presentation with author, date, and actions in a wrapping footer. Rows use separators rather than individual cards or shadows. Detail action groups give existing button triggers a minimum height of eight spacing units; evidence links have explicit keyboard focus outlines using the ring token. Existing Source URL validation and external-link attributes are unchanged.
+
+The primary content remains a single column in its existing order: Conclusion, Sources, Findings, Discussion. Conclusion appearing before Sources remains the unresolved ordering gap recorded in Design Direction. This presentation update does not advance Phase 10. Static rendering tests cover content, optional controls, empty states, long text/URLs, and Source links; actual reflow at 375px, 768px, desktop, and 200% zoom, keyboard interactions, and light/dark contrast still require real-browser verification.
+
 ### Current AI Answer Presentation
 
 The Research AI panel separates user and AI messages with role labels and presents supporting evidence under **Supporting sources**. User messages retain plain text and whitespace, with a restrained `bg-muted/50` surface. AI text uses `react-markdown` for paragraphs and line breaks, bold/italic, nested bullet and numbered lists, inline code, code blocks, and modest headings (`text-base` for level 1, `text-sm` for levels 2–6). Body text remains `text-sm` with `leading-6`. Long words and code blocks wrap within the panel instead of widening the page; code uses the existing muted surface and monospace typography. Color and focus styling use semantic tokens.
