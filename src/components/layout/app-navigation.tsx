@@ -7,6 +7,7 @@ import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 
 import { cn } from "@/lib/utils";
+import { AppearanceSelect } from "@/components/appearance-select";
 
 const groups = [
   {
@@ -59,6 +60,7 @@ function NavigationLinks({ onNavigate }: { onNavigate?: () => void }) {
               );
             })}
           </ul>
+          {group.label === "Settings" && <AppearanceSelect className="mt-3 px-3" />}
         </div>
       ))}
     </nav>

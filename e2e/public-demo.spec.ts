@@ -454,7 +454,9 @@ test("list and detail expose read-only UI without mutation or AI controls", asyn
     await expect(page.getByRole("button", { name: operationName, includeHidden: true })).toHaveCount(0);
     await expect(page.getByRole("link", { name: operationName, includeHidden: true })).toHaveCount(0);
     await expect(page.getByRole("textbox", { includeHidden: true })).toHaveCount(0);
-    await expect(page.getByRole("combobox", { includeHidden: true })).toHaveCount(0);
+    await expect(page.getByRole("combobox", { includeHidden: true })).toHaveCount(1);
+    await expect(page.getByRole("combobox", { name: "Appearance", exact: true })).toBeEnabled();
+    await expect(page.getByRole("main").getByRole("combobox", { includeHidden: true })).toHaveCount(0);
   }
   // This UI regression check does not prove server-side write prevention.
 });

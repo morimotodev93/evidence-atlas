@@ -32,7 +32,11 @@ function renderWithLayout(page: ReactNode) {
 function expectReadOnly(html: string) {
   expect(html).toContain("Read-only demo");
   expect(html).toContain(">Demo<");
-  expect(html).not.toMatch(/<form|<button|<input|<textarea|<select|\/edit|\/settings|\/research\/new|\/chat|Ask AI|Sign out/);
+  // Appearance remains static until mounted; public research stays read-only.
+  expect(html).toContain('data-slot="appearance-placeholder"');
+  expect(html).toContain("Appearance");
+  expect(html).not.toMatch(/<form|<button|<input|<textarea|<select|role="combobox"|\/edit|\/settings|\/research\/new|\/chat|Ask AI|Sign out/);
+  expect(html.slice(html.indexOf("<main"))).not.toMatch(/<form|<button|<input|<textarea|<select/);
   expect(mocks.auth).not.toHaveBeenCalled();
 }
 beforeEach(() => {
@@ -49,17 +53,18 @@ beforeEach(() => {
 afterEach(() => vi.unstubAllEnvs());
 
 describe("Public Demo pages", () => {
-  it.each([undefined, "true"])("renders the Workspace without a session or controls in deployment mode %s", async (mode) => {
+  it.each([undefined, "true"])("renders the Workspace without a session or research controls in deployment mode %s", async (mode) => {
     vi.stubEnv("PUBLIC_DEMO_MODE", mode);
     const html = renderWithLayout(await DemoPage());
     expectReadOnly(html);
+    expect(renderToStaticMarkup(await DemoPage())).not.toMatch(/<button|<input|<textarea|<select|<form/);
     for (const value of [workspace.name, workspace.description, research.title, research.description, "Completed", "Productivity"]) {
       expect(html).toContain(value);
     }
     expect(html).toContain(`href="/demo/research/${research.id}"`);
   });
 
-  it.each([undefined, "true"])("renders Research detail without a session or controls in deployment mode %s", async (mode) => {
+  it.each([undefined, "true"])("renders Research detail without a session or research controls in deployment mode %s", async (mode) => {
     vi.stubEnv("PUBLIC_DEMO_MODE", mode);
     const html = renderWithLayout(await detailPage());
     expectReadOnly(html);

@@ -1,4 +1,5 @@
 import { Badge } from "@/components/ui/badge";
+import { AppearanceSelect } from "@/components/appearance-select";
 import { Github } from "lucide-react";
 import Link from "next/link";
 import type { ReactNode } from "react";
@@ -25,6 +26,7 @@ export default function DemoLayout({ children }: { children: ReactNode }) {
             <Github className="size-4" aria-hidden="true" />
             Source code
           </a>
+          <AppearanceSelect />
         </div>
       </header>
 

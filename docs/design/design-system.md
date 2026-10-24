@@ -271,7 +271,7 @@ Primary navigation contains Home (`/`) and Research (`/research`); Settings cont
 
 At `lg`, the existing 20rem Chat column remains; at `xl`, the shell allocates the 13rem left navigation while retaining the 24rem Chat column and the Research detail container's `max-w-7xl` cap. The content flex item and Research grid track can shrink without widening the page. Chat message scrolling, sticky positioning, viewport height limits, and composer behavior remain unchanged. Zoom uses the available CSS viewport width to switch navigation presentation.
 
-Public Demo keeps its independent read-only shell and URLs. Global Search, Related Research, a Demo-specific sidebar, explicit theme selection, and on-demand desktop AI remain outside this implementation. This navigation work does not advance Phase 10.
+Public Demo keeps its independent read-only shell and URLs. Global Search, Related Research, a Demo-specific sidebar, and on-demand desktop AI remain outside this implementation. Appearance selection is described in §17. This navigation work does not advance Phase 10.
 
 ### Research Detail Presentation
 
@@ -308,7 +308,11 @@ This describes the current presentation, not a claim of citation correctness or 
 
 The application should support both Light and Dark themes and respect the user's preferred color scheme by default.
 
-**Implementation gap:** `src/app/globals.css` defines light tokens on `:root` and dark tokens under `.dark`, but the application does not currently apply a theme class based on system preference or provide a preference control. Defined palettes alone do not complete theme support.
+**Implementation (PR #36):** A single root `next-themes` 0.4.6 provider applies the existing `:root` / `.dark` tokens through the HTML class, defaults to System, follows OS changes in System mode, and persists explicit Light / Dark / System selection in browser localStorage (`theme`). Theme changes disable color transitions temporarily and set the native color scheme. Invalid saved values are cleared before the first-paint theme script; invalid cross-tab preferences fall back to System. No DB preference, authenticated API, or C2 isolation change is involved.
+
+Appearance uses the shared Base UI Select in the authenticated sidebar's Settings group and the same overlay navigation below `xl`. Public Demo exposes the same client-only preference as a secondary header control without adding research mutations or privileged dependencies. SSR and initial hydration render a static, noninteractive placeholder with the same width and height as the selector; the actual Select is rendered after mounting and displays the stored selection. Only HTML's expected theme class/style difference is covered by `suppressHydrationWarning`; descendants retain normal hydration diagnostics.
+
+Offline tests cover first-paint bootstrap and preserved font classes, preference options, hydration-stable selector markup, navigation placement, and Demo read-only/import boundaries. For PR #36, the user reports completed real-browser visual checks in Firefox normal and private windows and Chromium, covering Light/Dark display, mobile navigation, and Firefox browser 200% zoom. These are user-reported visual checks, not an agent-run browser test or exhaustive compatibility certification. All OS-change tracking conditions, reload/navigation persistence, focus and form/Chat/scroll preservation, and comprehensive contrast across all screens and interactive states remain outside the reported verification scope. Known upstream issues [#385](https://github.com/pacocoursey/next-themes/issues/385) (React script warning) and [#375](https://github.com/pacocoursey/next-themes/issues/375) (cached route/provider state) remain compatibility risks; no warning-suppression patch is applied. This app does not enable `cacheComponents` and keeps its provider above route layouts. Full accessibility and theme contrast verification, including comprehensive WCAG 2.2 AA conformance, remain incomplete.
 
 Light and Dark themes use the same semantic design tokens, while their underlying color values may differ where necessary to maintain readability and sufficient contrast.
 

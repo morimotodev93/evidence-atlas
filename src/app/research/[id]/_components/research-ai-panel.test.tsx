@@ -131,6 +131,19 @@ beforeEach(() => {
 afterEach(() => { vi.unstubAllGlobals(); vi.restoreAllMocks(); });
 
 describe("Chat panel synthetic stream handlers (not mounted browser recovery)", () => {
+  it.each(["desktop", "mobile"] as const)("opts only the %s composer out of browser restoration while preserving disabled state", async (variant) => {
+    const composer = () => view(variant).find((node) => node.type === "textarea")!;
+    const initial = renderToStaticMarkup(composer());
+    expect(initial).toContain('autoComplete="off"');
+    expect(initial).toContain('disabled=""');
+    expect(initial).toContain('aria-label="Message to AI"');
+
+    await startConversation();
+    const ready = renderToStaticMarkup(composer());
+    expect(ready).toContain('autoComplete="off"');
+    expect(ready).not.toContain('disabled=""');
+  });
+
   it.each(["Error", "AbortError"])("restores saved history and releases sending after read rejects with %s", async (name) => {
     await startConversation();
     fetchMock.mockResolvedValueOnce(detail(earlierTurns));

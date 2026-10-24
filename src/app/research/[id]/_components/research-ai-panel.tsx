@@ -538,6 +538,8 @@ export function ResearchAiPanel({ researchId, sources, variant = "desktop" }: Re
           </p>
         ) : null}
         <textarea
+          // Keep Firefox from restoring a previous dynamic disabled state before hydration.
+          autoComplete="off"
           value={input}
           onChange={(event) => setInput(event.target.value)}
           placeholder="Ask about this research..."

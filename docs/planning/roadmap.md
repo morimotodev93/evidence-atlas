@@ -130,7 +130,7 @@ Workspace
 - [x] Define responsive behavior
 - [x] Define light/dark theme strategy
 
-**Status: Baseline established.** These items establish design conventions and UI primitives. PR #34 added the authenticated application sidebar and mobile navigation. A Public Demo-specific sidebar, sidebar-integrated Global Search, automatic system-theme selection/Dark Mode behavior, semantic icon wrappers, and full accessibility/theme verification remain outstanding; see the [design system](../design/design-system.md) and [design direction](../design/design-direction.md).
+**Status: Baseline established.** These items establish design conventions and UI primitives. PR #34 added the authenticated application sidebar and mobile navigation. PR #36 adds shared browser-local Light / Dark / System selection through a single root provider, with Appearance in Settings navigation and the independent Public Demo header. No authenticated API, Demo write boundary, or C2 isolation policy changes. A Public Demo-specific sidebar, sidebar-integrated Global Search, semantic icon wrappers, and full accessibility/theme verification remain outstanding; see the [design system](../design/design-system.md) and [design direction](../design/design-direction.md). For PR #36, the user reports completed visual checks in Firefox normal and private windows and Chromium, covering Light/Dark display, mobile navigation, and Firefox browser 200% zoom. These scoped checks do not establish all OS-change tracking conditions, all-screen contrast, or comprehensive WCAG 2.2 AA conformance, and do not advance Phase 10 acceptance.
 
 ---
 
