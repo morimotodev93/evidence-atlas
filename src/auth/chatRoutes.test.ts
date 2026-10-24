@@ -55,6 +55,7 @@ const mocks = vi.hoisted(() => {
     chatRateLimit: {
       limit: vi.fn(),
     },
+    getChatRateLimit: vi.fn(),
 
     conversationWhere: vi.fn(() => conversationQuery),
     conversationCreate: vi.fn(),
@@ -105,8 +106,9 @@ vi.mock("@/prisma/db", () => ({
   },
 }));
 
-vi.mock("@/lib/ai/chat-rate-limit", () => ({
-  getChatRateLimit: () => mocks.chatRateLimit,
+vi.mock("@/lib/ai/chat-rate-limit", async (importOriginal) => ({
+  ...await importOriginal<typeof import("@/lib/ai/chat-rate-limit")>(),
+  getChatRateLimit: mocks.getChatRateLimit,
 }));
 
 vi.mock("@/lib/ai/model", () => ({
@@ -194,6 +196,8 @@ describe("Public Demo deployment chat lock", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     vi.stubEnv("PUBLIC_DEMO_MODE", "true");
+    vi.stubEnv("NODE_ENV", "development");
+    vi.stubEnv("CHAT_RATE_LIMIT_BACKEND", "memory");
     mocks.auth.mockResolvedValue({ user: { id: "existing-session-user" } });
   });
   afterEach(() => vi.unstubAllEnvs());
@@ -224,6 +228,7 @@ describe("Public Demo deployment chat lock", () => {
       expect(mocks.messageCreate).not.toHaveBeenCalled();
       expect(mocks.aiUsageEventCreate).not.toHaveBeenCalled();
       expect(mocks.chatRateLimit.limit).not.toHaveBeenCalled();
+      expect(mocks.getChatRateLimit).not.toHaveBeenCalled();
       expect(mocks.buildResearchContext).not.toHaveBeenCalled();
       expect(mocks.retrieveWorkspaceContext).not.toHaveBeenCalled();
       expect(mocks.resolveWorkspaceSources).not.toHaveBeenCalled();
@@ -233,8 +238,11 @@ describe("Public Demo deployment chat lock", () => {
 });
 
 describe("research chat route authorization", () => {
+  afterEach(() => vi.unstubAllEnvs());
+
   beforeEach(async () => {
     vi.clearAllMocks();
+    mocks.getChatRateLimit.mockReturnValue(mocks.chatRateLimit);
 
     mocks.auth.mockResolvedValue({
       user: {
@@ -386,9 +394,9 @@ describe("research chat route authorization", () => {
     expectNoChatWrites();
   });
 
-  it.each(["rate limit", "Research context"])("propagates %s failure before writes or generation", async (stage) => {
+  it("propagates Research context failure before writes or generation", async () => {
     const error = new Error("Synthetic internal service failure");
-    (stage === "rate limit" ? mocks.chatRateLimit.limit : mocks.buildResearchContext).mockRejectedValueOnce(error);
+    mocks.buildResearchContext.mockRejectedValueOnce(error);
 
     await expect(sendChatMessage(chatRequest(), routeContext())).rejects.toBe(error);
     expect(mocks.retrieveWorkspaceContext).not.toHaveBeenCalled();
@@ -396,6 +404,44 @@ describe("research chat route authorization", () => {
     expect(mocks.streamText).not.toHaveBeenCalled();
     expectNoChatWrites();
   });
+
+  it.each(["missing configuration", "production memory", "Redis initialization", "Redis failure", "SDK timeout"])(
+    "returns safe 503 for %s before context, embedding, generation or writes",
+    async (failure) => {
+      if (failure === "missing configuration" || failure === "production memory") {
+        for (const key of ["UPSTASH_REDIS_REST_URL", "UPSTASH_REDIS_REST_TOKEN", "KV_REST_API_URL", "KV_REST_API_TOKEN"]) {
+          vi.stubEnv(key, undefined);
+        }
+        vi.stubEnv("NODE_ENV", failure === "production memory" ? "production" : "development");
+        vi.stubEnv("CHAT_RATE_LIMIT_BACKEND", failure === "production memory" ? "memory" : undefined);
+        const actual = await vi.importActual<typeof import("@/lib/ai/chat-rate-limit")>("@/lib/ai/chat-rate-limit");
+        mocks.getChatRateLimit.mockImplementationOnce(actual.getChatRateLimit);
+      } else if (failure === "Redis initialization") {
+        mocks.getChatRateLimit.mockImplementationOnce(() => { throw new Error("Synthetic private Redis configuration"); });
+      } else if (failure === "Redis failure") {
+        mocks.chatRateLimit.limit.mockRejectedValueOnce(new Error("Synthetic private Redis destination and token"));
+      } else {
+        mocks.chatRateLimit.limit.mockResolvedValueOnce({ success: true, reason: "timeout", limit: 0, remaining: 0, reset: 0 });
+      }
+
+      const response = await sendChatMessage(chatRequest(), routeContext());
+
+      expect(response.status).toBe(503);
+      const notConfigured = failure === "missing configuration" || failure === "production memory";
+      await expect(response.json()).resolves.toEqual({
+        error: notConfigured
+          ? "Chat is unavailable because rate limiting is not configured. Please contact the administrator."
+          : "Chat is temporarily unavailable. Please try again later.",
+        code: notConfigured ? "CHAT_RATE_LIMIT_NOT_CONFIGURED" : "CHAT_RATE_LIMIT_UNAVAILABLE",
+      });
+      expect(response.headers.has("Retry-After")).toBe(false);
+      expect(mocks.buildResearchContext).not.toHaveBeenCalled();
+      expect(mocks.retrieveWorkspaceContext).not.toHaveBeenCalled();
+      expect(mocks.messageWhere).not.toHaveBeenCalled();
+      expect(mocks.streamText).not.toHaveBeenCalled();
+      expectNoChatWrites();
+    },
+  );
 
   it("returns 404 when Research context disappears before retrieval or persistence", async () => {
     mocks.buildResearchContext.mockResolvedValueOnce(null);

@@ -182,6 +182,7 @@ export function ResearchAiPanel({ researchId, sources }: ResearchAiPanelProps) {
 
     const previousMessages = savedMessages.current;
     let canRestoreHistory = false;
+    let sendErrorMessage = "Failed to send message.";
 
     setMessages([
       ...previousMessages,
@@ -234,8 +235,11 @@ export function ResearchAiPanel({ researchId, sources }: ResearchAiPanelProps) {
       });
 
       canRestoreHistory = response.ok;
+      if (response.status === 503) {
+        sendErrorMessage = "Chat is temporarily unavailable. Please contact the administrator or try again later.";
+      }
       if (!response.ok || !response.body) {
-        throw new Error("Failed to send message.");
+        throw new Error(sendErrorMessage);
       }
 
       const reader = response.body.getReader();
@@ -274,7 +278,7 @@ export function ResearchAiPanel({ researchId, sources }: ResearchAiPanelProps) {
       console.error(error);
 
       setMessages(previousMessages);
-      setSendError("Failed to send message.");
+      setSendError(sendErrorMessage);
       setChatStatus("unconfirmed");
       if (canRestoreHistory) await refreshHistory();
     } finally {

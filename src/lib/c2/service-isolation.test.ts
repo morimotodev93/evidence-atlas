@@ -31,6 +31,7 @@ beforeEach(() => {
   for (const [key, value] of Object.entries({ C2_RUNTIME_MODE: "local", C2_MODE: "local", PUBLIC_DEMO_MODE: "false",
     DATABASE_URL: url, C2_DATABASE_URL: url, C2_POSTGRES_PASSWORD: "synthetic-db",
     GOOGLE_GENERATIVE_AI_API_KEY: "synthetic-key", UPSTASH_REDIS_REST_TOKEN: "synthetic-key",
+    CHAT_RATE_LIMIT_BACKEND: "memory", NODE_ENV: "development",
     NEXT_PUBLIC_SENTRY_DSN: "https://synthetic.invalid", NEXT_PUBLIC_SENTRY_TRACES_SAMPLE_RATE: "1",
   })) vi.stubEnv(key, value);
   mocks.inngest.mockImplementation(() => ({ send: mocks.send, createFunction: mocks.createWorker }));

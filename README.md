@@ -155,7 +155,44 @@ pnpm dev
 
 The application will be available at the local development URL provided by Next.js.
 
-Additional setup instructions will be documented as the application infrastructure is established.
+### Local Chat without Upstash
+
+Normal local SaaS development can explicitly opt into a process-local Chat rate
+limit. In PowerShell, set the option for the development process:
+
+```powershell
+$env:CHAT_RATE_LIMIT_BACKEND = "memory"
+pnpm dev
+```
+
+This requires `NODE_ENV=development` and limits each authenticated Workspace × User
+to 10 accepted Chat requests in a rolling 60-second window. It replaces only the
+rate-limit backend: normal authentication, authorization, the local database and
+Google generation/embedding configuration are still required. Public Demo and C2
+continue to reject Chat before the limiter runs.
+
+Memory counters are local to one process, reset on restart or module reload, and
+are independent across workers or server instances. Expired timestamps and keys
+are pruned on the next rate-limit check; each active key retains at most ten
+timestamps. This is a development aid, not a distributed quota or production
+backend. The server-only option is described in `.env.example`; actual secret
+files do not need to be edited to use the process-scoped command above.
+
+Unset the option, or select `upstash`, to use the standard Upstash backend. It
+requires `UPSTASH_REDIS_REST_URL` and `UPSTASH_REDIS_REST_TOKEN` (the installed
+Redis SDK also supports `KV_REST_API_URL` / `KV_REST_API_TOKEN` fallbacks).
+Missing credentials, an unknown backend, or `memory` outside development return
+HTTP 503 with code `CHAT_RATE_LIMIT_NOT_CONFIGURED`. Redis initialization/request
+failures and SDK timeout results return 503 with `CHAT_RATE_LIMIT_UNAVAILABLE`.
+These responses expose no connection details and stop before new Message,
+Conversation activity or usage writes, retrieval, embedding and generation.
+Ordinary quota denial remains 429 with `Retry-After`.
+
+The installed Upstash rate-limit SDK defaults to a five-second timeout that can
+resolve with `success: true, reason: "timeout"`. The Chat route treats this as
+503 rather than accepting the request. That does not cancel pending Redis or SDK
+analytics work. The UI uses a fixed availability message for 503 and never renders
+the raw service error body. Other Chat and saved-history behavior is unchanged.
 
 ## Scripts
 
