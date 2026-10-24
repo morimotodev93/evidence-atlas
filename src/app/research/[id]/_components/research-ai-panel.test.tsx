@@ -326,7 +326,7 @@ describe("Chat panel synthetic stream handlers (not mounted browser recovery)", 
     expect(fetchMock).toHaveBeenCalledTimes(4); // No retry after denied GET.
   });
 
-  it.each([401, 403, 404])("does not fetch recovery history after POST access rejection %i", async (status) => {
+  it.each([401, 403, 404, 429, 500])("does not fetch recovery history after POST rejection %i", async (status) => {
     await startConversation();
     typeMessage("Question");
     fetchMock.mockResolvedValueOnce(new Response(null, { status }));
@@ -335,6 +335,24 @@ describe("Chat panel synthetic stream handlers (not mounted browser recovery)", 
     expect(messageTexts()).toEqual([]);
     expect(textarea().props.disabled).toBe(false);
     expect(fetchMock).toHaveBeenCalledTimes(2);
+  });
+
+  it("shows a safe 503 message, preserves saved history, and never displays the response body", async () => {
+    await startConversation();
+    fetchMock.mockResolvedValueOnce(detail(earlierTurns));
+    await selectConversation();
+    typeMessage("Question");
+    fetchMock.mockResolvedValueOnce(Response.json({ error: "Synthetic private service detail", code: "CHAT_RATE_LIMIT_NOT_CONFIGURED" }, { status: 503 }));
+    await click("Send");
+    expect(alerts()).toEqual(["Chat is temporarily unavailable. Please contact the administrator or try again later."]);
+    expect(messageTexts()).toEqual(["Earlier question", "Earlier answer"]);
+    expect(statuses()).toEqual([unconfirmedStatus]);
+    expect(textarea().props.disabled).toBe(false);
+    expect(fetchMock).toHaveBeenCalledTimes(3); // No automatic POST retry or recovery GET.
+    fetchMock.mockResolvedValueOnce(detail(earlierTurns));
+    expect(await selectConversation()).toBe(true);
+    expect(alerts()).toEqual([]);
+    expect(messageTexts()).toEqual(["Earlier question", "Earlier answer"]);
   });
 
   it.each(["New", "History"].flatMap((navigation) =>

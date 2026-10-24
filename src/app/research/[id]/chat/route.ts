@@ -8,7 +8,10 @@ import {
 } from "@/auth/requireResearchAccess";
 import { isPublicDemoMode } from "@/lib/deployment-mode";
 
-import { getChatRateLimit } from "@/lib/ai/chat-rate-limit";
+import {
+  ChatRateLimitConfigurationError,
+  getChatRateLimit,
+} from "@/lib/ai/chat-rate-limit";
 import {
   RESEARCH_MODEL_ID,
   RESEARCH_MODEL_PROVIDER,
@@ -94,9 +97,35 @@ export async function POST(request: Request, { params }: RouteContext) {
     return Response.json({ error: "Conversation not found." }, { status: 404 });
   }
 
-  const rateLimit = await getChatRateLimit().limit(
-    `${research.workspaceId}:${session.user.id}`,
-  );
+  let rateLimit;
+  try {
+    rateLimit = await getChatRateLimit().limit(
+      `${research.workspaceId}:${session.user.id}`,
+    );
+  } catch (error) {
+    const notConfigured = error instanceof ChatRateLimitConfigurationError;
+    return Response.json(
+      {
+        error: notConfigured
+          ? "Chat is unavailable because rate limiting is not configured. Please contact the administrator."
+          : "Chat is temporarily unavailable. Please try again later.",
+        code: notConfigured ? "CHAT_RATE_LIMIT_NOT_CONFIGURED" : "CHAT_RATE_LIMIT_UNAVAILABLE",
+      },
+      { status: 503 },
+    );
+  }
+
+  // The installed SDK can resolve a timeout with success:true. Treat that as
+  // unavailable rather than allowing unverified requests to reach AI or writes.
+  if (rateLimit.reason === "timeout") {
+    return Response.json(
+      {
+        error: "Chat is temporarily unavailable. Please try again later.",
+        code: "CHAT_RATE_LIMIT_UNAVAILABLE",
+      },
+      { status: 503 },
+    );
+  }
 
   if (!rateLimit.success) {
     return Response.json(

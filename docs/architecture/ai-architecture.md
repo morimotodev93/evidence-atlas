@@ -147,7 +147,7 @@ Conversation-specific operations additionally match both Conversation ID and the
 
 Unauthenticated API requests return `401`. Requests for inaccessible Research, or for Conversations outside the authorized Research, return `404` without exposing the protected resource through subsequent reads or writes.
 
-Chat message requests return `400` with the existing required-fields error for malformed or empty JSON bodies and invalid `conversationId`/`message` values, before Conversation lookup, rate limiting, retrieval or persistence. Unexpected body-read, authentication, database and service exceptions propagate to Next.js error handling; they are not converted to authorization failures or successful responses.
+Chat message requests return `400` with the existing required-fields error for malformed or empty JSON bodies and invalid `conversationId`/`message` values, before Conversation lookup, rate limiting, retrieval or persistence. Unexpected body-read, authentication, database, context/retrieval and generation-setup exceptions propagate to Next.js error handling; they are not converted to authorization failures or successful responses. Rate-limit configuration and service failures have the controlled `503` contract described below.
 
 Conversation activity is updated when the user message is accepted. History is ordered by that activity timestamp and previews the first user message. Retrieval failures do not save the new user turn; later failures can leave persisted user messages even when the client removes the attempted exchange from its display. Retry and durable failure-state handling are deferred. Retrieval results, distances, and context snapshots are not persisted with messages.
 
@@ -292,7 +292,15 @@ This distinction keeps AI-generated text visually separate from evidence referen
 
 ### Rate Limiting & Usage Tracking
 
-The generation route (`POST /research/[id]/chat`) uses Upstash Redis and `@upstash/ratelimit` with a sliding window of 10 requests per minute. The limiter identifier is `workspaceId:userId`, so the limit applies per Workspace × User.
+The generation route (`POST /research/[id]/chat`) uses Upstash Redis and `@upstash/ratelimit` by default, with a sliding window of 10 requests per minute. The limiter identifier is `workspaceId:userId`, so the limit applies per Workspace × User. The standard backend, prefix and analytics configuration are retained in production.
+
+Normal local development may explicitly select the server-only `CHAT_RATE_LIMIT_BACKEND=memory`, but only when `NODE_ENV=development`. This backend counts up to ten accepted requests in a rolling 60-second timestamp window per identifier. It stores at most ten timestamps per active key, prunes expired timestamps and keys on the next check, and uses no Redis or added dependencies. Its counters belong to one module instance/process, reset on restart or module reload, and are not shared across workers. It is a development aid rather than a distributed production limit; its timestamp algorithm is separate from the Upstash SDK's sliding-window implementation. See [local enablement](../../README.md#local-chat-without-upstash).
+
+Unset/empty backend settings and explicit `upstash` use the standard backend. Its credentials are checked before constructing Redis, preserving `Redis.fromEnv()`'s `UPSTASH_REDIS_REST_URL` / `UPSTASH_REDIS_REST_TOKEN` and `KV_REST_API_URL` / `KV_REST_API_TOKEN` fallbacks. Missing credentials, unsupported backends, and `memory` outside development fail closed with HTTP `503`, a fixed safe message and `code: "CHAT_RATE_LIMIT_NOT_CONFIGURED"`. They never fall back to unlimited access or to memory. Redis initialization/request exceptions instead return `503` with `code: "CHAT_RATE_LIMIT_UNAVAILABLE"`, without exposing the exception, credentials or destination.
+
+The installed `@upstash/ratelimit@2.2.0` defaults to a five-second timeout and can resolve with `success: true, reason: "timeout"`. The route explicitly converts that result to `CHAT_RATE_LIMIT_UNAVAILABLE` / `503`, so this SDK fail-open path cannot proceed into retrieval or writes. Pending Redis and analytics work is not cancelled by this check; this is not an assertion that all SDK background failures are observed. Both 503 paths stop before new USER/AI Message, Conversation activity and AiUsageEvent writes, embedding and generation. The UI displays a fixed service-availability message for any 503 without reading the response body. Other authentication, stream-consumption and saved-history recovery behavior is retained.
+
+C2 still rejects Chat with its existing 503 before authentication or limiter selection, including when memory is requested; direct limiter access also checks the C2 service guard first. Public Demo still returns its existing 404 before authentication or limiter selection. Neither mode is enabled by the new setting.
 
 ```text
 Authentication
