@@ -399,10 +399,13 @@ for (const viewport of [{ width: 375, height: 812 }, { width: 768, height: 1024 
         const back = main.getByRole("link", { name: "← Back to Demo Workspace", exact: true });
         await expect(back).toHaveAttribute("href", "/demo");
         await expectResponsiveElement(page, back);
+        const appearance = page.getByRole("combobox", { name: "Appearance", exact: true });
+        await expect(appearance).toBeEnabled();
+        // The hydrated header adds a tab stop between Source code and Back.
         const detailLinks = [
           page.getByRole("link", { name: "Evidence Atlas", exact: true }),
           page.getByRole("link", { name: "Source code", exact: true }),
-          back, ...sourceLinks, ...supportingLinks,
+          appearance, back, ...sourceLinks, ...supportingLinks,
         ];
         const externalLinks = new Set([...sourceLinks, ...supportingLinks]);
         const expectDetailFocus = async (target: Locator) => {
@@ -550,9 +553,11 @@ for (const viewport of [
 
       const site = page.getByRole("link", { name: "Evidence Atlas", exact: true });
       const code = page.getByRole("link", { name: "Source code", exact: true });
+      const appearance = page.getByRole("combobox", { name: "Appearance", exact: true });
+      await expect(appearance).toBeEnabled();
       await expect(site).toHaveAttribute("href", "/demo");
       await expect(code).toHaveAttribute("href", "https://github.com/morimotodev93/evidence-atlas");
-      const listLinks = [site, code, ...await list.getByRole("link").all()];
+      const listLinks = [site, code, appearance, ...await list.getByRole("link").all()];
       for (const link of listLinks) {
         await expectTabReachable(page, link);
         await expectExposedKeyboardFocus(link);
@@ -595,7 +600,7 @@ for (const viewport of [
       }
 
       const back = page.getByRole("link", { name: "← Back to Demo Workspace", exact: true });
-      const detailLinks = [site, code, back, ...sourceLinks, ...supportingLinks];
+      const detailLinks = [site, code, appearance, back, ...sourceLinks, ...supportingLinks];
       const externalLinks = new Set([...sourceLinks, ...supportingLinks]);
       const detailURL = page.url();
       const expectDetailFocus = async (link: Locator) => {
