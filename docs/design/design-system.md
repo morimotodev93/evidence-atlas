@@ -1,7 +1,7 @@
 # Design System
 
 > **Status:** Design baseline; implementation gaps noted below
-> **Last Updated:** 2026-10-24
+> **Last Updated:** 2026-10-26
 
 This document defines the intended design system. Statements about required behavior are not a claim that every screen has been verified against it.
 
@@ -277,11 +277,11 @@ Public Demo keeps its independent read-only shell and URLs. Global Search, Relat
 
 Research detail and Public Demo detail share a display-only header and content component. The title uses `text-3xl` / `sm:text-4xl` with tight leading; descriptions preserve line breaks. Status retains an explicit text label, while tags and creation/update dates remain secondary. The Edit action stacks below the title on narrow screens; status and tag controls wrap independently. Long titles, tags, body text, and URLs wrap within the available width.
 
-Conclusion, Sources, Findings, and Discussion use the same `text-lg` section heading, explanatory text, and `py-8` spacing. Counts sit beside headings as muted metadata; optional actions wrap beside or below the heading group. Empty states use short, muted text inside compact dashed borders, without additional calls to action. The existing section controls remain available in editable Research; Public Demo receives no controls or editing invitations.
+Sources, Findings, Discussion, and Conclusion use the same `text-lg` section heading, explanatory text, and `py-8` spacing. Counts sit beside headings as muted metadata; optional actions wrap beside or below the heading group. Empty states use short, muted text inside compact dashed borders, without additional calls to action. The existing section controls remain available in editable Research; Public Demo receives no controls or editing invitations.
 
 Conclusion, Finding, and Discussion bodies preserve whitespace with `text-base` / `leading-7`. Conclusion remains plain human-authored text, distinct from AI answers and evidence rows. Sources prioritize titles over full wrapping URLs and update dates, with separate action rows outside the evidence links. Findings indent Supporting sources with a subtle left border; source attachment controls precede the secondary display-style/update/action footer. Discussion retains body-first presentation with author, date, and actions in a wrapping footer. Rows use separators rather than individual cards or shadows. Detail action groups give existing button triggers a minimum height of eight spacing units; evidence links have explicit keyboard focus outlines using the ring token. Existing Source URL validation and external-link attributes are unchanged.
 
-The primary content remains a single column in its existing order: Conclusion, Sources, Findings, Discussion. Conclusion appearing before Sources remains the unresolved ordering gap recorded in Design Direction. This presentation update does not advance Phase 10. Static rendering tests cover content, optional controls, empty states, long text/URLs, and Source links; actual reflow at 375px, 768px, desktop, and 200% zoom, keyboard interactions, and light/dark contrast still require real-browser verification.
+The primary content remains a single column following the Research Header: Sources, Findings, Discussion, Conclusion, matching Design Direction. Section separators follow Sources, Findings, and Discussion; the final Conclusion has no bottom separator. This presentation update does not advance Phase 10. Static rendering tests cover content, optional controls, empty states, long text/URLs, and Source links; actual reflow at 375px, 768px, desktop, and 200% zoom, keyboard interactions, and light/dark contrast still require real-browser verification.
 
 ### Current AI Answer Presentation
 

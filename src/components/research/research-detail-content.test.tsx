@@ -72,7 +72,11 @@ describe("Research detail presentation", () => {
   it("renders four ordered sections and concise read-only empty states without editing invitations", () => {
     const html = renderToStaticMarkup(<ResearchDetailContent research={{ ...research, conclusion: null }} sources={[]} findings={[]} comments={[]} />);
     expect([...html.matchAll(/<h2[^>]*>([^<]+)<\/h2>/g)].map((match) => match[1]))
-      .toEqual(["Conclusion", "Sources", "Findings", "Discussion"]);
+      .toEqual(["Sources", "Findings", "Discussion", "Conclusion"]);
+    const sections = [...html.matchAll(/<section class="([^"]*)">/g)].map((match) => match[1].split(" "));
+    expect(sections).toHaveLength(4);
+    for (const classes of sections.slice(0, -1)) expect(classes).toContain("border-b");
+    expect(sections[3]).not.toContain("border-b");
     for (const value of ["No conclusion yet.", "No sources yet.", "No findings yet.", "No discussion yet.",
       "0 sources", "0 findings", "0 comments"]) expect(html).toContain(value);
     expect(html).not.toMatch(/<button|<form|Add |Edit/);

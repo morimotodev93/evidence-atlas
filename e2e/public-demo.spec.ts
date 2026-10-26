@@ -91,8 +91,8 @@ async function expectResearchDetailLayout(page: Page, title: string) {
   }
 
   await expect(main.getByRole("heading", { level: 2 }))
-    .toHaveText(["Conclusion", "Sources", "Findings", "Discussion"]);
-  for (const name of ["Conclusion", "Sources", "Findings", "Discussion"]) {
+    .toHaveText(["Sources", "Findings", "Discussion", "Conclusion"]);
+  for (const name of ["Sources", "Findings", "Discussion", "Conclusion"]) {
     const heading = main.getByRole("heading", { name, exact: true, level: 2 });
     const section = main.locator("section").filter({
       has: page.getByRole("heading", { name, exact: true, level: 2 }),
@@ -304,7 +304,7 @@ test("Research list shows the four curated seed entries with Demo links", async 
 test("Research detail displays its content and links back to the list", async ({ page }) => {
   await page.goto("/demo");
   await openProductivityResearch(page);
-  for (const name of ["Conclusion", "Sources", "Findings", "Discussion"]) {
+  for (const name of ["Sources", "Findings", "Discussion", "Conclusion"]) {
     await expect(page.getByRole("heading", { name, exact: true, level: 2 })).toBeVisible();
   }
   await page.getByRole("link", { name: "← Back to Demo Workspace", exact: true }).click();
@@ -512,7 +512,7 @@ for (const viewport of [{ width: 375, height: 812 }, { width: 768, height: 1024 
       await expectResponsiveElement(page,
         page.getByRole("heading", { name: seededResearchTitles[0], exact: true, level: 1 }));
       await expectResponsiveElement(page, page.getByRole("main"), false);
-      for (const name of ["Conclusion", "Sources", "Findings", "Discussion"]) {
+      for (const name of ["Sources", "Findings", "Discussion", "Conclusion"]) {
         const heading = page.getByRole("heading", { name, exact: true, level: 2 });
         await expectResponsiveElement(page, heading);
         await expect(heading).toBeInViewport();
@@ -572,7 +572,7 @@ for (const viewport of [
       await expect(page.getByRole("heading", { level: 1 })).toHaveCount(1);
       await expect(main.getByRole("heading", { level: 1 })).toHaveText(seededResearchTitles[0]);
       await expect(main.getByRole("heading", { level: 2 }))
-        .toHaveText(["Conclusion", "Sources", "Findings", "Discussion"]);
+        .toHaveText(["Sources", "Findings", "Discussion", "Conclusion"]);
 
       const sources = main.locator("section").filter({
         has: page.getByRole("heading", { name: "Sources", exact: true, level: 2 }),
