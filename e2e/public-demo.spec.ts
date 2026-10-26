@@ -456,9 +456,28 @@ test("list and detail expose read-only UI without mutation or AI controls", asyn
     await expect(page.getByText("Read-only demo", { exact: true })).toBeVisible();
     await expect(page.getByRole("button", { name: operationName, includeHidden: true })).toHaveCount(0);
     await expect(page.getByRole("link", { name: operationName, includeHidden: true })).toHaveCount(0);
-    await expect(page.getByRole("textbox", { includeHidden: true })).toHaveCount(0);
     await expect(page.getByRole("combobox", { includeHidden: true })).toHaveCount(1);
-    await expect(page.getByRole("combobox", { name: "Appearance", exact: true })).toBeEnabled();
+    const appearance = page.getByRole("banner")
+      .getByRole("combobox", { name: "Appearance", exact: true });
+    await expect(appearance).toBeEnabled();
+    await expect(appearance).toHaveAttribute("data-slot", "select-trigger");
+    // Base UI renders one aria-hidden autofill input as a sibling of this
+    // specific trigger. Do not exempt other hidden inputs or textboxes.
+    const appearanceInput = appearance.locator("..").locator(":scope > input");
+    await expect(appearanceInput).toHaveCount(1);
+    await expect(appearanceInput).toHaveAttribute("aria-hidden", "true");
+    await expect(appearanceInput).toHaveAttribute("tabindex", "-1");
+    expect(await appearanceInput.evaluate((element) => ({
+      type: element.getAttribute("type"),
+      role: element.getAttribute("role"),
+      dataSlot: element.getAttribute("data-slot"),
+      effectiveType: (element as HTMLInputElement).type,
+    }))).toEqual({ type: null, role: null, dataSlot: null, effectiveType: "text" });
+    const textboxes = page.getByRole("textbox", { includeHidden: true });
+    await expect(textboxes, `Only the Appearance internal textbox in ${view}`).toHaveCount(1);
+    await expect(textboxes.and(appearanceInput)).toHaveCount(1);
+    await expect(page.getByRole("textbox")).toHaveCount(0);
+    await expect(page.getByRole("main").getByRole("textbox", { includeHidden: true })).toHaveCount(0);
     await expect(page.getByRole("main").getByRole("combobox", { includeHidden: true })).toHaveCount(0);
   }
   // This UI regression check does not prove server-side write prevention.
