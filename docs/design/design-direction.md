@@ -1,7 +1,7 @@
 # Design Direction
 
 > Status: Draft
-> Last Updated: 2026-10-24
+> Last Updated: 2026-10-26
 
 ## 1. Design Concept
 
@@ -182,6 +182,8 @@ Research
 
 This structure should help users move from the research question to the supporting evidence, then through interpretation and discussion toward a conclusion.
 
+Authenticated Research detail and Public Demo detail now share the implemented sequence Sources → Findings → Discussion → Conclusion, following the Research Header. Overview and Related Research remain outside this ordering update.
+
 The main research content should remain a single-column flow even when supporting UI elements are present.
 
 #### Supporting UI Regions
@@ -297,7 +299,6 @@ Use the default spacing scale provided by the design system, adjusting values on
 The direction above remains the design baseline. The current implementation differs in the following ways:
 
 - Authenticated Home, Research list/detail/create/edit, and Organization/Workspace settings share a sidebar-based application shell. At `xl` (80rem) and above, a 13rem left sidebar stays below the sticky header and scrolls independently. Below `xl`, the header Menu opens the same destinations in a left-side Base UI modal dialog. Home and Research form the primary group; Organization and Workspace form Settings. Research detail/create/edit keep Research active. Active links use a leading border, heavier text, and `aria-current="page"`. The header retains the brand, server-side sign-out, and the existing Workspace selector on Home and the Research list. Public Demo retains its separate read-only header; a Demo-specific sidebar remains unimplemented.
-- The Research detail page places the stored, editable Conclusion before Sources. The intended sequence above places Conclusion after Discussion; this ordering difference remains an implementation gap, not an approved design change.
 - Research list search, status filtering, and sorting are implemented as an inline form above the list. Sidebar-based global search and Related Research are not implemented.
 - Research-scoped AI exploration uses a sticky right-side panel at `lg` and above, with the width and internal message scrolling described above. Below `lg`, a fixed bottom Ask AI button opens the `90dvh` dialog; scrolling belongs to the shared panel's messages. The primary Research content remains a single column. The desktop panel is always visible rather than opening on demand; the intended on-demand interaction remains a design gap.
 - Both layouts reuse the AI panel, including New, History, streaming messages, and Supporting sources. They do not share live conversation selection or draft state across layouts. Phase 6 adds same-Workspace knowledge retrieval to these Research conversations; there is no separate Workspace chat destination.

@@ -142,19 +142,6 @@ export function ResearchDetailContent({ research, sources, findings, comments, c
 }) {
   return (
     <div className="min-w-0 [overflow-wrap:anywhere]">
-      {/* Conclusion */}
-      <section className="border-b py-8">
-        <SectionHeading title="Conclusion" description="Current synthesis of this research." action={controls?.conclusion} />
-
-        {research.conclusion ? (
-          <p className="mt-4 max-w-3xl whitespace-pre-wrap text-base leading-7">
-            {research.conclusion}
-          </p>
-        ) : (
-          <EmptyState>No conclusion yet.</EmptyState>
-        )}
-      </section>
-
       {/* Sources */}
       <section className="border-b py-8">
         <SectionHeading title="Sources" description="External sources used in this research." count={`${sources.length} sources`} action={controls?.addSource} />
@@ -294,7 +281,7 @@ export function ResearchDetailContent({ research, sources, findings, comments, c
       </section>
 
       {/* Discussion */}
-      <section className="py-8">
+      <section className="border-b py-8">
         <SectionHeading title="Discussion" description="Discuss questions, interpretations, and unresolved points." count={`${comments.length} comments`} action={controls?.addComment} />
 
         <div className="mt-4 space-y-3">
@@ -327,6 +314,19 @@ export function ResearchDetailContent({ research, sources, findings, comments, c
             ))
           )}
         </div>
+      </section>
+
+      {/* Conclusion */}
+      <section className="py-8">
+        <SectionHeading title="Conclusion" description="Current synthesis of this research." action={controls?.conclusion} />
+
+        {research.conclusion ? (
+          <p className="mt-4 max-w-3xl whitespace-pre-wrap text-base leading-7">
+            {research.conclusion}
+          </p>
+        ) : (
+          <EmptyState>No conclusion yet.</EmptyState>
+        )}
       </section>
     </div>
   );

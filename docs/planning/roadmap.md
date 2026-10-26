@@ -1,6 +1,6 @@
 # evidence-atlas Roadmap
 
-> **Last Updated:** 2026-10-19
+> **Last Updated:** 2026-10-26
 
 Current stage: The portfolio MVP and curated read-only Public Demo are implemented, with scoped deployment checks recorded. Phases 4–7 are complete for their defined baselines; Phase 8 is partial. Phase 10 has completed its bounded Public Demo + C2 authenticated Smoke + Chat mock-only end-to-end checklist item, but other quality work remains open. Phase 11 operational reviews and Phase 12 documentation are not complete. Checked items describe specific implementation or reported verification, not blanket production, OAuth, provider, or security validation.
 
@@ -179,6 +179,8 @@ Tag renaming and Workspace-level Tag deletion are not implemented. Discovery con
 - [x] Basic sorting
 
 **Status: Complete for the Phase 4 scope.** The overview shows stored Workspace data, the three most recently updated Research items, and Research/Source/Finding/Tag counts. Research lifecycle status and Conclusion can be edited. Findings display supporting Sources and support attaching and removing links; the contract and follow-up migration define cascading deletion of those links when a Finding or Source is deleted.
+
+Research detail and Public Demo detail share the reading order Research Header → Sources → Findings → Discussion → Conclusion, resolving the documented Conclusion ordering gap. Existing controls and the read-only Demo boundary are retained; this update does not advance Phase 10 acceptance.
 
 Research discovery supports case-insensitive title/description search, lifecycle status filtering, and sorting by last update or creation date (newest/oldest). The overview and Research list are scoped to the authenticated user's current Workspace. Workspace selection and membership-based access are implemented as part of Phase 7. Phase 5 provides Research-scoped conversations, and Phase 6 adds Workspace retrieval. The broader product workflow and Phase 10 quality requirements remain outstanding.
 

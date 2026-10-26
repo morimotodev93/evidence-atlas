@@ -68,6 +68,9 @@ describe("Public Demo pages", () => {
     vi.stubEnv("PUBLIC_DEMO_MODE", mode);
     const html = renderWithLayout(await detailPage());
     expectReadOnly(html);
+    expect([...html.matchAll(/<h2[^>]*>([^<]+)<\/h2>/g)].map((match) => match[1]))
+      .toEqual(["Sources", "Findings", "Discussion", "Conclusion"]);
+    expect(html.indexOf("</header>", html.indexOf("<main"))).toBeLessThan(html.indexOf("<section"));
     for (const value of [research.title, research.description, research.conclusion, source.title, finding.content, comment.content, "Demo Author", "Supporting sources", "Completed"]) {
       expect(html).toContain(value);
     }

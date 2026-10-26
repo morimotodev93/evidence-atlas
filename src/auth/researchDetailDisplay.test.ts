@@ -58,6 +58,9 @@ beforeEach(() => {
 describe("Authenticated Research detail after display extraction", () => {
   it("preserves editing controls, Source linking, settings, and desktop/mobile AI", async () => {
     const html = renderToStaticMarkup(await DetailPage({ params: Promise.resolve({ id: research.id }) }));
+    expect([...html.matchAll(/<h2[^>]*>([^<]+)<\/h2>/g)].map((match) => match[1]))
+      .toEqual(["Sources", "Findings", "Discussion", "Conclusion"]);
+    expect(html.indexOf("</header>", html.indexOf("<main"))).toBeLessThan(html.indexOf("<section"));
     expect(html).toContain(research.title);
     expect(html).toContain(research.conclusion);
     expect(html).toContain(comment.user.name);
