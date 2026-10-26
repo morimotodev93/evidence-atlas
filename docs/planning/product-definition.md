@@ -622,7 +622,7 @@ This distinction is important for traceability and AI retrieval.
 
 ## 6. Demo Experience
 
-The public Demo has a curated, read-only implementation at `/demo` and `/demo/research/[researchId]`. Phase 9.2 provides an unauthenticated public read path separate from the authenticated SaaS application; deployment verification remains pending.
+The public Demo has a curated, read-only implementation at `/demo` and `/demo/research/[researchId]`. Phase 9.2 provides an unauthenticated public read path separate from the authenticated SaaS application. Scoped deployed checks are recorded in [roadmap Phase 9](roadmap.md#phase-9--public-demo); PR #39 additionally records user-run Preview E2E 20/20, within the [reported scope](phase10-quality-acceptance.md#pr37-39-status-alignment).
 
 Visitors can explore a prepared Demo Workspace and review its accumulated research knowledge. AI-assisted public exploration remains a later phase; Demo pages do not display AI controls or expose chat endpoints.
 
@@ -650,7 +650,7 @@ Visitors should be able to inspect representative research data and understand h
 
 The curated Demo Workspace theme is **AI-Assisted Software Development**. Four Research items explore Developer Productivity, Code Quality & Reliability, Developer Experience, and Adoption & Organizational Impact to demonstrate evidence organization and cross-Research knowledge reuse. Representative data includes Sources, traceable Findings, Conclusions, Tags, Comments, and saved example AI conversations with Source citations.
 
-The content and data provisioning approach is defined in a dedicated `public-demo` seed profile using the existing application models. Seeding and indexing have been verified in an isolated database, as recorded in the roadmap; this is not a verified deployed Public Demo.
+The content and data provisioning approach is defined in a dedicated `public-demo` seed profile using the existing application models. Seeding and indexing were verified in an isolated database; separate deployed Demo checks are recorded in [roadmap Phase 9](roadmap.md#phase-9--public-demo). Isolated seeding/indexing alone does not establish deployment readiness.
 
 Server-only `DEMO_WORKSPACE_ID` selects the only published Workspace in the configured database. The resolver also validates the expected Workspace/Organization names without arbitrary fallback. Missing or invalid configuration disables publication. Research reads require the requested ID and Demo Workspace ID together, with related-data scope checks and public-only Comment author information. All Research in this Workspace is public, so it must contain curated content only.
 
@@ -682,7 +682,7 @@ The initial direction is therefore:
 - No requirement for visitors to provide personal API credentials
 - No production SaaS administration through the public Demo
 
-Curated content, public read-only access, Demo labels, and the visitor-facing SaaS write lock are implemented and locally verified. Public AI interactions remain intentionally disabled for the current read-only Demo scope. Credential exposure review, production deployment verification, database-role hardening, and live Inngest Cloud integration verification remain incomplete. Background writes are outside the visitor-facing lock.
+Curated content, public read-only access, Demo labels, and the visitor-facing SaaS write lock are implemented, with local and selected deployed route-boundary checks recorded in [roadmap Phase 9](roadmap.md#phase-9--public-demo). Its scoped credential exposure review found no confirmed private credentials in reviewed repository files, reachable Git history, or deployed Demo HTML. Public AI interactions remain intentionally disabled for the current read-only Demo scope. Database-role hardening and live normal-SaaS Inngest Cloud integration verification remain incomplete; Public Demo disables Inngest serving and requires no runtime indexing. Background writes are outside the visitor-facing lock.
 
 ---
 
@@ -942,7 +942,7 @@ The document should be revised when:
 
 ### Current Implementation Gaps
 
-The intended workflows above remain the product baseline. As of 2026-10-08:
+The intended workflows above remain the product baseline. Current gaps through PR #39 (2026-10-26 JST):
 
 - Research creation and title/description editing, plus Source, Finding, and Comment CRUD, are implemented.
 - Workspace Tags can be created or reused by name, attached to Research, displayed on list/detail pages, and detached without deleting the Tag. Tag renaming, Workspace-level Tag deletion, and Tag filtering are not implemented.
@@ -952,10 +952,10 @@ The intended workflows above remain the product baseline. As of 2026-10-08:
 - The Workspace overview displays stored data, recent Research, and counts. The Research list supports title/description search, status filtering, and sorting by update or creation date. Both pages are scoped to the authenticated User's current Workspace, and accessible Workspaces can be switched through the application UI. This list search is separate from semantic retrieval used internally by AI chat; there is no global search interface.
 - Comments attach to Research, not individual Findings; the UC-04 wording about selecting Findings describes discussion context, not a separate Comment relationship. Threaded replies are not modeled.
 - UC-05's broader conclusion workflow has only one optional text field in the current contract; multiple conclusion records and structured links to supporting Findings are not implemented.
-- Research-scoped AI conversations support explicit creation, streaming responses, saved history, and supporting Source links. Desktop uses a side panel; smaller screens use an Ask AI dialog. AI outputs are not automatically promoted into Findings or Conclusions.
+- Research-scoped AI conversations support explicit creation, streaming responses, saved history, and supporting Source links. Desktop starts with the side panel hidden; Ask AI opens it and Close hides it while retaining chat state and in-flight sends (PR #38). Smaller screens use an Ask AI dialog with separate state. Scoped browser checks are recorded in the [Phase 10 evidence](phase10-quality-acceptance.md#pr37-39-status-alignment). AI outputs are not automatically promoted into Findings or Conclusions.
 - UC-07 has a Phase 6 baseline: Research conversations combine current knowledge with relevant indexed Findings, Conclusions, and Research metadata from the same Workspace, including other Research items. Phase 8.3 adds asynchronous background reindexing after relevant Research/Finding mutations, with best-effort enqueue and a manual maintenance path. The broader use case remains incomplete: discussions and external Source bodies are not retrieved, the derived index can be stale, and citation eligibility does not prove a claim. Research metadata is discovery context rather than supported evidence.
 - Authentication, current Workspace selection, Workspace-based Research permission enforcement, onboarding, and Research-scoped AI route authorization are implemented. Related Research discovery, invitation and broader membership administration flows, and public AI usage controls remain pending.
-- Curated Demo data and isolated-database indexing are verified. Phase 9.2 implements fixed-Workspace public read routes, and Phase 9.3 locks visitor-originated authenticated SaaS access/writes under required `PUBLIC_DEMO_MODE=true`. Local tests and HTTP verification passed; live authenticated browser flows, deployed Demo, credential exposure, and infrastructure hardening remain pending.
+- Curated Demo data and isolated-database indexing are verified. Phase 9.2 implements fixed-Workspace public read routes, and Phase 9.3 locks visitor-originated authenticated SaaS access/writes under required `PUBLIC_DEMO_MODE=true`. Local tests, selected deployed route-boundary checks, and a scoped credential exposure review are recorded in roadmap Phase 9; PR #39 adds user-run Preview E2E 20/20 for the CSS-updated Demo. Comprehensive normal-SaaS browser verification, security review, and infrastructure hardening remain incomplete; scoped C2 Smoke/Chat mock results do not establish live Google OAuth or production AI quality.
 - A Sentry error-monitoring baseline, configurable sampled performance tracing, and targeted retrieval/indexing spans with count-based attributes are implemented. Broader production monitoring requirements remain open; see the [roadmap](roadmap.md#phase-8--saas-infrastructure).
 
 See the [roadmap](roadmap.md) for remaining work. These gaps do not redefine the approved product behavior.

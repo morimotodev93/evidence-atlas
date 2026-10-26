@@ -362,13 +362,13 @@ A Finding without a linked Source can still contribute to an answer, but its lac
 
 The same Research AI conversation functionality is used across viewport sizes.
 
-At the `lg` breakpoint and above, the AI Assistant is displayed in a sticky, 20rem right-hand column alongside the single-column Research content. The panel is always visible; there is no desktop open/close control.
+At `lg` (1024px) and above, the AI Assistant starts hidden. Ask AI opens a sticky right-hand panel (20rem at `lg`, 24rem at `xl`); Close returns focus to Ask AI. PR #38 keeps the panel mounted while hidden, preserving the draft, selected Conversation, Messages, Supporting Sources, and in-flight sends. The Research body uses the available width while closed. Crossing below `lg` closes desktop AI and returns focus to the Research body when needed.
 
 Below `lg`, a fixed bottom Ask AI action opens the AI Assistant in a dialog with a maximum height of `90dvh` and scrollable content.
 
 Both interfaces reuse the same Research AI panel and conversation behavior rather than maintaining separate AI implementations.
 
-Component reuse does not mean shared live state: the desktop and dialog panels have separate selected-conversation, message, and draft state. History restores persisted messages; drafts and in-progress streams are not synchronized between layouts. Users create a conversation with New or restore one with History before sending a question. The UI provides creation, loading, restoration, and submission feedback, but has no stop-generation control. Responsive and accessibility verification remain outstanding.
+Component reuse does not mean shared live state: the desktop and dialog panels have separate selected-conversation, message, and draft state. History restores persisted messages; drafts and in-progress streams are not synchronized between layouts. Users create a conversation with New or restore one with History before sending a question. The UI provides creation, loading, restoration, and submission feedback, but has no stop-generation control. PR #38 records scoped focus, 1023px/1024px boundary, mobile regression, and user real-browser checks, including an answer displayed after closing and allowing sufficient time. Comprehensive responsive/accessibility acceptance and production AI quality remain open; see the [verification scope](../planning/phase10-quality-acceptance.md#pr37-39-status-alignment).
 
 ---
 

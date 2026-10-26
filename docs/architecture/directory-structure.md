@@ -129,7 +129,7 @@ Authenticated-route responsibilities below describe normal SaaS mode. In `PUBLIC
 
 Route-local Server Actions live in `_actions/`. Research-detail dialogs and onboarding/settings forms live in `_components/`. These private folders do not create routes. Workspace switching is a shared Server Action in `src/workspace/`.
 
-Research detail also hosts the AI Assistant: a sticky side panel at `lg` and above, and a fixed Ask AI action opening a dialog below `lg`. Both reuse the same panel component. Each panel instance owns its client state; switching viewport layouts does not synchronize the selected conversation or draft. Persisted conversations can be reopened through History.
+Research detail also hosts the AI Assistant: at `lg` and above, Ask AI opens an initially hidden sticky side panel and Close hides it, preserving its mounted state and in-flight sends (PR #38). Below `lg`, a fixed Ask AI action opens a dialog. Both reuse the same panel component. Each panel instance owns its client state; switching viewport layouts does not synchronize the selected conversation or draft. Persisted conversations can be reopened through History.
 
 The root layout defines document metadata and typography. Global styles, semantic tokens, and light/dark palettes live in `src/app/globals.css`.
 

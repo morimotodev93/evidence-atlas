@@ -1,5 +1,7 @@
 # PR #22 — Research list focus regressionのオフライン修正
 
+> **現在状態の補足:** 冒頭の「ブラウザ再検証待ち」はオフライン修正時点の記録。後続の[PR #22再検証](#pr-22-browser-retest)・[配備照合](#pr-22-deployment-identity-2026-10-22)を参照。さらにPR #39ではCSS変更を含むVercel Previewでユーザー実行のPublic Demo E2E **20/20（2.1分）** が成功した。375px / 768pxの順逆keyboard・Sourceリンク遮蔽・read-only UIの限定結果であり、全幅・全contrast・WCAG全体の完了ではない。[帰属・範囲](phase10-quality-acceptance.md#pr37-39-status-alignment)を参照。以下のFail / Pending / Not verified・原証拠は当時の履歴として保持する。
+
 記録日: 2026-10-20 JST。**ローカル修正済み・ブラウザ再検証待ち**。本作業ではブラウザ・Preview・外部Sourceへアクセスしていない。[C22ブラウザ検査](public-demo-contrast-visible-focus-review.md#pr-22-codex-browser-batch)の4件のFail・色測定・画像・Not verifiedは修正前の証拠として保持し、Passへ変更しない。**4px余白・部分重なりゼロというプロジェクト条件のFailであり、WCAG AA違反の確定ではない。**
 
 ## 開始状態と証拠保全

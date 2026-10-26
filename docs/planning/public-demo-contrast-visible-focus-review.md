@@ -1,5 +1,7 @@
 # Public Demo — Contrast / Visible Focus Review（PR #20準備）
 
+> **現在状態の補足（PR #39まで）:** 本書のFail / Pending / Not run・配備条件は各検査時点の履歴。PR #39でAppearance Selectを含むTab操作・Sourceリンクfocus遮蔽・scroll余白を修正し、CSS変更が反映されたVercel Previewでユーザー実行のPlaywright E2E **20/20（2.1分）** が成功した。375px / 768pxの順逆keyboard・Source遮蔽・read-only UIの限定結果であり、contrast全状態やWCAG全体の完了ではない。[帰属・検証範囲](phase10-quality-acceptance.md#pr37-39-status-alignment)を参照。以下の原記録は保持する。
+
 記録日: 2026-10-20 JST。静的調査と後日の手動検査計画であり、ブラウザ検査・色実測の成功報告ではない。[Phase 10受入条件](phase10-quality-acceptance.md)を補う。**Accessibility review / Responsive UI reviewは未完了。**
 
 ## 1. Scope and Non-goals
