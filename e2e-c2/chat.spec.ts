@@ -20,10 +20,17 @@ async function openResearchChat(page: Page): Promise<Locator> {
 
   // The existing desktop fixture uses a 1280px viewport; the actual AI panel
   // appears in the desktop sidebar, not the mobile dialog.
-  const panel = page.locator("aside").filter({
-    has: page.getByRole("heading", { name: "AI Assistant", level: 2, exact: true }),
+  const panel = page.locator('aside[aria-label="AI Assistant"]');
+  const trigger = page.getByRole("button", { name: "Ask AI", exact: true });
+  await expect(trigger).toHaveAttribute("aria-expanded", "false");
+  await expect(panel).toBeHidden();
+  await expect(panel).toHaveAttribute("inert", "");
+  await trigger.click();
+  await expect(trigger).toHaveAttribute("aria-expanded", "true");
+  await test.step("C2 Chat panel", async () => {
+    await expect(panel).toBeVisible();
+    await expect(panel).toBeFocused();
   });
-  await test.step("C2 Chat panel", async () => { await expect(panel).toBeVisible(); });
   return panel;
 }
 
@@ -43,6 +50,64 @@ test("E: create an in-memory Chat conversation without sending a message", async
     await expect(panel.getByText("Conversation started", { exact: true })).toBeVisible();
     await expect(composer).toBeEnabled();
     await expect(panel.getByRole("button", { name: "Send", exact: true })).toBeDisabled();
+  });
+  const trigger = page.getByRole("button", { name: "Ask AI", exact: true });
+  await test.step("Desktop visibility, draft, layout and keyboard focus", async () => {
+    const grid = panel.locator("..");
+    const body = grid.locator(":scope > div").first();
+    const openWidth = (await body.boundingBox())!.width;
+    await panel.focus();
+    await page.keyboard.press("Tab");
+    await expect(panel.getByRole("button", { name: "History", exact: true })).toBeFocused();
+
+    const composer = panel.getByRole("textbox", { name: "Message to AI" });
+    await composer.fill("Keep this unfinished draft");
+    // A DOM marker proves that hiding/reopening did not replace the panel subtree.
+    await composer.evaluate((node) => { node.dataset.mountMarker = "original"; });
+    await panel.getByRole("button", { name: "Close AI Assistant", exact: true }).focus();
+    await page.keyboard.press("Enter");
+    await expect(trigger).toBeFocused();
+    await expect(trigger).toHaveAttribute("aria-expanded", "false");
+    await expect(panel).toBeHidden();
+    await expect(panel).toHaveAttribute("hidden", "");
+    await expect(panel).toHaveAttribute("inert", "");
+    expect((await body.boundingBox())!.width).toBeGreaterThan(openWidth);
+    await page.keyboard.press("Tab");
+    expect(await panel.evaluate((node) => node.contains(document.activeElement))).toBe(false);
+    await trigger.focus();
+    await page.keyboard.press("Enter");
+    await expect(panel).toBeFocused();
+    await expect(composer).toHaveAttribute("data-mount-marker", "original");
+    await expect(composer).toHaveValue("Keep this unfinished draft");
+    await expect(composer).toBeEnabled();
+    await expect(panel.getByText("Conversation started", { exact: true })).toBeVisible();
+    expect((await body.boundingBox())!.width).toBe(openWidth);
+  });
+  await test.step("Breakpoint, desktop History dismissal and independent mobile dialog", async () => {
+    await composer.fill("Desktop only");
+    await panel.getByRole("button", { name: "History", exact: true }).click();
+    const history = page.getByRole("dialog", { name: "Select Conversation", exact: true });
+    await expect(history).toBeVisible();
+    await page.setViewportSize({ width: 1023, height: 800 });
+    await expect(history).toBeHidden();
+    await expect(panel).toBeHidden();
+    await expect(panel.locator("..").locator(":scope > div").first()).toBeFocused();
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
+    await page.getByRole("button", { name: "Ask AI", exact: true }).click();
+    const mobile = page.getByRole("dialog", { name: "Ask AI", exact: true });
+    await expect(mobile).toBeVisible();
+    await expect(mobile.getByText("No conversation yet", { exact: true })).toBeVisible();
+    await expect(mobile.getByRole("textbox", { name: "Message to AI" })).toHaveValue("");
+    await expect(mobile.getByRole("textbox", { name: "Message to AI" })).toBeDisabled();
+    await page.keyboard.press("Escape");
+    await expect(mobile).toBeHidden();
+    await expect(page.getByRole("button", { name: "Ask AI", exact: true })).toBeFocused();
+    await page.setViewportSize({ width: 1024, height: 800 });
+    await expect(trigger).toHaveAttribute("aria-expanded", "false");
+    await trigger.click();
+    await expect(composer).toHaveValue("Desktop only");
+    await expect(history).toBeHidden();
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
   });
 });
 
@@ -93,6 +158,12 @@ test("G: restore synthetic messages from a selected History conversation", async
   await expect(panel.getByText("No conversation yet", { exact: true })).toHaveCount(0);
   await expect(composer).toBeEnabled();
   await expect(panel.getByRole("button", { name: "Send", exact: true })).toBeDisabled();
+  await panel.getByRole("button", { name: "Close AI Assistant", exact: true }).click();
+  await page.getByRole("button", { name: "Ask AI", exact: true }).click();
+  await expect(panel.getByText(HISTORY_USER_MESSAGE, { exact: true })).toBeVisible();
+  await expect(panel.getByText(HISTORY_AI_MESSAGE, { exact: true })).toBeVisible();
+  await expect(composer).toBeEnabled();
+
 });
 
 // The real C2 Chat POST remains disabled. Only this test enables an exact,
@@ -133,7 +204,8 @@ test("I: show a send error and restore the idle composer after a synthetic local
   await send.click();
 
   // handleSend rolls back its optimistic USER/AI pair on a non-2xx response.
-  await expect(panel.getByRole("alert")).toHaveText("Failed to send message.");
+  // A synthetic 503 uses the fixed availability message, never its JSON body.
+  await expect(panel.getByRole("alert")).toHaveText("Chat is temporarily unavailable. Please contact the administrator or try again later.");
   await expect(panel.getByText("Conversation started", { exact: true })).toBeVisible();
   await expect(panel.getByText(STREAM_USER_MESSAGE, { exact: true })).toHaveCount(0);
   await expect(panel.getByText(STREAM_AI_REPLY, { exact: true })).toHaveCount(0);
@@ -171,6 +243,11 @@ test("J: display a synthetic supporting-source link after a locally cited AI rep
   await expect(sourceLink).toHaveAttribute("href", CITATION_SOURCE.url);
   await expect(sourceLink).toHaveAttribute("target", "_blank");
   await expect(sourceLink).toHaveAttribute("rel", "noreferrer");
+  await panel.getByRole("button", { name: "Close AI Assistant", exact: true }).click();
+  await page.getByRole("button", { name: "Ask AI", exact: true }).click();
+  await expect(panel.getByText(CITATION_AI_TEXT, { exact: true })).toBeVisible();
+  await expect(sourceLink).toBeVisible();
+  await expect(sourceLink).toHaveAttribute("href", CITATION_SOURCE.url);
   await expect(composer).toBeEnabled();
   await expect(send).toBeDisabled();
   await expect(panel.getByRole("alert")).toHaveCount(0);

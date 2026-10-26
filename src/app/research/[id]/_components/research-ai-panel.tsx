@@ -17,6 +17,8 @@ type ResearchAiPanelProps = {
   researchId: string;
   sources: ResearchAiSource[];
   variant?: "desktop" | "mobile";
+  active?: boolean;
+  onClose?: () => void;
 };
 
 type ChatMessage = {
@@ -67,7 +69,7 @@ function scrollToLatest(viewport: HTMLDivElement) {
   viewport.scrollTop = viewport.scrollHeight;
 }
 
-export function ResearchAiPanel({ researchId, sources, variant = "desktop" }: ResearchAiPanelProps) {
+export function ResearchAiPanel({ researchId, sources, variant = "desktop", active = true, onClose }: ResearchAiPanelProps) {
   const [conversationId, setConversationId] = useState<string | null>(null);
   const [input, setInput] = useState("");
 
@@ -130,7 +132,7 @@ export function ResearchAiPanel({ researchId, sources, variant = "desktop" }: Re
   // Before the sticky panel reaches top-20, Research's header can put it farther
   // down the page. Cap the fallback height against that actual position too.
   useEffect(() => {
-    if (variant !== "desktop") return;
+    if (variant !== "desktop" || !active) return;
     const panel = panelElement.current;
     if (!panel) return;
     function fitPanel() {
@@ -146,7 +148,7 @@ export function ResearchAiPanel({ researchId, sources, variant = "desktop" }: Re
       window.removeEventListener("resize", fitPanel);
       panel.style.maxHeight = "";
     };
-  }, [variant]);
+  }, [variant, active]);
 
   function showLatestMessages() {
     followLatest.current = true;
@@ -425,7 +427,11 @@ export function ResearchAiPanel({ researchId, sources, variant = "desktop" }: Re
 
           <div className="flex shrink-0 gap-2">
             <ResearchAiConversationsDialog
+              // Only the picker resets on hide, dismissing its portaled modal.
+              // Conversation, draft, messages and requests stay in this panel.
+              key={active ? "active" : "inactive"}
               researchId={researchId}
+              desktop={variant === "desktop"}
               onSelectConversation={handleSelectConversation}
             />
 
@@ -438,6 +444,11 @@ export function ResearchAiPanel({ researchId, sources, variant = "desktop" }: Re
             >
               {isCreating ? "Creating..." : "New"}
             </Button>
+            {onClose ? (
+              <Button type="button" variant="ghost" size="sm" aria-label="Close AI Assistant" onClick={onClose}>
+                Close
+              </Button>
+            ) : null}
           </div>
         </div>
         {restoreError ? (

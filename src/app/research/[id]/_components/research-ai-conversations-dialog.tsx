@@ -13,11 +13,13 @@ import { useState } from "react";
 
 type ResearchAiConversationsDialogProps = {
   researchId: string;
+  desktop?: boolean;
   onSelectConversation: (conversationId: string) => Promise<boolean>;
 };
 
 export function ResearchAiConversationsDialog({
   researchId,
+  desktop = false,
   onSelectConversation,
 }: ResearchAiConversationsDialogProps) {
   type ConversationSummary = {
@@ -81,7 +83,7 @@ export function ResearchAiConversationsDialog({
         }
       />
 
-      <DialogContent className="flex max-h-[90dvh] min-w-0 flex-col overflow-hidden">
+      <DialogContent data-desktop-ai-history={desktop ? "" : undefined} className="flex max-h-[90dvh] min-w-0 flex-col overflow-hidden">
         <DialogHeader className="shrink-0 pr-8">
           <DialogTitle>Select Conversation</DialogTitle>
 
