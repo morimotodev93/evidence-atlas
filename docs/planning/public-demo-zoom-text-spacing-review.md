@@ -1,5 +1,7 @@
 # Public Demo — Zoom / Text Spacing Review（PR #16準備）
 
+> **現在状態の補足（PR #39まで）:** 本書の初期Not runや後続PR時点の未検証事項は履歴として保持する。PR #37で現在の詳細表示順はSources → Findings → Discussion → Conclusion。PR #38のChat境界（1023px / 1024px）・focus・mobile回帰とユーザー実ブラウザ確認、PR #39のCSS反映済みVercel Previewに対するユーザー実行E2E 20/20は[後続の検証記録](phase10-quality-acceptance.md#pr37-39-status-alignment)を参照する。これらを本書のnative zoom / text-only / spacingの再検証やAccessibility / Responsive全体の完了には読み替えない。
+
 記録日: 2026-10-20 JST。これは手動レビューの手順・未記入の結果表であり、ブラウザ成功報告ではない。[Phase 10受入条件](phase10-quality-acceptance.md#a--accessibility-review)のA / Rを補う。参照先の正式な受入条件は変更しない。
 
 ## 開始状態・既存証拠

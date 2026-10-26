@@ -2,6 +2,18 @@
 
 作成日: 2026-10-19 (JST)。対象 Repository: `morimotodev93/evidence-atlas`。
 
+<a id="pr37-39-status-alignment"></a>
+
+## 現在状態の補足 — PR #37〜#39（2026-10-26 JST）
+
+本書の初期Purpose / Scope、baseline、棚卸し、受入matrix、手順、残課題はPR #10作成時点のスナップショットであり、後続の記録と併読する。冒頭の「E2Eのみ完了」「他10項目未完了」やmatrixの「現在のチェック」は当時の状態。現在は既存の[roadmap Phase 10](roadmap.md#phase-10--testing--quality)と本書PR #24 / #28の記録に従い、**Unit / E2E / Validation / Authorizationの4/11完了**、Error handlingはPartial、Accessibility / Responsiveは未完了。本整合性修正でチェックを追加・変更しない。初期の「未実装のテーマ切替」は当時の記述であり、PR #36でLight / Dark / System選択は実装済み（[Design System §17](../design/design-system.md#17-light--dark-verification)）。
+
+- [PR #37](https://github.com/morimotodev93/evidence-atlas/pull/37)（merge `d94f047`）: Research DetailとPublic Demoの表示順は **Sources → Findings → Discussion → Conclusion** に統一済み。以下の旧順序を要求する当時の手順・検証記録は履歴として保持し、現在の再検証ではこの順序を使う。
+- [PR #38](https://github.com/morimotodev93/evidence-atlas/pull/38)（merge `315502b`）: Desktop AI Assistantは初期非表示、Ask AIで開きCloseで閉じる。Close後もpanelの状態、Draft、Conversation、Messages、Supporting Sourcesを保持し、送信中の処理も継続する。提供されたPR検証記録は **Vitest 73ファイル / 1,582件成功、C2 Chat mock-only E2E 6/6成功**、キーボードfocus、1023px/1024px境界、既存mobile動作の確認を含む。これらの実行者・詳細環境は今回提供された要約からは特定せず、Codexの今回実行とはしない。別途 **D: ユーザー実ブラウザ確認**として、開閉、Draft保持、画面幅、Focus、Light/Dark、およびClose後のAI回答が十分な経過時間後に表示されたことが報告されている。OS/browser version・実AI品質全般の証明にはしない。
+- [PR #39](https://github.com/morimotodev93/evidence-atlas/pull/39)（merge `ef1c09d`）: Public DemoのAppearance Selectを含むTab操作、Sourceリンクのfocus遮蔽、scroll余白を修正済み。**D: ユーザー実行のPublic Demo Playwright E2E 20/20成功（2.1分）**は、PR #39のCSS変更が反映された **Vercel Preview** に対する結果。375px / 768pxで順方向・逆方向keyboard、Sourceリンク遮蔽、読み取り専用UI検証が成功した。以下に残る375px overlapの「未解決」「blocking defect」は過去時点の記録であり、この検証範囲の現状には適用しない。新たな実行ログ監査、Preview URL / Deployment ID / 配備SHAの独立照合、Production aliasの再検証は今回行っていない。
+
+根拠はユーザー提供のPR・検証結果とローカルGitのマージ履歴・差分。今回GitHub / Vercelへの再照会、ブラウザ・テスト・AI API実行は行っていない。PR #38 / #39の成功は通常SaaS全体、全Viewport、screen reader、包括的なWCAG 2.2 AA適合、Production AI品質、Phase 10全体の受入完了を意味しない。後続記録のないFail / Pending / Not run、検証条件・履歴は変更しない。
+
 ## Purpose / Scope
 
 Phase 10 の11項目について、既存証拠、未検証範囲、今後の合否判定を固定する。対象は現在実装されている Public Demo、通常 SaaS の Research/Workspace/Organization、Chat・引用・検索・索引と、その実行境界である。将来の招待・課金・高度な権限・未実装のテーマ切替は要求しない。
