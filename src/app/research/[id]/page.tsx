@@ -21,7 +21,7 @@ import { EditFindingDialog } from "./_components/edit-finding-dialog";
 import { EditResearchStatusDialog } from "./_components/edit-research-status-dialog";
 import { EditSourceDialog } from "./_components/edit-source-dialog";
 import { ResearchAiMobileDialog } from "./_components/research-ai-mobile-dialog";
-import { ResearchAiPanel } from "./_components/research-ai-panel";
+import { ResearchAiDesktopLayout } from "./_components/research-ai-desktop-layout";
 
 import {
   requireResearchAccess,
@@ -101,9 +101,11 @@ export default async function ResearchDetailPage({
             tag: (tagId) => <DetachTagDialog researchId={research.id} tagId={tagId} />,
           }}
         />
-        {/* 2Column */}
-        <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_20rem] xl:grid-cols-[minmax(0,1fr)_24rem]">
-          {" "}
+        {/* The body remains server-rendered; only desktop AI visibility is client state. */}
+        <ResearchAiDesktopLayout
+          researchId={research.id}
+          sources={sources.map((source) => ({ id: source.id, title: source.title, url: source.url }))}
+        >
           <ResearchDetailContent
             research={research}
             sources={sources}
@@ -137,20 +139,7 @@ export default async function ResearchDetailPage({
               </>,
             }}
           />
-          {/* Sidebar */}
-          <aside className="hidden min-w-0 py-6 lg:block">
-            <div className="sticky top-20">
-              <ResearchAiPanel
-                researchId={research.id}
-                sources={sources.map((source) => ({
-                  id: source.id,
-                  title: source.title,
-                  url: source.url,
-                }))}
-              />
-            </div>
-          </aside>
-        </div>
+        </ResearchAiDesktopLayout>
         {/* Development note */}
         <p className="mt-4 text-xs text-muted-foreground">
           Research ID: {research.id}

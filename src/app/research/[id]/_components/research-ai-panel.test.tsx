@@ -43,10 +43,12 @@ function elements(node: ReactNode): Element[] {
   if (!isValidElement<Element["props"]>(node)) return [];
   return [node, ...elements(node.props.children)];
 }
-function view(variant: "desktop" | "mobile" = "desktop") {
+let panelActive = true;
+function view(variant: "desktop" | "mobile" = "desktop", active = panelActive) {
+  panelActive = active;
   hooks.cursor = 0;
   hooks.effects = [];
-  return elements(ResearchAiPanel({ researchId: "research-id", sources: [], variant }));
+  return elements(ResearchAiPanel({ researchId: "research-id", sources: [], variant, active }));
 }
 function button(label: string) {
   const element = view().find((node) => node.type === "button" && node.props.children === label);
@@ -121,6 +123,7 @@ const earlierTurns = [
 ];
 
 beforeEach(() => {
+  panelActive = true;
   hooks.slots = [];
   hooks.cursor = 0;
   fetchMock.mockReset();
@@ -131,6 +134,50 @@ beforeEach(() => {
 afterEach(() => { vi.unstubAllGlobals(); vi.restoreAllMocks(); });
 
 describe("Chat panel synthetic stream handlers (not mounted browser recovery)", () => {
+  it("keeps selected history, draft and supporting Sources across active changes", async () => {
+    const source = { id: "saved-source", title: "Stored Source", url: "https://example.invalid/stored" };
+    fetchMock.mockResolvedValueOnce(detail([
+      ...earlierTurns, { authorType: "AI", content: "Evidence [source:saved-source]" },
+    ], [source]));
+    await selectConversation();
+    typeMessage("Unfinished question");
+    const hidden = view("desktop", false);
+    expect(hidden.find((node) => node.type === "textarea")?.props.value).toBe("Unfinished question");
+    expect(hidden.find((node) => node.type === "supporting-sources")?.props.sources).toEqual([source]);
+    view("desktop", true);
+    expect(textarea().props.value).toBe("Unfinished question");
+    expect(textarea().props.disabled).toBe(false);
+    expect(messageTexts()).toEqual(["Earlier question", "Earlier answer", "Evidence"]);
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+
+  it("consumes an in-flight send while inactive and restores the same conversation after reopening", async () => {
+    await startConversation();
+    typeMessage("Question");
+    const stream = streamResponse();
+    fetchMock.mockResolvedValueOnce(stream.response).mockResolvedValueOnce(detail(earlierTurns));
+    const sending = click("Send");
+    try {
+      view("desktop", false);
+      expect(button("Sending...").props.disabled).toBe(true);
+      stream.chunk("Partial while hidden");
+      await expectPartial("Partial while hidden");
+      view("desktop", true);
+      expect(textarea().props.disabled).toBe(true);
+      expect(messageTexts()).toContain("Partial while hidden");
+      view("desktop", false);
+    } finally {
+      stream.close();
+      await sending;
+    }
+    view("desktop", true);
+    expect(textarea().props.disabled).toBe(false);
+    expect(messageTexts()).toEqual(["Earlier question", "Earlier answer"]);
+    expect(stream.cancel).not.toHaveBeenCalled();
+    expect(JSON.parse(String(fetchMock.mock.calls[1][1]?.body))).toEqual({ conversationId: "conversation-id", message: "Question" });
+    expect(fetchMock).toHaveBeenCalledTimes(3);
+  });
+
   it.each(["desktop", "mobile"] as const)("opts only the %s composer out of browser restoration while preserving disabled state", async (variant) => {
     const composer = () => view(variant).find((node) => node.type === "textarea")!;
     const initial = renderToStaticMarkup(composer());

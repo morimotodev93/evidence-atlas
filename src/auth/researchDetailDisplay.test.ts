@@ -61,6 +61,10 @@ describe("Authenticated Research detail after display extraction", () => {
     expect([...html.matchAll(/<h2[^>]*>([^<]+)<\/h2>/g)].map((match) => match[1]))
       .toEqual(["Sources", "Findings", "Discussion", "Conclusion"]);
     expect(html.indexOf("</header>", html.indexOf("<main"))).toBeLessThan(html.indexOf("<section"));
+    expect(html).toContain('aria-expanded="false"');
+    expect(html).toContain('aria-label="AI Assistant"');
+    expect(html).toMatch(/<aside[^>]*hidden=""[^>]*inert=""/);
+    expect(html).not.toContain("lg:grid-cols-[minmax(0,1fr)_20rem]");
     expect(html).toContain(research.title);
     expect(html).toContain(research.conclusion);
     expect(html).toContain(comment.user.name);
