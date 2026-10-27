@@ -115,7 +115,7 @@ describe("Demo Chat configuration eligibility (no public execution)", () => {
     });
   });
 
-  it("keeps secrets behind server-only modules with no application consumers", () => {
+  it("keeps secrets server-only and the Groq model unconnected to application execution", () => {
     const root = resolve(import.meta.dirname, "../..");
     for (const name of ["chat-config.ts", "chat-model.ts"]) {
       const source = readFileSync(resolve(import.meta.dirname, name), "utf8");
@@ -123,13 +123,12 @@ describe("Demo Chat configuration eligibility (no public execution)", () => {
       expect(source).not.toMatch(/NEXT_PUBLIC_(?:DEMO_GROQ|DEMO_TURNSTILE_SECRET)/);
       expect(source).not.toMatch(/use server|use client|Response\.json|console\./);
     }
-    // Until a separately reviewed execution PR, no route, action, page or client
-    // may import these modules, and next.config must not inline their secrets.
+    // Security ingress may consume config; generation remains unconnected.
     const consumers = readdirSync(root, { recursive: true, withFileTypes: true })
       .filter((entry) => entry.isFile() && /\.[cm]?[jt]sx?$/.test(entry.name))
       .map((entry) => resolve(entry.parentPath, entry.name))
       .filter((file) => !/\.test\.[jt]sx?$/.test(file) && !file.endsWith("chat-model.ts") && !file.endsWith("chat-config.ts"))
-      .filter((file) => /(?:demo\/|\.\/|\.\.\/)chat-(?:config|model)["']/.test(readFileSync(file, "utf8")));
+      .filter((file) => /(?:demo\/|\.\/|\.\.\/)chat-model["']/.test(readFileSync(file, "utf8")));
     expect(consumers).toEqual([]);
     const nextConfig = readFileSync(resolve(root, "../next.config.ts"), "utf8");
     expect(nextConfig).not.toMatch(/DEMO_GROQ_API_KEY|DEMO_TURNSTILE_SECRET_KEY/);

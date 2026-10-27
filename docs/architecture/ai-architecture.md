@@ -104,12 +104,12 @@ The transport is a plain text stream consumed with `fetch` and a stream reader. 
 
 ### 4.1 Public Demo Chat configuration contract
 
-**Demo Chat configuration prepared, public execution not enabled.**
-`src/lib/demo/chat-config.ts` and `chat-model.ts` are server-only and have no
-application consumers. No public Chat route, Server Action, UI, generation,
-Turnstile verification, Redis limiter, database table or migration is added.
-The read-only Demo and its existing GET routes remain unchanged. Public AI is
-still disabled; Phase 9/10 completion decisions and checkboxes are unchanged.
+**PR #42 adds the security foundation; public AI generation remains unavailable.**
+`POST /api/demo/chat` is a separate Node.js Route Handler. No existing SaaS Chat,
+Auth.js or read-only Demo route is reused or changed. The default flag stays false;
+even with complete configuration, questions return `503`. There is no Chat UI,
+generated placeholder answer, database table or migration. Phase 9/10 completion
+decisions and checkboxes are unchanged.
 
 The fixed provider/model is Groq / `openai/gpt-oss-120b`. `getDemoChatModel()`
 checks eligibility on each call, then constructs an uncached model with an explicit
@@ -138,43 +138,131 @@ never returned by the eligibility API; refusal throws a fixed generic error.
 Presence checks do not establish valid credentials, connectivity, Workspace
 publication validity or successful Turnstile verification.
 
-| Contract | Value | Status |
-| --- | --- | --- |
-| Maximum questions per thread | 10 user questions (10 exchanges) | Fixed; future server must validate |
-| Conversation history persisted to DB | No | Fixed |
-| Input characters | 500 | Provisional |
-| Anonymous session questions | 20 / rolling 24 hours (86,400 seconds) | Provisional |
-| Source questions | 3 / 60 seconds | Provisional |
-| Demo-wide questions | 50 / day | Provisional; day boundary must be defined before execution |
-| Concurrent generations | 2 | Provisional |
-| Maximum output tokens | 700 | Provisional |
-
-These are frozen constants, **not enforced limits**. Input character counting
-(including Unicode semantics) must be specified by the later validator.
-The future server must validate the ten-question boundary independently of the
-browser without storing conversation history in the DB or trusting a submitted
-question count. The integrity/lifecycle mechanism remains follow-up work.
-
 `DEMO_CHAT_REDIS` specifies Upstash with the independent namespace
 `evidence-atlas:demo-chat:v1`, and separate `:session`, `:source`, `:global`,
 and `:concurrency` prefixes. Existing SaaS `evidence-atlas:ai-chat` keys and
 `getChatRateLimit()` behavior are unchanged. The Demo contract permits no memory
-fallback, including in production. A future limiter must deny generation when
-Redis is missing or unavailable, and atomically implement the rolling window,
-global budget and concurrency leases/release/expiry. Connection failures are
-not tested or detected by this configuration-only change.
+fallback, including in production. The implemented enforcement and API contracts
+below supersede PR #41's provisional configuration-only descriptions.
 
-Future public API ingress **must** invoke `requireDemoChatEnabled()` before side
-effects, then require server-side Turnstile Siteverify success, a hostname from
-trusted deployment configuration, and the expected `demo-chat` action. Merely
-having keys or client-side widget success must never authorize generation.
-Trusted hostname configuration, replay protection and Siteverify error handling
-remain to be implemented. It must also validate input/history, use only the
-published Demo Workspace/Research boundary, and reserve Redis budgets before
-generation. No normal SaaS Chat API, OAuth, write path or Inngest endpoint may be
-opened by this flag. C2 external-service restrictions remain intact. A previously
-returned model is not revoked automatically; future ingress must recheck the
-flag for every request, and in-flight cancellation semantics need separate design.
+Public API ingress invokes `requireDemoChatEnabled()` before side effects.
+No normal SaaS Chat API, OAuth, write path or Inngest endpoint is opened by this
+flag. C2 external-service restrictions remain intact. A previously returned model
+is not revoked automatically; future generation must recheck the flag and define
+in-flight cancellation semantics.
+
+#### PR #42 API and session contract
+
+The API checks exact `PUBLIC_DEMO_MODE=true`, no non-empty C2 marker, exact
+`DEMO_CHAT_ENABLED=true` and required non-blank PR #41 settings before side effects.
+`DEMO_CHAT_ALLOWED_ORIGINS` is an additional mandatory server setting: a
+comma-separated list of exact HTTPS origins without paths or trailing slashes.
+Origin must match one entry; that entry's hostname must match Siteverify. Host,
+Forwarded and arbitrary client-provided Workspace IDs are never trust sources.
+Invalid configuration denies access; this eligibility does not prove credentials
+work. Redis URL must use HTTPS. Dependency failures return generic, non-cacheable
+errors without logging credentials, tokens, questions or upstream error details.
+
+Both operations accept only JSON (optional UTF-8 charset), no content encoding,
+at most 8,192 body bytes and a five-second body-read deadline. Content-Length is
+checked before reading and chunked bodies stop as soon as the byte bound is
+crossed. Unknown fields (model, system, Workspace, history, client counts) fail.
+Research IDs are bounded to 128 ASCII letters/digits/underscore/hyphen. Questions
+must contain non-whitespace text, at most 500 Unicode **code points before trim**;
+combining marks count separately and lone surrogates are rejected.
+
+- `{ operation: "session", researchId, turnstileToken }`: validate public Research
+  with existing `getDemoResearch()` before issuing anything. Siteverify must return
+  strict `success: true`, exact configured hostname and fixed `demo-chat` action.
+  Token must be 1–2,048 ASCII letters/digits/dot/underscore/hyphen. The fixed
+  Cloudflare endpoint has a five-second timeout, no retry and no redirects.
+  Cloudflare rejects tokens expired after 300 seconds or already used. An atomic
+  Redis SHA-256 token marker (600-second TTL) additionally prevents session replay.
+  Success returns `201 { threadId }` and a random 256-bit session cookie. This is
+  session establishment only; it provides no Chat answer. Starts are separately
+  limited to three per rolling 60 seconds in a shared bucket.
+- Cookie: `__Host-ea-demo-chat`, `Path=/; HttpOnly; Secure; SameSite=Strict`, no
+  Domain, Max-Age 86,400 seconds. Only a SHA-256 digest identifies the Redis session;
+  the bearer value necessarily exists in the protected cookie, never in JSON/logs.
+  Sessions are non-renewing and expire 24 hours after issuance. Cookie presence
+  alone grants no access. Threads have random 256-bit IDs, bind to the session
+  digest and Research, and cannot outlive their session.
+- `{ operation: "question", researchId, threadId, message }`: revalidate public
+  Research and require a live Redis session and matching thread ownership/Research.
+  It **always returns 503**, without reserving a question budget or starting AI.
+  New-thread creation and question reservation are internal contracts only, ready
+  for subsequent reviewed generation integration; no public thread mutation API
+  or client history contract is provided yet.
+
+Public data is selected exclusively through `DEMO_WORKSPACE_ID` and the existing
+Workspace/name and Research/Workspace checks in `getDemoResearch()`. Its returned
+data is discarded here; no model context is constructed. No normal SaaS user
+lookup, Conversation/Message/Research writes, question/answer persistence, Google
+embeddings, retrieval or external Source URL fetch occurs. The later context must
+explicitly select only public Sources, Findings and Conclusion.
+
+#### Atomic limits and generation handoff
+
+`chat-store.ts` uses one Redis EVAL to check session/thread ownership, all budgets
+and capacity, then increment every accepted budget and reserve a unique lease.
+Rejected reservations do not increment budgets. All instances must use the same
+dedicated, durable Redis database/namespace with no eviction or counter reset;
+Preview and Production must not accidentally share it. Redis TIME determines
+boundaries, independent of application clocks. REST calls use a three-second
+abort signal with retries disabled; failures deny and never fall back to memory.
+An uncertain response can have committed a reservation; it is never blindly
+retried or refunded.
+
+| Enforced internal reservation contract | Boundary |
+| --- | --- |
+| Thread | 10 accepted user-question reservations during its remaining session lifetime |
+| Session | 20 total during its non-renewing 86,400-second lifetime |
+| Source | 3 in the interval `(now - 60,000ms, now]` |
+| Global | 50 per UTC calendar day, `[00:00:00Z, next 00:00:00Z)` |
+| Concurrency | 2 outstanding generation leases across all instances |
+
+PR #41's provisional rolling-24-hour session description is concretized as a
+non-renewing 24-hour session: all its admissions fit within one rolling 24-hour
+window, and new threads do not extend its lifetime or reset its budget. Session
+rotation still gives another anonymous session; source/global budgets are the
+cross-session bounds. No trusted client-IP adapter exists yet, so **all connections
+share one source bucket**, a stricter limit than three per IP. Spoofable forwarding
+headers cannot reset it. A future trusted ingress adapter needs separate review.
+
+Leases have unique random owners and a 60-second deadline. Renewals are atomic
+and succeed only before expiry. **Expiry does not free capacity**: stale leases
+remain counted in quarantine, preventing a slow/partitioned generation from
+overlapping a replacement. Renew failure requires stopping future upstream work;
+release is idempotent ZREM by exact lease ID, only after upstream work has actually
+stopped (including cancellation completion). A crashed worker leaves its lease
+quarantined. Recovery must confirm upstream termination before removing that
+specific lease; automatic crash recovery and a provider cancellation adapter are
+follow-up integration work. This favors denial of service over oversubscription;
+no claim of automatic crash-time cleanup is made. No production generation uses
+these contracts in PR #42.
+
+Each reservation counts even when future generation fails; release never refunds
+questions. These request counts and the configured 700 output-token target do
+**not guarantee a total token-consumption or monetary cap**. Bounded context,
+history integrity/length, safe responses/streaming, actual Groq invocation,
+cancellation, lease lifecycle integration and UI remain unimplemented.
+
+Offline tests execute the actual Lua using dev-only Fengari with a mocked
+`redis.call` and deterministic time. Scripts deliberately use the Lua 5.1-compatible
+subset and floating-point millisecond arithmetic (Fengari's Lua 5.3 integer model
+differs from Redis). They verify rejected boundaries, shared state and parallel
+callers; they do not establish live Redis durability/cluster behavior or real
+provider termination. No external Groq, Turnstile or Redis endpoint is used by
+these tests. Public Demo browser E2E keeps its existing non-GET prohibition.
+
+Primary references checked 2026-10-27: [Cloudflare Siteverify](https://developers.cloudflare.com/turnstile/get-started/server-side-validation/)
+(page updated 2026-10-22), [Redis EVAL atomicity](https://redis.io/docs/latest/develop/programmability/eval-intro/),
+and [Next.js Route Handlers](https://nextjs.org/docs/app/api-reference/file-conventions/route).
+Online Next.js documentation currently labels 16.4.3; this repository uses installed
+16.3.8 and its existing Request/Response Route Handler conventions. The installed
+Upstash 1.39.0 source/types confirm per-request abort-signal factories. Its
+`retry: false` unexpectedly performs two network attempts; the adapter uses
+`retry: { retries: 0 }`, verified through the installed SDK with mocked fetch.
 
 ## 5. Conversation Model
 

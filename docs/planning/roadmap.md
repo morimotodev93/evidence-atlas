@@ -1252,6 +1252,16 @@ Developer-provided terminal observations now cover all six Groq cases. Case 01 f
 - [ ] Review logs and errors
 - [ ] Perform security review
 
+**Operations record (2026-10-27 JST; user manual report, not independently verified):**
+Vercel Functions was changed from `iad1` (US East) to `hnd1` (Tokyo).
+Prisma Postgres is in Tokyo (`ap-northeast-1`); the Demo Chat Upstash Redis
+instance is also in Tokyo (`ap-northeast-1`), on the Free Tier. The user reported
+a substantial perceived improvement in Public Demo page loading speed. No
+quantitative performance measurements have been performed; no measured latency
+or improvement percentage is established. Groq communication speed and security
+tests against the real Redis service remain unverified. This report does not
+establish completion of Phase 10 or Phase 11 tasks.
+
 ---
 
 ### Phase 12 — Documentation & Portfolio Presentation
@@ -1304,6 +1314,18 @@ Authentication, advanced RAG, background processing, and other infrastructure sh
 The public portfolio deployment is not intended to function as an unrestricted public SaaS service.
 
 The Demo uses curated data with separate public read-only routes implemented in Phase 9.2 and a visitor-facing SaaS write lock in Phase 9.3. Public deployments must set `PUBLIC_DEMO_MODE=true`. The selected deployed Demo pages and visitor-facing route boundaries have been verified as recorded in Phase 9; public AI interaction remains disabled, and further normal-SaaS security, telemetry, and infrastructure hardening remain pending.
+
+**PR #42 — Demo Chat security foundation (2026-10-27, JST):** The separate
+`POST /api/demo/chat` now validates deployment/feature configuration, configured
+HTTPS Origin, bounded JSON input and the existing public Research read boundary.
+Opt-in session establishment uses server-side Turnstile and hardened anonymous
+cookies backed by expiring Redis sessions. Questions still return 503; no UI or
+Groq generation is connected. Internal Redis EVAL contracts implement thread,
+session, shared-source, UTC-day and concurrency limits; stale leases stay counted
+until upstream termination is confirmed. Source bucketing is deliberately shared
+until a trusted IP adapter is designed. See the [security and handoff contract](../architecture/ai-architecture.md#41-public-demo-chat-configuration-contract)
+and [PR #42 verification record](demo-chat-api-security-pr42.md). This foundation
+does not complete Phase 9 or Phase 10; no completion checkbox changes are implied.
 
 This approach allows the project to demonstrate:
 
