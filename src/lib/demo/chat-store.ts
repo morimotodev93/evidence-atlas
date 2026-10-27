@@ -6,7 +6,6 @@ import { DEMO_CHAT_LIMITS as limits, DEMO_CHAT_REDIS, requireDemoChatEnabled } f
 import { DEMO_CHAT_LEASE_MS, DEMO_CHAT_SESSION_SECONDS, DemoChatError, demoChatId } from "./chat-security";
 
 export type DemoChatEval = (script: string, keys: string[], args: (string | number)[]) => Promise<unknown>;
-const prefix = DEMO_CHAT_REDIS.prefix;
 const hash = (value: string) => createHash("sha256").update(value).digest("hex");
 const newId = () => randomBytes(32).toString("base64url");
 
@@ -73,7 +72,15 @@ return 1`;
 export const RELEASE_LEASE = `return redis.call('ZREM', KEYS[1], ARGV[1])`;
 
 export class DemoChatStore {
-  constructor(private readonly evaluate: DemoChatEval) {}
+  constructor(
+    private readonly evaluate: DemoChatEval,
+    private readonly prefix: string = DEMO_CHAT_REDIS.prefix,
+  ) {
+    // Alternate namespaces are restricted to disposable verification runs.
+    if (prefix !== DEMO_CHAT_REDIS.prefix && !/^evidence-atlas:demo-chat:test:[a-zA-Z0-9_-]{1,80}$/.test(prefix)) {
+      throw new DemoChatError(503);
+    }
+  }
 
   private async run(script: string, keys: string[], args: (string | number)[]) {
     try { return await this.evaluate(script, keys, args); }
@@ -82,7 +89,7 @@ export class DemoChatStore {
 
   private keys(session: string, thread: string) {
     if (!demoChatId.test(session) || !demoChatId.test(thread)) throw new DemoChatError(401);
-    return [`${prefix}:session:${hash(session)}`, `${prefix}:thread:${thread}`];
+    return [`${this.prefix}:session:${hash(session)}`, `${this.prefix}:thread:${thread}`];
   }
 
   async start(token: string, researchId: string) {
@@ -91,7 +98,7 @@ export class DemoChatStore {
     const threadId = newId();
     const owner = hash(sessionId);
     const result = await this.run(START_SESSION, [
-      `${prefix}:token:${hash(token)}`, ...this.keys(sessionId, threadId), `${prefix}:start:shared`,
+      `${this.prefix}:token:${hash(token)}`, ...this.keys(sessionId, threadId), `${this.prefix}:start:shared`,
     ], [DEMO_CHAT_SESSION_SECONDS, owner, researchId]);
     if (result !== 1) throw new DemoChatError(result === 429 ? 429 : 403);
     return { sessionId, threadId };
@@ -121,7 +128,7 @@ export class DemoChatStore {
     requireDemoChatEnabled();
     const lease = newId();
     const result = await this.run(RESERVE_QUESTION, [
-      ...this.keys(session, thread), `${prefix}:source:shared`, `${prefix}:global`, `${prefix}:concurrency`,
+      ...this.keys(session, thread), `${this.prefix}:source:shared`, `${this.prefix}:global`, `${this.prefix}:concurrency`,
     ], [hash(session), research, limits.maxUserQuestionsPerThread, limits.anonymousSessionQuestions,
       limits.sourceQuestions, limits.sourceWindowSeconds * 1000, limits.globalQuestionsPerDay,
       limits.maxConcurrentGenerations, lease, DEMO_CHAT_LEASE_MS]);
@@ -131,7 +138,7 @@ export class DemoChatStore {
 
   async renew(lease: string) {
     if (!demoChatId.test(lease)) throw new DemoChatError(503);
-    if (await this.run(RENEW_LEASE, [`${prefix}:concurrency`], [lease, DEMO_CHAT_LEASE_MS]) !== 1) {
+    if (await this.run(RENEW_LEASE, [`${this.prefix}:concurrency`], [lease, DEMO_CHAT_LEASE_MS]) !== 1) {
       throw new DemoChatError(503);
     }
   }
@@ -140,7 +147,7 @@ export class DemoChatStore {
   // ZREM by unguessable lease ID is idempotent and cannot release another owner.
   async release(lease: string) {
     if (!demoChatId.test(lease)) throw new DemoChatError(503);
-    await this.run(RELEASE_LEASE, [`${prefix}:concurrency`], [lease]);
+    await this.run(RELEASE_LEASE, [`${this.prefix}:concurrency`], [lease]);
   }
 }
 

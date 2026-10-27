@@ -171,8 +171,9 @@ Research IDs are bounded to 128 ASCII letters/digits/underscore/hyphen. Question
 must contain non-whitespace text, at most 500 Unicode **code points before trim**;
 combining marks count separately and lone surrogates are rejected.
 
-- `{ operation: "session", researchId, turnstileToken }`: validate public Research
-  with existing `getDemoResearch()` before issuing anything. Siteverify must return
+- `{ operation: "session", researchId, turnstileToken }`: verify Turnstile before
+  accessing the DB, then validate public Research with existing `getDemoResearch()`
+  before issuing a session or writing Redis. Siteverify must return
   strict `success: true`, exact configured hostname and fixed `demo-chat` action.
   Token must be 1–2,048 ASCII letters/digits/dot/underscore/hyphen. The fixed
   Cloudflare endpoint has a five-second timeout, no retry and no redirects.
@@ -187,8 +188,11 @@ combining marks count separately and lone surrogates are rejected.
   Sessions are non-renewing and expire 24 hours after issuance. Cookie presence
   alone grants no access. Threads have random 256-bit IDs, bind to the session
   digest and Research, and cannot outlive their session.
-- `{ operation: "question", researchId, threadId, message }`: revalidate public
-  Research and require a live Redis session and matching thread ownership/Research.
+- `{ operation: "question", researchId, threadId, message }`: validate the cookie,
+  then require a live Redis session and matching thread ownership/Research before
+  accessing the DB to revalidate public Research (including withdrawn publication).
+  Authentication failures never query Research and return the same generic error
+  regardless of whether the supplied Research exists or is public.
   It **always returns 503**, without reserving a question budget or starting AI.
   New-thread creation and question reservation are internal contracts only, ready
   for subsequent reviewed generation integration; no public thread mutation API
@@ -254,6 +258,12 @@ differs from Redis). They verify rejected boundaries, shared state and parallel
 callers; they do not establish live Redis durability/cluster behavior or real
 provider termination. No external Groq, Turnstile or Redis endpoint is used by
 these tests. Public Demo browser E2E keeps its existing non-GET prohibition.
+
+An explicitly invoked [Redis verification runner](../planning/demo-chat-redis-verification.md)
+adds real Upstash compatibility checks using only disposable test namespaces and
+dedicated test credentials. It is excluded from normal Vitest discovery and has
+not been executed as part of this hardening task. Production lease expiry behavior
+is unchanged; TTL cleanup applies only to the runner's synthetic test keys.
 
 Primary references checked 2026-10-27: [Cloudflare Siteverify](https://developers.cloudflare.com/turnstile/get-started/server-side-validation/)
 (page updated 2026-10-22), [Redis EVAL atomicity](https://redis.io/docs/latest/develop/programmability/eval-intro/),

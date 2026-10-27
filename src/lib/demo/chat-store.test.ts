@@ -24,6 +24,27 @@ async function nextSession(index: number) {
 }
 
 describe("Atomic production Lua with mocked Redis commands", () => {
+  it("shares source limits across sessions, threads and independent workers", async () => {
+    const a = await store.start("a", research), b = await store.start("b", research);
+    for (const ids of [a, b, a]) await one(ids.sessionId, ids.threadId);
+    await expect(new DemoChatStore(redis.eval).reserve(b.sessionId, b.threadId, research)).rejects.toMatchObject({ status: 429 });
+  });
+  it("isolates the verification namespace from production keys", async () => {
+    const isolated = new DemoChatStore(redis.eval, "evidence-atlas:demo-chat:test:offline");
+    const ids = await isolated.start("same-token", research);
+    await expect(store.check(ids.sessionId, ids.threadId, research)).rejects.toMatchObject({ status: 401 });
+    const production = await store.start("same-token", research);
+    await store.check(production.sessionId, production.threadId, research);
+  });
+  it("Lua runtime errors fail closed, with no retry or memory fallback", async () => {
+    let calls = 0;
+    const broken = new DemoChatStore(async (script, keys, args) => {
+      calls++;
+      return redis.eval(`error('synthetic Lua error')\n${script}`, keys, args);
+    });
+    await expect(broken.start("token", research)).rejects.toMatchObject({ status: 503 });
+    expect(calls).toBe(1);
+  });
   it("rejects question 11 using server thread count; release never refunds budgets", async () => {
     const { sessionId, threadId } = await store.start("one", research);
     for (let n = 0; n < 10; n++) {
