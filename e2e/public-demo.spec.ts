@@ -91,8 +91,8 @@ async function expectResearchDetailLayout(page: Page, title: string) {
   }
 
   await expect(main.getByRole("heading", { level: 2 }))
-    .toHaveText(["Sources", "Findings", "Discussion", "Conclusion"]);
-  for (const name of ["Sources", "Findings", "Discussion", "Conclusion"]) {
+    .toHaveText(["Sources", "Findings", "Discussion", "Conclusion", "AI Chat"]);
+  for (const name of ["Sources", "Findings", "Discussion", "Conclusion", "AI Chat"]) {
     const heading = main.getByRole("heading", { name, exact: true, level: 2 });
     const section = main.locator("section").filter({
       has: page.getByRole("heading", { name, exact: true, level: 2 }),
@@ -446,7 +446,7 @@ for (const viewport of [{ width: 375, height: 812 }, { width: 768, height: 1024 
   });
 }
 
-test("list and detail expose read-only UI without mutation or AI controls", async ({ page }) => {
+test("list and detail expose read-only UI with only an unavailable Chat preview", async ({ page }) => {
   await page.goto("/demo");
   // Actual SaaS controls include New Research, Edit, Delete, Add Source/Finding/
   // Comment, status/tag/conclusion editing, Remove, and Ask AI.
@@ -474,11 +474,46 @@ test("list and detail expose read-only UI without mutation or AI controls", asyn
       effectiveType: (element as HTMLInputElement).type,
     }))).toEqual({ type: null, role: null, dataSlot: null, effectiveType: "text" });
     const textboxes = page.getByRole("textbox", { includeHidden: true });
-    await expect(textboxes, `Only the Appearance internal textbox in ${view}`).toHaveCount(1);
+    const chatCount = view === "detail" ? 1 : 0;
+    await expect(textboxes, `Appearance internal textbox and disabled Chat preview in ${view}`).toHaveCount(1 + chatCount);
     await expect(textboxes.and(appearanceInput)).toHaveCount(1);
-    await expect(page.getByRole("textbox")).toHaveCount(0);
-    await expect(page.getByRole("main").getByRole("textbox", { includeHidden: true })).toHaveCount(0);
+    await expect(page.getByRole("textbox")).toHaveCount(chatCount);
+    await expect(page.getByRole("main").getByRole("textbox", { includeHidden: true })).toHaveCount(chatCount);
     await expect(page.getByRole("main").getByRole("combobox", { includeHidden: true })).toHaveCount(0);
+    if (view === "detail") {
+      const chat = page.getByRole("region", { name: "AI Chat", exact: true });
+      await expect(chat.getByText("Coming soon", { exact: true })).toBeVisible();
+      const question = chat.getByRole("textbox", { name: "Your question", exact: true });
+      const send = chat.getByRole("button", { name: "Send question", exact: true });
+      await expect(question).toBeDisabled();
+      await expect(send).toBeDisabled();
+      await expect(question).toHaveAccessibleDescription(/Chat is not available yet.*500 characters/);
+      await expect(chat.getByRole("region", { name: "Conversation messages" })).toHaveText(/No messages yet/);
+      const chatPosts: string[] = [];
+      const observe = (request: import("@playwright/test").Request) => {
+        if (request.method() === "POST" && new URL(request.url()).pathname === "/api/demo/chat") {
+          chatPosts.push(request.url());
+        }
+      };
+      page.on("request", observe);
+      try {
+        await question.scrollIntoViewIfNeeded();
+        const inputBox = await question.boundingBox();
+        if (!inputBox) throw new Error("Missing Chat input bounds");
+        await page.mouse.click(inputBox.x + 10, inputBox.y + 10);
+        await page.keyboard.type("A question that must not be entered or sent");
+        await page.keyboard.press("Enter");
+        await send.scrollIntoViewIfNeeded();
+        const sendBox = await send.boundingBox();
+        if (!sendBox) throw new Error("Missing Chat button bounds");
+        await page.mouse.click(sendBox.x + sendBox.width / 2, sendBox.y + sendBox.height / 2);
+        await page.waitForTimeout(300);
+        await expect(question).toHaveValue("");
+        expect(chatPosts).toEqual([]);
+      } finally {
+        page.off("request", observe);
+      }
+    }
   }
   // This UI regression check does not prove server-side write prevention.
 });

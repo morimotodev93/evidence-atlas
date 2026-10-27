@@ -107,9 +107,37 @@ The transport is a plain text stream consumed with `fetch` and a stream reader. 
 **PR #42 adds the security foundation; public AI generation remains unavailable.**
 `POST /api/demo/chat` is a separate Node.js Route Handler. No existing SaaS Chat,
 Auth.js or read-only Demo route is reused or changed. The default flag stays false;
-even with complete configuration, questions return `503`. There is no Chat UI,
-generated placeholder answer, database table or migration. Phase 9/10 completion
+even with complete configuration, questions return `503`. PR #44 adds the
+unavailable Chat UI described below; there is no generated placeholder answer,
+database table or migration. Phase 9/10 completion
 decisions and checkboxes are unchanged.
+
+#### PR #44 Research Chat UI foundation
+
+`/demo/research/[researchId]` appends a Demo-only `DemoResearchChatPanel` after
+Conclusion, preserving Sources, Findings, Discussion and Conclusion order and
+the shared Research display. The panel names the current Research, describes
+planned Research-grounded answers, and provides an empty conversation region,
+labelled question textarea and Send question button. It displays **Coming soon**,
+the planned 500-character input bound, thread/session limits and a brief shared
+rate/daily-limit notice. It does not display sample AI answers.
+
+The textarea and button are unconditionally disabled, including if an operator
+sets the server feature flag to true. This presentation-only component has no
+form, action, event handler, session creation, fetch, Turnstile widget, storage or
+generation integration. It does not import server Chat configuration or serialize
+credentials, Redis/model settings or feature eligibility to the browser.
+`DEMO_CHAT_ENABLED=false` remains the deployment default; enabling the flag alone
+does not activate this UI. Native disabled semantics and associated descriptions
+communicate unavailability. The panel uses existing semantic theme tokens and
+wrapping, single-column layout with a responsive composer footer.
+
+Future integration must separately wire the reviewed public session/Turnstile
+and question API contracts, Unicode code-point validation, atomic budgets,
+Groq generation and response/evidence validation, with loading/error/limit states
+and accessible message updates. Normal SaaS Chat, Auth.js, C2 and public read-only
+boundaries remain separate. UI presence does not establish generation readiness
+or deployed browser verification.
 
 The fixed provider/model is Groq / `openai/gpt-oss-120b`. `getDemoChatModel()`
 checks eligibility on each call, then constructs an uncached model with an explicit

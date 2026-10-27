@@ -35,8 +35,19 @@ function expectReadOnly(html: string) {
   // Appearance remains static until mounted; public research stays read-only.
   expect(html).toContain('data-slot="appearance-placeholder"');
   expect(html).toContain("Appearance");
-  expect(html).not.toMatch(/<form|<button|<input|<textarea|<select|role="combobox"|\/edit|\/settings|\/research\/new|\/chat|Ask AI|Sign out/);
-  expect(html.slice(html.indexOf("<main"))).not.toMatch(/<form|<button|<input|<textarea|<select/);
+  // Only the dedicated, unavailable Chat preview may contain disabled controls.
+  const chat = html.match(/<section aria-labelledby="demo-chat-heading"[\s\S]*?<\/section>/)?.[0];
+  if (chat) {
+    expect(chat.match(/<textarea\b[^>]*>/g)).toHaveLength(1);
+    expect(chat.match(/<button\b[^>]*>/g)).toHaveLength(1);
+    for (const control of chat.matchAll(/<(?:textarea|button)\b[^>]*>/g)) {
+      expect(control[0]).toContain('disabled=""');
+    }
+    expect(chat).not.toMatch(/<form|<input|<select|\baction=|\bformAction=/);
+  }
+  const readOnlyHtml = chat ? html.replace(chat, "") : html;
+  expect(readOnlyHtml).not.toMatch(/<form|<button|<input|<textarea|<select|role="combobox"|\/edit|\/settings|\/research\/new|\/chat|Ask AI|Sign out/);
+  expect(readOnlyHtml.slice(readOnlyHtml.indexOf("<main"))).not.toMatch(/<form|<button|<input|<textarea|<select/);
   expect(mocks.auth).not.toHaveBeenCalled();
 }
 beforeEach(() => {
@@ -69,7 +80,7 @@ describe("Public Demo pages", () => {
     const html = renderWithLayout(await detailPage());
     expectReadOnly(html);
     expect([...html.matchAll(/<h2[^>]*>([^<]+)<\/h2>/g)].map((match) => match[1]))
-      .toEqual(["Sources", "Findings", "Discussion", "Conclusion"]);
+      .toEqual(["Sources", "Findings", "Discussion", "Conclusion", "AI Chat"]);
     expect(html.indexOf("</header>", html.indexOf("<main"))).toBeLessThan(html.indexOf("<section"));
     for (const value of [research.title, research.description, research.conclusion, source.title, finding.content, comment.content, "Demo Author", "Supporting sources", "Completed"]) {
       expect(html).toContain(value);
@@ -78,6 +89,28 @@ describe("Public Demo pages", () => {
     expect(html.match(/href="https:\/\/example.com\/evidence"/g)).toHaveLength(2);
     expect(html).not.toContain(comment.user.email);
     expect(mocks.getDemoResearch).toHaveBeenCalledExactlyOnceWith(research.id);
+  });
+
+  it.each(["false", "true"])("keeps Chat unavailable without network or session effects even with DEMO_CHAT_ENABLED=%s", async (flag) => {
+    vi.stubEnv("DEMO_CHAT_ENABLED", flag);
+    const fetchSpy = vi.spyOn(globalThis, "fetch").mockRejectedValue(new Error("Unexpected network request"));
+    try {
+      const html = renderWithLayout(await detailPage());
+      expectReadOnly(html);
+      expect(html).toContain("Coming soon");
+      expect(html).toContain("Chat is not available yet. Questions cannot be entered or sent.");
+      expect(html).toContain('aria-label="Conversation messages"');
+      expect(html).toContain("No messages yet.");
+      expect(html).toContain('for="demo-chat-question"');
+      expect(html).toContain('aria-describedby="demo-chat-availability demo-chat-input-help demo-chat-limits"');
+      expect(html).toContain("Up to 500 characters");
+      expect(html).toContain("10 questions per thread and 20 per anonymous session (24 hours)");
+      expect(html).toContain("Answers will be grounded in this Research");
+      expect(html).not.toMatch(/\/api\/demo\/chat|threadId|turnstile|gpt-oss|UPSTASH|DEMO_GROQ/);
+      expect(fetchSpy).not.toHaveBeenCalled();
+    } finally {
+      fetchSpy.mockRestore();
+    }
   });
 
   it.each(["javascript:alert(1)", "//example.com", "https://"])("keeps invalid saved Source %s visible and read-only without linking", async (url) => {

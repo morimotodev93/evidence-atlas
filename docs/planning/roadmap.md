@@ -1327,6 +1327,27 @@ until a trusted IP adapter is designed. See the [security and handoff contract](
 and [PR #42 verification record](demo-chat-api-security-pr42.md). This foundation
 does not complete Phase 9 or Phase 10; no completion checkbox changes are implied.
 
+**PR #44 — Demo Chat UI foundation (2026-10-27, JST):** Research detail now
+appends an AI Chat section after Conclusion, with a current-Research description,
+empty conversation area, disabled labelled input and disabled Send question
+button. Coming soon and planned usage limits explain the unavailable state.
+There is no API/session/Turnstile/Groq connection or sample AI answer, and
+`DEMO_CHAT_ENABLED=false` remains the default. The panel stays disabled regardless
+of the flag until a separate integration. See the [UI contract](../architecture/ai-architecture.md#pr-44-research-chat-ui-foundation).
+This UI-only work does not complete Phase 9/10 or change their checkboxes.
+
+Local validation: related Vitest **3 files / 82 tests**, full Vitest **79 files /
+1,725 tests**, TypeScript, lint and diff whitespace checks passed. Production
+build initially failed fetching Google Fonts in the sandbox, then passed on the
+same command with expanded permissions. Offline Chromium checked synthetic
+Research static markup with project CSS in **12 cases** (Light/Dark,
+375/768/1280px, 16/32px root font sizes): no horizontal overflow, disabled input
+and send, and zero network requests on attempted interaction. Root-font doubling
+is a text enlargement check, not browser-native zoom. Updated Public Demo E2E
+expectations were not run against a live deployment; hydration, native 200% zoom,
+screen-reader behavior and actual SaaS/C2 runtime flows still need browser
+verification. Vitest covers the existing SaaS/C2 boundaries with offline doubles.
+
 This approach allows the project to demonstrate:
 
 - collaborative workspace architecture

@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ResearchHeader, ResearchDetailContent } from "@/components/research/research-detail-content";
 import { getDemoResearch } from "@/lib/demo/read";
+import { DemoResearchChatPanel } from "@/components/demo/demo-research-chat-panel";
 
 export const dynamic = "force-dynamic";
 
@@ -21,5 +22,6 @@ export default async function DemoResearchPage({ params }: {
     </div>
     <ResearchHeader research={data.research} tags={data.tags} />
     <ResearchDetailContent research={data.research} sources={data.sources} findings={data.findings} comments={data.comments} />
+    <DemoResearchChatPanel researchTitle={data.research.title} />
   </main>;
 }
