@@ -520,7 +520,7 @@ The local `retrieval-evaluation.txt` contains exploratory results, including dis
 
 ### 13.6 Retrieval and Indexing Observability
 
-Phase 8.5 adds targeted Sentry custom spans for operation latency and execution visibility. Performance tracing uses the environment-driven sample rate documented in the [Phase 8 roadmap](../planning/roadmap.md#phase-8--saas-infrastructure); spans are subject to sampling rather than a record of every execution. Phase 8.4 remains responsible for error capture and source-map support.
+Phase 8.5 adds targeted Sentry custom spans for operation latency and execution visibility. Performance tracing uses the environment-driven sample rate documented in the [Phase 8 roadmap](../planning/roadmap.md#phase-8--application-infrastructure); spans are subject to sampling rather than a record of every execution. Phase 8.4 remains responsible for error capture and source-map support.
 
 #### Retrieval observability
 

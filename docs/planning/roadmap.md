@@ -1,8 +1,8 @@
 # evidence-atlas Roadmap
 
-> **Last Updated:** 2026-10-26
+> **Last Updated:** 2026-10-27
 
-Current stage: The portfolio MVP and curated read-only Public Demo are implemented, with scoped deployment checks recorded. Phases 4–7 are complete for their defined baselines; Phase 8 is partial. Phase 10 has four completed checklist items (Unit, bounded E2E, Validation, Authorization); other quality work remains open. Phase 11 operational reviews and Phase 12 documentation are not complete. Checked items describe specific implementation or reported verification, not blanket production, OAuth, provider, or security validation.
+Current stage: The portfolio MVP and curated read-only Public Demo are implemented, with scoped deployment checks recorded. Phases 4–7 are complete for their defined baselines; Phase 8 is complete for the defined application infrastructure baseline. Phase 10 has four completed checklist items (Unit, bounded E2E, Validation, Authorization); other quality work remains open. Phase 11 operational reviews and Phase 12 documentation are not complete. Checked items describe specific implementation or reported verification, not blanket production, OAuth, provider, or security validation.
 
 ## 1. Project Overview
 
@@ -365,21 +365,19 @@ User
 
 ---
 
-### Phase 8 — SaaS Infrastructure
+### Phase 8 — Application Infrastructure
 
-**Goal:** Add infrastructure required for a realistic SaaS architecture where appropriate.
+**Goal:** Establish infrastructure that supports safe and stable operation of the personal portfolio application.
 
-Potential features:
+Defined baseline scope:
 
-- [ ] Subscription model
-- [ ] Stripe integration
-- [ ] Billing state synchronization
-- [ ] Email infrastructure
 - [x] Rate limiting
 - [x] Usage tracking
 - [x] Background jobs
 - [x] Error monitoring
 - [x] Application observability
+
+**Out of scope:** Evidence Atlas is a personal portfolio project with no plan to sell it as a commercial SaaS. Subscription model, Stripe integration, and billing state synchronization are outside the current project scope, not pending requirements. Additional email infrastructure is not required: Phase 7 already implements Auth.js Google OAuth with database-backed sessions. Email login, Magic Link, and email notifications are not development goals; email infrastructure may be reconsidered only if a concrete use case arises.
 
 **Implemented baseline:** AI chat uses an Upstash Redis sliding-window rate limit of 10 requests per minute per Workspace × User, enforced before retrieval, embedding, and generation. Chat-generation token usage and finish reason are recorded in `AiUsageEvent`, with Workspace, User, Research, and Conversation IDs stored as scalar attribution fields.
 
@@ -398,9 +396,9 @@ The custom spans record only operational counts: retrieval candidates, selected 
 
 Vitest covers sample-rate parsing and verifies count-only custom span attributes without Research/query identifiers or content. Targeted tests, the full test suite, and `pnpm build` were reported successful by the implementation author; this documentation review does not rerun runtime verification or establish production performance validation.
 
-This baseline does not include embedding usage tracking, monetary cost accounting, daily/monthly quotas, subscription-based limits, a usage analytics dashboard, or billing enforcement. Phase 8 remains partially complete; subscription, Stripe, billing, and email remain pending.
+This baseline does not include embedding usage tracking, monetary cost accounting, daily/monthly quotas, subscription-based limits, a usage analytics dashboard, or billing enforcement.
 
-Only features that contribute meaningfully to the portfolio should be implemented.
+**Status: Complete for the defined application infrastructure baseline.** This covers the five implemented items above, not commercial operational readiness, a comprehensive security audit, or verification of all production behavior. Phase 11 operational reviews and the existing unverified items remain outstanding.
 
 ---
 
@@ -1297,7 +1295,7 @@ AI-assisted exploration
 
 The MVP does not need to implement every SaaS feature.
 
-Authentication, billing, advanced RAG, background processing, and other infrastructure should be introduced after the core research experience has been validated.
+Authentication, advanced RAG, background processing, and other infrastructure should be introduced after the core research experience has been validated. Commercial billing is outside the current portfolio scope.
 
 ---
 

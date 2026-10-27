@@ -738,10 +738,7 @@ The following areas are currently considered candidates for implementation outsi
 
 - Advanced organization administration
 - Advanced role and permission management
-- Billing
-- Subscription management
 - Advanced usage analytics
-- Email notifications
 - Public research sharing
 - Advanced collaboration features
 - Production-scale rate limiting
@@ -752,6 +749,8 @@ The following areas are currently considered candidates for implementation outsi
 These items are not necessarily rejected permanently.
 
 They are intentionally excluded from the initial product scope unless later requirements demonstrate that they are necessary.
+
+Evidence Atlas is a personal portfolio project with no plan to sell it as a commercial SaaS. Subscription model, Stripe integration, and billing state synchronization are outside the current project scope rather than future required development. Additional email infrastructure is also unnecessary: the implemented Auth.js Google OAuth and database-backed sessions satisfy the current authentication scope. Email login, Magic Link, and email notifications are not development goals and may be reconsidered only if a concrete use case arises. The [Phase 8 application infrastructure baseline](roadmap.md#phase-8--application-infrastructure) is complete for its five defined items; broader operational verification remains separate.
 
 ---
 
@@ -878,7 +877,6 @@ The following areas remain intentionally undecided:
 - Retrieval improvements beyond the Phase 6 baseline, including chunk expansion and reranking
 - Broader retrieval/answer evaluation as Workspace knowledge grows
 - Exact Demo interaction model
-- Billing requirements
 - Production deployment architecture
 - Production alerting/SLO requirements, broader metrics and profiling strategy, and long-term telemetry retention/operational policy
 
@@ -956,6 +954,6 @@ The intended workflows above remain the product baseline. Current gaps through P
 - UC-07 has a Phase 6 baseline: Research conversations combine current knowledge with relevant indexed Findings, Conclusions, and Research metadata from the same Workspace, including other Research items. Phase 8.3 adds asynchronous background reindexing after relevant Research/Finding mutations, with best-effort enqueue and a manual maintenance path. The broader use case remains incomplete: discussions and external Source bodies are not retrieved, the derived index can be stale, and citation eligibility does not prove a claim. Research metadata is discovery context rather than supported evidence.
 - Authentication, current Workspace selection, Workspace-based Research permission enforcement, onboarding, and Research-scoped AI route authorization are implemented. Related Research discovery, invitation and broader membership administration flows, and public AI usage controls remain pending.
 - Curated Demo data and isolated-database indexing are verified. Phase 9.2 implements fixed-Workspace public read routes, and Phase 9.3 locks visitor-originated authenticated SaaS access/writes under required `PUBLIC_DEMO_MODE=true`. Local tests, selected deployed route-boundary checks, and a scoped credential exposure review are recorded in roadmap Phase 9; PR #39 adds user-run Preview E2E 20/20 for the CSS-updated Demo. Comprehensive normal-SaaS browser verification, security review, and infrastructure hardening remain incomplete; scoped C2 Smoke/Chat mock results do not establish live Google OAuth or production AI quality.
-- A Sentry error-monitoring baseline, configurable sampled performance tracing, and targeted retrieval/indexing spans with count-based attributes are implemented. Broader production monitoring requirements remain open; see the [roadmap](roadmap.md#phase-8--saas-infrastructure).
+- A Sentry error-monitoring baseline, configurable sampled performance tracing, and targeted retrieval/indexing spans with count-based attributes are implemented. Broader production monitoring requirements remain open; see the [roadmap](roadmap.md#phase-8--application-infrastructure).
 
 See the [roadmap](roadmap.md) for remaining work. These gaps do not redefine the approved product behavior.
