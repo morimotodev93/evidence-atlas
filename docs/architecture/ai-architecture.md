@@ -2,7 +2,7 @@
 
 > **Status:** Implemented Phase 6 baseline with Phase 7 route authorization and Phase 8.3 background indexing
 > **Scope:** Phase 5 AI Integration + Phase 6 Retrieval / RAG + Phase 7 AI route access control + Phase 8.3 Background Jobs
-> **Last Updated:** 2026-10-12
+> **Last Updated:** 2026-10-27
 
 ## C2 browser-test runtime boundary
 
@@ -101,6 +101,80 @@ The response is streamed back to the client.
 The transport is a plain text stream consumed with `fetch` and a stream reader. The server loads persisted history rather than trusting client-supplied message history. It rebuilds Research context and retrieves Workspace context on every request. Comments are not included. No history truncation or total context-size budget is implemented; the retrieval result limit is not a total prompt budget.
 
 ---
+
+### 4.1 Public Demo Chat configuration contract
+
+**Demo Chat configuration prepared, public execution not enabled.**
+`src/lib/demo/chat-config.ts` and `chat-model.ts` are server-only and have no
+application consumers. No public Chat route, Server Action, UI, generation,
+Turnstile verification, Redis limiter, database table or migration is added.
+The read-only Demo and its existing GET routes remain unchanged. Public AI is
+still disabled; Phase 9/10 completion decisions and checkboxes are unchanged.
+
+The fixed provider/model is Groq / `openai/gpt-oss-120b`. `getDemoChatModel()`
+checks eligibility on each call, then constructs an uncached model with an explicit
+`DEMO_GROQ_API_KEY`; it never falls back to evaluation `GROQ_API_KEY` or Gemini.
+Importing or reading configuration does not construct a model or call a service;
+model construction itself does not generate text or make a request. `@ai-sdk/groq`
+is now a runtime dependency with the same locked 3.0.72 version, compatible with
+the installed AI SDK 6 provider-v3 contract. Browser input cannot select a model.
+Earlier "Groq is evaluation-only" statements describe executed behavior; Groq
+remains unconnected to public execution and normal SaaS still uses Gemini.
+
+`isDemoChatEnabled()` reports configuration eligibility only. Both
+`DEMO_CHAT_ENABLED` (default `false`) and `PUBLIC_DEMO_MODE` must be exactly `true`;
+unset, blank, whitespace-padded or other strings are rejected. Any non-empty
+`C2_RUNTIME_MODE` marker denies eligibility, including malformed C2 configuration,
+without database validation or external service access. The broader existing
+Public Demo application lock remains unchanged and still locks unexpected
+non-empty Public Demo mode values.
+
+The following must all be non-blank: `DEMO_WORKSPACE_ID`, `DEMO_GROQ_API_KEY`,
+`NEXT_PUBLIC_DEMO_TURNSTILE_SITE_KEY`, `DEMO_TURNSTILE_SECRET_KEY`, Redis REST URL
+and token. Redis uses the existing `UPSTASH_REDIS_REST_URL` / `UPSTASH_REDIS_REST_TOKEN`
+names, with `KV_REST_API_URL` / `KV_REST_API_TOKEN` aliases and the same precedence
+as `Redis.fromEnv()`. Only the Turnstile site key is public. Secret values are
+never returned by the eligibility API; refusal throws a fixed generic error.
+Presence checks do not establish valid credentials, connectivity, Workspace
+publication validity or successful Turnstile verification.
+
+| Contract | Value | Status |
+| --- | --- | --- |
+| Maximum questions per thread | 10 user questions (10 exchanges) | Fixed; future server must validate |
+| Conversation history persisted to DB | No | Fixed |
+| Input characters | 500 | Provisional |
+| Anonymous session questions | 20 / rolling 24 hours (86,400 seconds) | Provisional |
+| Source questions | 3 / 60 seconds | Provisional |
+| Demo-wide questions | 50 / day | Provisional; day boundary must be defined before execution |
+| Concurrent generations | 2 | Provisional |
+| Maximum output tokens | 700 | Provisional |
+
+These are frozen constants, **not enforced limits**. Input character counting
+(including Unicode semantics) must be specified by the later validator.
+The future server must validate the ten-question boundary independently of the
+browser without storing conversation history in the DB or trusting a submitted
+question count. The integrity/lifecycle mechanism remains follow-up work.
+
+`DEMO_CHAT_REDIS` specifies Upstash with the independent namespace
+`evidence-atlas:demo-chat:v1`, and separate `:session`, `:source`, `:global`,
+and `:concurrency` prefixes. Existing SaaS `evidence-atlas:ai-chat` keys and
+`getChatRateLimit()` behavior are unchanged. The Demo contract permits no memory
+fallback, including in production. A future limiter must deny generation when
+Redis is missing or unavailable, and atomically implement the rolling window,
+global budget and concurrency leases/release/expiry. Connection failures are
+not tested or detected by this configuration-only change.
+
+Future public API ingress **must** invoke `requireDemoChatEnabled()` before side
+effects, then require server-side Turnstile Siteverify success, a hostname from
+trusted deployment configuration, and the expected `demo-chat` action. Merely
+having keys or client-side widget success must never authorize generation.
+Trusted hostname configuration, replay protection and Siteverify error handling
+remain to be implemented. It must also validate input/history, use only the
+published Demo Workspace/Research boundary, and reserve Redis budgets before
+generation. No normal SaaS Chat API, OAuth, write path or Inngest endpoint may be
+opened by this flag. C2 external-service restrictions remain intact. A previously
+returned model is not revoked automatically; future ingress must recheck the
+flag for every request, and in-flight cancellation semantics need separate design.
 
 ## 5. Conversation Model
 
