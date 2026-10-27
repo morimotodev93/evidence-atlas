@@ -199,7 +199,7 @@ The Vercel AI SDK integration now selects an evaluation model through `scripts/e
 | `gemini` (default) | `gemini-3.6-flash`, using production `researchModel` | `GOOGLE_GENERATIVE_AI_API_KEY` |
 | `groq` | `openai/gpt-oss-120b` | `GROQ_API_KEY` |
 
-`package.json` declares `ai: ^6` and evaluation-only dev dependency `@ai-sdk/groq: ^3.0.72`; the lockfile resolves Groq SDK 3.0.72. The developer reported selecting Groq Provider SDK 3.x to resolve a `LanguageModelV4` / `LanguageModelV3` TypeScript incompatibility encountered with the newer provider generation. The current locked Groq SDK and AI SDK both depend on provider 3.x; the earlier compiler failure is integration history supplied by the developer, not a failure reproduced by this documentation review.
+`package.json` declares `ai: ^6` and runtime dependency `@ai-sdk/groq: ^3.0.72`; the lockfile resolves Groq SDK 3.0.72. On 2026-10-27, Groq moved from devDependency to runtime dependency for the separate [Demo Chat configuration contract](../architecture/ai-architecture.md#41-public-demo-chat-configuration-contract). Public execution remains disabled; earlier evaluation-only descriptions refer to executed behavior, and evaluation still uses only `GROQ_API_KEY`, independently of `DEMO_GROQ_API_KEY`. The developer reported selecting Groq Provider SDK 3.x to resolve a `LanguageModelV4` / `LanguageModelV3` TypeScript incompatibility encountered with the newer provider generation. The current locked Groq SDK and AI SDK both depend on provider 3.x; the earlier compiler failure is integration history supplied by the developer, not a failure reproduced by this documentation review.
 
 ```powershell
 # Default Gemini evaluation
