@@ -3,11 +3,10 @@ import "server-only";
 export const DEMO_CHAT_MODEL_PROVIDER = "groq";
 export const DEMO_CHAT_MODEL_ID = "openai/gpt-oss-120b";
 
-// Configuration contracts only: no counters or enforcement are implemented here.
+// Security enforcement lives in chat-security / chat-store; generation is unconnected.
 export const DEMO_CHAT_LIMITS = Object.freeze({
   maxUserQuestionsPerThread: 10,
   persistConversationHistory: false,
-  // Provisional limits; validate with the future server-side implementation.
   maxInputCharacters: 500,
   anonymousSessionQuestions: 20,
   anonymousSessionWindowSeconds: 24 * 60 * 60,
@@ -44,8 +43,8 @@ export class DemoChatConfigurationError extends Error {
 
 /**
  * Configuration eligibility only, NOT permission to execute a public request.
- * Future API ingress must call requireDemoChatEnabled() before all side effects,
- * then verify Turnstile, public data scope, history and atomic Redis budgets.
+ * API ingress must additionally verify Origin, Turnstile, session and public data
+ * scope. Future generation must reserve atomic Redis budgets and validate history.
  * This does not probe credentials, Redis connectivity or Turnstile validity.
  */
 export function isDemoChatEnabled(): boolean {

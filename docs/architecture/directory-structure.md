@@ -1,7 +1,7 @@
 # Directory Structure
 
 > **Status:** Current implementation; future areas remain provisional
-> **Last Updated:** 2026-10-24
+> **Last Updated:** 2026-10-27
 
 This document describes the implemented architecture of **Evidence Atlas**.
 The tree below highlights the application-relevant structure.
@@ -106,6 +106,13 @@ Both TypeScript configurations exclude `build/` from file discovery while retain
 ### `src/app/`
 
 Next.js App Router pages and route-local application behavior.
+
+`POST /api/demo/chat` is the separate, disabled-by-default Demo Chat security
+entry point. With complete opt-in configuration it can establish a Turnstile-
+verified Redis session; questions always return 503. It has no UI or generation.
+Server-only `src/lib/demo/` security helpers own input/Origin verification,
+anonymous sessions, thread ownership and atomic Redis budgets, separately from
+SaaS AI and Auth.js. See the [Demo Chat security contract](ai-architecture.md#41-public-demo-chat-configuration-contract).
 
 Authenticated-route responsibilities below describe normal SaaS mode. In `PUBLIC_DEMO_MODE=true`, `/` redirects to `/demo`; authenticated pages and Research chat return 404, and Auth catch-all GET/POST dispatch is disabled. Public `/demo` routes remain separate and readable with valid dataset configuration.
 
