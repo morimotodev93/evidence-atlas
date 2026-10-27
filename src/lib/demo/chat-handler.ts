@@ -19,15 +19,17 @@ export function createDemoChatHandler(deps = defaults) {
     try {
       const hostname = requireDemoChatOrigin(request);
       const input = await readDemoChatInput(request);
-      if (!await deps.publicResearch(input.researchId)) throw new DemoChatError(404);
       if (input.operation === "session") {
         await deps.verify(input.turnstileToken, hostname);
+        if (!await deps.publicResearch(input.researchId)) throw new DemoChatError(404);
         const { sessionId, threadId } = await deps.store().start(input.turnstileToken, input.researchId);
         return Response.json({ threadId }, {
           status: 201, headers: { "Cache-Control": "no-store", "Set-Cookie": demoSessionCookie(sessionId) },
         });
       }
-      await deps.store().check(readDemoSession(request), input.threadId, input.researchId);
+      const session = readDemoSession(request);
+      await deps.store().check(session, input.threadId, input.researchId);
+      if (!await deps.publicResearch(input.researchId)) throw new DemoChatError(404);
       // No model, generation, retrieval, embeddings, DB writes or question quota
       // reservation until the bounded context/history/response contract is ready.
       throw new DemoChatError(503);

@@ -103,3 +103,8 @@ can deny service until reconciled. No production-ready generation is claimed.
 SaaS Gemini/Auth.js/read paths and existing Demo UI/read-only behavior are unchanged.
 The new API fails before service access in C2 and when disabled. Phase 9 and Phase
 10 completion decisions remain unchanged.
+
+Post-merge follow-up on `main` baseline `519e278`: see
+[Redis verification and ingress hardening](demo-chat-redis-verification.md) for the
+authentication-before-DB change, coverage gaps and manual-only dedicated Redis
+runner. This does not replace the historical results above.

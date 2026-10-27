@@ -92,20 +92,38 @@ describe("Demo API ingress (offline dependencies)", () => {
   });
   it("rejects missing, forged, duplicate and expired session cookies", async () => {
     const issued = await store.start("one", researchId);
-    for (const value of [undefined, cookie(unknownId), `${cookie(issued.sessionId)}; ${cookie(issued.sessionId)}`]) {
+    for (const value of [undefined, cookie("bad"), cookie(unknownId), `${cookie(issued.sessionId)}; ${cookie(issued.sessionId)}`]) {
       expect((await handler(request(question(issued.threadId), value))).status).toBe(401);
     }
     redis.now += 86400000;
     expect((await handler(request(question(issued.threadId), cookie(issued.sessionId)))).status).toBe(401);
+    expect(read).not.toHaveBeenCalled();
   });
   it("refuses another session's thread and a thread's different Research", async () => {
     const a = await store.start("a", researchId), b = await store.start("b", researchId);
     expect((await handler(request(question(a.threadId), cookie(b.sessionId)))).status).toBe(403);
+    expect(read).not.toHaveBeenCalled();
     await expect(store.check(a.sessionId, a.threadId, "other-research")).rejects.toMatchObject({ status: 403 });
   });
-  it("rejects nonpublic Research before token verification or Redis", async () => {
+  it("verifies Turnstile before public Research, and never issues a private session", async () => {
     expect((await handler(request({ ...startBody(), researchId: "private" }))).status).toBe(404);
-    expect(fetcher).not.toHaveBeenCalled(); expect(redis.calls).toEqual([]);
+    expect(fetcher).toHaveBeenCalledOnce(); expect(redis.calls).toEqual([]);
+    expect(fetcher.mock.invocationCallOrder[0]).toBeLessThan(read.mock.invocationCallOrder[0]);
+  });
+  it("rechecks publication only after ownership, including a withdrawn Research", async () => {
+    const issued = await store.start("one", researchId);
+    read.mockResolvedValue(null);
+    expect((await handler(request(question(issued.threadId), cookie(issued.sessionId)))).status).toBe(404);
+    expect(read).toHaveBeenCalledExactlyOnceWith(researchId);
+    read.mockClear();
+    expect((await handler(request({ ...question(issued.threadId), researchId: "private" }, cookie(issued.sessionId)))).status).toBe(403);
+    expect(read).not.toHaveBeenCalled();
+  });
+  it.each([researchId, "private", "missing"])("does not disclose Research %s before authentication", async (id) => {
+    fetcher.mockResolvedValue(Response.json({ success: false }));
+    expect((await handler(request({ ...startBody(), researchId: id }))).status).toBe(403);
+    expect((await handler(request({ ...question(), researchId: id }))).status).toBe(401);
+    expect(read).not.toHaveBeenCalled();
   });
   it.each(["start", "question"])("fails closed on Redis %s failure without detail/logging", async (operation) => {
     const issued = await store.start("a", researchId);
@@ -113,6 +131,7 @@ describe("Demo API ingress (offline dependencies)", () => {
     const response = await handler(request(operation === "start" ? startBody() : question(issued.threadId), cookie(issued.sessionId)));
     expect(response.status).toBe(503); expect(await response.json()).toEqual({ error: "Demo Chat unavailable." });
     expect(response.headers.has("set-cookie")).toBe(false); expect(log).not.toHaveBeenCalled();
+    if (operation === "question") expect(read).not.toHaveBeenCalled();
   });
   it("production store construction is lazy and rejects non-HTTPS Redis config", () => {
     expect(getDemoChatStore()).toBeInstanceOf(DemoChatStore);
@@ -122,6 +141,7 @@ describe("Demo API ingress (offline dependencies)", () => {
 });
 
 describe("Siteverify boundary", () => {
+  afterEach(() => { expect(read).not.toHaveBeenCalled(); expect(redis.calls).toEqual([]); });
   it.each(["", " ", "bad/token", "x".repeat(2049), null, 123])("rejects token shape %s locally", async (value) => {
     expect(validTurnstileToken(value)).toBe(false);
     expect((await handler(request(startBody(value as string)))).status).toBe(400);
@@ -135,6 +155,7 @@ describe("Siteverify boundary", () => {
   ])("rejects unverified/expired/duplicate or mismatched results %j", async (result) => {
     fetcher.mockResolvedValue(Response.json(result));
     expect((await handler(request(startBody()))).status).toBe(403); expect(redis.calls).toEqual([]);
+    expect(read).not.toHaveBeenCalled();
   });
   it.each(["network", "timeout", "http", "json"])("fails closed on %s", async (failure) => {
     fetcher.mockImplementation(async () => {
@@ -143,6 +164,7 @@ describe("Siteverify boundary", () => {
       throw new DOMException("synthetic secret", failure === "timeout" ? "TimeoutError" : "Error");
     });
     expect((await handler(request(startBody()))).status).toBe(403); expect(redis.calls).toEqual([]);
+    expect(read).not.toHaveBeenCalled();
   });
   it("uses the fixed Siteverify URL, POST, bounded signal and no retry", async () => {
     await verifyDemoTurnstile("valid-token", "demo.example.invalid", fetcher);
@@ -153,6 +175,9 @@ describe("Siteverify boundary", () => {
 });
 
 describe("Bounded input", () => {
+  afterEach(() => {
+    expect(read).not.toHaveBeenCalled(); expect(fetcher).not.toHaveBeenCalled(); expect(redis.calls).toEqual([]);
+  });
   it.each(["", "  \n\t", "x".repeat(501), "😀".repeat(501), "\ud800"])("rejects invalid message", async (message) => {
     expect((await handler(request(question(unknownId, message)))).status).toBe(400);
   });
