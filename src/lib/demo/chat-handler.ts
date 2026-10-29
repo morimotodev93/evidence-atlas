@@ -1,7 +1,7 @@
 import "server-only";
 
 import { DemoChatConfigurationError } from "./chat-config";
-import { getDemoChatStore } from "./chat-store";
+import { createDemoChatOperationId, getDemoChatStore } from "./chat-store";
 import { buildDemoChatContext, type DemoPublicResearch } from "./chat-context";
 import { generateDemoAnswer, runDemoGeneration } from "./chat-generation";
 import {
@@ -43,7 +43,8 @@ export function createDemoChatHandler(deps: Dependencies = defaults) {
       const research = await deps.publicResearch(input.researchId);
       if (!research) throw new DemoChatError(404);
       if (request.signal.aborted) throw new DemoChatError(503);
-      const lease = await store.reserve(session, input.threadId, input.researchId);
+      const operationId = createDemoChatOperationId();
+      const lease = await store.reserve(session, input.threadId, input.researchId, operationId);
       const answer = await runDemoGeneration(store, lease, () => buildDemoChatContext(research),
         input.message, request.signal, deps.generate);
       return Response.json(answer, { headers: { "Cache-Control": "no-store" } });

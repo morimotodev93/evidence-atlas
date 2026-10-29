@@ -396,9 +396,10 @@ before fetch. Injected generators are opaque and invocation is conservatively th
 submission boundary, including synchronous exceptions. Release accepts only Redis
 ZREM results 0 (already absent) or 1; unexpected replies fail closed without retry.
 
-The Redis ZSET stores only random lease IDs and renewal deadlines. `reserved`,
-`submitted`, `completed` and cancellation reasons are local process knowledge, not
-durable Redis states. In particular, a future deadline does not prove healthy work,
+The Redis ZSET stores only random lease IDs and renewal deadlines. The operation
+correlation foundation below adds reservation records, but `submitted`, `completed`
+and cancellation reasons remain local process knowledge, not recorded Redis
+lifecycle states. In particular, a future deadline does not prove healthy work,
 and a past deadline does not prove remote termination. Quarantine can begin before
 expiry and remains counted by ZCARD. There is no recovery endpoint, sweeper, admin
 CLI, TTL deletion, late-completion cleanup or reset of the namespace.
@@ -412,7 +413,7 @@ CLI, TTL deletion, late-completion cleanup or reset of the namespace.
 | Timeout, client abort, failed/uncertain renew | Request local abort; return 503; retain lease regardless of deadline or later promise settlement |
 | Abort request/fetch rejection completes | Remote termination still unconfirmed; retain lease |
 | Function terminates at any point after reservation | Finally/heartbeat cannot be relied on; retained member stays counted, even if work was never sent or already completed |
-| Reservation response lost | May have committed; handler does not invoke AI or retry; unknown member may remain |
+| Reservation response lost | May have committed; handler does not invoke AI or retry; an operation record can correlate the retained member if Redis preserved the write |
 | Renew response lost | May have extended deadline; abort locally and retain; no retry |
 | Release response lost | May be present or absent; deny answer, no retry/refund; any remaining member stays counted |
 
@@ -431,8 +432,9 @@ members protects the concurrency limit but does not provide availability.
    submission boundary, abort reason, terminal evidence and release outcome. Use
    lease fingerprints in ordinary logs; exact IDs needed for an operation belong
    only in restricted records. Exclude prompts, answers, cookies and credentials.
-   These lifecycle events and provider correlation are **not durably recorded by
-   the current implementation**; absent logs are not proof of no submission.
+   Only reservation correlation is recorded by the foundation below. Submission,
+   terminal/release evidence, deployment identity and provider correlation remain
+   unrecorded; absent logs are not proof of no submission.
 3. Obtain positive evidence for each exact member: either durable proof that its
    fenced worker never submitted, or provider-confirmed termination correlated to
    that generation. Lease age, 30s/60s timers, Function timeout, key revocation and
@@ -453,7 +455,65 @@ members protects the concurrency limit but does not provide availability.
    two-slot exhaustion, process death, delayed Redis outcomes and active-owner
    protection in a separately authorized isolated environment.
 
-Sources checked 2026-10-29 JST: installed `ai@6.0.280`
+#### Operation ID and reservation correlation foundation (2026-10-29 JST)
+
+**Public activation remains No-Go.** Each authorized question handler creates a
+256-bit random server Operation ID before calling Redis reserve. The strict input
+contract accepts neither Operation ID nor Lease ID from the client. A separate
+random Lease ID is selected before EVAL. There is no new public response field,
+log, management endpoint or Provider state transition.
+
+The same reservation EVAL uses `${prefix}:operations`, a bounded Redis HASH keyed
+by Operation ID. Each value is JSON with `schema: 1`, `leaseId`, `scopeHash`
+(SHA-256 of the JSON tuple `[SHA-256(session), thread, research]`), `reservedAt`
+(Redis milliseconds at attempt start) and `reservationState`. After ownership,
+capacity and budget checks, it writes `attempted` before charging budgets, then
+`reserved` after all budget/Lease writes. Ordinary denials create no record and
+charge no question budget; existing source-window expiry housekeeping may run.
+Lua errors do not roll back prior writes. A partial attempt may retain consumed
+budgets and/or a Lease with an `attempted` record; it is never refunded or repaired.
+
+`reservationState` describes only the reservation script. Both values leave
+Provider submission/completion **unknown**; `reserved` persists unchanged after
+generation, timeout, quarantine and normal Lease release. In particular it is not
+the future recovery design's fenced `RESERVED` lifecycle state and does not prove
+that a Worker never submitted. Correlation alone never permits release.
+
+A repeated Operation ID is rejected with internal `duplicate` outcome / public
+generic 503, even after normal Lease release. It does not return the old Lease or
+grant another generation. Only the first acknowledged success returns a Lease.
+Known Lua denials are `rejected`; transport/Lua failures and malformed replies are
+`unknown`, retaining the Operation ID on the internal error. The handler neither
+retries nor calls AI on an error. Commit followed by response loss can leave the
+record and Lease available for later investigation, but absence is not proof of
+non-execution. There is no automatic lookup/reconciliation in this stage.
+
+This replay guard covers calls sharing the **same server Operation ID** while
+Redis retains the record. Independent HTTP requests get new IDs and are separate
+budgeted questions; payload equality is not used for deduplication. Cross-request
+exactly-once behavior needs a separate authenticated server-issued request-token
+protocol. This foundation provides neither that protocol nor submission fencing.
+
+Records have no TTL, GC or deletion on release. At 10,000 records, new reservations
+fail closed with 503; renew and existing safe release still work. With 50 accepted
+questions per day this is roughly 200 full-budget days from empty, but partial
+attempts can consume the record allowance sooner. The fixed field/value payload
+is under 300 bytes per record (under 3 MB at the cap), excluding Redis allocator,
+index and replication overhead. No prompts, answers, raw cookies or credentials
+are stored. This finite, non-reclaiming history is intentional until a separately
+reviewed retention/replay policy exists; do not reset it to regain capacity.
+
+The offline tests execute production Lua with mocked Redis commands, covering
+same-ID races, delayed/lost replies, partial command failures, no-TTL retention,
+record-cap denial and existing generation/security/budget behavior. They do not
+prove Upstash's behavior through failover, replication or data loss. Retention
+depends on the target configuration (including no eviction); a HASH write is not
+an unconditional durable audit guarantee. The
+[recovery design](../planning/demo-chat-lease-recovery-design.md) retains those
+unknowns and the public No-Go. No automatic/forced recovery, timeout deletion,
+question refund, memory fallback, normal SaaS/C2 change or UI activation is added.
+
+Sources checked for the earlier hardening, 2026-10-29 JST: installed `ai@6.0.280`
 `src/generate-text/generate-text.ts`, `@ai-sdk/groq@3.0.72`
 `src/groq-provider.ts`, `src/groq-chat-language-model.ts` and
 `src/map-groq-finish-reason.ts` establish lazy construction, abort forwarding and

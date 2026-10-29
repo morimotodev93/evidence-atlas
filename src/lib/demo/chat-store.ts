@@ -9,6 +9,22 @@ export type DemoChatEval = (script: string, keys: string[], args: (string | numb
 const hash = (value: string) => createHash("sha256").update(value).digest("hex");
 const newId = () => randomBytes(32).toString("base64url");
 
+// Server-only identity for one admission attempt; never accept this from ingress.
+export const createDemoChatOperationId = newId;
+// No TTL/GC: retained entries also prevent replay after normal lease release.
+// Exhaustion denies admission; deleting history is not a recovery mechanism.
+export const DEMO_CHAT_OPERATION_MAX_RECORDS = 10_000;
+
+export class DemoChatReservationError extends DemoChatError {
+  constructor(
+    status: number,
+    public readonly operationId: string,
+    public readonly outcome: "rejected" | "duplicate" | "unknown",
+  ) {
+    super(status);
+  }
+}
+
 // TIME comes from Redis, avoiding clock differences between server instances.
 const clock = `local t = redis.call('TIME')
 local now = tonumber(t[1]) * 1000.0 + math.floor(tonumber(t[2]) / 1000)
@@ -42,6 +58,8 @@ redis.call('PEXPIRE', KEYS[2], ttl)
 return 1`;
 
 export const RESERVE_QUESTION = clock + CHECK_THREAD.replace("return 1", "") + `
+if redis.call('HGET', KEYS[6], ARGV[11]) then return 409 end
+if redis.call('HLEN', KEYS[6]) >= tonumber(ARGV[13]) then return 503 end
 local day = math.floor(now / 86400000)
 local globalDay = tonumber(redis.call('HGET', KEYS[4], 'day') or '-1')
 local globalCount = 0
@@ -53,6 +71,12 @@ if tonumber(redis.call('HGET', KEYS[2], 'count')) >= tonumber(ARGV[3]) or
    globalCount >= tonumber(ARGV[7]) or
    redis.call('ZCARD', KEYS[5]) >= tonumber(ARGV[8]) then return 429 end
 if redis.call('ZSCORE', KEYS[5], ARGV[9]) then return 503 end
+-- Mark BEFORE mutating budgets. Lua runtime errors do not roll writes back:
+-- a partial attempt must never be retried as a fresh reservation.
+-- IDs/hash are server-validated ASCII; no request text is serialized here.
+local record = '{"schema":1,"leaseId":"' .. ARGV[9] .. '","scopeHash":"' .. ARGV[12] ..
+  '","reservedAt":' .. string.format('%.0f', now) .. ',"reservationState":"'
+redis.call('HSET', KEYS[6], ARGV[11], record .. 'attempted"}')
 redis.call('INCR', KEYS[1])
 redis.call('HINCRBY', KEYS[2], 'count', 1)
 redis.call('ZADD', KEYS[3], now, ARGV[9])
@@ -60,6 +84,7 @@ redis.call('PEXPIRE', KEYS[3], ARGV[6])
 redis.call('HSET', KEYS[4], 'day', day, 'count', globalCount + 1)
 redis.call('PEXPIREAT', KEYS[4], (day + 1) * 86400000.0)
 redis.call('ZADD', KEYS[5], now + tonumber(ARGV[10]), ARGV[9])
+redis.call('HSET', KEYS[6], ARGV[11], record .. 'reserved"}')
 return 1`;
 
 // Expired leases remain counted (quarantine). A crashed or partitioned worker
@@ -124,15 +149,34 @@ export class DemoChatStore {
    * Each successful reservation counts even if generation later fails; no refunds.
    * Source is intentionally shared until a trusted ingress IP adapter is supplied.
    */
-  async reserve(session: string, thread: string, research: string) {
+  async reserve(session: string, thread: string, research: string, operationId = createDemoChatOperationId()) {
     requireDemoChatEnabled();
+    if (!demoChatId.test(operationId)) throw new DemoChatError(503);
     const lease = newId();
-    const result = await this.run(RESERVE_QUESTION, [
-      ...this.keys(session, thread), `${this.prefix}:source:shared`, `${this.prefix}:global`, `${this.prefix}:concurrency`,
-    ], [hash(session), research, limits.maxUserQuestionsPerThread, limits.anonymousSessionQuestions,
-      limits.sourceQuestions, limits.sourceWindowSeconds * 1000, limits.globalQuestionsPerDay,
-      limits.maxConcurrentGenerations, lease, DEMO_CHAT_LEASE_MS]);
-    if (result !== 1) throw new DemoChatError([401, 403, 429].includes(Number(result)) ? Number(result) : 503);
+    const sessionKeys = this.keys(session, thread);
+    const scopeHash = hash(JSON.stringify([hash(session), thread, research]));
+    let result: unknown;
+    try {
+      result = await this.run(RESERVE_QUESTION, [
+        ...sessionKeys, `${this.prefix}:source:shared`, `${this.prefix}:global`, `${this.prefix}:concurrency`,
+        `${this.prefix}:operations`,
+      ], [hash(session), research, limits.maxUserQuestionsPerThread, limits.anonymousSessionQuestions,
+        limits.sourceQuestions, limits.sourceWindowSeconds * 1000, limits.globalQuestionsPerDay,
+        limits.maxConcurrentGenerations, lease, DEMO_CHAT_LEASE_MS, operationId, scopeHash,
+        DEMO_CHAT_OPERATION_MAX_RECORDS]);
+    } catch {
+      throw new DemoChatReservationError(503, operationId, "unknown");
+    }
+    // A duplicate never grants a lease again: returning the old lease could let
+    // a second worker submit AI while the first is still running. No auto retry.
+    if (result === 409) throw new DemoChatReservationError(503, operationId, "duplicate");
+    if (result !== 1) {
+      const rejected = result === 401 || result === 403 || result === 429 || result === 503;
+      throw new DemoChatReservationError(
+        result === 401 || result === 403 || result === 429 ? result : 503,
+        operationId, rejected ? "rejected" : "unknown",
+      );
+    }
     return lease;
   }
 

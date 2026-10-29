@@ -1405,6 +1405,24 @@ Validation: related offline Vitest **8 files / 214 tests**, TypeScript
 (`--noEmit --incremental false`), full ESLint (plus the final edited test file)
 and `git diff --check` passed. Full Vitest was not run for this task.
 
+**Operation ID / reservation correlation foundation (2026-10-29 JST):** The server
+creates a random Operation ID before Redis reservation and records its exact Lease
+and hashed request scope in the same EVAL. A bounded, no-TTL HASH retains reservation
+attempt/completion metadata, including after safe Lease release; same-ID retries
+are denied rather than granting another generation. Partial Lua errors and lost
+replies remain fail-closed, with no budget refund. The 10,000-record cap denies new
+admission instead of deleting history. This covers same-server-operation replay,
+not deduplication of independent HTTP requests or proof of Groq submission/end.
+Provider lifecycle, submission fencing, recovery tools, automatic release and
+unconditional Upstash durability remain unimplemented/unverified. See the
+[architecture contract](../architecture/ai-architecture.md#operation-id-and-reservation-correlation-foundation-2026-10-29-jst)
+and [design status](demo-chat-lease-recovery-design.md#25-後続実装-operation-id--予約相関の基盤).
+**Public activation remains No-Go; `DEMO_CHAT_ENABLED=false`, disabled UI and
+Phase 9/10/11 completion checkboxes remain unchanged.**
+Validation: related offline Vitest **11 files / 261 tests**, TypeScript
+(`--noEmit --incremental false`), full ESLint and `git diff --check` passed.
+Full Vitest, Production Build and real-service verification were not run.
+
 PR #45 offline validation: related Demo Vitest **8 files / 180 tests**, full
 Vitest **81 files / 1,756 tests**, TypeScript, ESLint and `git diff --check` pass.
 Local Production Build is **incomplete, intentionally interrupted**, not passed.
