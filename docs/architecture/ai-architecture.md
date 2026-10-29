@@ -124,21 +124,78 @@ labelled question textarea and Send question button. It displays **Coming soon**
 the planned 500-character input bound, thread/session limits and a brief shared
 rate/daily-limit notice. It does not display sample AI answers.
 
-The textarea and button are unconditionally disabled, including if an operator
-sets the server feature flag to true. This presentation-only component has no
+At PR #44, the textarea and button were unconditionally disabled, including if an operator
+set the server feature flag to true. That presentation-only implementation had no
 form, action, event handler, session creation, fetch, Turnstile widget, storage or
-generation integration. It does not import server Chat configuration or serialize
+generation integration. It did not import server Chat configuration or serialize
 credentials, Redis/model settings or feature eligibility to the browser.
 `DEMO_CHAT_ENABLED=false` remains the deployment default; enabling the flag alone
-does not activate this UI. Native disabled semantics and associated descriptions
+did not activate that UI. Native disabled semantics and associated descriptions
 communicate unavailability. The panel uses existing semantic theme tokens and
 wrapping, single-column layout with a responsive composer footer.
 
-Future UI integration must separately wire the reviewed public session/Turnstile
-and question API contracts, with loading/error/limit states
-and accessible message updates. Normal SaaS Chat, Auth.js, C2 and public read-only
+These historical PR #44 integration restrictions are superseded only by the
+client foundation below. Normal SaaS Chat, Auth.js, C2 and public read-only
 boundaries remain separate. UI presence does not establish generation readiness
 or deployed browser verification.
+
+#### Public Demo Chat client integration foundation (2026-10-29 JST)
+
+The Research detail server page now uses `isDemoChatEnabled()` to select the
+client panel. Ineligible configuration, SaaS mode and any non-empty C2 marker
+retain the existing disabled **Coming soon** UI, with no Turnstile script/widget
+or Chat API requests. `DEMO_CHAT_ENABLED=false` remains unchanged. Eligibility
+is not a public-release approval; the recovery blockers and **No-Go** remain.
+Only the current public Research ID, title, public Source id/title/url projection
+and public Site Key are supplied to the enabled client; no secrets or Redis/model
+configuration cross the boundary. A flag alone without required configuration
+cannot activate it. API ingress continues to independently enforce its boundaries.
+
+The client uses a small in-memory controller and React subscription, without new
+dependencies or storage. States are disabled, before session (`idle`), Turnstile /
+session verification (`verifying`), ready, sending, answered, error and limited.
+An explicit start action mounts Turnstile; success posts the token once to the
+existing `session` operation and a validated 201 response makes the session ready.
+Widget failure/expiry/timeout requires a fresh manual start. The official script
+uses explicit rendering, fixed `demo-chat` action, compact size, no hidden token
+field and no automatic widget retry/expiry/timeout refresh. Widget cleanup removes
+the instance; tokens are not kept in React state or persisted. Rendering/callback
+parameters were checked against [Cloudflare client rendering](https://developers.cloudflare.com/turnstile/get-started/client-side-rendering/)
+and [widget configuration](https://developers.cloudflare.com/turnstile/get-started/client-side-rendering/widget-configurations/)
+on 2026-10-29; this is documentation verification, not a live Turnstile test.
+
+Questions post only the existing `question` fields, bound Research ID and server
+thread ID. Same-origin relative fetch, browser-managed Origin, JSON, no-store,
+redirect refusal and same-origin credentials preserve the Origin/cookie/CSRF
+contract. No Operation ID, history, Workspace or model selector is sent. Input
+uses the server's 500-code-point-before-trim and lone-surrogate restrictions.
+Synchronous pending guards and disabled controls prevent duplicate submissions;
+failed requests are never automatically resent. 401/403 invalidate the local
+thread and require fresh verification; 404 reports unavailable; 400/408/413/415
+report refused input; network/invalid response/503 report uncertainty and possible
+budget consumption. Generic server error bodies are not shown. 429 enters a
+limited state without claiming a reset time or a particular exhausted budget:
+quarantined capacity may not recover automatically. It offers no client budget
+reset or automatic session restart.
+
+200 JSON is validated before display (including non-empty answer and evidence /
+truncation fields). Source IDs, exact URLs and the server's 160-code-point title
+projection must match the current page's public metadata; duplicate references,
+unknown Sources, non-HTTP(S) and credential-bearing URLs are rejected. Answers,
+questions, Source titles and notices are React text, never HTML or Markdown;
+only validated Source URLs become external links with `noopener noreferrer`.
+Evidence notices and context truncation are displayed. Membership still does not
+prove factual correctness. Only the latest exchange is held in memory; requests
+are independent and conversation history is not sent or persisted. A Research /
+Site Key change keys a new client; cleanup aborts the old fetch and invalidates
+late completions. Local abort is not proof of upstream termination or Lease release.
+
+Offline controller, synthetic widget callback, handler wiring and static markup
+tests cover these boundaries. Hook doubles do not verify React scheduling, actual
+widget lifecycle, hydration, focus, screen-reader behavior, mobile layout or
+deployed cookies/Origin/CSP. Real browser and real Groq/Redis/Turnstile validation
+remain separate work. No Production Build or public activation is part of this
+foundation, and Phase 9/10/11 completion decisions are unchanged.
 
 The fixed provider/model is Groq / `openai/gpt-oss-120b`. `getDemoChatModel()`
 checks eligibility on each call, then constructs an uncached model with an explicit

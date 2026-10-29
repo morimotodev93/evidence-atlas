@@ -1606,6 +1606,34 @@ Validation: related offline Vitest **11 files / 261 tests**, TypeScript
 (`--noEmit --incremental false`), full ESLint and `git diff --check` passed.
 Full Vitest, Production Build and real-service verification were not run.
 
+**Public Demo Chat client integration foundation (2026-10-29 JST):** The existing
+Research Chat panel now has a separately gated client path for the reviewed JSON
+session/question API. Server configuration eligibility selects this path; normal
+SaaS and C2 remain excluded. Explicit session start mounts the public-key-only
+Turnstile widget, consumes each token once and handles failure/expiry. The
+in-memory client handles ready, sending, answer, error and usage/capacity limit
+states, prevents duplicate submissions and never automatically resends a failed
+question. Requests carry no Operation ID or history. Answer JSON and current
+public Source metadata are checked before React text rendering; Research changes
+discard old state and ignore late responses. See the
+[client contract](../architecture/ai-architecture.md#public-demo-chat-client-integration-foundation-2026-10-29-jst).
+
+This supersedes the earlier UI-unconnected status only for the implemented client
+foundation. **Public activation remains No-Go; `DEMO_CHAT_ENABLED=false` and the
+default disabled Coming soon UI remain unchanged.** No Lease recovery, budget
+refund, SaaS Chat/C2 changes or Phase 9/10/11 checkbox completion is implied.
+Real-browser hydration, keyboard/focus, mobile/screen-reader behavior and deployed
+Origin/cookie/CSP behavior remain unverified, as do real Groq/Redis/Turnstile
+interactions and the existing provider termination/recovery blockers. Production
+Build is deferred to a later Vercel Preview. No real-service calls or DB operations
+were performed for this client foundation.
+
+Offline validation: related Vitest **18 files / 496 tests**, TypeScript
+(`--noEmit --incremental false`), full ESLint and `git diff --check` passed.
+The UI checks use synthetic hook/widget doubles and static markup, not a browser.
+Full Vitest and Production Build were not run. Earlier PR verification records
+below remain historical evidence and are not results of this work.
+
 PR #45 offline validation: related Demo Vitest **8 files / 180 tests**, full
 Vitest **81 files / 1,756 tests**, TypeScript, ESLint and `git diff --check` pass.
 Local Production Build is **incomplete, intentionally interrupted**, not passed.

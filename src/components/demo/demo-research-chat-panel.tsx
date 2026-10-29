@@ -1,10 +1,13 @@
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
+import { DemoChatClientPanel } from "./demo-chat-client-panel";
+import type { DemoChatSource } from "@/lib/demo/chat-client";
 
-// Presentation only. Keep session, transport and generation out of this panel
-// until the separate Demo Chat integration is ready, regardless of feature flags.
-export function DemoResearchChatPanel({ researchTitle }: { researchTitle: string }) {
+export function DemoResearchChatPanel({ researchTitle, researchId, siteKey, sources = [] }: {
+  researchTitle: string; researchId?: string; siteKey?: string; sources?: DemoChatSource[];
+}) {
+  if (researchId && siteKey) return <DemoChatClientPanel key={`${researchId}:${siteKey}`} researchId={researchId} researchTitle={researchTitle} siteKey={siteKey} sources={sources} />;
   return (
     <section
       aria-labelledby="demo-chat-heading"

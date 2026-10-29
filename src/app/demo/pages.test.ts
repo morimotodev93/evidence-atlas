@@ -91,7 +91,7 @@ describe("Public Demo pages", () => {
     expect(mocks.getDemoResearch).toHaveBeenCalledExactlyOnceWith(research.id);
   });
 
-  it.each(["false", "true"])("keeps Chat unavailable without network or session effects even with DEMO_CHAT_ENABLED=%s", async (flag) => {
+  it.each(["false", "true"])("keeps Chat unavailable without full eligibility even with DEMO_CHAT_ENABLED=%s", async (flag) => {
     vi.stubEnv("DEMO_CHAT_ENABLED", flag);
     const fetchSpy = vi.spyOn(globalThis, "fetch").mockRejectedValue(new Error("Unexpected network request"));
     try {
@@ -111,6 +111,43 @@ describe("Public Demo pages", () => {
     } finally {
       fetchSpy.mockRestore();
     }
+  });
+
+  it.each(["enabled", "disabled", "saas", "c2"])("gates client integration with server eligibility (%s), not the flag alone", async (mode) => {
+    const config = {
+      PUBLIC_DEMO_MODE: "true", DEMO_CHAT_ENABLED: "true", C2_RUNTIME_MODE: "",
+      DEMO_WORKSPACE_ID: "synthetic-workspace", DEMO_GROQ_API_KEY: "synthetic-private-groq-key",
+      NEXT_PUBLIC_DEMO_TURNSTILE_SITE_KEY: "synthetic-public-site-key",
+      DEMO_TURNSTILE_SECRET_KEY: "synthetic-private-turnstile-key",
+      UPSTASH_REDIS_REST_URL: "https://synthetic-redis.invalid", UPSTASH_REDIS_REST_TOKEN: "synthetic-private-redis-token",
+    };
+    for (const [key, value] of Object.entries(config)) vi.stubEnv(key, value);
+    if (mode === "disabled") vi.stubEnv("DEMO_CHAT_ENABLED", "false");
+    if (mode === "saas") vi.stubEnv("PUBLIC_DEMO_MODE", "false");
+    if (mode === "c2") vi.stubEnv("C2_RUNTIME_MODE", "malformed");
+    const fetchSpy = vi.spyOn(globalThis, "fetch").mockRejectedValue(new Error("Unexpected network request"));
+    try {
+      const page = await detailPage();
+      const html = renderWithLayout(page);
+      if (mode === "enabled") {
+        expect(html).toContain("Start verified session");
+        expect(html).not.toContain("Coming soon");
+        expect(html).toContain('aria-live="polite"');
+      } else {
+        expectReadOnly(html);
+        expect(html).toContain("Coming soon");
+      }
+      expect(html).not.toMatch(/<script|challenges\.cloudflare|synthetic-private|synthetic-redis/);
+      expect(fetchSpy).not.toHaveBeenCalled();
+      // Inspect server-to-client props as well as markup: only the Site Key and
+      // the public Research/Source projection may cross this boundary.
+      const panel = page.props.children.at(-1);
+      expect(panel.props).toEqual({ researchTitle: research.title,
+        researchId: mode === "enabled" ? research.id : undefined,
+        siteKey: mode === "enabled" ? config.NEXT_PUBLIC_DEMO_TURNSTILE_SITE_KEY : undefined,
+        sources: mode === "enabled" ? [{ id: source.id, title: source.title, url: source.url }] : undefined,
+      });
+    } finally { fetchSpy.mockRestore(); }
   });
 
   it.each(["javascript:alert(1)", "//example.com", "https://"])("keeps invalid saved Source %s visible and read-only without linking", async (url) => {
