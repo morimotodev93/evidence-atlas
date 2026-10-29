@@ -1,6 +1,6 @@
 # evidence-atlas Roadmap
 
-> **Last Updated:** 2026-10-27
+> **Last Updated:** 2026-10-29
 
 Current stage: The portfolio MVP and curated read-only Public Demo are implemented, with scoped deployment checks recorded. Phases 4–7 are complete for their defined baselines; Phase 8 is complete for the defined application infrastructure baseline. Phase 10 has four completed checklist items (Unit, bounded E2E, Validation, Authorization); other quality work remains open. Phase 11 operational reviews and Phase 12 documentation are not complete. Checked items describe specific implementation or reported verification, not blanket production, OAuth, provider, or security validation.
 
@@ -25,6 +25,37 @@ The public deployment is primarily a curated, read-only demo. Users who want to 
 - Introduce dependencies when they become necessary rather than building an unnecessary all-in-one stack.
 - Document major architectural decisions in `docs/`.
 - Prioritize maintainability and clarity over premature optimization.
+
+### Incrementalism and requirement classification
+
+Evidence Atlas is a non-commercial, individually developed portfolio project;
+selling a commercial SaaS is not its goal. This roadmap provides direction, not
+a requirement to finish every item before continuing development or publication.
+Develop features and maintain the application in parallel through small cycles
+of implementation, verification, scoped release and improvement. Prefer
+risk-appropriate verification and continued improvement over completeness.
+Real-browser checks and, where relevant to the exposed risk, bounded real-service
+verification are important development activities; mocks do not replace evidence
+needed for the published feature's safety boundaries.
+
+Requirements are classified independently of their completion checkboxes:
+
+| Class | Meaning and release implications |
+| --- | --- |
+| **A. Must-have — 義務目標** | Safety conditions required before operating or publishing the affected feature: prevent material authorization failures, information disclosure, abuse and uncontrolled costs. Select necessary verification according to that feature's risks. |
+| **B. Should-have — 努力目標** | Improvements to quality, availability, maintainability and usability. Their incompleteness alone does not stop all development or publication. |
+| **C. Known limitations — 既知の制約** | Unresolved conditions that may be accepted with their scope, failure behavior, user impact, handling, acceptance reason and reassessment trigger recorded. Acceptance must not excuse a material safety failure. |
+| **D. Optional / Out of scope — 任意・対象外** | Work unnecessary for the non-commercial goal, or deferred until a concrete use case arises. |
+
+An exposed feature may advance when its Must-have conditions are met even if
+other quality work remains open. Independent development may continue while a
+different feature remains disabled. Do not reclassify a material safety risk as
+an availability limitation. Preserve completed scope and historical evidence;
+classification does not uncheck completed work or mark unperformed checks passed.
+Major changes to architecture, routes, data models or project status still require
+updates to the relevant documentation. See the
+[requirements review](roadmap-requirements-review.md) for the evaluation and
+proposals; the policies adopted here do not imply implementation or new verification.
 
 ---
 
@@ -406,6 +437,17 @@ This baseline does not include embedding usage tracking, monetary cost accountin
 
 **Goal:** Prepare a safe and understandable portfolio demonstration.
 
+**Release scope policy (2026-10-29 JST):** The implemented curated read-only Demo
+and a future limited Demo Chat release have separate acceptance scopes. Preserve
+the Demo/SaaS separation, server-side authorization and secret protection, and
+the fixed public-data boundary. Any public Chat additionally requires effective
+API abuse and cost controls, safe admission shutdown/feature disablement, and
+basic real-service and real-browser verification of the exposed feature.
+Resolving every availability or quality issue is not a universal release gate;
+material safety gaps remain blockers. The conditional Chat policy is defined in
+[Public Demo Strategy](#5-public-demo-strategy). This revision grants no activation:
+`DEMO_CHAT_ENABLED=false`, the disabled UI and the current public No-Go remain.
+
 - [x] Create curated Demo Workspace
 - [x] Create realistic Research data
 - [x] Create Sources
@@ -536,6 +578,33 @@ Users who want to operate the application themselves should use their own databa
 ### Phase 10 — Testing & Quality
 
 **Goal:** Ensure the application is reliable and maintainable.
+
+**Verification selection policy (2026-10-29 JST):** The eleven checklist items
+track implementation evidence and quality work; completing all eleven is not a
+universal prerequisite for feature development or every release. Select checks
+from the change's scope, exposed risks and failure impact, and record the chosen
+coverage, results, exclusions and remaining limitations. Reuse relevant unchanged
+evidence rather than repeating every suite, browser and screen for each PR.
+
+- Security, authorization and data-boundary changes require appropriate regression
+  verification of the affected server boundaries, refusals and side effects.
+- UI changes prioritize the affected screens in the target browsers, including
+  relevant narrow/desktop layouts, keyboard operation, focus and readability.
+  Important operations that cannot be used are release blockers for that feature,
+  not automatically deferrable accessibility or responsive improvements.
+- A local Production Build is not mandatory for every PR. Vercel Preview build
+  evidence may establish the intended deployment artifact's build completion when
+  its commit/configuration and result are identified; include runtime/browser
+  checks appropriate to the release. It does not establish a successful isolated
+  local build, reproducible dependencies or verification of every external service.
+- Keep Pass, Fail, Not run and Blocked distinct. Do not expand mock-only, developer-
+  reported, historical or Preview results into broader verified claims.
+
+The existing [acceptance document](phase10-quality-acceptance.md), historical
+evidence and finite completion decisions remain unchanged. In particular, its
+isolated local PB acceptance is still incomplete; using Preview for a scoped
+release does not complete that item. This policy separates feature release
+decisions from the eleven-item completion record; it changes no checkbox.
 
 **Quality acceptance baseline (2026-10-19 JST; PR #10 documentation):** [Phase 10 acceptance criteria](phase10-quality-acceptance.md) inventories evidence, gaps, safety gates and the follow-up sequence for all eleven items. E2E remains checked only for Public Demo + C2 authenticated read-only Smoke 4/4 + Chat mock-only 6/6; the other ten items remain open. PR #9's 58-file / 1,287-test success is historical evidence, not a new execution or completion decision. This documentation update runs no tests, build or live-service verification and changes no checklist state.
 
@@ -1239,6 +1308,18 @@ Developer-provided terminal observations now cover all six Groq cases. Case 01 f
 
 **Goal:** Deploy the portfolio version and verify production behavior.
 
+**Individual Demo deployment policy (2026-10-29 JST):** Verify the configuration,
+secrets, access controls and data boundaries required by the features actually
+published. Prioritize detection of material failures and an executable way to
+stop admission or disable the affected feature. Review logs/errors and security
+against those exposed risks; comprehensive commercial SaaS operations, continuous
+staffing and advanced monitoring are not universal prerequisites. Use identified
+Vercel Preview artifacts and real-browser checks according to release risk, and
+record unverified areas explicitly. AI-provider setup and public-AI operational
+checks are required before enabling Chat, not before an otherwise safe read-only
+Demo release. Existing deployment achievements below retain their original scope;
+this policy does not complete the remaining reviews or authorize a deployment.
+
 - [x] Configure production environment
 - [x] Configure production database
 - [x] Apply production migrations
@@ -1267,6 +1348,22 @@ establish completion of Phase 10 or Phase 11 tasks.
 ### Phase 12 — Documentation & Portfolio Presentation
 
 **Goal:** Make the project understandable as a portfolio artifact.
+
+**Documentation priority policy (2026-10-29 JST):** Completing every document or
+directory is not a prerequisite for all feature development or publication.
+Prioritize:
+
+1. Information needed to use, configure and safely operate the published feature,
+   including public scope, secret handling and shutdown instructions.
+2. Important design contracts and operational limitations, including accepted
+   impacts, reasons and reassessment conditions.
+3. Information another developer needs to understand and reproduce the project.
+4. Supplementary detail and organization of historical records.
+
+Retain documentation updates for important specification and project-status
+changes. The checklist below remains a progress record, not an all-documents
+release gate. Preserve past implementation and verification records; their
+reorganization is a separate task and is not part of this revision.
 
 - [ ] Complete `README.md`
 - [ ] Complete `docs/planning/`
@@ -1314,6 +1411,92 @@ Authentication, advanced RAG, background processing, and other infrastructure sh
 The public portfolio deployment is not intended to function as an unrestricted public SaaS service.
 
 The Demo uses curated data with separate public read-only routes implemented in Phase 9.2 and a visitor-facing SaaS write lock in Phase 9.3. Public deployments must set `PUBLIC_DEMO_MODE=true`. The selected deployed Demo pages and visitor-facing route boundaries have been verified as recorded in Phase 9; public AI interaction remains disabled, and further normal-SaaS security, telemetry, and infrastructure hardening remain pending.
+
+### Current conditional Demo Chat release policy (2026-10-29 JST)
+
+**Current decision: public activation remains No-Go.** Keep
+`DEMO_CHAT_ENABLED=false` and the unavailable UI. This is a policy revision only,
+not activation approval, implementation, real-service verification or a new
+completion decision. The existing read-only Demo scope is independent.
+
+Complete automatic recovery and a guarantee of safely recovering every uncertain
+Lease are **Should-have**, not universal pre-publication obligations. A
+**stop-tolerant limited release is a conditional candidate**: retain uncertain
+Leases indefinitely; if two occupy all capacity, deny new generation and maintain
+the shutdown unless admissible evidence supports safe recovery. Record potential
+indefinite Chat unavailability, its user impact, handling and acceptance reason
+as a Known limitation. Reassess after repeated exhaustion, unacceptable loss of
+the intended demo experience, or availability of stronger termination evidence.
+Read-only Research browsing should remain independent of Chat availability.
+
+The following remain **Must-have before any limited live release**:
+
+- Preserve Demo/SaaS/C2 separation, public Research scope, authorization, secret
+  protection, Origin/Turnstile/session ownership checks and bounded input/output.
+- Enforce shared budgets and outstanding-generation limits across all relevant
+  senders/deployments. Keep fail-closed behavior, no uncertain automatic retry,
+  no memory fallback and no budget refunds. Never infer remote termination from
+  Lease expiry, local abort, a timeout or Function termination. Do not delete an
+  uncertain Lease merely because time elapsed, reset its ledger, rotate the
+  namespace or increase capacity to forget unresolved generation.
+- Confirm the target Redis configuration's failure-time consistency, admission
+  ordering, acknowledged-reservation retention and no-eviction assumptions with
+  appropriate evidence. Basic Lua success alone does not prove failover safety.
+  Unresolved safety assumptions must not receive a Go decision.
+- Before release, confirm actual Groq pricing/usage entitlements and maximum
+  consumption risk for the selected account/model, including uncertain remote
+  work and relevant infrastructure costs. Question limits, the output-token
+  target and local timeouts are not a monetary cap or remote billing-stop
+  guarantee. Verify effective abuse/cost controls and document an acceptable
+  cost bound or otherwise justified maximum exposure; if that cannot be
+  established, keep live Chat disabled. Do not assume an unverified provider
+  spending-cap feature exists or treat an alert as a hard cap.
+- Perform bounded basic checks against real Groq, Redis and Turnstile, plus
+  deployment/browser checks of normal operation, refusals, renewal/quarantine,
+  disconnect/timeout behavior, exhausted capacity and admission shutdown.
+  Define a safe isolated target, call/cost bounds and stop conditions before
+  execution. Do not substitute mock or local Redis success for Upstash/deployed
+  evidence, or bypass the recorded hold on the dedicated Redis verification
+  runner. Observed cancellation behavior is not a general termination guarantee.
+- Verify an executable admission-stop/disablement procedure covering relevant
+  public endpoints and old deployments. A flag change or key revocation does
+  not prove that previously submitted Groq work has ended or stopped charging.
+  Retain uncertain work and stop accepting new work when safety is unresolved.
+- Separately integrate and verify the public UI in real browsers, including
+  opt-in, loading, failure/limit/unavailable states, duplicate-send handling,
+  keyboard operation and relevant narrow layouts. The existing UI stays disabled;
+  the feature flag alone does not connect it.
+
+PR #47's Operation ID / Lease reservation correlation foundation is not proof
+of Groq submission or termination, a Provider lifecycle ledger, submission fencing,
+cross-HTTP-request deduplication or automatic recovery. Its bounded no-TTL history
+can also stop new reservations at capacity; retain that limit and reassess its
+retention policy before approaching the cap rather than deleting evidence.
+
+Recovery tooling is not required for a release that accepts indefinite shutdown
+and performs no uncertain recovery. **Any recovery that is implemented or used
+still requires** exact-attempt proof of non-submission or confirmed termination,
+prevention of future submission by the affected workers, and a reviewed, audited
+owner/version-bound exact-member operation without refunds. If proof, fencing or
+audit is unavailable, retain the Lease and shutdown. No general force-release or
+expiry-only recovery is authorized.
+
+**Policy precedence and outstanding document alignment:** The dated records below
+preserve the earlier stricter pre-publication decision, including the blanket
+termination-guarantee/recovery prerequisites. For future release planning, this
+section replaces only those universal recovery/availability obligations with the
+conditional policy above; their underlying safety requirements remain. The
+[AI Architecture contract](../architecture/ai-architecture.md#41-public-demo-chat-configuration-contract)
+and [Lease recovery design §12](demo-chat-lease-recovery-design.md#12-public-activation-go--no-go-criteria)
+still contain the earlier blanket activation gates and require a separately scoped
+alignment before any Go decision. They are unchanged in this task. Missing Redis,
+cost-control or other safety evidence remains blocking under this policy too.
+
+### Historical implementation and verification records
+
+The following dated entries retain their original decisions, results and pending
+conditions. They are historical evidence, not new runs or claims that the current
+conditional release criteria have been met.
 
 **PR #42 — Demo Chat security foundation (2026-10-27, JST):** The separate
 `POST /api/demo/chat` now validates deployment/feature configuration, configured
@@ -1438,6 +1621,8 @@ Next.js completion code. Bundling, built-in build checks, static generation and
 final production artifacts remain unverified. No further local Production Build
 retry is planned for this PR; verify those stages through **Vercel Preview Deployment
 after PR creation**. No deployment or PR creation was performed in this task.
+
+### Portfolio presentation
 
 This approach allows the project to demonstrate:
 
