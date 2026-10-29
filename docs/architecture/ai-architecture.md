@@ -350,8 +350,9 @@ Leases have unique random owners and a 60-second deadline. Renewals are atomic
 and succeed only before expiry. **Expiry does not free capacity**: stale leases
 remain counted in quarantine, preventing a slow/partitioned generation from
 overlapping a replacement. Renew failure requires stopping future upstream work;
-release is idempotent ZREM by exact lease ID, only after upstream work has actually
-stopped (including cancellation completion). A crashed worker leaves its lease
+release is idempotent ZREM by exact lease ID, only for work never submitted or a
+confirmed terminal provider response. Local cancellation completion alone is not
+remote termination confirmation. A crashed worker leaves its lease
 quarantined. Recovery must confirm upstream termination before removing that
 specific lease; automatic crash recovery and a provider cancellation confirmation
 adapter remain follow-up work. This favors denial of service over oversubscription;
@@ -383,6 +384,91 @@ timeout/disconnect behavior and Redis reservation/renewal/quarantine/recovery be
 in an explicitly authorized real-service test before public activation. Offline
 tests do not satisfy this gate. No automatic deletion or expiry-based release is
 added by the PR #45 review follow-up.
+
+#### Pre-release lease recovery hardening (2026-10-29 JST)
+
+**Recovery remains unresolved; public activation is blocked.** The safe improvement
+separates the built-in adapter's synchronous configuration/model construction and
+Research JSON preparation from SDK invocation. These steps make no network call;
+their failure releases only the current request's lease. Once the SDK is invoked,
+all failures remain uncertain, even if an internal SDK validation might have failed
+before fetch. Injected generators are opaque and invocation is conservatively the
+submission boundary, including synchronous exceptions. Release accepts only Redis
+ZREM results 0 (already absent) or 1; unexpected replies fail closed without retry.
+
+The Redis ZSET stores only random lease IDs and renewal deadlines. `reserved`,
+`submitted`, `completed` and cancellation reasons are local process knowledge, not
+durable Redis states. In particular, a future deadline does not prove healthy work,
+and a past deadline does not prove remote termination. Quarantine can begin before
+expiry and remains counted by ZCARD. There is no recovery endpoint, sweeper, admin
+CLI, TTL deletion, late-completion cleanup or reset of the namespace.
+
+| Observed event | Lease transition / permitted action |
+| --- | --- |
+| Reservation acknowledged | Capacity occupied; budgets consumed; prepare locally |
+| Local preparation/context failure, pre-submission abort, or no evidence | Exact owned lease may be released; no refund |
+| SDK invoked | Treat upstream work as potentially running |
+| Non-streamed `stop` / `length` received before cancellation | Completion confirmed; release exact owned lease, even for invalid/truncated output |
+| Timeout, client abort, failed/uncertain renew | Request local abort; return 503; retain lease regardless of deadline or later promise settlement |
+| Abort request/fetch rejection completes | Remote termination still unconfirmed; retain lease |
+| Function terminates at any point after reservation | Finally/heartbeat cannot be relied on; retained member stays counted, even if work was never sent or already completed |
+| Reservation response lost | May have committed; handler does not invoke AI or retry; unknown member may remain |
+| Renew response lost | May have extended deadline; abort locally and retain; no retry |
+| Release response lost | May be present or absent; deny answer, no retry/refund; any remaining member stays counted |
+
+Two retained members deny new generation across workers, expiry and day rollover.
+Safety depends on the existing durable, non-evicting Redis assumptions; retaining
+members protects the concurrency limit but does not provide availability.
+
+**Incident procedure and future recovery prerequisites (not an implemented tool):**
+
+1. Keep Chat disabled and fence every ingress/worker sharing this namespace,
+   including old deployments and requests already admitted. A flag change alone
+   does not cancel or fence an in-flight request. Establish that no worker can
+   submit, renew or later act on a recovery candidate before considering removal.
+2. Preserve an access-controlled incident record: environment/namespace, deployment
+   and invocation identity, Redis timestamps/deadlines, reservation outcome,
+   submission boundary, abort reason, terminal evidence and release outcome. Use
+   lease fingerprints in ordinary logs; exact IDs needed for an operation belong
+   only in restricted records. Exclude prompts, answers, cookies and credentials.
+   These lifecycle events and provider correlation are **not durably recorded by
+   the current implementation**; absent logs are not proof of no submission.
+3. Obtain positive evidence for each exact member: either durable proof that its
+   fenced worker never submitted, or provider-confirmed termination correlated to
+   that generation. Lease age, 30s/60s timers, Function timeout, key revocation and
+   a local abort/rejected promise are insufficient. A provider-enforced maximum
+   lifetime could support a future proof only with documented scope, start/queue
+   semantics and a bound on delayed submissions. No such guarantee is established.
+4. Only after these prerequisites, separately review an operator-only, audited
+   compare-and-remove implementation for the exact owner/member and observed
+   version/deadline. It must refuse active/changed candidates, preserve other
+   members and all question budgets, and record operator, evidence, before/after
+   state and outcome. No wildcard deletion, whole-key reset or namespace rotation.
+   Redis error, mismatch or uncertain response means stop, retain the fence and
+   reconcile that exact operation under the same evidence; never blindly retry.
+5. If evidence, fencing or auditing is unavailable, leave the lease and Chat
+   disabled. Escalate to the provider; do not restore availability by assuming
+   termination. Before public activation, implement/verify durable correlation,
+   a provider termination guarantee and a reviewed recovery mechanism, then test
+   two-slot exhaustion, process death, delayed Redis outcomes and active-owner
+   protection in a separately authorized isolated environment.
+
+Sources checked 2026-10-29 JST: installed `ai@6.0.280`
+`src/generate-text/generate-text.ts`, `@ai-sdk/groq@3.0.72`
+`src/groq-provider.ts`, `src/groq-chat-language-model.ts` and
+`src/map-groq-finish-reason.ts` establish lazy construction, abort forwarding and
+finish-reason mapping. [Groq's API reference](https://console.groq.com/docs/api-reference#chat-create)
+documents synchronous Chat completions; the cancellation endpoint listed there
+is for batches. The reviewed material does not establish synchronous Chat remote
+termination acknowledgment or a maximum remote lifetime after disconnect.
+[Vercel duration documentation](https://vercel.com/docs/functions/configuring-functions/duration)
+describes Function timeout termination, and the
+[Functions API reference](https://vercel.com/docs/functions/functions-api-reference)
+describes opt-in request cancellation and bounded cleanup lifetime. These are local
+runtime behaviors, not a Groq termination guarantee. This conclusion is a limit of
+the verified evidence, not a claim that Groq can never cancel. No real-service
+tests or production access were performed; offline Lua/SDK doubles cannot prove
+provider termination or deployed Function behavior.
 
 Each reservation counts even when future generation fails; release never refunds
 questions. These request counts and the configured 700 output-token target do

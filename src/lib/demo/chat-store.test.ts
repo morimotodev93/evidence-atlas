@@ -137,6 +137,11 @@ describe("Atomic production Lua with mocked Redis commands", () => {
       await expect(operation()).rejects.toMatchObject({ status: 503, message: "Demo Chat request refused." });
     }
   });
+  it.each([null, undefined, "1", 2])("rejects an unrecognized release result %s without retrying", async (result) => {
+    const evaluate = vi.fn(async () => result);
+    await expect(new DemoChatStore(evaluate).release("a".repeat(43))).rejects.toMatchObject({ status: 503 });
+    expect(evaluate).toHaveBeenCalledOnce();
+  });
   it("new threads inherit remaining lifetime and do not renew sessions", async () => {
     const { sessionId } = await store.start("one", research);
     redis.now += 86_399_000;

@@ -23,15 +23,24 @@ For insufficient evidence set insufficientEvidence=true and sourceIds=[]. Otherw
 include at least one supporting Source ID. Never claim a source verifies an assertion
 merely because its ID exists. Keep the answer concise.`;
 
-export async function generateDemoAnswer(context: DemoChatContext, question: string, signal: AbortSignal) {
+// This preparation is synchronous and never invokes the SDK or fetch. Keep it
+// outside the submission boundary so a local failure cannot strand capacity.
+function prepareDemoAnswer(context: DemoChatContext, question: string, signal: AbortSignal) {
   signal.throwIfAborted();
-  const result = await generateText({
+  const options = {
     model: getDemoChatModel(), system: DEMO_CHAT_SYSTEM,
     messages: [{ role: "user", content: JSON.stringify({ researchData: JSON.parse(context.text), question }) }],
     maxOutputTokens: DEMO_CHAT_LIMITS.maxOutputTokens, maxRetries: 0, abortSignal: signal,
     experimental_telemetry: { isEnabled: false },
-  });
-  return { text: result.text, finishReason: result.finishReason };
+  } satisfies Parameters<typeof generateText>[0];
+  return async () => {
+    const result = await generateText(options);
+    return { text: result.text, finishReason: result.finishReason };
+  };
+}
+
+export async function generateDemoAnswer(context: DemoChatContext, question: string, signal: AbortSignal) {
+  return prepareDemoAnswer(context, question, signal)();
 }
 
 const answerSchema = z.object({
@@ -90,11 +99,17 @@ export async function runDemoGeneration(
     if (!context.hasEvidence || context.allowedSources.size === 0) {
       return validateDemoAnswer(JSON.stringify({ answer: "Unknown", sourceIds: [], insufficientEvidence: true }), context);
     }
+    // Only the built-in adapter has a verified no-network preparation phase.
+    // Injected generators are opaque: any failure after invocation is uncertain.
+    const submit = generate === generateDemoAnswer
+      ? prepareDemoAnswer(context, question, controller.signal)
+      : () => generate(context, question, controller.signal);
+    if (clientSignal.aborted) throw new DemoChatError(503);
     clientSignal.addEventListener("abort", stop, { once: true });
     deadline = setTimeout(stop, DEMO_GENERATION_MS);
     heartbeat = setTimeout(() => { void renew(); }, DEMO_RENEW_MS);
     submitted = true;
-    const result = await Promise.race([generate(context, question, controller.signal), cancelled]);
+    const result = await Promise.race([submit(), cancelled]);
     if (stopped) throw new DemoChatError(503);
     // Only these explicit terminal provider responses establish completion.
     completed = result.finishReason === "stop" || result.finishReason === "length";

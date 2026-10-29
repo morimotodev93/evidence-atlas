@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
-import { generateDemoAnswer, DEMO_CHAT_SYSTEM } from "./chat-generation";
+import { generateDemoAnswer, DEMO_CHAT_SYSTEM, runDemoGeneration } from "./chat-generation";
 import { buildDemoChatContext } from "./chat-context";
 import { research, source, finding } from "./test-fixtures";
 
@@ -52,4 +52,38 @@ it("does not submit disabled or pre-aborted work", async () => {
   const controller = new AbortController(); controller.abort();
   await expect(generateDemoAnswer(context(), "question", controller.signal)).rejects.toThrow();
   expect(fetcher).not.toHaveBeenCalled();
+});
+
+it.each(["configuration", "serialization"])("releases a lease when built-in %s preparation fails before SDK invocation", async (mode) => {
+  const built = context();
+  if (mode === "configuration") vi.stubEnv("DEMO_CHAT_ENABLED", "false");
+  else built.text = "invalid JSON";
+  const store = { renew: vi.fn(), release: vi.fn().mockResolvedValue(undefined) };
+  await expect(runDemoGeneration(store, "owned-lease", () => built, "q", new AbortController().signal)).rejects.toThrow();
+  expect(fetcher).not.toHaveBeenCalled();
+  expect(store.release).toHaveBeenCalledExactlyOnceWith("owned-lease");
+  expect(store.renew).not.toHaveBeenCalled();
+});
+
+it("keeps an installed SDK fetch abort rejection quarantined without assuming remote completion", async () => {
+  fetcher.mockRejectedValue(new DOMException("Aborted", "AbortError"));
+  const store = { renew: vi.fn(), release: vi.fn() };
+  await expect(runDemoGeneration(store, "owned-lease", context, "q", new AbortController().signal)).rejects.toThrow();
+  expect(fetcher).toHaveBeenCalledOnce();
+  expect(store.release).not.toHaveBeenCalled();
+});
+
+it.each(["stop", "length"])("releases the owned lease on installed SDK terminal %s through the built-in runner", async (reason) => {
+  fetcher.mockResolvedValue(Response.json({
+    id: "synthetic", created: 1, model: "openai/gpt-oss-120b",
+    choices: [{ index: 0, message: { role: "assistant", content: JSON.stringify({
+      answer: "Stored evidence.", sourceIds: [source.id], insufficientEvidence: false,
+    }) }, finish_reason: reason }],
+  }));
+  const store = { renew: vi.fn(), release: vi.fn().mockResolvedValue(undefined) };
+  const result = runDemoGeneration(store, "owned-lease", context, "q", new AbortController().signal);
+  if (reason === "stop") await expect(result).resolves.toMatchObject({ answer: "Stored evidence." });
+  else await expect(result).rejects.toThrow();
+  expect(fetcher).toHaveBeenCalledOnce();
+  expect(store.release).toHaveBeenCalledExactlyOnceWith("owned-lease");
 });
