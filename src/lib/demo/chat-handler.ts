@@ -2,6 +2,8 @@ import "server-only";
 
 import { DemoChatConfigurationError } from "./chat-config";
 import { getDemoChatStore } from "./chat-store";
+import { buildDemoChatContext, type DemoPublicResearch } from "./chat-context";
+import { generateDemoAnswer, runDemoGeneration } from "./chat-generation";
 import {
   DemoChatError, demoSessionCookie, readDemoChatInput, readDemoSession,
   requireDemoChatOrigin, verifyDemoTurnstile,
@@ -12,9 +14,17 @@ const defaults = {
   verify: verifyDemoTurnstile,
   // Lazy import: disabled / malformed requests do not initialize the DB client.
   publicResearch: async (id: string) => (await import("./read")).getDemoResearch(id),
+  generate: generateDemoAnswer,
 };
 
-export function createDemoChatHandler(deps = defaults) {
+type Dependencies = {
+  store: typeof getDemoChatStore;
+  verify: typeof verifyDemoTurnstile;
+  publicResearch: (id: string) => Promise<DemoPublicResearch | null>;
+  generate?: typeof generateDemoAnswer;
+};
+
+export function createDemoChatHandler(deps: Dependencies = defaults) {
   return async (request: Request): Promise<Response> => {
     try {
       const hostname = requireDemoChatOrigin(request);
@@ -28,11 +38,15 @@ export function createDemoChatHandler(deps = defaults) {
         });
       }
       const session = readDemoSession(request);
-      await deps.store().check(session, input.threadId, input.researchId);
-      if (!await deps.publicResearch(input.researchId)) throw new DemoChatError(404);
-      // No model, generation, retrieval, embeddings, DB writes or question quota
-      // reservation until the bounded context/history/response contract is ready.
-      throw new DemoChatError(503);
+      const store = deps.store();
+      await store.check(session, input.threadId, input.researchId);
+      const research = await deps.publicResearch(input.researchId);
+      if (!research) throw new DemoChatError(404);
+      if (request.signal.aborted) throw new DemoChatError(503);
+      const lease = await store.reserve(session, input.threadId, input.researchId);
+      const answer = await runDemoGeneration(store, lease, () => buildDemoChatContext(research),
+        input.message, request.signal, deps.generate);
+      return Response.json(answer, { headers: { "Cache-Control": "no-store" } });
     } catch (error) {
       const status = error instanceof DemoChatError ? error.status
         : error instanceof DemoChatConfigurationError ? 404 : 503;

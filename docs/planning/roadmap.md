@@ -1348,6 +1348,56 @@ expectations were not run against a live deployment; hydration, native 200% zoom
 screen-reader behavior and actual SaaS/C2 runtime flows still need browser
 verification. Vitest covers the existing SaaS/C2 boundaries with offline doubles.
 
+**PR #45 — Demo Chat server generation foundation (2026-10-27, JST):**
+Authorized `question` requests now reserve atomic Redis budgets and concurrency,
+project bounded public Research context, call the fixed Groq model through AI SDK 6,
+validate strict answer JSON/Source allowlist membership and return non-cacheable
+JSON. Research JSON is capped at 12,000 Unicode points, 10 Findings and 10 Sources;
+Comments, internal metadata and history are excluded. Missing evidence yields fixed
+insufficiency text. No Source URL is fetched and no question/answer is persisted.
+The [generation/response contract](../architecture/ai-architecture.md#pr-45-server-generation-and-response-contract)
+records field limits, response fields and validation limitations.
+
+Only confirmed terminal provider responses (or work never submitted) release the
+lease. A 30-second local deadline, disconnect or failed 15-second renewal aborts
+the local request, but uncertain remote termination retains quarantine indefinitely.
+Two uncertain leases can exhaust all capacity; automatic deletion/recovery is
+not implemented. Accepted question budgets are never refunded. References prove
+Source membership, not factual correctness. Real Groq, Turnstile, Redis and deployed
+disconnect/cancellation behavior are unverified. `DEMO_CHAT_ENABLED=false`, Coming
+soon, disabled controls and the unconnected Turnstile UI remain unchanged. SaaS
+Chat, Gemini and C2 are unchanged. This does not complete Public Demo Chat or change
+Phase 9/10/11 completion checkboxes.
+
+**PR #45 review follow-up (2026-10-29 JST):** Answer validation permits the exact
+technical prose names `Next.js`, `Node.js`, `package.json` and `tsconfig.json` while
+retaining explicit URL/markup refusal, the remaining conservative domain heuristic
+and Source-ID allowlisting. This narrow exception does not fully disambiguate
+filenames and domains; see the architecture contract for its limits. Lease behavior
+is unchanged. **PR #46 must resolve the recovery policy and verify real Groq/Redis
+termination, renewal, quarantine and recovery behavior before public activation.**
+Two uncertain leases can still exhaust capacity indefinitely; safe automatic
+recovery remains unimplemented. These real-service checks were not run here.
+Follow-up checks passed: related Demo Vitest **8 files / 204 tests**, TypeScript,
+ESLint and `git diff --check`. Full Vitest was not rerun for this follow-up; the
+following full-suite result belongs to the earlier foundation verification.
+
+PR #45 offline validation: related Demo Vitest **8 files / 180 tests**, full
+Vitest **81 files / 1,756 tests**, TypeScript, ESLint and `git diff --check` pass.
+Local Production Build is **incomplete, intentionally interrupted**, not passed.
+The isolated default Turbopack attempt was stopped during compile; the later
+`pnpm build --webpack` attempt used copied source, existing dependencies, synthetic
+configuration, blocked outbound networking and mocked Google Fonts. Its process
+remained CPU-active at `compile`, without a compiled-success message, `BUILD_ID`
+or Next.js-specific build error in the captured log. PowerShell's `NativeCommandError`
+wrapped the stderr command banner and did not establish build failure. At the
+user's explicit direction, the verified PR #45 script process tree was stopped;
+the execution wrapper returned **-1 after forced interruption**, not a natural
+Next.js completion code. Bundling, built-in build checks, static generation and
+final production artifacts remain unverified. No further local Production Build
+retry is planned for this PR; verify those stages through **Vercel Preview Deployment
+after PR creation**. No deployment or PR creation was performed in this task.
+
 This approach allows the project to demonstrate:
 
 - collaborative workspace architecture

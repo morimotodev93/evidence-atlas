@@ -3,7 +3,7 @@ import "server-only";
 export const DEMO_CHAT_MODEL_PROVIDER = "groq";
 export const DEMO_CHAT_MODEL_ID = "openai/gpt-oss-120b";
 
-// Security enforcement lives in chat-security / chat-store; generation is unconnected.
+// Separate public ingress, bounded generation and Redis enforcement.
 export const DEMO_CHAT_LIMITS = Object.freeze({
   maxUserQuestionsPerThread: 10,
   persistConversationHistory: false,

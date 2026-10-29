@@ -3,6 +3,7 @@ import { createDemoChatHandler } from "./chat-handler";
 import { POST } from "@/app/api/demo/chat/route";
 import { DemoChatStore, getDemoChatStore } from "./chat-store";
 import { OfflineRedis } from "./chat-test-redis";
+import { research, source, finding } from "./test-fixtures";
 import {
   DEMO_CHAT_COOKIE, DemoChatError, readDemoChatInput, requireDemoChatOrigin,
   validTurnstileToken, verifyDemoTurnstile,
@@ -41,8 +42,12 @@ beforeEach(() => {
   fetcher = vi.fn<typeof fetch>().mockImplementation(async () => Response.json({
     success: true, hostname: "demo.example.invalid", action: "demo-chat",
   }));
-  read = vi.fn(async (id: string) => id === researchId ? {} : null);
+  read = vi.fn(async (id: string) => id === researchId ? {
+    research: { ...research, id, status: "COMPLETED" as const }, sources: [source],
+    findings: [{ ...finding, displayStyle: "TEXT" as const }], comments: [], tags: [],
+  } : null);
   handler = createDemoChatHandler({ store: () => store, publicResearch: read,
+    generate: async () => ({ text: JSON.stringify({ answer: "Grounded answer", sourceIds: [source.id], insufficientEvidence: false }), finishReason: "stop" }),
     verify: (token, host) => verifyDemoTurnstile(token, host, fetcher) });
 });
 afterEach(() => { expect(fetch).not.toHaveBeenCalled(); vi.unstubAllEnvs(); vi.unstubAllGlobals(); vi.restoreAllMocks(); });
@@ -83,8 +88,9 @@ describe("Demo API ingress (offline dependencies)", () => {
     expect(JSON.stringify([...redis.entries])).not.toContain("synthetic-token");
     const session = value.split(";")[0];
     const refused = await handler(request(question(body.threadId), session));
-    expect(refused.status).toBe(503); // No generated mock response, no question budget consumed.
-    expect([...redis.entries.keys()].some((key) => key.endsWith(":concurrency"))).toBe(false);
+    expect(refused.status).toBe(200);
+    expect(await refused.json()).toMatchObject({ answer: "Grounded answer", sources: [{ id: source.id }] });
+    expect(redis.entries.get("evidence-atlas:demo-chat:v1:concurrency")?.value).toEqual(new Map());
   });
   it("rejects replay even if mocked Siteverify incorrectly accepts it twice", async () => {
     const results = await Promise.all([handler(request(startBody())), handler(request(startBody()))]);

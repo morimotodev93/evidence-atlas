@@ -2,7 +2,7 @@
 
 > **Status:** Implemented Phase 6 baseline with Phase 7 route authorization and Phase 8.3 background indexing
 > **Scope:** Phase 5 AI Integration + Phase 6 Retrieval / RAG + Phase 7 AI route access control + Phase 8.3 Background Jobs
-> **Last Updated:** 2026-10-27
+> **Last Updated:** 2026-10-29
 
 ## C2 browser-test runtime boundary
 
@@ -104,10 +104,12 @@ The transport is a plain text stream consumed with `fetch` and a stream reader. 
 
 ### 4.1 Public Demo Chat configuration contract
 
-**PR #42 adds the security foundation; public AI generation remains unavailable.**
+**PR #45 connects server-side generation to the PR #42 security foundation;
+the public UI remains unavailable.**
 `POST /api/demo/chat` is a separate Node.js Route Handler. No existing SaaS Chat,
 Auth.js or read-only Demo route is reused or changed. The default flag stays false;
-even with complete configuration, questions return `503`. PR #44 adds the
+with complete configuration, authorized questions use the bounded generation
+contract below. PR #44 adds the
 unavailable Chat UI described below; there is no generated placeholder answer,
 database table or migration. Phase 9/10 completion
 decisions and checkboxes are unchanged.
@@ -132,9 +134,8 @@ does not activate this UI. Native disabled semantics and associated descriptions
 communicate unavailability. The panel uses existing semantic theme tokens and
 wrapping, single-column layout with a responsive composer footer.
 
-Future integration must separately wire the reviewed public session/Turnstile
-and question API contracts, Unicode code-point validation, atomic budgets,
-Groq generation and response/evidence validation, with loading/error/limit states
+Future UI integration must separately wire the reviewed public session/Turnstile
+and question API contracts, with loading/error/limit states
 and accessible message updates. Normal SaaS Chat, Auth.js, C2 and public read-only
 boundaries remain separate. UI presence does not establish generation readiness
 or deployed browser verification.
@@ -146,8 +147,8 @@ Importing or reading configuration does not construct a model or call a service;
 model construction itself does not generate text or make a request. `@ai-sdk/groq`
 is now a runtime dependency with the same locked 3.0.72 version, compatible with
 the installed AI SDK 6 provider-v3 contract. Browser input cannot select a model.
-Earlier "Groq is evaluation-only" statements describe executed behavior; Groq
-remains unconnected to public execution and normal SaaS still uses Gemini.
+Earlier "Groq is evaluation-only" statements describe the SaaS baseline and
+evaluation runner; the separate Demo server now uses Groq. Normal SaaS still uses Gemini.
 
 `isDemoChatEnabled()` reports configuration eligibility only. Both
 `DEMO_CHAT_ENABLED` (default `false`) and `PUBLIC_DEMO_MODE` must be exactly `true`;
@@ -176,8 +177,8 @@ below supersede PR #41's provisional configuration-only descriptions.
 Public API ingress invokes `requireDemoChatEnabled()` before side effects.
 No normal SaaS Chat API, OAuth, write path or Inngest endpoint is opened by this
 flag. C2 external-service restrictions remain intact. A previously returned model
-is not revoked automatically; future generation must recheck the flag and define
-in-flight cancellation semantics.
+is not revoked automatically. The Demo adapter rechecks eligibility at model
+construction; changing an environment flag does not cancel an already submitted request.
 
 #### PR #42 API and session contract
 
@@ -221,17 +222,101 @@ combining marks count separately and lone surrogates are rejected.
   accessing the DB to revalidate public Research (including withdrawn publication).
   Authentication failures never query Research and return the same generic error
   regardless of whether the supplied Research exists or is public.
-  It **always returns 503**, without reserving a question budget or starting AI.
-  New-thread creation and question reservation are internal contracts only, ready
-  for subsequent reviewed generation integration; no public thread mutation API
-  or client history contract is provided yet.
+  PR #45 then atomically reserves budgets/capacity and builds bounded context,
+  generates a single answer and validates it before returning non-streamed JSON.
+  No public new-thread mutation API or client history contract is provided.
 
 Public data is selected exclusively through `DEMO_WORKSPACE_ID` and the existing
 Workspace/name and Research/Workspace checks in `getDemoResearch()`. Its returned
-data is discarded here; no model context is constructed. No normal SaaS user
+data is projected into the dedicated context described below. No normal SaaS user
 lookup, Conversation/Message/Research writes, question/answer persistence, Google
-embeddings, retrieval or external Source URL fetch occurs. The later context must
-explicitly select only public Sources, Findings and Conclusion.
+embeddings, retrieval or external Source URL fetch occurs. The context explicitly
+selects public Research title, description, conclusion, Sources and Findings.
+
+#### PR #45 server generation and response contract
+
+The question flow preserves this order: feature/runtime configuration → exact
+Origin → bounded strict JSON → cookie → Redis ownership → existing public Research
+read/revalidation → atomic reservation → context projection → Groq → output and
+Source allowlist validation → lease cleanup → JSON response. Session establishment,
+Turnstile, cookies and existing Lua limits are unchanged. `getDemoResearch()` still
+loads its public display data (including Discussion), but the dedicated builder
+never serializes Comments, tags, author data, timestamps, Workspace/Research/Finding
+IDs or conversation history. It does not reuse the authenticated SaaS builder.
+Existing publication is Workspace-based; no new per-record publication flag exists.
+Deleted or out-of-scope parents fail the existing scoped read before reservation.
+
+`chat-context.ts` selects Research title (200 Unicode code points), description
+(1,500), conclusion (2,000), up to 10 Findings (800 content points each), and up to
+10 Sources (128-character ASCII IDs, 160-point titles). Finding references are
+restricted to that selected Source set. Only stored HTTP(S) URLs of at most 2,048
+characters without credentials are retained in the server allowlist; URLs are not
+sent to the model or fetched. The serialized Research JSON is bounded to 12,000
+Unicode code points, including JSON escaping. Overflow fields/items are omitted
+or shortened without splitting surrogate pairs, and `truncated` is supplied to
+the model and returned as `contextTruncated`. The fixed prompt and bounded question
+are additional to this Research budget; it is not a tokenizer-based input limit.
+
+The installed AI SDK **6.0.280**, Groq provider **3.0.72** and Next.js **16.3.8**
+source/types were checked. `generateText` uses `getDemoChatModel()`, 700 output
+tokens, zero retries, no tools, no retrieval/embedding, and disabled SDK telemetry.
+The trusted system prompt is static; Research and the question are JSON in a user
+message. It instructs the model to ignore embedded instructions, use only stored
+evidence, acknowledge truncation/unknowns and never claim external pages were read.
+No history is accepted or persisted. If substantive context or usable Sources are
+absent, the server returns fixed evidence-insufficiency text without calling Groq.
+
+The provider must produce strict JSON `{ answer, sourceIds, insufficientEvidence }`.
+The server bounds raw output to 16,000 UTF-16 units and answer text to 4,000 Unicode
+points, rejects unknown keys, unknown Source IDs, blank text, standard URL/domain
+syntax, HTML and bracket/link/citation syntax, and requires a Source for an answer
+that claims sufficient evidence. Exact, case-sensitive prose spellings `Next.js`,
+`Node.js`, `package.json` and `tsconfig.json` are exceptions to the domain heuristic;
+explicit URL/markup checks still examine the original answer, and surrounding ASCII
+hostname/address syntax (subdomains, paths, queries, fragments, ports or email)
+prevents the exception. This is a narrow textual policy, not complete domain/filename
+or internationalized-hostname disambiguation: these bare names are ambiguous, and
+other legitimate dotted terms may still be rejected. No URL parsing/fetching,
+model-generated Source metadata or HTML execution is introduced.
+Invalid output returns generic 503;
+unvalidated text is never streamed. Insufficiency yields fixed server text and no
+Sources. Valid Source IDs are deduplicated and resolved solely from the bounded
+allowlist; title/URL values are never taken from model output.
+
+Success is HTTP **200**, `Cache-Control: no-store`:
+
+```json
+{
+  "answer": "Plain text answer",
+  "sources": [{ "id": "stored-source-id", "title": "Stored title", "url": "https://example.com/evidence" }],
+  "insufficientEvidence": false,
+  "contextTruncated": false,
+  "evidenceNotice": "Source references identify stored Research metadata; they do not verify factual accuracy or indicate external pages were read."
+}
+```
+
+Errors retain `{ "error": "Demo Chat unavailable." }` with no-store and the existing
+404/403/400/401/413/415/429/503 boundaries (408 for body-read timeout). No prompt,
+answer, provider error details, token or credentials are logged or persisted by
+this path. Valid references establish membership only: prompt instructions and
+schema/allowlist validation cannot prove entailment, factual accuracy, evidence
+sufficiency or complete resistance to prompt injection. There is no external
+page-content verification. Public UI/Turnstile wiring, model quality, real provider
+termination, live Redis durability and deployed disconnect behavior remain unverified.
+No real Groq, Turnstile or Redis calls are part of PR #45 verification.
+Local Production Build remains **incomplete, intentionally interrupted** by user
+direction during compile, without a natural Next.js exit code or completed artifact.
+The stderr command banner's PowerShell `NativeCommandError` is not a Next.js build
+failure finding. Further local build retries are excluded for this PR; production
+compilation/artifacts are to be verified in Vercel Preview after PR creation.
+
+API references: [AI SDK generateText](https://ai-sdk.dev/docs/reference/ai-sdk-core/generate-text),
+[Groq provider](https://ai-sdk.dev/providers/ai-sdk-providers/groq),
+[Next.js Route Handlers](https://nextjs.org/docs/app/api-reference/file-conventions/route),
+checked 2026-10-27 JST. Online AI SDK docs currently default to v7; implementation
+decisions use the installed v6 source/types, including abort forwarding and Groq
+non-streaming terminal finish reasons. Local SDK/fetch completion after an error
+is not evidence that remote computation stopped.
 
 #### Atomic limits and generation handoff
 
@@ -268,16 +353,42 @@ overlapping a replacement. Renew failure requires stopping future upstream work;
 release is idempotent ZREM by exact lease ID, only after upstream work has actually
 stopped (including cancellation completion). A crashed worker leaves its lease
 quarantined. Recovery must confirm upstream termination before removing that
-specific lease; automatic crash recovery and a provider cancellation adapter are
-follow-up integration work. This favors denial of service over oversubscription;
-no claim of automatic crash-time cleanup is made. No production generation uses
-these contracts in PR #42.
+specific lease; automatic crash recovery and a provider cancellation confirmation
+adapter remain follow-up work. This favors denial of service over oversubscription;
+no claim of automatic crash-time cleanup is made.
+
+PR #45 uses a 30-second local generation deadline, serial renewals every 15 seconds
+and the request's AbortSignal for disconnects. Timeout, disconnect or failed renewal
+aborts the local provider fetch and returns generic 503 promptly, even if the
+provider promise never settles. No new renewal is scheduled after cleanup. Only a
+successful non-streaming provider response with terminal `stop` or `length` confirms
+completion: release then runs once, including when output validation fails (`length`
+is rejected as an incomplete answer). Context failure/pre-submission abort/evidence
+insufficiency release safely because no provider work was submitted.
+
+Provider rejection, unknown finish reason or cancellation/renewal failure retains
+the lease in quarantine, even if a cancelled call later resolves. Neither local
+AbortError nor promise rejection confirms Groq-side termination. A release failure
+also denies the answer and is not retried. Reservations are never refunded. A
+process crash leaves capacity occupied; two uncertain requests can exhaust all
+capacity indefinitely, including across UTC-day rollover. Operators must confirm
+termination before removing a specific lease; automatic timeout deletion and safe
+automatic recovery are deliberately absent. The 30-second deadline bounds local
+waiting, not remote execution or provider charges.
+
+**PR #46 pre-publication gate (still open):** Define and review a recovery policy
+for uncertain/quarantined leases, including the case where both slots remain
+occupied and remote termination cannot be confirmed. Verify actual Groq termination,
+timeout/disconnect behavior and Redis reservation/renewal/quarantine/recovery behavior
+in an explicitly authorized real-service test before public activation. Offline
+tests do not satisfy this gate. No automatic deletion or expiry-based release is
+added by the PR #45 review follow-up.
 
 Each reservation counts even when future generation fails; release never refunds
 questions. These request counts and the configured 700 output-token target do
-**not guarantee a total token-consumption or monetary cap**. Bounded context,
-history integrity/length, safe responses/streaming, actual Groq invocation,
-cancellation, lease lifecycle integration and UI remain unimplemented.
+**not guarantee a total token-consumption or monetary cap**. Bounded single-question
+generation, validated JSON and conservative lease integration are present in PR #45;
+public UI activation, history and remote cancellation confirmation remain absent.
 
 Offline tests execute the actual Lua using dev-only Fengari with a mocked
 `redis.call` and deterministic time. Scripts deliberately use the Lua 5.1-compatible
