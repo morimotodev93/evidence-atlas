@@ -1382,6 +1382,29 @@ Follow-up checks passed: related Demo Vitest **8 files / 204 tests**, TypeScript
 ESLint and `git diff --check`. Full Vitest was not rerun for this follow-up; the
 following full-suite result belongs to the earlier foundation verification.
 
+**Pre-release Redis lease hardening (2026-10-29 JST):** The built-in adapter now
+prepares configuration/model and Research JSON before the SDK submission boundary,
+so those proven local failures release their own lease. Unrecognized Redis release
+replies fail closed. Offline tests cover two quarantined slots refusing new work,
+ownership-safe local cleanup, installed SDK abort rejection, and renew/release
+responses lost after Redis commit, alongside the existing completion, timeout,
+abort, budgets and concurrency checks. See the
+[lease state transitions and incident prerequisites](../architecture/ai-architecture.md#pre-release-lease-recovery-hardening-2026-10-29-jst).
+
+**Still required before activation:** durable lease/invocation/provider correlation
+and lifecycle audit evidence; a verified provider termination acknowledgment or
+enforceable remote lifetime bound; fencing of all existing workers and a reviewed,
+audited exact-member recovery mechanism; separately authorized isolated verification
+of provider/Redis/Function crash and recovery behavior. No safe automatic recovery
+was established or implemented. Two uncertain leases can still block all new
+generation indefinitely; if termination cannot be proved, retain them and keep
+Chat disabled. No real Groq/Redis/Turnstile calls, production access or local
+Production Build were performed. `DEMO_CHAT_ENABLED=false`, the disabled UI and
+Phase 9/10/11 checkboxes remain unchanged. **The recovery issue is not resolved.**
+Validation: related offline Vitest **8 files / 214 tests**, TypeScript
+(`--noEmit --incremental false`), full ESLint (plus the final edited test file)
+and `git diff --check` passed. Full Vitest was not run for this task.
+
 PR #45 offline validation: related Demo Vitest **8 files / 180 tests**, full
 Vitest **81 files / 1,756 tests**, TypeScript, ESLint and `git diff --check` pass.
 Local Production Build is **incomplete, intentionally interrupted**, not passed.

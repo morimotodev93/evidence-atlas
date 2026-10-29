@@ -143,11 +143,13 @@ export class DemoChatStore {
     }
   }
 
-  // Call ONLY after upstream work has stopped, including cancellation completion.
+  // Call ONLY for work never submitted or a confirmed terminal provider response.
+  // Local abort/fetch rejection and Function termination do not confirm completion.
   // ZREM by unguessable lease ID is idempotent and cannot release another owner.
   async release(lease: string) {
     if (!demoChatId.test(lease)) throw new DemoChatError(503);
-    await this.run(RELEASE_LEASE, [`${this.prefix}:concurrency`], [lease]);
+    const result = await this.run(RELEASE_LEASE, [`${this.prefix}:concurrency`], [lease]);
+    if (result !== 0 && result !== 1) throw new DemoChatError(503);
   }
 }
 
