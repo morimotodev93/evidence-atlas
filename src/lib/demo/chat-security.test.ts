@@ -191,7 +191,7 @@ describe("Bounded input", () => {
     expect(await readDemoChatInput(request(question(unknownId, "😀".repeat(500))))).toMatchObject({ message: "😀".repeat(500) });
     await expect(readDemoChatInput(request(question(unknownId, "a\u0301".repeat(251))))).rejects.toMatchObject({ status: 400 });
   });
-  it.each([{ model: "arbitrary" }, { system: "override" }, { workspaceId: "private" }, { history: [] }, { questionCount: 0 }])("rejects extra contract fields %j", async (extra) => {
+  it.each([{ model: "arbitrary" }, { system: "override" }, { workspaceId: "private" }, { history: [] }, { questionCount: 0 }, { operationId: "a".repeat(43) }, { leaseId: "b".repeat(43) }])("rejects extra contract fields %j", async (extra) => {
     expect((await handler(request({ ...question(), ...extra }))).status).toBe(400);
   });
   it("rejects non-JSON, malformed JSON and oversized declared bodies without reading", async () => {

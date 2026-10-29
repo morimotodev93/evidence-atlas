@@ -204,6 +204,7 @@ it("API keeps ownership/read/reservation/generation ordering and fails closed on
   expect(check.mock.invocationCallOrder[0]).toBeLessThan(read.mock.invocationCallOrder[0]);
   expect(read.mock.invocationCallOrder[0]).toBeLessThan(reserveSpy.mock.invocationCallOrder[0]);
   expect(reserveSpy.mock.invocationCallOrder[0]).toBeLessThan(generate.mock.invocationCallOrder[0]);
+  expect(reserveSpy.mock.calls[0][3]).toMatch(/^[A-Za-z0-9_-]{43}$/);
   // All accepted questions consume the shared source budget, even after release.
   const third = await handler(request()); expect(third.status).toBe(200);
   expect((await handler(request())).status).toBe(429); expect(generate).toHaveBeenCalledTimes(2);
@@ -223,6 +224,7 @@ it("does not retry an uncertain reservation that committed in Redis, and never s
     if (script === RESERVE_QUESTION) { attempts++; throw new Error("lost response after commit"); }
     return value;
   });
+  const reservation = vi.spyOn(store, "reserve");
   const generate = vi.fn(async () => terminal());
   const handler = createDemoChatHandler({ store: () => store, verify: vi.fn(), publicResearch: async () => data(), generate });
   const response = await handler(new Request("https://demo.example.invalid/api/demo/chat", {
@@ -232,6 +234,11 @@ it("does not retry an uncertain reservation that committed in Redis, and never s
   }));
   expect(response.status).toBe(503); expect(await response.json()).toEqual({ error: "Demo Chat unavailable." });
   expect(attempts).toBe(1); expect(generate).not.toHaveBeenCalled(); expect(leases()).toBe(1);
+  const operation = reservation.mock.calls[0][3]!;
+  const records = redis.entries.get("evidence-atlas:demo-chat:v1:operations")!.value as Map<string, string>;
+  const recorded = JSON.parse(records.get(operation)!);
+  expect(recorded.reservationState).toBe("reserved");
+  expect((redis.entries.get("evidence-atlas:demo-chat:v1:concurrency")!.value as Map<string, number>).has(recorded.leaseId)).toBe(true);
 });
 
 it("two quarantined generations deny new work across workers even after lease expiry", async () => {

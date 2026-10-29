@@ -12,9 +12,11 @@ export class OfflineRedis {
   readonly entries = new Map<string, Entry>();
   calls: string[] = [];
   fail = false;
+  beforeCommand?: (command: string, args: readonly string[]) => void;
 
   private command(command: string, ...args: string[]): unknown {
     this.calls.push(command);
+    this.beforeCommand?.(command, args);
     for (const [key, entry] of this.entries) {
       if (entry.expires !== undefined && entry.expires <= this.now) this.entries.delete(key);
     }
@@ -47,6 +49,7 @@ export class OfflineRedis {
         for (let i = 1; i < args.length; i += 2) result.set(args[i], args[i + 1]);
         return 1;
       }
+      case "HLEN": return entry ? map().size : 0;
       case "HINCRBY": {
         const next = Number(map().get(field) ?? 0) + Number(value);
         map().set(field, next);
