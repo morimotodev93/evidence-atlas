@@ -250,3 +250,139 @@ Groq応答・token/account、Upstash障害保証の代わりにはならない�
   namespaceによる枠復活、網羅的障害/負荷試験、24時間soak、SaaS/C2/DB schema変更、
   Phase 10全体合格、文書全体の履歴整理。必要になった整合作業は別PRへ分ける。
 
+## 11. Isolated Live Test Setup — Offline実装とLiveへの引き継ぎ
+
+2026-10-29 JST開始、2026-10-30 JST継続検証。開始HEAD `53b52812ec500357afbac24c0f8dbfe629e873e1`、
+branch `test/demo-chat-isolated-live-setup`、開始時clean。ユーザーの追加指示により、
+同じ変更セットのOffline検証後に限定的なLive証拠を得ることを目標とする。
+ただし実サービス通信・Vercel変更は**実行直前の明示承認まで行わない**。
+本節は準備の実装記録であり、第1/9節の過去のdocumentation-only記録を新しいテスト結果に転用しない。
+10/30再開時はユーザーによる2コミット後の`fb0da160d2f6a0d7b104ce410c55372fc92598b2`でclean。
+agentはGit操作を行わず、追加修正を未ステージ・未コミットで残す。
+
+### Offline Preflight
+
+[`scripts/demo-chat-live-preflight.ts`](../../scripts/demo-chat-live-preflight.ts) は、
+現在のprocess環境とstdinのoperator review JSONだけを読み、外部へ接続しない。
+`.env*` の自動読込、Production資格情報の取得、Vercel/API照会、flag変更を行わない。
+既存runtimeの設定契約・Redis固定prefixは変更しない。
+
+実行は `node scripts/demo-chat-live-preflight.ts`（この作業ではNode 24.16.0を使用）。
+信頼されたoperator側で、検証用環境変数とreview JSONをstdinへ渡す。
+秘密値をコマンド引数・shell履歴・画面・ログ・ZIPへ貼らない。
+実資格情報の取得やローカルへのpullをこの手順の承認とみなさない。
+
+| 入力 | 要求する内容 |
+| --- | --- |
+| 明示opt-in | `DEMO_CHAT_LIVE_PREFLIGHT=review-isolated-preview` |
+| 準備flag/境界 | `DEMO_CHAT_ENABLED=false`、`PUBLIC_DEMO_MODE=true`、C2 markerは未設定か空。Vercel環境markerが存在する場合は`preview`のみ |
+| 必須設定 | `DATABASE_URL`、`DEMO_WORKSPACE_ID`、Demo専用Groq key、Turnstile site/secret、専用Upstash REST URL/token、許可Origin |
+| Redis | 検証専用DB。UpstashのHTTPS REST rootを要求し、`KV_REST_API_*` fallbackの存在は拒否。runtime factoryのfallback自体は変更しない |
+| `target` | `kind=isolated-preview`、owner、projectId、deploymentId、branch、40桁commit、固定HTTPS origin、Production projectId・全Production origins・Production deployment IDs。Production deployment/Origin一致・存在するVercel identity markerとの不一致を拒否 |
+| 同一Vercel project | 専用projectは第一候補であり必須ではない。同一projectの場合は`target.sharedProjectReview`に一致するbranch、`branchOnlyConfiguration=true`、`oldDeploymentAdmissionClosed=true`、非秘密のevidence参照を要求。共有Preview全体の設定流用や旧配備の未確認は拒否 |
+| `groq` / `redis` / `turnstile` / `database` | 各`targetId` / `productionId`、`configurationMatchesTarget=true`、`credentialsComparedSafely`、非秘密の`evidence`参照。入力shapeはexportした`liveReviewSchema`を正とする |
+| 追加の確認 | Groq Free・固定モデル許可・実quota/組織の他利用、Redis専用DB・holdの対象限定解除・安全前提、Turnstile hostname/action、curated Workspaceと公開範囲 |
+| `operator` | 実施者・日時・証拠参照、全sender棚卸し、旧deployment/送信元と未終了workにUnknownなし、保護・費用上限と停止手順の確認 |
+
+IDは両側で同じprovider scopeの実resource identityを用いる。
+RedisはDB ID、DBはlogical database ID、Groqは専用credential identity、Turnstileはwidget identityを区別する。
+異なるkeyの表示名、URL文字列、namespaceだけを別DB・別resourceの証明にしない。
+`configurationMatchesTarget`は**今回渡す設定一式**が対象resourceと対応するというoperatorの確認であり、
+設定変更後はreviewを取り直す。
+
+Production資格情報との比較は、承認済みの安全な管理画面等でoperatorが実施する。
+比較にProduction秘密値の持出しが必要で安全に取得できない場合や、比較対象が不明な場合は
+`credentialsComparedSafely=unavailable` として **Blocked**。
+`same`、同一resource ID、証拠参照欠落も拒否する。`distinct`を推測で記入しない。
+review JSONには秘密値・接続文字列・token fingerprintを含めず、実reviewはZIPへ収録しない。
+Free plan、既存hold、保護・sender・費用・Redis前提の未確認をtrueで埋めない。
+
+出力は入力値を含まない固定failure codeのJSONのみ。exit 0はOffline構造とoperator reviewの
+必須記入を満たした`Pass`、exit 2は`Blocked`。
+成功しても `scope=offline-structure-and-operator-review-only`、`liveAuthorized=false`、
+`publicActivation=No-Go`を返す。設定値の実有効性・アカウント所属・接続性・実際の隔離を
+自動で証明するものではなく、operator証拠の真偽も検証しない。
+準備用なのでChat有効化後の実行は拒否する。Live時のadmission guardや新しい設定基盤として使わない。
+
+### 完全Offlineの実Browser fixture
+
+`pnpm exec playwright test --config playwright.demo-chat-isolated.config.ts`
+（discoveryのみなら末尾に`--list`）。既存インストール済みの依存とChromiumを使用する。
+依存がない場合は実行を止め、このrunnerからダウンロードしない。
+
+- 実Reactの`DemoResearchChatPanel` / client / Turnstile adapter / UI部品と既存CSSを使用。
+  fixture専用stateで有効/無効とResearchを切り替え、実環境flagは読まない・変更しない。
+- tsxに同梱されたesbuildとTailwind PostCSSの既存依存を再利用してbrowser用bundleをメモリ上で作る。
+  transitive compiler解決が将来変わった場合は失敗する制約がある。依存追加やlockfile変更なし。
+- Next.js server、DB client、API handler、Groq/Redis SDKを実行しない。
+  server境界を含むbundleは拒否。curatedなsynthetic ResearchとSourceだけを渡す。
+- 全HTTPをcontextで捕捉し、固定`.invalid` OriginのHTML/JS/CSS/APIと、正確なTurnstile script URLだけを
+  **ローカルでfulfil**。実Next Script loaderから渡るwidget callbackをdoubleで発火させる。
+  そのほかはabortし、WebSocketもcloseする。`continue` / `fallback` / `route.fetch`経路はない。
+- service workerを禁止。死んだloopback proxyとDNSのloopback固定、background通信抑制を追加。
+  保存済み認証・実target・defaultのlive baseURLは使用しない。通常configは専用specを除外し、
+  既存read-only specの通信条件は変更しない。
+- テストごとにURL/body/秘密値を含まない分類別件数を`offline-network.json`へ記録。
+  通常ケースでは未定義通信0、negativeケースでは同一Origin未定義HTTP・外部script・WebSocketを
+  遮断したことを確認する。これはfixtureのrouting証拠であり、OS packet captureではない。
+
+375/768/1280pxで無効UI、有効UI、widget callback、session201、question200、Answer/Source、
+loading、400/429/503、自動再送なし、重複submit防止、Research変更と遅延旧応答の破棄、
+Tab/Shift+Tab/Enter、focus表示、横overflowを検証する。
+実DOM mountの証拠であり、Next.js SSR/hydration、配備cookie/CSP、実Cloudflare challenge、
+実RedisのEVAL/障害・保持保証、Groq消費・remote終了の証明にはならない。
+
+### 今回の検証結果・残存Blocked
+
+| 対象 | 状態 |
+| --- | --- |
+| 関連Vitest | **Pass**。17 files / 436 tests（CLI subprocess・同一project隔離条件の試験を含む）。コマンド・生ログはレビューZIPのtest-resultsに記録 |
+| Offline Chromium | **Pass**。20ケース、synthetic画面3幅と分類別通信証拠を収録 |
+| TypeScript / ESLint / diff check / Browser discovery | **Pass**。discoveryは20ケース。最終ログをレビューZIPに記録 |
+| 実Groq / Redis / Turnstile / DB、配備Browser | **Not run / Blocked**。候補Previewは確認済みだが、設定/資源分離・無料枠・停止条件の証拠と実行承認が未取得 |
+| Vercel変更・配備、Production Build、既存read-only live E2E | **Not run** |
+
+ユーザー申告では専用キーはVercelに設定済み。10/30に固定Preview作成済みと回答を受け、
+Vercel管理APIの読取3回だけで次の候補metadataを確認した（PreviewへのHTTPアクセスなし）。
+
+| 項目 | 読取結果 |
+| --- | --- |
+| Preview | `https://evidence-atlas-krpvgyde6-morimotodev93.vercel.app`、READY、非Production target |
+| Deployment / commit | `dpl_7Mf2m6YJtnqXePa2676fnH5PFyr3` / `fb0da160d2f6a0d7b104ce410c55372fc92598b2` |
+| Project | `evidence-atlas` / `prj_30dqPuJQ9WePjS6ALlS2MecHqs87`。Productionと同一projectで、ユーザーもこれが意図した対象と確認 |
+| Production deployment | `dpl_48FPf2fks1XdLurGKZqvrcnRaTg1`、`main` / `53b52812ec500357afbac24c0f8dbfe629e873e1` |
+
+同一projectだけを理由にDB/Redis共有とは判定しない。専用project必須という当初の過剰な制約は、
+既存の「専用projectを第一候補」仕様に合わせ、上記の明示的なbranch隔離reviewに修正した。
+ただしbranch限定設定、ProductionとのDB/Redis/credential分離、Free/quota、停止範囲と
+Redis holdの対象限定解除は未検証。設定済みキーの存在だけでこれらを確認済みにしない。
+実資格情報・`.env*`は読み取らず、既存Redis runnerのholdも解除しない。
+今回の未コミット修正を含めた最終commitがPreviewに反映された後、deployment identityを再固定する必要がある。
+
+### 次のLive操作一覧 — 対象確定と明示承認まで実行禁止
+
+1. ユーザーが変更をレビューしGit操作を行う。固定Previewのproject・deployment・commitと保護、
+   URL/aliasの対応を特定する。agentはGit add/commit/push/mergeを行わない。
+2. 非秘密のresource identityと安全なoperator比較で専用DB/Redis/資格情報を確認する。
+   Vercel設定の対象scope、fallbackの不在、curated Workspace/公開Research、Turnstile hostname/actionを確認。
+   安全に比較できなければBlockedを維持する。環境変数の一括pullや秘密値の表示をしない。
+3. GroqがFreeで固定モデルを利用可能か、実quota/残量/他の組織利用、Redis安全前提とhold、
+   インフラ消費・最大リスク、旧deployment/local runnerを含む全senderと停止方法を確認する。
+   新Originや再配備でidentityが変わったら対応表とreviewを更新する。
+4. 必要なVercel変更・再配備・専用Previewだけの一時flag有効化・Origin/Turnstile設定・
+   DB読取・Siteverify・Redis操作・Groq生成・Browserアクセス・停止確認を、対象を付けて一覧にする。
+   **ここで実行直前に明示承認を求める。** 準備PreflightのPassは実行承認の代用にならない。
+   Productionは常にChat無効。共有Preview全体へ有効設定が漏れる変更は認めない。
+5. 承認された専用対象だけで明示Start→実Turnstile→session201→質問200→Answer/Sourceを確認。
+   Groq生成は**逐次最大2回**、Session開始も最小限（初回計2回まで）。60秒以上かつ実quotaの
+   回復を確認してから任意の2回目へ進む。各幅・error/limit反復はOfflineの証拠を使う。
+   Redis基本動作は当該Chatのsession/reservation/正常releaseの経路で確認し、別のLease操作runnerは実行しない。
+6. 初回429/503、不明応答/Lease、予想外の消費、秘密露出・認可破綻・Production共有の疑い、
+   費用制御不成立、危険なLease解放の疑いは即停止。未知Leaseを解放/削除/resetせず非返金を維持。
+   軽微な見た目・文言は記録し、安全な範囲の確認を継続してよい。
+7. 全senderの新規受付停止と専用Chat無効化を確認する。実施対象・JST時刻・匿名化した回数・
+   期待/実際・Pass/Fail/Not run/BlockedをレビューZIPへ追記。停止をremote終了証明にしない。
+
+**Public activation remains No-Go. Production Demo Chat stays disabled.**
+公開Go、roadmapの完了更新、既存Lease公開要件の全体整合、復旧機能は本変更の対象外。
+
