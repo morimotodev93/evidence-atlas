@@ -15,8 +15,13 @@ const comparison = z.object({
 export const liveReviewSchema = z.object({
   target: z.object({
     kind: z.literal("isolated-preview"), owner: text, projectId: text,
-    deploymentId: text, commit: z.string().regex(/^[a-f0-9]{40}$/),
+    deploymentId: text, branch: text, commit: z.string().regex(/^[a-f0-9]{40}$/),
     origin: text, productionProjectId: text, productionOrigins: z.array(text).min(1),
+    productionDeploymentIds: z.array(text).min(1),
+    sharedProjectReview: z.object({
+      branch: text, branchOnlyConfiguration: z.literal(true),
+      oldDeploymentAdmissionClosed: z.literal(true), evidence: text,
+    }).strict().optional(),
   }).strict(),
   // Non-secret service/database identity from the operator's trusted console.
   // IDs must use the same provider scope on both sides (not aliases/key labels).
@@ -78,7 +83,12 @@ export function demoChatLivePreflight(env: Env, input: unknown) {
     const origin = httpsOrigin(target.origin);
     if (!origin || target.productionOrigins.some((value) => !httpsOrigin(value))
       || target.productionOrigins.includes(target.origin)) blocked.add("unsafe-origin");
-    if (target.projectId === target.productionProjectId) blocked.add("production-project-forbidden");
+    if (target.productionDeploymentIds.includes(target.deploymentId)) blocked.add("production-deployment-forbidden");
+    // A separate project is preferred, not required by the project specification.
+    // Sharing requires explicit evidence of branch-scoped settings and closure
+    // of old senders; never infer this from dedicated key names or Preview URLs.
+    if (target.projectId === target.productionProjectId
+      && (!target.sharedProjectReview || target.sharedProjectReview.branch !== target.branch)) blocked.add("shared-project-isolation-unproven");
     // One fixed verification origin; no wildcard, trailing slash, extra origin
     // or host-derived default. Deployment identity is operator reviewed offline.
     if (env.DEMO_CHAT_ALLOWED_ORIGINS !== target.origin) blocked.add("origin-binding-mismatch");
@@ -86,6 +96,7 @@ export function demoChatLivePreflight(env: Env, input: unknown) {
     if (env.DEMO_WORKSPACE_ID !== review.database.curatedWorkspaceId) blocked.add("workspace-binding-mismatch");
     if ((env.VERCEL_PROJECT_ID && env.VERCEL_PROJECT_ID !== target.projectId)
       || (env.VERCEL_DEPLOYMENT_ID && env.VERCEL_DEPLOYMENT_ID !== target.deploymentId)
+      || (env.VERCEL_GIT_COMMIT_REF && env.VERCEL_GIT_COMMIT_REF !== target.branch)
       || (env.VERCEL_GIT_COMMIT_SHA && env.VERCEL_GIT_COMMIT_SHA !== target.commit)) blocked.add("deployment-binding-mismatch");
     for (const service of ["groq", "redis", "turnstile", "database"] as const) {
       const checked = review[service];

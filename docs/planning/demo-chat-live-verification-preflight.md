@@ -252,11 +252,13 @@ Groq応答・token/account、Upstash障害保証の代わりにはならない�
 
 ## 11. Isolated Live Test Setup — Offline実装とLiveへの引き継ぎ
 
-2026-10-29 JST。開始HEAD `53b52812ec500357afbac24c0f8dbfe629e873e1`、
+2026-10-29 JST開始、2026-10-30 JST継続検証。開始HEAD `53b52812ec500357afbac24c0f8dbfe629e873e1`、
 branch `test/demo-chat-isolated-live-setup`、開始時clean。ユーザーの追加指示により、
 同じ変更セットのOffline検証後に限定的なLive証拠を得ることを目標とする。
 ただし実サービス通信・Vercel変更は**実行直前の明示承認まで行わない**。
 本節は準備の実装記録であり、第1/9節の過去のdocumentation-only記録を新しいテスト結果に転用しない。
+10/30再開時はユーザーによる2コミット後の`fb0da160d2f6a0d7b104ce410c55372fc92598b2`でclean。
+agentはGit操作を行わず、追加修正を未ステージ・未コミットで残す。
 
 ### Offline Preflight
 
@@ -276,7 +278,8 @@ branch `test/demo-chat-isolated-live-setup`、開始時clean。ユーザーの�
 | 準備flag/境界 | `DEMO_CHAT_ENABLED=false`、`PUBLIC_DEMO_MODE=true`、C2 markerは未設定か空。Vercel環境markerが存在する場合は`preview`のみ |
 | 必須設定 | `DATABASE_URL`、`DEMO_WORKSPACE_ID`、Demo専用Groq key、Turnstile site/secret、専用Upstash REST URL/token、許可Origin |
 | Redis | 検証専用DB。UpstashのHTTPS REST rootを要求し、`KV_REST_API_*` fallbackの存在は拒否。runtime factoryのfallback自体は変更しない |
-| `target` | `kind=isolated-preview`、owner、projectId、deploymentId、40桁commit、固定HTTPS origin、Production projectIdと全Production origins。project共有・Origin一致・存在するVercel identity markerとの不一致を拒否 |
+| `target` | `kind=isolated-preview`、owner、projectId、deploymentId、branch、40桁commit、固定HTTPS origin、Production projectId・全Production origins・Production deployment IDs。Production deployment/Origin一致・存在するVercel identity markerとの不一致を拒否 |
+| 同一Vercel project | 専用projectは第一候補であり必須ではない。同一projectの場合は`target.sharedProjectReview`に一致するbranch、`branchOnlyConfiguration=true`、`oldDeploymentAdmissionClosed=true`、非秘密のevidence参照を要求。共有Preview全体の設定流用や旧配備の未確認は拒否 |
 | `groq` / `redis` / `turnstile` / `database` | 各`targetId` / `productionId`、`configurationMatchesTarget=true`、`credentialsComparedSafely`、非秘密の`evidence`参照。入力shapeはexportした`liveReviewSchema`を正とする |
 | 追加の確認 | Groq Free・固定モデル許可・実quota/組織の他利用、Redis専用DB・holdの対象限定解除・安全前提、Turnstile hostname/action、curated Workspaceと公開範囲 |
 | `operator` | 実施者・日時・証拠参照、全sender棚卸し、旧deployment/送信元と未終了workにUnknownなし、保護・費用上限と停止手順の確認 |
@@ -333,17 +336,28 @@ Tab/Shift+Tab/Enter、focus表示、横overflowを検証する。
 
 | 対象 | 状態 |
 | --- | --- |
-| 関連Vitest | **Pass**。17 files / 433 tests（CLI subprocess試験を含む）。コマンド・生ログはレビューZIPのtest-resultsに記録 |
+| 関連Vitest | **Pass**。17 files / 436 tests（CLI subprocess・同一project隔離条件の試験を含む）。コマンド・生ログはレビューZIPのtest-resultsに記録 |
 | Offline Chromium | **Pass**。20ケース、synthetic画面3幅と分類別通信証拠を収録 |
 | TypeScript / ESLint / diff check / Browser discovery | **Pass**。discoveryは20ケース。最終ログをレビューZIPに記録 |
-| 実Groq / Redis / Turnstile / DB、配備Browser | **Not run / Blocked**。同一変更セットの固定Previewがまだない |
+| 実Groq / Redis / Turnstile / DB、配備Browser | **Not run / Blocked**。候補Previewは確認済みだが、設定/資源分離・無料枠・停止条件の証拠と実行承認が未取得 |
 | Vercel変更・配備、Production Build、既存read-only live E2E | **Not run** |
 
-ユーザー申告では専用環境があり、専用キーはVercelに設定済み。
-PreviewはユーザーによるCommit/Push後でないと用意できない。
-project/deployment/commit、ProductionとのDB/Redis/credential分離、Free/quota、停止範囲と
+ユーザー申告では専用キーはVercelに設定済み。10/30に固定Preview作成済みと回答を受け、
+Vercel管理APIの読取3回だけで次の候補metadataを確認した（PreviewへのHTTPアクセスなし）。
+
+| 項目 | 読取結果 |
+| --- | --- |
+| Preview | `https://evidence-atlas-krpvgyde6-morimotodev93.vercel.app`、READY、非Production target |
+| Deployment / commit | `dpl_7Mf2m6YJtnqXePa2676fnH5PFyr3` / `fb0da160d2f6a0d7b104ce410c55372fc92598b2` |
+| Project | `evidence-atlas` / `prj_30dqPuJQ9WePjS6ALlS2MecHqs87`。Productionと同一projectで、ユーザーもこれが意図した対象と確認 |
+| Production deployment | `dpl_48FPf2fks1XdLurGKZqvrcnRaTg1`、`main` / `53b52812ec500357afbac24c0f8dbfe629e873e1` |
+
+同一projectだけを理由にDB/Redis共有とは判定しない。専用project必須という当初の過剰な制約は、
+既存の「専用projectを第一候補」仕様に合わせ、上記の明示的なbranch隔離reviewに修正した。
+ただしbranch限定設定、ProductionとのDB/Redis/credential分離、Free/quota、停止範囲と
 Redis holdの対象限定解除は未検証。設定済みキーの存在だけでこれらを確認済みにしない。
-実アカウント・秘密値・`.env*`は今回読み取らない。既存Redis runnerのholdも解除しない。
+実資格情報・`.env*`は読み取らず、既存Redis runnerのholdも解除しない。
+今回の未コミット修正を含めた最終commitがPreviewに反映された後、deployment identityを再固定する必要がある。
 
 ### 次のLive操作一覧 — 対象確定と明示承認まで実行禁止
 

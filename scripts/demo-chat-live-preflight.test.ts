@@ -36,9 +36,11 @@ function syntheticLiveReview(): LiveReview {
       projectId: "isolated-project",
       productionProjectId: "production-project",
       deploymentId: "isolated-deployment",
+      branch: "test/isolated",
       commit: "a".repeat(40),
       origin: env.DEMO_CHAT_ALLOWED_ORIGINS,
       productionOrigins: ["https://production.invalid"],
+      productionDeploymentIds: ["production-deployment"],
     },
     groq: {
       ...comparison("groq"),
@@ -114,24 +116,52 @@ describe("Live preflight: offline structure and explicit operator evidence only"
       );
     },
   );
-  it("rejects Production project/origin and deployment identity mismatch", () => {
+  it("rejects unreviewed project sharing, Production origin and deployment identity mismatch", () => {
     const review = syntheticLiveReview();
     review.target.projectId = review.target.productionProjectId;
     review.target.productionOrigins.push(review.target.origin);
     expect(check({}, review).blocked).toEqual(
-      expect.arrayContaining(["production-project-forbidden", "unsafe-origin"]),
+      expect.arrayContaining(["shared-project-isolation-unproven", "unsafe-origin"]),
     );
     for (const key of [
       "VERCEL_PROJECT_ID",
       "VERCEL_DEPLOYMENT_ID",
       "VERCEL_GIT_COMMIT_SHA",
+      "VERCEL_GIT_COMMIT_REF",
     ]) {
       expect(check({ [key]: "mismatch" }).blocked).toContain(
         "deployment-binding-mismatch",
       );
     }
   });
-  it.each(Object.keys(env).filter((key) => key !== "DEMO_CHAT_LIVE_PREFLIGHT"))(
+  it("rejects a known Production deployment even with a Preview-shaped review", () => {
+    const review = syntheticLiveReview();
+    review.target.deploymentId = review.target.productionDeploymentIds[0];
+    expect(check({}, review).blocked).toContain("production-deployment-forbidden");
+  });
+  it("allows shared project only with explicit reviewed branch isolation and old-sender closure", () => {
+    const review = syntheticLiveReview();
+    review.target.projectId = review.target.productionProjectId;
+    expect(check({}, review).blocked).toContain("shared-project-isolation-unproven");
+    review.target.sharedProjectReview = {
+      branch: review.target.branch, branchOnlyConfiguration: true,
+      oldDeploymentAdmissionClosed: true, evidence: "synthetic scoped-setting review",
+    };
+    expect(check({}, review).status).toBe("Pass");
+    review.target.sharedProjectReview.branch = "another-branch";
+    expect(check({}, review).blocked).toContain("shared-project-isolation-unproven");
+  });
+  it("blocks shared project on incomplete isolation evidence, without accepting missing booleans", () => {
+    const review = syntheticLiveReview();
+    review.target.projectId = review.target.productionProjectId;
+    for (const scope of [
+      { branch: review.target.branch, branchOnlyConfiguration: false, oldDeploymentAdmissionClosed: true, evidence: "synthetic" },
+      { branch: review.target.branch, branchOnlyConfiguration: true, oldDeploymentAdmissionClosed: false, evidence: "synthetic" },
+      { branch: review.target.branch, branchOnlyConfiguration: true, oldDeploymentAdmissionClosed: true, evidence: "" },
+      { branch: review.target.branch, evidence: "synthetic" },
+    ]) expect(check({}, { ...review, target: { ...review.target, sharedProjectReview: scope } }).status).toBe("Blocked");
+  });
+  it.each(Object.keys(env).filter((key) => !["DEMO_CHAT_LIVE_PREFLIGHT", "NODE_ENV"].includes(key)))(
     "rejects missing configuration %s",
     (key) => {
       expect(check({ [key]: undefined }).status).toBe("Blocked");
