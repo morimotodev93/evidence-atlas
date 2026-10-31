@@ -33,7 +33,7 @@ it("uses the installed AI SDK 6 / Groq 3 adapter with fixed model, key, token bo
   expect(new Headers(options?.headers).get("authorization")).toBe("Bearer synthetic-demo");
   expect(options?.signal).toBeInstanceOf(AbortSignal);
   const body = JSON.parse(String(options?.body));
-  expect(body).toMatchObject({ model: "openai/gpt-oss-120b", max_tokens: 1200 });
+  expect(body).toMatchObject({ model: "openai/gpt-oss-120b", max_tokens: 2000 });
   expect(body.stream).not.toBe(true);
   expect(body.messages).toHaveLength(2);
   expect(body.messages[0]).toEqual({ role: "system", content: DEMO_CHAT_SYSTEM });
