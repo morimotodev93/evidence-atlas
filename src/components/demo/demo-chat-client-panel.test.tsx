@@ -53,6 +53,76 @@ beforeEach(() => { hooks.slots = []; hooks.cursor = 0; hooks.effects = []; fetch
 afterEach(() => { vi.unstubAllGlobals(); });
 
 describe("Demo Chat UI wiring", () => {
+  it("inserts editable random questions without sending, avoids repeats and protects edited drafts", async () => {
+    expect(button("Random question").props.disabled).toBe(true);
+    await ready();
+    const focus = vi.fn();
+    const input = textarea();
+    (input.props.ref as { current: unknown }).current = { focus };
+    const posts = fetcher.mock.calls.length;
+    const random = vi.spyOn(Math, "random").mockReturnValue(0);
+    try {
+      (button("Random question").props.onClick as () => void)();
+      const first = textarea().props.value;
+      expect(typeof first).toBe("string");
+      expect(first).not.toBe("");
+      expect(button("Send question").props.disabled).toBe(false);
+      expect(button("Random question").props.type).toBe("button");
+      (button("Random question").props.onClick as () => void)();
+      expect(textarea().props.value).not.toBe(first);
+      expect(focus).toHaveBeenCalledTimes(2);
+      expect(fetcher).toHaveBeenCalledTimes(posts);
+      (textarea().props.onChange as (event: { target: { value: string } }) => void)({ target: { value: `${first} My edit` } });
+      expect(button("Random question").props.disabled).toBe(true);
+      (button("Random question").props.onClick as () => void)();
+      expect(textarea().props.value).toBe(`${first} My edit`);
+      (textarea().props.onChange as (event: { target: { value: string } }) => void)({ target: { value: "" } });
+      expect(button("Random question").props.disabled).toBe(false);
+    } finally { random.mockRestore(); }
+  });
+  it("protects user-written text, including whitespace, and leaves a pending response alone", async () => {
+    await ready();
+    const change = (value: string) => (textarea().props.onChange as (event: { target: { value: string } }) => void)({ target: { value } });
+    for (const draft of ["My own question", " "]) {
+      change(draft);
+      expect(button("Random question").props.disabled).toBe(true);
+      (button("Random question").props.onClick as () => void)();
+      expect(textarea().props.value).toBe(draft);
+    }
+    change("");
+    (button("Random question").props.onClick as () => void)();
+    const question = textarea().props.value;
+    fetcher.mockReturnValueOnce(new Promise(() => {}));
+    (view().find((node) => node.type === "form")!.props.onSubmit as (event: { preventDefault: () => void }) => void)({ preventDefault() {} });
+    expect(button("Random question").props.disabled).toBe(true);
+    (button("Random question").props.onClick as () => void)();
+    expect(textarea().props.value).toBe(question);
+    expect(view().find((node) => node.props.role === "region")!.props["aria-busy"]).toBe(true);
+    expect(fetcher).toHaveBeenCalledTimes(2);
+  });
+  it("separates paragraphs and section labels while retaining values, limitations and Source attribution", () => {
+    const html = renderToStaticMarkup(<DemoChatAnswerView answer={{
+      answer: "Study comparison:\nMETR measured 19% slower completion (internal_metr).\n\nGitHub measured 55% faster completion (internal_github).\nNot a universal effect. Unknown internal_unknown and prefix_internal_metr remain.",
+      sources: [
+        { id: "internal_metr", title: "METR", url: "https://example.com/metr" },
+        { id: "internal_github", title: "GitHub", url: "https://example.com/github" },
+      ],
+      insufficientEvidence: false, contextTruncated: true, evidenceNotice: "Stored metadata only.",
+    }} />);
+    expect(html).toContain('whitespace-pre-wrap font-medium">Study comparison:</p>');
+    expect(html).toContain("19% slower completion (Source 1)");
+    expect(html).toContain("55% faster completion (Source 2)");
+    expect(html).toContain("Not a universal effect.");
+    expect(html).toContain("internal_unknown and prefix_internal_metr remain");
+    expect(html).toContain('space-y-4 text-sm leading-7');
+    expect(html).toContain('[overflow-wrap:anywhere]');
+    expect(html).toContain('border-t pt-4');
+    expect(html).toContain("Supporting sources</h3>");
+    expect(html).toContain("Source 1: ");
+    expect(html).toContain("Source 2: ");
+    expect(html.match(/<a /g)).toHaveLength(2);
+    expect(html).toContain("Stored metadata only.");
+  });
   it("keeps disabled Coming soon UI with no widget, script, form or fetch", () => {
     const html = renderToStaticMarkup(<DemoResearchChatPanel researchTitle="Research" />);
     expect(html).toContain("Coming soon");

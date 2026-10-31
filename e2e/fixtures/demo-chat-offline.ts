@@ -9,6 +9,7 @@ type Post = { operation: string; researchId: string; threadId?: string; message?
 type Harness = {
   posts: Post[]; denied: string[];
   status: number; sessionStatus: number;
+  answer?: string;
   hold: boolean; release: () => void;
 };
 
@@ -78,7 +79,7 @@ export const test = base.extend<{ chatFixture: Harness }, { assets: Awaited<Retu
         } else {
           if (harness.hold) await new Promise<void>((resolve) => { resume = resolve; });
           await route.fulfill({ status: harness.status, json: harness.status === 200 ? {
-            answer: `Offline answer for ${post.researchId}`,
+            answer: harness.answer ?? `Offline answer for ${post.researchId}`,
             sources: [{ id: `source-${post.researchId}`, title: `Evidence ${post.researchId}`, url: `https://sources.invalid/${post.researchId}` }],
             insufficientEvidence: false, contextTruncated: false, evidenceNotice: "Synthetic evidence only.",
           } : { error: "Synthetic refusal" } });

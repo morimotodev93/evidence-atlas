@@ -229,6 +229,20 @@ projection must match the current page's public metadata; duplicate references,
 unknown Sources, non-HTTP(S) and credential-bearing URLs are rejected. Answers,
 questions, Source titles and notices are React text, never HTML or Markdown;
 only validated Source URLs become external links with `noopener noreferrer`.
+The Demo answer view separates plain-text paragraphs and short colon-ended section
+labels, wraps long text, and separates Supporting sources with a heading and border.
+Complete internal IDs matching validated answer Sources display as `Source 1`,
+`Source 2`, etc., with matching labels in the Source list. Unknown identifiers stay
+visible. This changes display only, without changing evidence validation or the
+generation prompt. No Markdown renderer is used in Demo Chat.
+
+**Random question** fills and focuses the existing input without submitting. Local
+question lists follow each curated Research topic; productivity questions reflect
+the saved METR/GitHub findings and distinguish possible explanations from proven
+causes. Unrecognized topics use Research-scoped summary/limitations questions.
+Consecutive selections differ. Users can edit before sending; user-written or
+edited drafts disable replacement until cleared. The control is also disabled
+unless the session can accept a question, including during an ongoing response.
 Evidence notices and context truncation are displayed. Membership still does not
 prove factual correctness. Only the latest exchange is held in memory; requests
 are independent and conversation history is not sent or persisted. A Research /
