@@ -13,15 +13,15 @@
 | HEAD | `0020aa025cc78066ea5eaeb795913be8de5ddf1b`、指定値と一致 |
 | Working tree | 開始時 `git status --short` は空、clean |
 | Worktree | `C:/Users/owner/Desktop/sm-dev/evidence-atlas` の1件、同HEAD / main |
-| 指示 | ルート `AGENTS.md` と [source-memo](source-memo.md) を確認。docsを仕様の一次資料とし、外部情報は公式本文を確認 |
+| 指示 | ルート `AGENTS.md` と [source-memo](../planning/source-memo.md) を確認。docsを仕様の一次資料とし、外部情報は公式本文を確認 |
 
 今回の証拠はソース・既存文書の**静的読取**と公開公式資料の読取のみ。
 アカウントConsole、配備設定、実データ、`.env*` の内容は確認していない。
 既存文書を修正せず、本書1件だけを追加する。Git add / commit / push / mergeはしない。
 
-調査した仕様は [roadmap](roadmap.md)、[requirements review](roadmap-requirements-review.md)、
-[Lease recovery design](demo-chat-lease-recovery-design.md)、[AI Architecture](../architecture/ai-architecture.md)、
-[Phase 10 acceptance](phase10-quality-acceptance.md)。
+調査した仕様は [roadmap](../planning/roadmap.md)、[requirements review](roadmap-requirements-review.md)、
+[Lease recovery design](../planning/demo-chat-lease-recovery-design.md)、[AI Architecture](../architecture/ai-architecture.md)、
+[Phase 10 acceptance](../planning/phase10-quality-acceptance.md)。
 補助資料として [Redis verification](demo-chat-redis-verification.md) も参照した。
 
 ## 2. 現在の実装・未検証範囲

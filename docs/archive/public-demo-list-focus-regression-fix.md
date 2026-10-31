@@ -2,7 +2,7 @@
 
 > **現在状態の補足:** 冒頭の「ブラウザ再検証待ち」はオフライン修正時点の記録。後続の[PR #22再検証](#pr-22-browser-retest)・[配備照合](#pr-22-deployment-identity-2026-10-22)を参照。さらにPR #39ではCSS変更を含むVercel Previewでユーザー実行のPublic Demo E2E **20/20（2.1分）** が成功した。375px / 768pxの順逆keyboard・Sourceリンク遮蔽・read-only UIの限定結果であり、全幅・全contrast・WCAG全体の完了ではない。[帰属・範囲](../planning/phase10-quality-acceptance.md#pr37-39-status-alignment)を参照。以下のFail / Pending / Not verified・原証拠は当時の履歴として保持する。
 
-記録日: 2026-10-20 JST。**ローカル修正済み・ブラウザ再検証待ち**。本作業ではブラウザ・Preview・外部Sourceへアクセスしていない。[C22ブラウザ検査](../planning/public-demo-contrast-visible-focus-review.md#pr-22-codex-browser-batch)の4件のFail・色測定・画像・Not verifiedは修正前の証拠として保持し、Passへ変更しない。**4px余白・部分重なりゼロというプロジェクト条件のFailであり、WCAG AA違反の確定ではない。**
+記録日: 2026-10-20 JST。**ローカル修正済み・ブラウザ再検証待ち**。本作業ではブラウザ・Preview・外部Sourceへアクセスしていない。[C22ブラウザ検査](public-demo-contrast-visible-focus-review.md#pr-22-codex-browser-batch)の4件のFail・色測定・画像・Not verifiedは修正前の証拠として保持し、Passへ変更しない。**4px余白・部分重なりゼロというプロジェクト条件のFailであり、WCAG AA違反の確定ではない。**
 
 ## 開始状態と証拠保全
 
@@ -140,7 +140,7 @@ Fail画像は [F1](../planning/evidence/pr22-demo-browser-review/L-1280-forward-
 
 ## PR #22 — 修正後Previewのブラウザ再検証 C22R（2026-10-20 JST）
 
-**今回Codexが実行したChromium再検証ではF1〜F4と15条件が自動Pass。ただし配備identity未確認のため暫定結果。** 本書のオフライン修正当時の「再検証待ち」・4件の修正前Fail・39件の証拠は当時の履歴として保持し、上書きしていない。[詳細・実URL・全15条件の表](../planning/public-demo-contrast-visible-focus-review.md#pr-22-browser-retest)と[新しい集計](../planning/evidence/pr22-demo-browser-retest/summary.json)を参照。
+**今回Codexが実行したChromium再検証ではF1〜F4と15条件が自動Pass。ただし配備identity未確認のため暫定結果。** 本書のオフライン修正当時の「再検証待ち」・4件の修正前Fail・39件の証拠は当時の履歴として保持し、上書きしていない。[詳細・実URL・全15条件の表](public-demo-contrast-visible-focus-review.md#pr-22-browser-retest)と[新しい集計](../planning/evidence/pr22-demo-browser-retest/summary.json)を参照。
 
 開始時は `test/demo-contrast-focus-batch` / `1231b5af5bf8cbb03c08424fe51cecae73a359d1` / clean、worktreeは1件。対象は指定の [新Preview /demo](https://evidence-atlas-git-test-demo-contrast-focus-batch-morimotodev93.vercel.app/demo)。preflightは200、期待一覧4件とhrefを確認し、詳細IDは実リンクから取得した。HTMLに `dpl_67s8akZXvKz2SbuWxHdVSUYQqj2k` の候補を観測したが、正式Deployment ID確認・Git SHAと `1231b5a` の対応は未確認。不一致も検出しておらず、一致を推測しない。
 
@@ -167,7 +167,7 @@ Normal文字は今回再採取し **735 Pass / 0 Fail / 60 Not verified**、測�
 
 ### 後日補足 — Deployment / Commit / Preview aliasの直接照合（2026-10-22）
 
-ユーザー提供の独立確認結果として、2026-10-22にChatGPTがGitHubおよびVercelの読み取り専用連携で直接確認した事実を記録する。本追記作業での再照会・新しいブラウザ検査ではない。[レビュー文書の同日補足](../planning/public-demo-contrast-visible-focus-review.md#pr-22-deployment-identity-2026-10-22)も参照。
+ユーザー提供の独立確認結果として、2026-10-22にChatGPTがGitHubおよびVercelの読み取り専用連携で直接確認した事実を記録する。本追記作業での再照会・新しいブラウザ検査ではない。[レビュー文書の同日補足](public-demo-contrast-visible-focus-review.md#pr-22-deployment-identity-2026-10-22)も参照。
 
 | 項目 | 2026-10-22の直接照合結果 |
 | --- | --- |

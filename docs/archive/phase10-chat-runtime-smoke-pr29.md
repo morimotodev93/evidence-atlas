@@ -39,13 +39,13 @@ ChatAttempt/API v2/SSE/Stop/新たなretry・timeoutの実装、DB障害・provi
 
 ## 3. 根拠と静的確認結果
 
-[調査方針](source-memo.md)に従い、リポジトリ内の一次資料とインストール済みpackageのソースを静的に確認した。外部仕様の現行性やモデルの提供状況を調べた結果ではない。
+[調査方針](../planning/source-memo.md)に従い、リポジトリ内の一次資料とインストール済みpackageのソースを静的に確認した。外部仕様の現行性やモデルの提供状況を調べた結果ではない。
 
 | 根拠 | 今回確認した契約 / 証拠の限界 |
 | --- | --- |
-| [品質受入](phase10-quality-acceptance.md)、特にEと末尾PR #28・追加レビュー | 未完了AIの非成功扱い、spinner/disabled解除と再操作、保存履歴と当該送信結果の分離。PR #28の最終記録はroute68＋panel29＝97件、全体67ファイル/1,490件のoffline成功。過去のmock証拠で、今回は再実行していない |
-| [stream設計](phase10-chat-stream-reliability-design.md)、[I0判断資料](phase10-chat-reliability-i0-decisions.md) | T01/T08/T13/T14のB案に関係する限定範囲を参照。ChatAttempt・冪等key・status・独立usage保存・Stop等のA案や120秒等の仮値は現実装にない。設計全件の受入を要求/認定しない |
-| [roadmap](roadmap.md) | 現在チェックはUnit/E2E/Validation/Authorizationの4/11。Error handlingはPartial。冒頭の古い「E2Eのみ」等は日付付きの過去記録として区別する |
+| [品質受入](../planning/phase10-quality-acceptance.md)、特にEと末尾PR #28・追加レビュー | 未完了AIの非成功扱い、spinner/disabled解除と再操作、保存履歴と当該送信結果の分離。PR #28の最終記録はroute68＋panel29＝97件、全体67ファイル/1,490件のoffline成功。過去のmock証拠で、今回は再実行していない |
+| [stream設計](../planning/phase10-chat-stream-reliability-design.md)、[I0判断資料](../planning/phase10-chat-reliability-i0-decisions.md) | T01/T08/T13/T14のB案に関係する限定範囲を参照。ChatAttempt・冪等key・status・独立usage保存・Stop等のA案や120秒等の仮値は現実装にない。設計全件の受入を要求/認定しない |
+| [roadmap](../planning/roadmap.md) | 現在チェックはUnit/E2E/Validation/Authorizationの4/11。Error handlingはPartial。冒頭の古い「E2Eのみ」等は日付付きの過去記録として区別する |
 | [Chat POST](../../src/app/research/[id]/chat/route.ts)、[routeテスト](../../src/auth/chatRoutes.test.ts) | C2/Demo gate→auth→Research/Workspace認可→入力→Conversation所属→rate limit→context→retrieval/embedding→保存履歴読取→USER作成→Conversation.updatedAt更新→streamText。onFinishはusage→stop/raw非空→引用検証→validated trim/parse後本文非空→AI作成。別writeで、一括transaction・attempt識別なし |
 | [Conversation作成/一覧](../../src/app/research/[id]/chat/conversations/route.ts)、[detail GET](../../src/app/research/[id]/chat/conversations/[conversationId]/route.ts) | NewはConversation1件作成・201。listはupdatedAt降順と最初のUSER preview、detailはcreatedAt昇順の保存Message全体と解決済みSources。usageや特定POSTの状態を返さない |
 | [panel](../../src/app/research/[id]/_components/research-ai-panel.tsx)、[panelテスト](../../src/app/research/[id]/_components/research-ai-panel.test.tsx) | rawは暫定表示。EOF後は暫定USER/AIを除きdetail GETを1回、成功でmessages/IDs/Sources全置換。GET失敗は旧取得済み履歴を保持し未確認表示。成功HTTPのread Error/AbortError後も1回GET、通信エラーは残す。POST非成功/fetch失敗には自動GET・再POSTなし。テストはhook double/JSX/合成streamで、実mount/DOM/paint/focusではない |

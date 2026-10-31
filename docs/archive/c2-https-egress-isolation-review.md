@@ -7,7 +7,7 @@
 > into `main` at `969af82`. Bounded C2 Smoke 4/4 and Chat mock-only 6/6 were
 > developer-reported passes, not Google OAuth or real Chat/AI E2E verification.
 > This update grants no authorization for new live operations. See the
-> [current roadmap](roadmap.md#phase-10--testing--quality).
+> [current roadmap](../planning/roadmap.md#phase-10--testing--quality).
 
 > **Status: DESIGN ONLY / NO LIVE RUN APPROVED** — 2026-10-13 JST  
 > **Scope:** The standalone fixed-target diagnostic probe, not normal C2 OAuth or E2E.  

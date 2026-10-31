@@ -7,7 +7,7 @@
 > into `main` at `969af82`. Bounded C2 Smoke 4/4 and Chat mock-only 6/6 were
 > developer-reported passes, not Google OAuth or real Chat/AI E2E verification.
 > This update grants no authorization for new live operations. See the
-> [current roadmap](roadmap.md#phase-10--testing--quality).
+> [current roadmap](../planning/roadmap.md#phase-10--testing--quality).
 
 Source branch baseline: `fix/c2-probe-rejection-diagnostics` at `e019972`, 2026-10-16. This patch is **code-only**. It must not be treated as permission to write C2 Session rows; a subsequent explicit opt-in is required for that operation.
 

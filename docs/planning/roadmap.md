@@ -29,6 +29,21 @@ report supersedes the earlier unavailable-UI status; it does not establish Redis
 failover, uncertain remote termination, safe lease recovery, or completion of
 all earlier proposed checks. Those evidence gaps remain explicit.
 
+### Current planning entry points
+
+| Ongoing work / policy | Current document |
+| --- | --- |
+| Product scope and research policy | [Product definition](product-definition.md), [source policy](source-memo.md) |
+| C2 setup and session/egress limits | [Runtime](c2-local-runtime.md), [PostgreSQL](c2-local-postgres.md) |
+| Quality criteria and retained UI/runtime gaps | [Phase 10 acceptance](phase10-quality-acceptance.md), [AI evaluation](ai-chat-quality-evaluation.md) |
+| Chat reliability decisions still open | [Stream design](phase10-chat-stream-reliability-design.md), [I0 review](phase10-chat-reliability-i0-decisions.md) |
+| Demo lease operations and unresolved recovery | [Lease design](demo-chat-lease-recovery-design.md), [AI architecture](../architecture/ai-architecture.md) |
+
+The [requirements review](../archive/roadmap-requirements-review.md) is the
+historical rationale for policies adopted here, not an additional current task
+list. Archiving dated verification plans does not complete their open checks or
+change priorities, release conditions, or the phase checkboxes below.
+
 ## 1. Project Overview
 
 **evidence-atlas** is a collaborative research workspace for collecting evidence, organizing findings, and deepening knowledge with AI.
@@ -79,7 +94,7 @@ an availability limitation. Preserve completed scope and historical evidence;
 classification does not uncheck completed work or mark unperformed checks passed.
 Major changes to architecture, routes, data models or project status still require
 updates to the relevant documentation. See the
-[requirements review](roadmap-requirements-review.md) for the evaluation and
+[requirements review](../archive/roadmap-requirements-review.md) for the evaluation and
 proposals; the policies adopted here do not imply implementation or new verification.
 
 ---

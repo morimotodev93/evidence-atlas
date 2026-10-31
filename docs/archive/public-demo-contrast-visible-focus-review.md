@@ -1,8 +1,8 @@
 # Public Demo — Contrast / Visible Focus Review（PR #20準備）
 
-> **現在状態の補足（PR #39まで）:** 本書のFail / Pending / Not run・配備条件は各検査時点の履歴。PR #39でAppearance Selectを含むTab操作・Sourceリンクfocus遮蔽・scroll余白を修正し、CSS変更が反映されたVercel Previewでユーザー実行のPlaywright E2E **20/20（2.1分）** が成功した。375px / 768pxの順逆keyboard・Source遮蔽・read-only UIの限定結果であり、contrast全状態やWCAG全体の完了ではない。[帰属・検証範囲](phase10-quality-acceptance.md#pr37-39-status-alignment)を参照。以下の原記録は保持する。
+> **現在状態の補足（PR #39まで）:** 本書のFail / Pending / Not run・配備条件は各検査時点の履歴。PR #39でAppearance Selectを含むTab操作・Sourceリンクfocus遮蔽・scroll余白を修正し、CSS変更が反映されたVercel Previewでユーザー実行のPlaywright E2E **20/20（2.1分）** が成功した。375px / 768pxの順逆keyboard・Source遮蔽・read-only UIの限定結果であり、contrast全状態やWCAG全体の完了ではない。[帰属・検証範囲](../planning/phase10-quality-acceptance.md#pr37-39-status-alignment)を参照。以下の原記録は保持する。
 
-記録日: 2026-10-20 JST。静的調査と後日の手動検査計画であり、ブラウザ検査・色実測の成功報告ではない。[Phase 10受入条件](phase10-quality-acceptance.md)を補う。**Accessibility review / Responsive UI reviewは未完了。**
+記録日: 2026-10-20 JST。静的調査と後日の手動検査計画であり、ブラウザ検査・色実測の成功報告ではない。[Phase 10受入条件](../planning/phase10-quality-acceptance.md)を補う。**Accessibility review / Responsive UI reviewは未完了。**
 
 ## 1. Scope and Non-goals
 
@@ -27,8 +27,8 @@
 - `git status --short --branch`: branch行のみ、変更なし。
 - `git worktree list`: `C:/Users/owner/Desktop/sm-dev/evidence-atlas` の1件、上記branch / HEAD。
 - `package.json`: `pnpm@12.9.1`。Next / React、Tailwind CSS v4、Base UI / Badge、Lucide、Vitest / Playwrightが宣言されている。dev / build / start / lint / test / test:e2e / contract:emit / seed / seed:demo等のscriptsを読み取り、実行していない。依存追加なし。
-- 一次資料: [roadmap](roadmap.md)、[Phase 10受入条件](phase10-quality-acceptance.md)、[zoom / text spacingレビュー](public-demo-zoom-text-spacing-review.md)、[design system](../design/design-system.md)。
-- 外部調査方針: [source-memo](source-memo.md)。外部参照は第4節のW3C公式仕様に限定し、配備先・外部リンク先は調べていない。
+- 一次資料: [roadmap](../planning/roadmap.md)、[Phase 10受入条件](../planning/phase10-quality-acceptance.md)、[zoom / text spacingレビュー](public-demo-zoom-text-spacing-review.md)、[design system](../design/design-system.md)。
+- 外部調査方針: [source-memo](../planning/source-memo.md)。外部参照は第4節のW3C公式仕様に限定し、配備先・外部リンク先は調べていない。
 
 ## 2. Evidence Types and Limitations
 
@@ -390,7 +390,7 @@ No research / No conclusion / No sources / No findings / No discussion等の空�
 
 ### L1記録後の残項目と今回の確認範囲
 
-一覧の個別リンク・両方向focus記録、indicator実測、header遮蔽・viewport clipping、数値Contrast、配備identityの確認が残る。4詳細ページは補足のページ単位Pass報告にとどまり、Source / Supporting Sourceを含む詳細検査は未完了。他viewport、通常SaaS / Chat、既存deferred riskも完了扱いにしない。**Phase 10 Accessibility review / Responsive UI reviewは引き続き未完了**。受入状況は[Phase 10のPR #21追記](phase10-quality-acceptance.md#pr-21-l1-report)に記録し、roadmap・既存チェックボックスは変更しない。
+一覧の個別リンク・両方向focus記録、indicator実測、header遮蔽・viewport clipping、数値Contrast、配備identityの確認が残る。4詳細ページは補足のページ単位Pass報告にとどまり、Source / Supporting Sourceを含む詳細検査は未完了。他viewport、通常SaaS / Chat、既存deferred riskも完了扱いにしない。**Phase 10 Accessibility review / Responsive UI reviewは引き続き未完了**。受入状況は[Phase 10のPR #21追記](../planning/phase10-quality-acceptance.md#pr-21-l1-report)に記録し、roadmap・既存チェックボックスは変更しない。
 
 今回の変更は指定Markdown 2ファイルの末尾追記のみ。確認はGit差分・Markdown表・見出し・相対リンク・履歴保持のオフライン確認に限る。アプリコード・CSS・テストは変更せず、ブラウザ検査・E2E・外部Previewアクセス、DB / OAuth / Session / AI / Cloud操作、サーバー起動・production build、commit / push / PR作成 / mergeは行わず、未コミットで停止する。
 
@@ -438,12 +438,12 @@ Preflightは指定 `/demo` のHTTP 200、実URL不変、h1=`AI-Assisted Software
 
 Normalはpointerをリンク外へ移し、各文字要素をscrollしてcomputed styleとRangeを採取した。Focusは新しいdocumentから実際のTabだけで前進し、最後に1回Tabでdocument境界へ出てShift+Tabで末尾に戻り、全リンクを逆順でも検査した。focusの直接代入・forced state・途中の手動scrollなし。Hoverはfocusを実keyboard操作でbodyへ外し、pointer hoverと200msのtransition待機で採取した。記録されたNormal / Hover / Focusに意図しないHover+Focus併存は0件。
 
-- [preflight.json](evidence/pr22-demo-browser-review/preflight.json): browser version、headers、取得リンク、環境値。
-- [summary.json](evidence/pr22-demo-browser-review/summary.json): 15条件の集計・実時刻・実viewport。
-- [measurements.json](evidence/pr22-demo-browser-review/measurements.json): 全文字sample、computed foreground・size / weight、祖先背景・opacity / filter、比率、実focus対象・両方向順序・全fragment・scrollY・outline / shadow、clippingの個別観測。`backgroundChainId`は同ファイルの`backgroundChains`配列を参照する重複排除で、値は元の採取結果と同じ。
-- [network.json](evidence/pr22-demo-browser-review/network.json): batchの許可GET・遮断・status・エラー。最初の別preflightの件数はこの483件へ合算していない。
-- [runner-source.txt](evidence/pr22-demo-browser-review/runner-source.txt) / [batch-source.txt](evidence/pr22-demo-browser-review/batch-source.txt): 実行した一時スクリプトの証拠用コピー。アプリコード・既存E2Eではない。
-- PNG 32枚: `L/D1/D2/D3/D4-{width}-normal.png` の15枚、D1のSource / 最後のSupporting Sourceの両方向sample 12枚、一覧の余白Fail 4枚、preflight 1枚。[SHA-256 manifest](evidence/pr22-demo-browser-review/sha256.json)で全証拠ファイルを照合できる。
+- [preflight.json](../planning/evidence/pr22-demo-browser-review/preflight.json): browser version、headers、取得リンク、環境値。
+- [summary.json](../planning/evidence/pr22-demo-browser-review/summary.json): 15条件の集計・実時刻・実viewport。
+- [measurements.json](../planning/evidence/pr22-demo-browser-review/measurements.json): 全文字sample、computed foreground・size / weight、祖先背景・opacity / filter、比率、実focus対象・両方向順序・全fragment・scrollY・outline / shadow、clippingの個別観測。`backgroundChainId`は同ファイルの`backgroundChains`配列を参照する重複排除で、値は元の採取結果と同じ。
+- [network.json](../planning/evidence/pr22-demo-browser-review/network.json): batchの許可GET・遮断・status・エラー。最初の別preflightの件数はこの483件へ合算していない。
+- [runner-source.txt](../planning/evidence/pr22-demo-browser-review/runner-source.txt) / [batch-source.txt](../planning/evidence/pr22-demo-browser-review/batch-source.txt): 実行した一時スクリプトの証拠用コピー。アプリコード・既存E2Eではない。
+- PNG 32枚: `L/D1/D2/D3/D4-{width}-normal.png` の15枚、D1のSource / 最後のSupporting Sourceの両方向sample 12枚、一覧の余白Fail 4枚、preflight 1枚。[SHA-256 manifest](../planning/evidence/pr22-demo-browser-review/sha256.json)で全証拠ファイルを照合できる。
 
 ### C22-3. ページ・viewport別結果
 
@@ -525,10 +525,10 @@ Codexは保存画像の一覧3幅、一覧Fail 4枚、D1の375px Source / Suppor
 
 | ID / viewport | 対象・方向 | 実測値 / 期待値 | 再現手順 | 証拠 / 判定 |
 | --- | --- | --- | --- | --- |
-| F1 / 1280×720 | Developer Experience・Tab | top561、bottom719、scrollY0。`719+4=723 > 720`、下端の実余地1px / 4px以上 | fresh `/demo`、Tab×5（Header 2件→一覧3件目） | [画像](evidence/pr22-demo-browser-review/L-1280-forward-4.png)。**4px余白Fail**、実paintの全輪郭露出は未確定 |
-| F2 / 1280×720 | Developer Productivity・Shift+Tab | top20、bottom178、scrollY201、header.bottom49。`20-4=16 < 49`、対象rectの上29pxがheader下 | fresh `/demo`、Tab×6でD4、Tabで境界、Shift+Tab×4でD1 | [画像](evidence/pr22-demo-browser-review/L-1280-reverse-3.png)。**部分重なりFail**、対象は一部露出 |
-| F3 / 375×812 | Developer Experience・Tab | top642、bottom812、scrollY47。`812+4=816 > 812`、下端の実余地0px / 4px以上 | fresh `/demo`、Tab×5 | [画像](evidence/pr22-demo-browser-review/L-375-forward-4.png)。**4px余白Fail**、全輪郭の実paint判定は未確定 |
-| F4 / 375×812 | Developer Productivity・Shift+Tab | top72、bottom242、scrollY253、header.bottom81。`72-4=68 < 81`、対象rectの上9pxがheader下 | fresh `/demo`、Tab×6、Tabで境界、Shift+Tab×4 | [画像](evidence/pr22-demo-browser-review/L-375-reverse-3.png)。**部分重なりFail**、対象は一部露出 |
+| F1 / 1280×720 | Developer Experience・Tab | top561、bottom719、scrollY0。`719+4=723 > 720`、下端の実余地1px / 4px以上 | fresh `/demo`、Tab×5（Header 2件→一覧3件目） | [画像](../planning/evidence/pr22-demo-browser-review/L-1280-forward-4.png)。**4px余白Fail**、実paintの全輪郭露出は未確定 |
+| F2 / 1280×720 | Developer Productivity・Shift+Tab | top20、bottom178、scrollY201、header.bottom49。`20-4=16 < 49`、対象rectの上29pxがheader下 | fresh `/demo`、Tab×6でD4、Tabで境界、Shift+Tab×4でD1 | [画像](../planning/evidence/pr22-demo-browser-review/L-1280-reverse-3.png)。**部分重なりFail**、対象は一部露出 |
+| F3 / 375×812 | Developer Experience・Tab | top642、bottom812、scrollY47。`812+4=816 > 812`、下端の実余地0px / 4px以上 | fresh `/demo`、Tab×5 | [画像](../planning/evidence/pr22-demo-browser-review/L-375-forward-4.png)。**4px余白Fail**、全輪郭の実paint判定は未確定 |
+| F4 / 375×812 | Developer Productivity・Shift+Tab | top72、bottom242、scrollY253、header.bottom81。`72-4=68 < 81`、対象rectの上9pxがheader下 | fresh `/demo`、Tab×6、Tabで境界、Shift+Tab×4 | [画像](../planning/evidence/pr22-demo-browser-review/L-375-reverse-3.png)。**部分重なりFail**、対象は一部露出 |
 
 4件とも`:focus-visible`・outline・部分露出のassertionはPassし、完全遮蔽は検出していない。**2.4.11 AAの完全遮蔽Failとは区別する**。一方、一覧の上部輪郭の部分遮蔽は実画像でも確認でき、プロジェクトの重なりなしの期待は満たさない。PR #21のユーザー報告を訂正せず、別browser / 条件の新観測として記録する。
 
@@ -560,7 +560,7 @@ DB操作・migration・seed、OAuth / Session / AI API、Cloud設定・deploy、
 
 ## PR #22 follow-up — Research一覧Focusのオフライン修正（2026-10-20 JST）
 
-**ローカル修正済み・ブラウザ再検証待ち。** [修正分析・証拠39件の安全確認・容量一覧](../archive/public-demo-list-focus-regression-fix.md)へ記録した。開始状態は `test/demo-contrast-focus-batch` / `c6d97ca`、既存の本書・Phase 10追記と証拠39件のみ。既存部分はbyte単位で保持し、証拠ファイルは変更していない。
+**ローカル修正済み・ブラウザ再検証待ち。** [修正分析・証拠39件の安全確認・容量一覧](public-demo-list-focus-regression-fix.md)へ記録した。開始状態は `test/demo-contrast-focus-batch` / `c6d97ca`、既存の本書・Phase 10追記と証拠39件のみ。既存部分はbyte単位で保持し、証拠ファイルは変更していない。
 
 一覧mainに詳細と同じ `[&_a]:scroll-mt-24 sm:[&_a]:scroll-mt-16 [&_a]:scroll-mb-2` を追加した。コード差分は `src/app/demo/page.tsx` の1行で、Demo内のanchorへ上96px / sm以上64px・下8px相当のscroll marginを指定する。共通cardと認証済みSaaS・Demo詳細・色 / font / outlineは変更しない。
 
@@ -608,10 +608,10 @@ F1 / F3の実focusはD3 Developer Experience、F2 / F4はD1 Developer Productivi
 
 | ケース / viewport | 採取時刻 JST | 主な改善（旧→新） | rect top / bottom（旧→新） | header.bottom | scrollY（旧→新） | computed margin top / bottom | 結果・画像 |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| F1 / 1280×720 | 12:39:55.912 | 下端余地 **1→8px** | 561/719 → 554/712 | 49 | 0→7 | 64px / 8px | Pass / [F1](evidence/pr22-demo-browser-retest/F1.png) |
-| F2 / 1280×720 | 12:39:59.131 | header重なり **29→0px**、header下端からの余地 **−29→15px** | 20/178 → 64/222 | 49 | 201→157 | 64px / 8px | Pass / [F2](evidence/pr22-demo-browser-retest/F2.png) |
-| F3 / 375×812 | 12:40:04.106 | 下端余地 **0→8px** | 642/812 → 634/804 | 81 | 47→55 | 96px / 8px | Pass / [F3](evidence/pr22-demo-browser-retest/F3.png) |
-| F4 / 375×812 | 12:40:07.216 | header重なり **9→0px**、header下端からの余地 **−9→15px** | 72/242 → 96/266 | 81 | 253→229 | 96px / 8px | Pass / [F4](evidence/pr22-demo-browser-retest/F4.png) |
+| F1 / 1280×720 | 12:39:55.912 | 下端余地 **1→8px** | 561/719 → 554/712 | 49 | 0→7 | 64px / 8px | Pass / [F1](../planning/evidence/pr22-demo-browser-retest/F1.png) |
+| F2 / 1280×720 | 12:39:59.131 | header重なり **29→0px**、header下端からの余地 **−29→15px** | 20/178 → 64/222 | 49 | 201→157 | 64px / 8px | Pass / [F2](../planning/evidence/pr22-demo-browser-retest/F2.png) |
+| F3 / 375×812 | 12:40:04.106 | 下端余地 **0→8px** | 642/812 → 634/804 | 81 | 47→55 | 96px / 8px | Pass / [F3](../planning/evidence/pr22-demo-browser-retest/F3.png) |
+| F4 / 375×812 | 12:40:07.216 | header重なり **9→0px**、header下端からの余地 **−9→15px** | 72/242 → 96/266 | 81 | 253→229 | 96px / 8px | Pass / [F4](../planning/evidence/pr22-demo-browser-retest/F4.png) |
 
 F1 / F3は `bottom+4 <= viewport.height` を満たし、F2 / F4も `top−4 >= header.bottom` を満たした。4枚を今回表示して、cardの上下輪郭と余白を補助的に確認した。画像からindicatorの数値contrastや全条件の知覚適合を推測しない。
 
@@ -653,10 +653,10 @@ Normal **795 samples: 735 Pass / 0 Fail / 60 Not verified**。最小の測定値
 
 保存先は新規 `docs/planning/evidence/pr22-demo-browser-retest/`、**9ファイル / 1,927,769 bytes（約1.84 MiB）**。F1〜F4のPNG 4枚だけで重複画像なし。`results.json`にpreflight・環境・実URL・全時刻・前後比較・全15条件の個別focus / 通常色 / clipping観測を保持し、祖先背景だけ`backgroundChainId`で89件の辞書に重複排除した。raw観測との全値一致を検査した。通信はpath別 / status別集計だけで、query・request header・巨大な逐次ログは保存しない。
 
-- [summary.json](evidence/pr22-demo-browser-retest/summary.json): 比較・15条件集計・暫定identity・未確認条件・通信集計。
-- [results.json](evidence/pr22-demo-browser-retest/results.json): 個別観測とpreflight。背景辞書IDの参照795件を検算。
-- [runner-source.txt](evidence/pr22-demo-browser-retest/runner-source.txt) / [helper-source.txt](evidence/pr22-demo-browser-retest/helper-source.txt): 今回実行した一時runnerと再利用helperのsnapshot。
-- [sha256.json](evidence/pr22-demo-browser-retest/sha256.json): 自身を除く8件の名前・容量・SHA-256。
+- [summary.json](../planning/evidence/pr22-demo-browser-retest/summary.json): 比較・15条件集計・暫定identity・未確認条件・通信集計。
+- [results.json](../planning/evidence/pr22-demo-browser-retest/results.json): 個別観測とpreflight。背景辞書IDの参照795件を検算。
+- [runner-source.txt](../planning/evidence/pr22-demo-browser-retest/runner-source.txt) / [helper-source.txt](../planning/evidence/pr22-demo-browser-retest/helper-source.txt): 今回実行した一時runnerと再利用helperのsnapshot。
+- [sha256.json](../planning/evidence/pr22-demo-browser-retest/sha256.json): 自身を除く8件の名前・容量・SHA-256。
 
 JSON / TXTのparse・syntaxと文字列 / URL / credential形式 / cookie・認証header等の検査で秘密情報・非公開メールは検出していない。保存URLにquery / userinfoなし。response headerは公開情報の限定keyのみ。4 PNGは全画像を表示し、Public Demo以外の非公開画面・認証情報・desktop映り込みは観測せず、text / EXIF等の付加metadataも0。証拠内のSource hrefは公開表示文字列であり、外部取得結果ではない。
 

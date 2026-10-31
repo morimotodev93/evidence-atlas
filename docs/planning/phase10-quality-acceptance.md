@@ -14,6 +14,35 @@
 
 根拠はユーザー提供のPR・検証結果とローカルGitのマージ履歴・差分。今回GitHub / Vercelへの再照会、ブラウザ・テスト・AI API実行は行っていない。PR #38 / #39の成功は通常SaaS全体、全Viewport、screen reader、包括的なWCAG 2.2 AA適合、Production AI品質、Phase 10全体の受入完了を意味しない。後続記録のないFail / Pending / Not run、検証条件・履歴は変更しない。
 
+## Current follow-up scope and archived evidence
+
+The acceptance matrix and completion policy remain in this document; historical
+PR results below and linked archived reports retain their original scope.
+
+- Accessibility / Responsive acceptance remains incomplete. Native 200% zoom,
+  Firefox text-only zoom and text spacing are distinct evidence methods. Retain
+  the open contrast/state coverage, empty-state, dark-theme, screen-reader,
+  browser/device and normal-SaaS responsive limitations. Archived
+  [contrast/focus](../archive/public-demo-contrast-visible-focus-review.md) and
+  [zoom/spacing](../archive/public-demo-zoom-text-spacing-review.md) reports
+  remain detailed procedures/evidence; PR #39's bounded result does not complete
+  the broader criteria or verify today's deployment in every state.
+- The [RootLayout theme investigation](../archive/root-layout-theme-script-review.md)
+  did not fix or identify the actual deployed client-rendering cause of the
+  console warning. A simple `next/script` replacement was rejected because it
+  changes invalid-saved-theme initialization order and leaves the provider's
+  script warning possible. Actual application/CSP/first-paint behavior remains
+  unverified; retain the existing theme behavior pending a separate decision.
+- Normal-SaaS Chat runtime validation remains incomplete. The
+  [PR #29 plan](../archive/phase10-chat-runtime-smoke-pr29.md) is an old Stage A
+  snapshot; [PR #30 closeout](../archive/phase10-chat-readonly-runtime-pr30.md)
+  records blocked read-only observations, not a successful Chat/History/usage
+  flow. Its staged local-fixture approach is a proposal, not an adopted plan or
+  authorization. Current failure/persistence criteria and open decisions remain
+  in the [stream design](phase10-chat-stream-reliability-design.md) and
+  [I0 review](phase10-chat-reliability-i0-decisions.md). No criterion or checkbox
+  is completed by archiving the earlier execution plans.
+
 ## Purpose / Scope
 
 Phase 10 の11項目について、既存証拠、未検証範囲、今後の合否判定を固定する。対象は現在実装されている Public Demo、通常 SaaS の Research/Workspace/Organization、Chat・引用・検索・索引と、その実行境界である。将来の招待・課金・高度な権限・未実装のテーマ切替は要求しない。
@@ -44,7 +73,7 @@ Phase 10 の11項目について、既存証拠、未検証範囲、今後の合
   D: C2 authenticated read-only Smoke **4/4**、Chat mock-only **6/6**。各段階 exit 0、Session revoke、保存 state 削除
 - **根拠・留保:**
   [roadmap Phase 10](roadmap.md#phase-10--testing--quality)、[C2 runtime](c2-local-runtime.md)、
-  [Route B](c2-e2e-session-route-b.md)。Google OAuth を行わない DB Session 作成。fixture 前後
+  [Route B](../archive/c2-e2e-session-route-b.md)。Google OAuth を行わない DB Session 作成。fixture 前後
   `present:8 / plannedInserts:0 / plannedDeletes:8` は削除実行ではない。DBコンテナー同一性は証明されていない
 
 #### [#2](https://github.com/morimotodev93/evidence-atlas/pull/2) / `dd46982`
@@ -225,7 +254,7 @@ Phase 10 の11項目について、既存証拠、未検証範囲、今後の合
 ### 関連仕様・実行記録と整合性
 
 - [product-definition §9.6–9.7](product-definition.md#96-authentication--authorization)、[data-model §6–8](../architecture/data-model.md#6-data-boundaries)、[directory-structure](../architecture/directory-structure.md)、[AI architecture](../architecture/ai-architecture.md)、[design system](../design/design-system.md) を実装範囲の基準とする。
-- [C2 local PostgreSQL](c2-local-postgres.md) はtarget/role/portとmigrationの準備、[runtime](c2-local-runtime.md) は起動・OAuth・fixture・mock suiteの段階別記録。[runner refusal](../archive/c2-runner-config-refusal-report.md)、[D19](../archive/c2-d19-scenario-investigation.md) は失敗・offline修正を保持。[Route B](c2-e2e-session-route-b.md) の成功手順をOAuth成功に読み替えない。
+- [C2 local PostgreSQL](c2-local-postgres.md) はtarget/role/portとmigrationの準備、[runtime](c2-local-runtime.md) は起動・OAuth・fixture・mock suiteの段階別記録。[runner refusal](../archive/c2-runner-config-refusal-report.md)、[D19](../archive/c2-d19-scenario-investigation.md) は失敗・offline修正を保持。[Route B](../archive/c2-e2e-session-route-b.md) の成功手順をOAuth成功に読み替えない。
 - C2 Step 2-CのGoogleログインとUser/Account/Session増加、Steps 3-B/3-Cの8件fixture・手動閲覧は限定的な実DB利用記録。DB整合性・transaction・競合テストの合格ではない。後の手動Edge成功も自動Google OAuthの成功ではない。
 - **文書と現状の差異:** directory-structure の「E2E suite未配置」は現存3 suiteと相違する。AI architecture §6の「prompt追加は未コミット」は `e707e23` がHEADの祖先であること、およびquality reportの追記と相違する。ただし歴史的な実行時prompt identity・配備は未証明。`docs/planning/requireCurrentWorkspace.ts` はcookie導入前のsnapshotで現行runtime仕様に使わない。今回はこれらを報告し、原文を黙って更新しない。
 
@@ -986,7 +1015,7 @@ Codexが今回read-onlyで確認した `test-results/pr15-bottom-fix/.last-run.j
 
 開始時は `test/demo-zoom-text-spacing-review` / `15d5cb44d1a283a54fb1a6e28146c74381d09ea8` / clean、単一worktree。ローカルmainと一致するがfetchや外部照会はしていない。PR #4のnative Chrome部分報告とPR #14 / #15の履歴は保持し、上記PR #15のユーザー提供20/20成功を今回のブラウザ実行やnative zoom成功に読み替えない。
 
-[Public Demo zoom / text spacing review](public-demo-zoom-text-spacing-review.md)に、全5ページのnative Windows Chromeメニュー200%、browser固有text-only 200%、一時CSS text spacing（line height 1.5 / paragraph spacing 2em / letter spacing 0.12em / word spacing 0.16em）を区別した手順・環境欄・ページ別結果表を追加した。ユーザー手動結果（D）とCodex offline結果（C）を別記録にし、全ブラウザ項目は **Not run**。表示されない空状態は未検証として残す。
+[Public Demo zoom / text spacing review](../archive/public-demo-zoom-text-spacing-review.md)に、全5ページのnative Windows Chromeメニュー200%、browser固有text-only 200%、一時CSS text spacing（line height 1.5 / paragraph spacing 2em / letter spacing 0.12em / word spacing 0.16em）を区別した手順・環境欄・ページ別結果表を追加した。ユーザー手動結果（D）とCodex offline結果（C）を別記録にし、全ブラウザ項目は **Not run**。表示されない空状態は未検証として残す。
 
 既存20件のspec / helper / 安全境界は変更せず、追加テスト0件。今回の不足はブラウザUI設定・目視の証拠なので同じDOM assertionを複製しない。CSS上書きの検査案はnative zoom / text-only機能と同一視せず、実測した問題がないためアプリCSSも変更しない。A / Rは未完了、roadmapおよび全Phase 10チェック状態は変更しない。
 
@@ -996,7 +1025,7 @@ Codexが今回read-onlyで確認した `test-results/pr15-bottom-fix/.last-run.j
 
 開始時は `docs/demo-native-zoom-results` / `9c7127e242c3d70620aa038a9ab20a8cc46767d2` / clean、worktreeは `C:/Users/owner/Desktop/sm-dev/evidence-atlas` の1つ。ローカルmainも同じHEADで、PR #16のマージをローカル履歴で確認した。fetchやリモートの最新状態の照会はしていない。
 
-PR #16マージ後に提供された**ユーザーの手動レビュー結果（D）**は、Windows 11 Home / Google Chrome 157 / Native Chrome 200%（ユーザー申告）で、Research一覧（`/demo`）、Developer Productivity、Code Quality & Reliability、Developer Experience、Adoption & Organizational Impactのページ別総合結果が **5 Pass / 0 Fail（ユーザー申告）**。Codex自身による今回のブラウザ操作・再実行・独立確認ではない。[レビュー文書のPR #17追記](public-demo-zoom-text-spacing-review.md#pr-17--native-chrome-200ユーザー提供結果記録日-2026-10-20-jst)に原文・環境情報・ページ別総合表を記録した。PR #15 / #16と過去のNot run記録はその時点の履歴として保持する。
+PR #16マージ後に提供された**ユーザーの手動レビュー結果（D）**は、Windows 11 Home / Google Chrome 157 / Native Chrome 200%（ユーザー申告）で、Research一覧（`/demo`）、Developer Productivity、Code Quality & Reliability、Developer Experience、Adoption & Organizational Impactのページ別総合結果が **5 Pass / 0 Fail（ユーザー申告）**。Codex自身による今回のブラウザ操作・再実行・独立確認ではない。[レビュー文書のPR #17追記](../archive/public-demo-zoom-text-spacing-review.md#pr-17--native-chrome-200ユーザー提供結果記録日-2026-10-20-jst)に原文・環境情報・ページ別総合表を記録した。PR #15 / #16と過去のNot run記録はその時点の履歴として保持する。
 
 原文の **「実行日:10:20」** は時刻か日付か明確でないため解釈せず、正確な実行日時・timezoneは未確認とする。本見出しの日付は文書記録日。Chromeの完全なversion / build、Windows build、対象URL / deployment SHA、window寸法、100% / 200%のviewport寸法、OS display scalingは未確認。Tab / Shift+Tab別結果、全Sourceリンクのfocus、その他各項目の詳細なPass / Fail・操作ログは未取得で、画像・動画の有無も未確認。ページ別総合Passをこれらの詳細項目の合格に展開しない。
 
@@ -1008,7 +1037,7 @@ PR #16マージ後に提供された**ユーザーの手動レビュー結果（
 
 開始時は `docs/demo-text-spacing-b2-evidence` / `553ba944db440ca67b5867891982a0129cc80436` / clean。worktreeは `C:/Users/owner/Desktop/sm-dev/evidence-atlas` の1つで、ローカルmainも同じHEAD。PR #17のマージをローカル履歴で確認した。fetch・リモート照会は行っておらず、開始HEADをレビュー対象の配備commitとは扱わない。
 
-**ユーザーによるブラウザ手動レビューの結果（証拠種別D: Developer-reported manual result）**を追記する。新規Playwright実行やCodexのブラウザ再実行・独立観測ではない。[レビュー文書のPR #18追記](public-demo-zoom-text-spacing-review.md#pr-18--b2-text-spacingユーザー提供結果記録日-2026-10-20-jst)に原文・対象条件・ページ別結果・環境情報・証拠の限界を記録した。PR #16の初期Not run、PR #17のnative Chrome 200%結果、PR #15のChromium 20/20成功は当時の履歴として保持する。
+**ユーザーによるブラウザ手動レビューの結果（証拠種別D: Developer-reported manual result）**を追記する。新規Playwright実行やCodexのブラウザ再実行・独立観測ではない。[レビュー文書のPR #18追記](../archive/public-demo-zoom-text-spacing-review.md#pr-18--b2-text-spacingユーザー提供結果記録日-2026-10-20-jst)に原文・対象条件・ページ別結果・環境情報・証拠の限界を記録した。PR #16の初期Not run、PR #17のnative Chrome 200%結果、PR #15のChromium 20/20成功は当時の履歴として保持する。
 
 ### B2の条件と報告結果（D）
 
@@ -1045,7 +1074,7 @@ CSSの具体的なcomputed値、キーボード操作の詳細ログや個別foc
 
 開始時は `docs/demo-text-only-b1-evidence` / `583db239e505b3ab9c1487ceac533a8b2e5cba0a` / clean。worktreeは `C:/Users/owner/Desktop/sm-dev/evidence-atlas` の1つ。指定の開始状態との一致とPR #18のマージをローカルGit履歴で確認した。fetch・リモート照会は行っておらず、開始HEADをレビュー対象の配備commitとは扱わない。
 
-**ユーザー提供の手動レビュー結果（証拠種別D: developer-reported manual review）**を新しいB1実行記録として追記する。Codexによるブラウザ再実行・独立確認ではない。[レビュー文書のPR #19追記](public-demo-zoom-text-spacing-review.md#pr-19--b1-firefox-text-only-200ユーザー提供結果記録日-2026-10-20-jst)に原文・環境情報・証拠の限界を保存した。PR #15〜#18の記録と初期Not runは当時の履歴として保持する。本見出しの日付は文書記録日であり、実行日時ではない。
+**ユーザー提供の手動レビュー結果（証拠種別D: developer-reported manual review）**を新しいB1実行記録として追記する。Codexによるブラウザ再実行・独立確認ではない。[レビュー文書のPR #19追記](../archive/public-demo-zoom-text-spacing-review.md#pr-19--b1-firefox-text-only-200ユーザー提供結果記録日-2026-10-20-jst)に原文・環境情報・証拠の限界を保存した。PR #15〜#18の記録と初期Not runは当時の履歴として保持する。本見出しの日付は文書記録日であり、実行日時ではない。
 
 ### B1のページ別結果（D）
 
@@ -1091,7 +1120,7 @@ Contrast・hover・sticky header・focus indicatorの追加確認、未表示emp
 
 ## PR #20 preparation — Public Demo Contrast / Visible Focus（2026-10-20 JST）
 
-Public Demoの一覧と4つのResearch詳細におけるContrast / Visible Focusの手動レビュー準備として、[検査計画・未実施の記録表](public-demo-contrast-visible-focus-review.md)を作成した。静的調査対象は `src/app/globals.css`、`src/app/demo/layout.tsx`、`src/app/demo/page.tsx`、`src/app/demo/research/[researchId]/page.tsx`、`src/components/research/research-list-items.tsx`、`src/components/research/research-detail-content.tsx`、`src/components/ui/badge.tsx`、`e2e/public-demo.spec.ts` および必要な直接依存である。
+Public Demoの一覧と4つのResearch詳細におけるContrast / Visible Focusの手動レビュー準備として、[検査計画・未実施の記録表](../archive/public-demo-contrast-visible-focus-review.md)を作成した。静的調査対象は `src/app/globals.css`、`src/app/demo/layout.tsx`、`src/app/demo/page.tsx`、`src/app/demo/research/[researchId]/page.tsx`、`src/components/research/research-list-items.tsx`、`src/components/research/research-detail-content.tsx`、`src/components/ui/badge.tsx`、`e2e/public-demo.spec.ts` および必要な直接依存である。
 
 今回はCodexの静的確認とオフライン文書確認のみ。実際のcontrast測定、ブラウザ操作、Visible Focusの目視確認はすべて未実施であり、新しい検査表のResultはすべて **Not run**。前景色・実効背景色・比率は未測定、表示未確認の空状態は **Not rendered / Not verified** として区別した。詳細の実URLは後日の一覧リンクから取得する手順とし、Research IDは推測で固定していない。
 
@@ -1101,7 +1130,7 @@ PR #15〜#19の既存証拠、ユーザー提供の手動結果、既存自動�
 
 ## PR #21 — L1 Contrast / Visible Focusユーザー手動報告（記録日: 2026-10-20 JST）
 
-Session L1の**D: Developer-reported manual review**を[Contrast / Visible Focusレビュー文書](public-demo-contrast-visible-focus-review.md)の末尾へ記録した。報告日時は2026-10-20 11:28（timezone未確認）。Windows 11（build未確認）/ Chrome 157 / viewport 1280 × 720 CSS px / zoom 100% / Light（ユーザーが明示的に訂正・確認）で、Tab / Shift+Tabの両方を確認し、**Visible Focusは全5ページPassとのユーザー手動報告**。PR #21の詳細検査対象はResearch一覧であり、4詳細ページのPassは補足のページ単位報告にとどめる。各リンク・方向別の結果、indicatorの色・幅・比率、sticky headerの部分・完全遮蔽、viewport clipping、Source / Supporting Sourceの個別focus結果は未確認。
+Session L1の**D: Developer-reported manual review**を[Contrast / Visible Focusレビュー文書](../archive/public-demo-contrast-visible-focus-review.md)の末尾へ記録した。報告日時は2026-10-20 11:28（timezone未確認）。Windows 11（build未確認）/ Chrome 157 / viewport 1280 × 720 CSS px / zoom 100% / Light（ユーザーが明示的に訂正・確認）で、Tab / Shift+Tabの両方を確認し、**Visible Focusは全5ページPassとのユーザー手動報告**。PR #21の詳細検査対象はResearch一覧であり、4詳細ページのPassは補足のページ単位報告にとどめる。各リンク・方向別の結果、indicatorの色・幅・比率、sticky headerの部分・完全遮蔽、viewport clipping、Source / Supporting Sourceの個別focus結果は未確認。
 
 Contrastは目視では視認可能との報告だが、**数値Contrastは未測定**。CSS Overviewでは **`Contrast issues`項目が表示されなかった**との報告であり、問題0件とは断定しない。前景色・実効背景色・比率を補完せず、Hover・透明度・Focus indicator等も未確認。CSS Overviewだけで適合を宣言せず、**WCAG 2.2 AAへの全面適合は未確認**とする。
 
@@ -1120,7 +1149,7 @@ Deployment ID / Commit SHA、4詳細の個別URL、会話で提供されたス�
 
 通信制限はGET・指定originのDemo / static assetのみ、redirect自動追従なし・Location検査、Service Worker block / WebSocket close。保存したbatch通信監査で許可GET **483件すべて200**、外部Vercel feedback script **31件は送信前に遮断**、通信エラー0。Source / GitHubはhref読取・Tab・hoverに限り、click / Enterは行っていない。既存E2E全体は実行せず、既存helperの判定方法を一時runnerへ取り込んだ。既存テストの成功記録は今回へ転用しない。
 
-詳細な実URL・採取時刻・15条件の結果・再現手順は[Contrast / Visible FocusのC22節](public-demo-contrast-visible-focus-review.md#pr-22-codex-browser-batch)、個別観測は[測定JSON](evidence/pr22-demo-browser-review/measurements.json)、集計は[summary](evidence/pr22-demo-browser-review/summary.json)に保持した。
+詳細な実URL・採取時刻・15条件の結果・再現手順は[Contrast / Visible FocusのC22節](../archive/public-demo-contrast-visible-focus-review.md#pr-22-codex-browser-batch)、個別観測は[測定JSON](evidence/pr22-demo-browser-review/measurements.json)、集計は[summary](evidence/pr22-demo-browser-review/summary.json)に保持した。
 
 | ページ | 1280×720 | 375×812 | 768×1024 |
 | --- | --- | --- | --- |
@@ -1143,7 +1172,7 @@ Deployment ID / Commit SHA、4詳細の個別URL、会話で提供されたス�
 
 ## PR #22 follow-up — Research list Focus regressionの最小修正（2026-10-20 JST）
 
-**ローカル修正済み・ブラウザ再検証待ち**。[分析・証拠安全確認・容量一覧](../archive/public-demo-list-focus-regression-fix.md)と[Contrast / Focus追記](public-demo-contrast-visible-focus-review.md#pr-22-list-focus-offline-fix)を参照。開始時は `test/demo-contrast-focus-batch` / `c6d97ca` で、既存の2文書変更と証拠39件だけ。既存記録は上書きせず、証拠39件の全hash一致を確認して保持した。
+**ローカル修正済み・ブラウザ再検証待ち**。[分析・証拠安全確認・容量一覧](../archive/public-demo-list-focus-regression-fix.md)と[Contrast / Focus追記](../archive/public-demo-contrast-visible-focus-review.md#pr-22-list-focus-offline-fix)を参照。開始時は `test/demo-contrast-focus-batch` / `c6d97ca` で、既存の2文書変更と証拠39件だけ。既存記録は上書きせず、証拠39件の全hash一致を確認して保持した。
 
 一覧に詳細側のscroll marginがない実装差とC22の実測を根拠に、Demo一覧mainへ上96px / sm以上64px・下8px相当のanchor scroll marginを追加した。コード変更は `src/app/demo/page.tsx` のclassName 1行。共用Research card・認証済みSaaS・詳細・色 / font / outline・既存E2E・依存は変更しない。
 

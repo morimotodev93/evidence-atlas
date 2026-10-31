@@ -1,5 +1,31 @@
 # C2 runtime isolation — Steps 2-B through 4-B3
 
+## Current C2 setup and retained boundaries
+
+Use this document with [C2 PostgreSQL setup](c2-local-postgres.md) for ongoing
+local setup. The dated steps below retain their original observations; archived
+OAuth/probe plans are evidence, not standing instructions to rerun them.
+
+The implemented [C2 session helper](../../scripts/c2-e2e-session.ts) separates
+application Smoke/Chat-mock verification from Google OAuth. Its guarded sequence
+is fixture verify (8/8), explicitly opted-in session creation, existing HTTP
+preflight, Smoke / Chat-mock suites, exact-session revoke, then fixture verify.
+Use only the validated dedicated C2 target/role and private state file; never
+reuse a normal SaaS session or modify the eight protected fixture rows. Session
+creation/revocation require their existing explicit CLI flags. Auth.js can extend
+the DB session beyond the initial 60-minute cookie lifetime: revoke explicitly;
+if state saving or cleanup fails, treat the token as active and stop before retry.
+See the [archived Route B contract](../archive/c2-e2e-session-route-b.md) for exact
+preconditions, flags and cleanup scope. No execution is authorized by this reorganization.
+
+Reported Smoke 4/4 and Chat mock-only 6/6 do not prove automated Google OAuth,
+real Chat/AI, or database-container identity. The strict native HTTPS one-GET
+probe remains unproven / No-Go; browser routing is not a host egress firewall.
+The [egress review](../archive/c2-https-egress-isolation-review.md) and
+[OAuth revalidation plan](../archive/c2-edge-normal-oauth-revalidation-plan.md)
+preserve unresolved assurance gaps. Archiving them neither accepts weaker
+isolation nor grants a new live run.
+
 > **Historical status note (2026-10-17 JST):** This document preserves the
 > investigation-stage status and stop conditions stated below. References to
 > PR #1 as Draft/unmerged or authenticated C2 E2E as pending are historical:
@@ -1258,7 +1284,7 @@ is authorized by this observation.
 
 ## Step 4-B7 — out-of-process HTTPS egress isolation design review (2026-10-13 JST)
 
-See [C2 native Chromium HTTPS probe — out-of-process egress isolation design review](./c2-https-egress-isolation-review.md).
+See [C2 native Chromium HTTPS probe — out-of-process egress isolation design review](../archive/c2-https-egress-isolation-review.md).
 
 No alternate browser probe was implemented or executed. The review distinguishes
 **destination-level outbound enforcement** (potentially achievable with a

@@ -1,5 +1,12 @@
 # Public Demo Chat — Redis Lease Recovery Design Research
 
+> Current use (2026-10-31 JST): retain the unresolved lease/recovery design and
+> safety invariants below for future work. Dated activation No-Go statements are
+> historical checkpoints; see the [current roadmap](roadmap.md) and
+> [Demo operations](../architecture/ai-architecture.md#demo-chat-operations-and-outstanding-evidence)
+> for the reported live Demo and ongoing limits. Production happy-path results
+> do not establish safe recovery, remote termination or Redis failover guarantees.
+
 調査日: **2026-10-29 (Asia/Tokyo)**。基準: **`main` / `cfb5319` / clean**。
 開始時、プロセス環境の`DEMO_CHAT_ENABLED`は未設定、`.env.local`と`.env.example`は`false`。配備先の環境変数は閲覧していない。
 

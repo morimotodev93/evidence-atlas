@@ -18,7 +18,7 @@
 
 ## 今回の承認と実行境界
 
-[PR #29計画](../planning/phase10-chat-runtime-smoke-pr29.md)を基礎に、このスレッドの今回の明示承認を適用した。承認メッセージの正確な送信時刻は本記録では取得していない。
+[PR #29計画](phase10-chat-runtime-smoke-pr29.md)を基礎に、このスレッドの今回の明示承認を適用した。承認メッセージの正確な送信時刻は本記録では取得していない。
 
 - P01: `http://localhost:3000/research/h8uo44a86ydzro3j7hl2c6pt`を既存ログインSessionで1回表示し、Historyを1回開き、既存会話があれば返却先頭1件だけを1回選択する。desktop 1 tab、観測最大60秒。アプリ経由DB読取とAuth.jsのSession読取・期限更新・期限切れ削除・Cookie変化の可能性を承認。
 - P09例外: Sentry / telemetry / Fontsの抑制を維持した上で、Node preloadが全通信経路を遮断できない残余リスクを限定的に許容。AI / embedding / Upstash / OAuth / 新規Inngest enqueue / 外部Source / 外部API接続試験 / 新規課金呼出は許可されていない。想定外の外部通信を確認したら停止。

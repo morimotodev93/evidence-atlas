@@ -27,6 +27,27 @@ explicitly configured. Uncertain leases and stop-tolerant unavailability remain
 limitations; the Production happy path does not resolve them. Other sections
 primarily describe authenticated SaaS unless explicitly labelled Demo.
 
+## Demo Chat operations and outstanding evidence
+
+Use Section 4.1 for current rate limits, lease transitions, admission shutdown and
+recovery constraints, together with the [lease design](../planning/demo-chat-lease-recovery-design.md).
+The [initial Live preflight](../archive/demo-chat-live-verification-preflight.md)
+and [Redis verification record](../archive/demo-chat-redis-verification.md) are
+historical plans/results, not today's activation status. The maintainer also
+reports Production 503 diagnostic logging checked; this does not prove every
+failure path or expose diagnostic details to visitors.
+
+The dedicated real-Upstash verification runner remains on hold under the recorded
+operator decision not to create a separate paid verification database. Do not
+substitute the Production Demo Redis. Normal session/reservation/release success
+does not complete that runner's isolation, failure or durability checks. Local
+Lua/Fengari evidence does not prove Upstash failover behavior. Preserve fail-closed
+admission, existing budgets, no memory fallback/retry/refund, and uncertain leases:
+local timeout/abort/expiry is not remote termination evidence and never justifies
+force deletion, namespace rotation or extra capacity to forget outstanding work.
+Two uncertain leases can leave Chat unavailable indefinitely. Admission stop does
+not cancel remote work; recovery still requires the existing evidence safeguards.
+
 ## C2 browser-test runtime boundary
 
 The opt-in validated C2 runtime keeps real Google OAuth and the isolated application
@@ -635,7 +656,7 @@ callers; they do not establish live Redis durability/cluster behavior or real
 provider termination. No external Groq, Turnstile or Redis endpoint is used by
 these tests. Public Demo browser E2E keeps its existing non-GET prohibition.
 
-An explicitly invoked [Redis verification runner](../planning/demo-chat-redis-verification.md)
+An explicitly invoked [Redis verification runner](../archive/demo-chat-redis-verification.md)
 adds real Upstash compatibility checks using only disposable test namespaces and
 dedicated test credentials. It is excluded from normal Vitest discovery and has
 not been executed as part of this hardening task. Production lease expiry behavior
@@ -842,7 +863,7 @@ This distinction keeps AI-generated text visually separate from evidence referen
 
 The generation route (`POST /research/[id]/chat`) uses Upstash Redis and `@upstash/ratelimit` by default, with a sliding window of 10 requests per minute. The limiter identifier is `workspaceId:userId`, so the limit applies per Workspace × User. The standard backend, prefix and analytics configuration are retained in production.
 
-Normal local development may explicitly select the server-only `CHAT_RATE_LIMIT_BACKEND=memory`, but only when `NODE_ENV=development`. This backend counts up to ten accepted requests in a rolling 60-second timestamp window per identifier. It stores at most ten timestamps per active key, prunes expired timestamps and keys on the next check, and uses no Redis or added dependencies. Its counters belong to one module instance/process, reset on restart or module reload, and are not shared across workers. It is a development aid rather than a distributed production limit; its timestamp algorithm is separate from the Upstash SDK's sliding-window implementation. See [local enablement](../../README.md#local-chat-without-upstash).
+Normal local development may explicitly select the server-only `CHAT_RATE_LIMIT_BACKEND=memory`, but only when `NODE_ENV=development`. This backend counts up to ten accepted requests in a rolling 60-second timestamp window per identifier. It stores at most ten timestamps per active key, prunes expired timestamps and keys on the next check, and uses no Redis or added dependencies. Its counters belong to one module instance/process, reset on restart or module reload, and are not shared across workers. It is a development aid rather than a distributed production limit; its timestamp algorithm is separate from the Upstash SDK's sliding-window implementation. See [local enablement](../../README.md#local-development).
 
 Unset/empty backend settings and explicit `upstash` use the standard backend. Its credentials are checked before constructing Redis, preserving `Redis.fromEnv()`'s `UPSTASH_REDIS_REST_URL` / `UPSTASH_REDIS_REST_TOKEN` and `KV_REST_API_URL` / `KV_REST_API_TOKEN` fallbacks. Missing credentials, unsupported backends, and `memory` outside development fail closed with HTTP `503`, a fixed safe message and `code: "CHAT_RATE_LIMIT_NOT_CONFIGURED"`. They never fall back to unlimited access or to memory. Redis initialization/request exceptions instead return `503` with `code: "CHAT_RATE_LIMIT_UNAVAILABLE"`, without exposing the exception, credentials or destination.
 

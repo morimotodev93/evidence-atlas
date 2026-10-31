@@ -1,8 +1,8 @@
 # Public Demo — Zoom / Text Spacing Review（PR #16準備）
 
-> **現在状態の補足（PR #39まで）:** 本書の初期Not runや後続PR時点の未検証事項は履歴として保持する。PR #37で現在の詳細表示順はSources → Findings → Discussion → Conclusion。PR #38のChat境界（1023px / 1024px）・focus・mobile回帰とユーザー実ブラウザ確認、PR #39のCSS反映済みVercel Previewに対するユーザー実行E2E 20/20は[後続の検証記録](phase10-quality-acceptance.md#pr37-39-status-alignment)を参照する。これらを本書のnative zoom / text-only / spacingの再検証やAccessibility / Responsive全体の完了には読み替えない。
+> **現在状態の補足（PR #39まで）:** 本書の初期Not runや後続PR時点の未検証事項は履歴として保持する。PR #37で現在の詳細表示順はSources → Findings → Discussion → Conclusion。PR #38のChat境界（1023px / 1024px）・focus・mobile回帰とユーザー実ブラウザ確認、PR #39のCSS反映済みVercel Previewに対するユーザー実行E2E 20/20は[後続の検証記録](../planning/phase10-quality-acceptance.md#pr37-39-status-alignment)を参照する。これらを本書のnative zoom / text-only / spacingの再検証やAccessibility / Responsive全体の完了には読み替えない。
 
-記録日: 2026-10-20 JST。これは手動レビューの手順・未記入の結果表であり、ブラウザ成功報告ではない。[Phase 10受入条件](phase10-quality-acceptance.md#a--accessibility-review)のA / Rを補う。参照先の正式な受入条件は変更しない。
+記録日: 2026-10-20 JST。これは手動レビューの手順・未記入の結果表であり、ブラウザ成功報告ではない。[Phase 10受入条件](../planning/phase10-quality-acceptance.md#a--accessibility-review)のA / Rを補う。参照先の正式な受入条件は変更しない。
 
 ## 開始状態・既存証拠
 
@@ -10,7 +10,7 @@
 - HEAD: `15d5cb44d1a283a54fb1a6e28146c74381d09ea8`。ローカル`main`も一致。fetchしていないためリモートの最新状態は未確認。
 - worktree: `C:/Users/owner/Desktop/sm-dev/evidence-atlas`、単一worktree、開始時`git status --short`は空（clean）。
 - Node.js `24.16.0` / pnpm `12.9.1`（packageManagerと一致）。依存追加なし。
-- PR #15の20/20は[既存のユーザー提供結果（D）](phase10-quality-acceptance.md#pr-15-final-preview-results--2020-passed-2026-10-20-jst)。今回の再実行ではない。PR #4のWindows Chrome 200%部分報告も[roadmapの履歴](roadmap.md)に保持する。環境値・ページ別結果が不足するため下表をPassで埋めない。
+- PR #15の20/20は[既存のユーザー提供結果（D）](../planning/phase10-quality-acceptance.md#pr-15-final-preview-results--2020-passed-2026-10-20-jst)。今回の再実行ではない。PR #4のWindows Chrome 200%部分報告も[roadmapの履歴](../planning/roadmap.md)に保持する。環境値・ページ別結果が不足するため下表をPassで埋めない。
 
 `e2e/public-demo.spec.ts`の既存20件は、root/list/代表詳細/read-only/404/無効endpointの6件、追加3詳細desktopの3件、一覧・代表詳細の狭幅2件、代表詳細keyboardの3幅3件、追加3詳細の狭幅2幅6件で構成される。構造・本文・件数・存在する空状態・実Tab/Shift+Tab/Enter・Back・Source focusを既に検査する。今回はテスト追加 **0件**、spec / helper / Playwright設定の変更なし。目視とブラウザUI設定が不足しているので、同じDOM assertionを増やして代替しない。
 
@@ -281,7 +281,7 @@ PR #16で準備したB2の検証条件は、Line height `1.5`、Paragraph spacin
 - 通常SaaS画面のResponsive確認（375px / 768px / desktop）。
 - Chatの1023px / 1024px境界・keyboard確認。
 
-**Phase 10 Accessibility review / Responsive UI reviewは引き続き未完了。** 本追記と[品質受入文書のPR #18追記](phase10-quality-acceptance.md#pr-18--b2-text-spacingユーザー提供結果記録日-2026-10-20-jst)のみを変更し、roadmap・Phase 10チェック状態は変更しない。
+**Phase 10 Accessibility review / Responsive UI reviewは引き続き未完了。** 本追記と[品質受入文書のPR #18追記](../planning/phase10-quality-acceptance.md#pr-18--b2-text-spacingユーザー提供結果記録日-2026-10-20-jst)のみを変更し、roadmap・Phase 10チェック状態は変更しない。
 
 今回のCodex確認はローカルGit状態・Markdown表・相対リンク・差分のoffline確認のみ。アプリCSS・テスト・依存は変更せず、テスト再実行、ブラウザE2E、外部Previewアクセス、server起動、DB / OAuth / Session / AI / Cloud接続、production build / deployは行っていない。commit / push / PR作成 / mergeを行わず、未コミットのレビュー可能な状態で停止する。
 
@@ -351,4 +351,4 @@ viewport:1920,768,425
 
 Contrast・hover・sticky header・focus indicatorの追加確認、未表示empty stateの視覚検証、通常SaaS画面のResponsive検証（375px / 768px / desktop）、Chatの1023px / 1024px境界・keyboard確認が残る。screen reader、他browser・物理device、dark theme、全contrast全状態等の既存deferred riskも保持する。**Phase 10 Accessibility review / Responsive UI reviewの全体受入は引き続き未完了。** roadmapのチェックボックスは変更しない。
 
-変更は本追記と[品質受入文書のPR #19追記](phase10-quality-acceptance.md#pr-19--b1-firefox-text-only-200ユーザー提供結果記録日-2026-10-20-jst)のみ。CodexはGit状態・Markdown表・相対リンク・差分のoffline確認だけを行い、アプリ修正・テスト追加や再実行、実ブラウザ・外部Previewアクセス、DB / OAuth / Session / AI / Cloud接続、build / deploy、commit / push / PR作成 / mergeは行わない。未コミットで停止する。
+変更は本追記と[品質受入文書のPR #19追記](../planning/phase10-quality-acceptance.md#pr-19--b1-firefox-text-only-200ユーザー提供結果記録日-2026-10-20-jst)のみ。CodexはGit状態・Markdown表・相対リンク・差分のoffline確認だけを行い、アプリ修正・テスト追加や再実行、実ブラウザ・外部Previewアクセス、DB / OAuth / Session / AI / Cloud接続、build / deploy、commit / push / PR作成 / mergeは行わない。未コミットで停止する。

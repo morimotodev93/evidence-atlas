@@ -144,7 +144,7 @@ Smoke 4 / Chat 6 件の期待件数、各シナリオと runner の成功を確�
   private state ファイル、環境ファイルの秘密値も読み出していない。
 - 実装、認証仕様、ロードマップの完了判定は変更していない。本調査の変更成果物は本レポートのみ。
 - 提供ログにより独立 preflight と cleanup の成功報告は得られたが、認証済み Playwright E2E は設定検査で停止している。
-  [Route B の検証方針](../planning/c2-e2e-session-route-b.md) にある実 E2E の検証完了とは扱わない。
+  [Route B の検証方針](c2-e2e-session-route-b.md) にある実 E2E の検証完了とは扱わない。
 
 資料は対象 checkout のソースとインストール済み Playwright `1.63.0` を一次根拠とした。
 外部仕様や最新版への一般化は行っていない。
