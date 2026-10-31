@@ -2667,143 +2667,143 @@ type ContractBase = Omit<
       readonly defaults: readonly [
         {
           readonly ref: {
+            readonly entry: 'comment';
+            readonly field: 'id';
             readonly namespace: 'public';
-            readonly table: 'comment';
-            readonly column: 'id';
           };
           readonly onCreate: { readonly kind: 'generator'; readonly id: 'cuid2' };
         },
         {
           readonly ref: {
+            readonly entry: 'comment';
+            readonly field: 'updatedAt';
             readonly namespace: 'public';
-            readonly table: 'comment';
-            readonly column: 'updatedAt';
           };
           readonly onCreate: { readonly kind: 'generator'; readonly id: 'instantNow' };
           readonly onUpdate: { readonly kind: 'generator'; readonly id: 'instantNow' };
         },
         {
           readonly ref: {
+            readonly entry: 'conversation';
+            readonly field: 'id';
             readonly namespace: 'public';
-            readonly table: 'conversation';
-            readonly column: 'id';
           };
           readonly onCreate: { readonly kind: 'generator'; readonly id: 'cuid2' };
         },
         {
           readonly ref: {
+            readonly entry: 'conversation';
+            readonly field: 'updatedAt';
             readonly namespace: 'public';
-            readonly table: 'conversation';
-            readonly column: 'updatedAt';
           };
           readonly onCreate: { readonly kind: 'generator'; readonly id: 'instantNow' };
           readonly onUpdate: { readonly kind: 'generator'; readonly id: 'instantNow' };
         },
         {
           readonly ref: {
+            readonly entry: 'finding';
+            readonly field: 'id';
             readonly namespace: 'public';
-            readonly table: 'finding';
-            readonly column: 'id';
           };
           readonly onCreate: { readonly kind: 'generator'; readonly id: 'cuid2' };
         },
         {
           readonly ref: {
+            readonly entry: 'finding';
+            readonly field: 'updatedAt';
             readonly namespace: 'public';
-            readonly table: 'finding';
-            readonly column: 'updatedAt';
           };
           readonly onCreate: { readonly kind: 'generator'; readonly id: 'instantNow' };
           readonly onUpdate: { readonly kind: 'generator'; readonly id: 'instantNow' };
         },
         {
           readonly ref: {
+            readonly entry: 'message';
+            readonly field: 'id';
             readonly namespace: 'public';
-            readonly table: 'message';
-            readonly column: 'id';
           };
           readonly onCreate: { readonly kind: 'generator'; readonly id: 'cuid2' };
         },
         {
           readonly ref: {
+            readonly entry: 'organization';
+            readonly field: 'id';
             readonly namespace: 'public';
-            readonly table: 'organization';
-            readonly column: 'id';
           };
           readonly onCreate: { readonly kind: 'generator'; readonly id: 'cuid2' };
         },
         {
           readonly ref: {
+            readonly entry: 'research';
+            readonly field: 'id';
             readonly namespace: 'public';
-            readonly table: 'research';
-            readonly column: 'id';
           };
           readonly onCreate: { readonly kind: 'generator'; readonly id: 'cuid2' };
         },
         {
           readonly ref: {
+            readonly entry: 'research';
+            readonly field: 'updatedAt';
             readonly namespace: 'public';
-            readonly table: 'research';
-            readonly column: 'updatedAt';
           };
           readonly onCreate: { readonly kind: 'generator'; readonly id: 'instantNow' };
           readonly onUpdate: { readonly kind: 'generator'; readonly id: 'instantNow' };
         },
         {
           readonly ref: {
+            readonly entry: 'source';
+            readonly field: 'id';
             readonly namespace: 'public';
-            readonly table: 'source';
-            readonly column: 'id';
           };
           readonly onCreate: { readonly kind: 'generator'; readonly id: 'cuid2' };
         },
         {
           readonly ref: {
+            readonly entry: 'source';
+            readonly field: 'updatedAt';
             readonly namespace: 'public';
-            readonly table: 'source';
-            readonly column: 'updatedAt';
           };
           readonly onCreate: { readonly kind: 'generator'; readonly id: 'instantNow' };
           readonly onUpdate: { readonly kind: 'generator'; readonly id: 'instantNow' };
         },
         {
           readonly ref: {
+            readonly entry: 'tag';
+            readonly field: 'id';
             readonly namespace: 'public';
-            readonly table: 'tag';
-            readonly column: 'id';
           };
           readonly onCreate: { readonly kind: 'generator'; readonly id: 'cuid2' };
         },
         {
           readonly ref: {
+            readonly entry: 'tag';
+            readonly field: 'updatedAt';
             readonly namespace: 'public';
-            readonly table: 'tag';
-            readonly column: 'updatedAt';
           };
           readonly onCreate: { readonly kind: 'generator'; readonly id: 'instantNow' };
           readonly onUpdate: { readonly kind: 'generator'; readonly id: 'instantNow' };
         },
         {
           readonly ref: {
+            readonly entry: 'user';
+            readonly field: 'id';
             readonly namespace: 'public';
-            readonly table: 'user';
-            readonly column: 'id';
           };
           readonly onCreate: { readonly kind: 'generator'; readonly id: 'cuid2' };
         },
         {
           readonly ref: {
+            readonly entry: 'workspace';
+            readonly field: 'id';
             readonly namespace: 'public';
-            readonly table: 'workspace';
-            readonly column: 'id';
           };
           readonly onCreate: { readonly kind: 'generator'; readonly id: 'cuid2' };
         },
         {
           readonly ref: {
+            readonly entry: 'workspace';
+            readonly field: 'updatedAt';
             readonly namespace: 'public';
-            readonly table: 'workspace';
-            readonly column: 'updatedAt';
           };
           readonly onCreate: { readonly kind: 'generator'; readonly id: 'instantNow' };
           readonly onUpdate: { readonly kind: 'generator'; readonly id: 'instantNow' };

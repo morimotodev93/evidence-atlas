@@ -3684,7 +3684,7 @@
     }
   },
   "execution": {
-    "executionHash": "7eeb9d19a5a3abce6c8e2ab971d9f61aeba6073edbf7ff4a812155f396855c3e",
+    "executionHash": "b4ab5f58c64d4b9bcefa505214f92ce0d84f8c62be628b1006fecbbaff86710a",
     "mutations": {
       "defaults": [
         {
@@ -3693,9 +3693,9 @@
             "kind": "generator"
           },
           "ref": {
-            "column": "id",
-            "namespace": "public",
-            "table": "aiUsageEvent"
+            "entry": "aiUsageEvent",
+            "field": "id",
+            "namespace": "public"
           }
         },
         {
@@ -3704,9 +3704,9 @@
             "kind": "generator"
           },
           "ref": {
-            "column": "id",
-            "namespace": "public",
-            "table": "comment"
+            "entry": "comment",
+            "field": "id",
+            "namespace": "public"
           }
         },
         {
@@ -3719,9 +3719,9 @@
             "kind": "generator"
           },
           "ref": {
-            "column": "updatedAt",
-            "namespace": "public",
-            "table": "comment"
+            "entry": "comment",
+            "field": "updatedAt",
+            "namespace": "public"
           }
         },
         {
@@ -3730,9 +3730,9 @@
             "kind": "generator"
           },
           "ref": {
-            "column": "id",
-            "namespace": "public",
-            "table": "conversation"
+            "entry": "conversation",
+            "field": "id",
+            "namespace": "public"
           }
         },
         {
@@ -3745,9 +3745,9 @@
             "kind": "generator"
           },
           "ref": {
-            "column": "updatedAt",
-            "namespace": "public",
-            "table": "conversation"
+            "entry": "conversation",
+            "field": "updatedAt",
+            "namespace": "public"
           }
         },
         {
@@ -3756,9 +3756,9 @@
             "kind": "generator"
           },
           "ref": {
-            "column": "id",
-            "namespace": "public",
-            "table": "finding"
+            "entry": "finding",
+            "field": "id",
+            "namespace": "public"
           }
         },
         {
@@ -3771,9 +3771,9 @@
             "kind": "generator"
           },
           "ref": {
-            "column": "updatedAt",
-            "namespace": "public",
-            "table": "finding"
+            "entry": "finding",
+            "field": "updatedAt",
+            "namespace": "public"
           }
         },
         {
@@ -3782,9 +3782,9 @@
             "kind": "generator"
           },
           "ref": {
-            "column": "id",
-            "namespace": "public",
-            "table": "message"
+            "entry": "message",
+            "field": "id",
+            "namespace": "public"
           }
         },
         {
@@ -3793,9 +3793,9 @@
             "kind": "generator"
           },
           "ref": {
-            "column": "id",
-            "namespace": "public",
-            "table": "organization"
+            "entry": "organization",
+            "field": "id",
+            "namespace": "public"
           }
         },
         {
@@ -3804,9 +3804,9 @@
             "kind": "generator"
           },
           "ref": {
-            "column": "id",
-            "namespace": "public",
-            "table": "research"
+            "entry": "research",
+            "field": "id",
+            "namespace": "public"
           }
         },
         {
@@ -3819,9 +3819,9 @@
             "kind": "generator"
           },
           "ref": {
-            "column": "updatedAt",
-            "namespace": "public",
-            "table": "research"
+            "entry": "research",
+            "field": "updatedAt",
+            "namespace": "public"
           }
         },
         {
@@ -3830,9 +3830,9 @@
             "kind": "generator"
           },
           "ref": {
-            "column": "id",
-            "namespace": "public",
-            "table": "retrievalChunk"
+            "entry": "retrievalChunk",
+            "field": "id",
+            "namespace": "public"
           }
         },
         {
@@ -3845,9 +3845,9 @@
             "kind": "generator"
           },
           "ref": {
-            "column": "updatedAt",
-            "namespace": "public",
-            "table": "retrievalChunk"
+            "entry": "retrievalChunk",
+            "field": "updatedAt",
+            "namespace": "public"
           }
         },
         {
@@ -3856,9 +3856,9 @@
             "kind": "generator"
           },
           "ref": {
-            "column": "id",
-            "namespace": "public",
-            "table": "source"
+            "entry": "source",
+            "field": "id",
+            "namespace": "public"
           }
         },
         {
@@ -3871,9 +3871,9 @@
             "kind": "generator"
           },
           "ref": {
-            "column": "updatedAt",
-            "namespace": "public",
-            "table": "source"
+            "entry": "source",
+            "field": "updatedAt",
+            "namespace": "public"
           }
         },
         {
@@ -3882,9 +3882,9 @@
             "kind": "generator"
           },
           "ref": {
-            "column": "id",
-            "namespace": "public",
-            "table": "tag"
+            "entry": "tag",
+            "field": "id",
+            "namespace": "public"
           }
         },
         {
@@ -3897,9 +3897,9 @@
             "kind": "generator"
           },
           "ref": {
-            "column": "updatedAt",
-            "namespace": "public",
-            "table": "tag"
+            "entry": "tag",
+            "field": "updatedAt",
+            "namespace": "public"
           }
         },
         {
@@ -3908,9 +3908,9 @@
             "kind": "generator"
           },
           "ref": {
-            "column": "id",
-            "namespace": "public",
-            "table": "user"
+            "entry": "user",
+            "field": "id",
+            "namespace": "public"
           }
         },
         {
@@ -3919,9 +3919,9 @@
             "kind": "generator"
           },
           "ref": {
-            "column": "id",
-            "namespace": "public",
-            "table": "workspace"
+            "entry": "workspace",
+            "field": "id",
+            "namespace": "public"
           }
         },
         {
@@ -3934,9 +3934,9 @@
             "kind": "generator"
           },
           "ref": {
-            "column": "updatedAt",
-            "namespace": "public",
-            "table": "workspace"
+            "entry": "workspace",
+            "field": "updatedAt",
+            "namespace": "public"
           }
         }
       ]

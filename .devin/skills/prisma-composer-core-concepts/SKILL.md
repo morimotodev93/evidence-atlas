@@ -2,27 +2,27 @@
 name: prisma-composer-core-concepts
 metadata:
   library: "@prisma/composer"
-  library_version: "0.23.0"
+  library_version: "0.26.0"
   version: 2026.9.1
 description: >-
   Use when deploying or managing an app that uses Prisma Composer
   (`@prisma/composer`): wiring its services and Modules, running it locally,
   testing composed services, or standing up / tearing down an environment.
-  Triggers on "prisma composer", "@prisma/composer", "prisma app", the
-  `prisma-composer` CLI, `compute()`, `module()`, `contract()`,
+  Triggers on "prisma composer", "@prisma/composer", "prisma app",
+  `prisma deploy`, `prisma dev`, `compute()`, `module()`, `contract()`,
   `service.load()`, `mockService`, `bootstrapService`.
 ---
 
 # Prisma Composer core concepts
 
 A **Prisma App** is a tree of typed declarations composed in TypeScript and
-handed to the `prisma-composer` CLI. This file covers structures,
-hierarchies, relationships, and workflows: the concepts you cannot observe
-from the code or the CLI's help output. It is not a CLI reference; discover
-any individual command and its flags with `--help`. Commands named here
-belong to the `prisma-composer` CLI itself; a host CLI that embeds Composer
-may not carry every verb, so confirm a command exists via `--help` rather
-than inferring it. The Prisma platform moves fast, so treat this file as the
+handed to the `prisma` CLI, which has two Composer commands: `prisma deploy`
+and `prisma dev`. Teardown and logs are not commands; they are the `destroy`
+and `log` operations of `@prisma/composer/control`, called from a script.
+This file covers structures, hierarchies, relationships, and workflows: the
+concepts you cannot observe from the code or the CLI's help output. It is not
+a CLI reference; discover each command's flags with `prisma <command> --help`
+rather than inferring them. The Prisma platform moves fast, so treat this file as the
 stable conceptual core and find current, fuller documentation at
 <https://www.prisma.io/docs>. For working code, read `examples/` in the
 prisma/composer repo.
@@ -87,8 +87,8 @@ is a couple of lines.
 Within the entry graph (everything reachable from `module.ts`), write
 relative imports with explicit `.ts` extensions (`./service.ts`, with
 `allowImportingTsExtensions` in tsconfig): that form resolves everywhere.
-The `prisma-composer` CLI also maps `./service.js` and extensionless
-`./service` to the `.ts` source, but other hosts may not.
+`prisma deploy` and `prisma dev` also map `./service.js` and extensionless
+`./service` to the `.ts` source, but other tools may not.
 
 ## The service node is the only doorway
 
@@ -216,13 +216,37 @@ deploy. Rules that bite:
    runtime env for prerendered routes.
 4. **Always build before `deploy` or `dev`.** Neither builds for you.
 
-Deploy configuration lives in `prisma-composer.config.ts` (or `.mts`, `.mjs`,
-`.js`; nearest ancestor of the entry wins, `.ts` first within a directory).
-It registers extensions (`prismaCloud()`, `nodeBuild()`, `nextjsBuild()` when
-the app has a Next.js service) and the deploy-state backend
-(`prismaState()`). It is read by the CLI's operations (deploy, destroy, and
-dev; a `dev` run without one refuses, naming the missing file) and never
-imported by app code.
+Deploy configuration is the `composer` section of `prisma.config.ts`, and
+nothing else. It registers extensions (`prismaCloud()`, `nodeBuild()`,
+`nextjsBuild()` when the app has a Next.js service) and the deploy-state
+backend (`prismaState()`):
+
+```ts
+// prisma.config.ts
+import { defineConfig as composer } from '@prisma/composer/config';
+import { nodeBuild } from '@prisma/composer/node/control';
+import { prismaCloud, prismaState } from '@prisma/composer-prisma-cloud/control';
+import { definePrismaConfig } from 'prisma/config';
+
+export default definePrismaConfig({
+  composer: composer({ extensions: [prismaCloud(), nodeBuild()], state: prismaState() }),
+});
+```
+
+The commands find `prisma.config.ts` from the directory they run in, walking up
+to the repository root; the nearest file that declares `composer` wins, and its
+section is used whole, never merged key by key. Only `extensions` and `state`
+are allowed; any other key is an error. App code never imports the file.
+
+A separate `prisma-composer.config.ts` is no longer read, and the old setup is
+refused, never silently ignored: `CONFIG.SECTION_MISSING` when no loaded
+`prisma.config.ts` declares a `composer` section, `CONFIG.FIELD_RETIRED` when
+the section still has `configPath`, `CONFIG.FILE_RETIRED` when a
+`prisma-composer.config.*` sits next to the declaring `prisma.config.ts`; all
+three under the CLI's `CLI.CONFIG_SECTION_INVALID`. The fix for all three is to move the old
+file's `extensions` and `state` into the section and delete the old file.
+`@prisma/composer-cli/family` no longer exports `ComposerSection`; the
+section's type is `PrismaAppConfig` from `@prisma/composer/config`.
 
 ## Databases and migrations
 
@@ -252,6 +276,11 @@ including the first schema of a new database, follows one loop:
 4. Commit `migrations/` with the change, then deploy. A fresh database
    replays the whole path from empty.
 
+Every service that uses the database deploys only after its migration
+completes: a failed migration means the new code does not ship. The old
+code serves against the new schema until the new deployment is live, so
+keep each migration compatible with the code it replaces.
+
 If no authored path reaches the target contract, deploy (and `dev` against a
 stale local database) refuses with `MIGRATION_PATH_NOT_FOUND`; its message
 lists the two ways out: author the missing migration, or, when iterating
@@ -267,9 +296,14 @@ complete pattern.
 
 Deploy compares the declared topology against recorded deploy state and
 applies only the difference. Re-deploying with nothing changed is a no-op;
-removing a node removes its deployed resource. The Prisma Cloud target
-requires exactly two environment variables: `PRISMA_SERVICE_TOKEN` and
-`PRISMA_WORKSPACE_ID`. There is no interactive login.
+removing a node removes its deployed resource. `prisma deploy` needs a signed-in
+identity: `prisma auth login` stores a session on a developer machine, and
+`PRISMA_SERVICE_TOKEN` overrides it in CI. The `/control` operations, and so
+a destroy script, never use that session: `deploy` and `destroy` read
+`PRISMA_SERVICE_TOKEN` and `PRISMA_WORKSPACE_ID` from the environment (both
+in the workspace's Console settings); `dev` and `log` read neither. The
+`prisma` bin starts under Node; when the modules `module.ts` imports use Bun
+APIs, run it under Bun (`bun node_modules/.bin/prisma deploy module.ts`).
 
 **Stages.** A stage is an environment name chosen on the command line at
 deploy time, never written in the topology. The identical graph deploys
@@ -278,8 +312,14 @@ stage is a Branch of it, with its own running services, its own empty
 database, its own configuration. A stage name must be a valid git ref name;
 an invalid name is a hard error.
 
-**Destroy** always requires an explicit target: a bare destroy is an error,
-and naming a stage and production together is too. Destroying a stage
+**Destroy** is the `destroy` operation, and its `target` is required:
+`{ kind: 'stage', stage }` or `{ kind: 'production' }`, never a default:
+
+```ts
+await destroy({ entry: 'module.ts', target: { kind: 'stage', stage: 'pr-42' }, config });
+```
+
+Destroying a stage
 deletes its Branch after removing its resources. Destroying production
 removes only the resources inside the production Branch, never the Branch
 itself directly; once the Project is empty it is deleted too, and that
@@ -295,7 +335,7 @@ ancestor directories. Windows resolves `alchemy.exe`, then `alchemy.cmd`,
 then the extensionless shim; POSIX resolves `alchemy`. No global Alchemy
 installation is needed.
 
-1. Deploy and destroy write the pipeline's results to a generated, gitignored
+1. The deploy and destroy operations write the pipeline's results to a generated, gitignored
    stack file at `.prisma-composer/alchemy.run.ts`, then run the alchemy CLI
    against it as a child process; `dev` does the same at
    `.prisma-composer/dev/alchemy.run.ts` with local providers. The file
@@ -306,8 +346,9 @@ installation is needed.
    path; running `alchemy deploy .prisma-composer/alchemy.run.ts` directly
    separates "the framework computed the wrong thing" from "the engine or
    platform rejected the right thing". An engine failure surfaces as
-   `DEPLOY.ENGINE_FAILED` carrying the exit code and that reproduce command;
-   the child's live output streams to the terminal either way.
+   `DEPLOY.ENGINE_FAILED` carrying the exit code, the engine's own error
+   lines (credentials redacted, capped at 1000 characters) and that reproduce
+   command; the child's live output streams to the terminal either way.
 3. Destroy evaluates the same stack program as deploy, and evaluating it
    packages the assembled bundles, so **an app must be built before it can
    be torn down**.
@@ -336,17 +377,27 @@ and crash the consumer at boot). Fix whichever end is wrong; don't mark the
 param `optional` unless absent really is legal. Only reachable if you
 authored the connection or an extension on one side.
 
-**Driving deploys from code.** `@prisma/composer/control` exposes typed
-`deploy`, `destroy`, `dev`, and `log` returning structured results. Failures
-come back as `{ ok: false, failure }` with a dotted `failure.code` from a
-closed registry (e.g. `ASSEMBLE.BUILD_FAILED`, `DEPLOY.ENGINE_FAILED`,
-`DEPS.EFFECT_VERSION_CONFLICT`); branch on the code, not the message. A
+**Driving deploys from code.** A script imports only
+`@prisma/composer/control`; the extensions' `/control` entries are imported
+only by `prisma.config.ts` (ADR-0017). `@prisma/composer/control` exposes typed
+`deploy`, `destroy`, `dev`, and `log` returning structured results;
+`prisma deploy` and `prisma dev` render `deploy` and `dev`. Each takes
+a required `config: { value, file }` (`ComposerConfigSource`): the `composer`
+export of your `prisma.config.ts` and that file's path; a relative `file`
+resolves against `cwd`, so build it from `import.meta.url`. The operations
+never look for a config file, but refuse what the CLI refuses before any work
+starts (`CONFIG.FIELD_UNKNOWN` for the whole export instead of its `composer`
+property, `CONFIG.FILE_RETIRED`, `CONFIG.FILE_MISSING`); the deploy re-imports
+`file`, so `value` must be its `composer` export. Failures come back as
+`{ ok: false, failure }` with a dotted `failure.code` from a closed registry
+(e.g. `ASSEMBLE.BUILD_FAILED`, `DEPLOY.ENGINE_FAILED`,
+`DEPS.EXECUTOR_UNLOADABLE`); branch on the code, not the message. A
 non-structured rejection out of an operation is a bug in composer, not an
 expected failure.
 
 ## Local development
 
-The `dev` command runs the whole app on this machine, wired as it deploys,
+`prisma dev` runs the whole app on this machine, wired as it deploys,
 against local emulators. No cloud credentials are needed or read. Concepts
 that surprise:
 
@@ -356,13 +407,20 @@ that surprise:
 2. Ctrl-C stops the app's processes but leaves local databases, buckets, and
    their data up: the next `dev` is a warm start. Starting clean, wiping
    this app's local instances and data first, is an explicit opt-in flag.
-3. `dev` does not print service logs; `log` is a separate, read-only command
-   that follows the already-running app's merged logs. It never builds,
-   provisions, starts, or stops anything.
-4. An unset secret doesn't block a local run: it becomes a placeholder plus a
+3. `dev` does not print service logs. The `log` operation follows the
+   already-running app's merged logs; it never builds, provisions, starts, or
+   stops anything:
+
+   ```ts
+   const attached = await log({ entry: 'module.ts', config, tail: 20, signal });
+   if (attached.ok) for await (const { service, line } of attached.value.lines) console.log(service, line);
+   ```
+4. `dev` reads `prisma.config.ts` once, at start, and watches it: after an
+   edit it says so and pauses rebuilds until you restart `dev`.
+5. An unset secret doesn't block a local run: it becomes a placeholder plus a
    warning, and only the code path that spends it fails, at the external
    service it calls.
-5. Windows isn't supported yet.
+6. Windows isn't supported yet.
 
 Local Postgres runs on `@prisma/dev`, which `@prisma/composer-prisma-cloud`
 declares as its own dependency (`^0.25.2`) and resolves from its own package.
@@ -432,10 +490,12 @@ today the blocks above plus your own Modules are the whole set, so verify a
 
 ## Failure modes quick reference
 
-1. **Every `prisma-composer` command halts at start-up on an `effect`
-   version conflict** (`Dependency conflict: alchemy resolves effect@...`).
-   The app, or one of its dependencies, pins a different `effect` and the
-   package manager hoisted it over Composer's pin. Match the app's own
+1. **`prisma deploy` and `prisma dev` stop with `CLI.CONFIG_UNREADABLE` on an
+   `effect` version conflict** (`prisma.config.ts could not be evaluated:`
+   followed by a module error from inside alchemy, such as
+   `Schema.TaggedError is not a function`). The extensions in the `composer`
+   section import alchemy, and the app, or one of its dependencies, pins a
+   different `effect` that the package manager hoisted over Composer's pin. Match the app's own
    `effect` to `@prisma/composer`'s exact pin, or force it with
    `"overrides": { "effect": "<pin>" }` in the app's `package.json` (yarn:
    `resolutions`; pnpm: `pnpm.overrides`), then reinstall. A plain Composer
@@ -486,9 +546,10 @@ today the blocks above plus your own Modules are the whole set, so verify a
 
 Name the gap instead of inventing an API:
 
-1. **No interactive auth in the `prisma-composer` CLI.** Its deploys
-   authenticate only via a static
-   `PRISMA_SERVICE_TOKEN`; there is no `login` flow.
+1. **No `prisma` command for teardown or logs.** Use the `destroy` and `log`
+   operations of `@prisma/composer/control` from a script. A destroy script
+   cannot use the `prisma auth login` session; it needs `PRISMA_SERVICE_TOKEN`
+   and `PRISMA_WORKSPACE_ID` in the environment.
 2. **No in-memory contract bindings.** A dependency can't yet be wired to a
    co-located handler without HTTP; use `bootstrapService` with a loopback
    fake.

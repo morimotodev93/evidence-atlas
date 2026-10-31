@@ -514,6 +514,8 @@ The Prisma schema defines the persistent data model of Evidence Atlas.
 
 The contract source is `src/prisma/contract.prisma`, with generated `contract.json` and `contract.d.ts` alongside it. The baseline migration is stored under `migrations/app/20260919T0109_baseline/`.
 
+The scoped Prisma upgrade uses CLI `8.0.0-rc.20` and PostgreSQL ORM/pgvector `8.0.0-rc.14`. Execution-default references in generated artifacts and historical application snapshots use `entry`/`field` instead of `table`/`column`. Storage and profile hashes, migration definitions, and the application schema are unchanged; no database update is required by this partial upgrade. See the [offline upgrade review](../archive/prisma-8-rc14-upgrade-review.md) for validation limits and the deferred rc.15+ migration requirements.
+
 The follow-up migration `migrations/app/20260925T0120_cascade_finding_source_delete/` adds `ON DELETE CASCADE` to both FindingSource foreign keys. This describes the checked-in migration; its application to a running database is not verified by this documentation review.
 
 The migrations `20260926T0033_add_research_conversation` and `20260926T0039_require_conversation_research` add the Conversation–Research relationship and make `researchId` required. The current contract scopes each Conversation to exactly one Research.
