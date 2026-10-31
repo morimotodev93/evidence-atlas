@@ -5,8 +5,8 @@ Repository: `morimotodev93/evidence-atlas`。開始時に branch / HEAD / worktr
 `test/phase10-offline-quality-gates` / `8d4544de9b1c527f405d5da50cc3ab6f74bf2ef6` / 単一worktree /
 clean に一致した。リモート照会はしていない。対象はこのHEADと下記の未コミット差分。
 
-根拠は [受入条件](phase10-quality-acceptance.md) の U / I、V / AZ / E、Completion decision policy、
-[現行roadmap](roadmap.md)、[V / AZレビュー](phase10-validation-authorization-review.md)。
+根拠は [受入条件](../planning/phase10-quality-acceptance.md) の U / I、V / AZ / E、Completion decision policy、
+[現行roadmap](../planning/roadmap.md)、[V / AZレビュー](phase10-validation-authorization-review.md)。
 受入文書の初期matrixにあるV / AZ「未完了」は過去の状態で、現行roadmapは両方チェック済み。
 この時点差を報告し、過去記録・チェックボックスは変更しない。今回の `Partial` はユーザー指定の評価区分で、行全体の完了を意味しない。
 

@@ -5,7 +5,7 @@
 
 本書は仕様の再評価と提案であり、仕様変更・公開承認・検証実行の記録ではない。既存roadmap、関連仕様、コード、完了チェックは変更しない。現行のDemo Chat **No-Go** と無効状態を維持する。行番号はレビュー基準HEADの `docs/planning/roadmap.md` に対応する。
 
-調査方法: `AGENTS.md` と [source-memo.md](source-memo.md) に従い、[roadmap](roadmap.md) 全1,464行を冒頭から末尾まで確認した。主な照合先は [AI Architecture](../architecture/ai-architecture.md) §4.1/6/12/13、[Phase 10 acceptance](phase10-quality-acceptance.md) の現状補足・判定方針・11項目matrix・後続記録、[Lease recovery design](demo-chat-lease-recovery-design.md)、[Redis verification](demo-chat-redis-verification.md)、[PR #42 record](demo-chat-api-security-pr42.md)、[Product Definition](product-definition.md)、[Data Model](../architecture/data-model.md)、[Directory Structure](../architecture/directory-structure.md)、[Design System](../design/design-system.md)、[Design Direction](../design/design-direction.md)。C2やAI評価の過去実績はroadmapと受入文書の記録として参照し、全実行ログを独立監査したものではない。
+調査方法: `AGENTS.md` と [source-memo.md](source-memo.md) に従い、[roadmap](roadmap.md) 全1,464行を冒頭から末尾まで確認した。主な照合先は [AI Architecture](../architecture/ai-architecture.md) §4.1/6/12/13、[Phase 10 acceptance](phase10-quality-acceptance.md) の現状補足・判定方針・11項目matrix・後続記録、[Lease recovery design](demo-chat-lease-recovery-design.md)、[Redis verification](demo-chat-redis-verification.md)、[PR #42 record](../archive/demo-chat-api-security-pr42.md)、[Product Definition](product-definition.md)、[Data Model](../architecture/data-model.md)、[Directory Structure](../architecture/directory-structure.md)、[Design System](../design/design-system.md)、[Design Direction](../design/design-direction.md)。C2やAI評価の過去実績はroadmapと受入文書の記録として参照し、全実行ログを独立監査したものではない。
 
 **証拠の区別:** 本書の「現状」は文書上確認できる記述。「提案」「評価」は本レビューの判断。外部サービスの現在仕様・価格・保証を新たに調査しておらず、既存調査の未確認事項を保証に格上げしない。実装と文書の完全な一致、配備状態、実DB内容は今回未検証。テスト、Build、実Groq/Redis/Turnstile通信、DB操作は行っていない。
 

@@ -2,7 +2,7 @@
 
 Date: 2026-10-27 JST. Baseline: clean `main`, `519e278` (PR #42 merged).
 Implementation stays uncommitted on `main`; no staging, commit, push, merge or PR.
-The [PR #42 record](demo-chat-api-security-pr42.md) remains historical evidence,
+The [PR #42 record](../archive/demo-chat-api-security-pr42.md) remains historical evidence,
 including its failed/incomplete build and pending real-service verification.
 No roadmap phase completes in this task.
 

@@ -1529,7 +1529,7 @@ guards, or change the status of Draft PR #1 based on this observation.
 
 ## Step 4-D2 — offline Edge/Playwright Chromium comparison (2026-10-15 JST)
 
-See [Step 4-D2 offline comparison](./c2-edge-playwright-offline-comparison.md).
+See [Step 4-D2 offline comparison](../archive/c2-edge-playwright-offline-comparison.md).
 Source review at `46ea97f` compared the successful manual Edge login against
 the stalled Playwright Chromium Bootstrap. Unlike Edge's existing normal
 profile and direct `/api/auth/signin` navigation, Bootstrap uses a fresh
@@ -1605,7 +1605,7 @@ safety and database-effect decision.
 
 ## Step 4-D5 — Playwright Edge OAuth live-run safety review (2026-10-15 JST)
 
-See [D5 one-run OAuth review](./c2-playwright-edge-oauth-live-gate.md).
+See [D5 one-run OAuth review](../archive/c2-playwright-edge-oauth-live-gate.md).
 After Step 4-D4 (`4339c77`), code review confirmed the new Edge selection
 uses a fresh Playwright browser context, separate exact CLI opt-in,
 the existing network interception and validated C2-only session

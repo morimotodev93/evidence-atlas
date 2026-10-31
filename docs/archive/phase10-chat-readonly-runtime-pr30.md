@@ -18,7 +18,7 @@
 
 ## 今回の承認と実行境界
 
-[PR #29計画](phase10-chat-runtime-smoke-pr29.md)を基礎に、このスレッドの今回の明示承認を適用した。承認メッセージの正確な送信時刻は本記録では取得していない。
+[PR #29計画](../planning/phase10-chat-runtime-smoke-pr29.md)を基礎に、このスレッドの今回の明示承認を適用した。承認メッセージの正確な送信時刻は本記録では取得していない。
 
 - P01: `http://localhost:3000/research/h8uo44a86ydzro3j7hl2c6pt`を既存ログインSessionで1回表示し、Historyを1回開き、既存会話があれば返却先頭1件だけを1回選択する。desktop 1 tab、観測最大60秒。アプリ経由DB読取とAuth.jsのSession読取・期限更新・期限切れ削除・Cookie変化の可能性を承認。
 - P09例外: Sentry / telemetry / Fontsの抑制を維持した上で、Node preloadが全通信経路を遮断できない残余リスクを限定的に許容。AI / embedding / Upstash / OAuth / 新規Inngest enqueue / 外部Source / 外部API接続試験 / 新規課金呼出は許可されていない。想定外の外部通信を確認したら停止。
@@ -37,7 +37,7 @@
 | 通常DB設定 | 通常dotenv候補のDB URLは設定済み、解析可能なloopback接続先で、専用C2 DB URLとは異なる。DB名・roleは識別可能、schema指定は検出されない。launcher / preloadはDB接続設定を上書きしない。既存Docker / WSL中継processの存続をOSから確認。実server identity、実効role / schema、接続成功は未確認 |
 | C2 | port 3001のlistenerなし。ユーザーによる意図的停止として扱い、今回起動していない |
 
-dotenvは値を出力せず静的解析した。`.env*`の編集・コピー・Git追加は行っていない。[調査方針](source-memo.md)に従い、ローカル一次資料とインストール済みpackageの情報を使用した。
+dotenvは値を出力せず静的解析した。`.env*`の編集・コピー・Git追加は行っていない。[調査方針](../planning/source-memo.md)に従い、ローカル一次資料とインストール済みpackageの情報を使用した。
 
 ## 実測開始を止めた条件
 
@@ -76,7 +76,7 @@ Browser tabの起動・接続、別HTTPクライアント、reload、retry、pol
 
 次のR01/R02実行には、既存の通常Sessionを使えるローカルbrowser制御経路と、送信前allowlist / 回数制限 / redirect・RSC・prefetch・診断通信の拒否、限定ゲート開放と期限内再閉鎖の手段を先にレビューする必要がある。今回の閲覧枠を確認用GETで消費せず、Sessionの移送・ログインで補わない。
 
-**R03〜R06は引き続きBlocked。Phase 10は4/11、Error handlingはPartialを維持する。** [roadmap](roadmap.md)・受入チェックは変更しない。保存履歴を取得した証拠もなく、過去の特定Chat POSTやAiUsageEventの保存成功を認定しない。
+**R03〜R06は引き続きBlocked。Phase 10は4/11、Error handlingはPartialを維持する。** [roadmap](../planning/roadmap.md)・受入チェックは変更しない。保存履歴を取得した証拠もなく、過去の特定Chat POSTやAiUsageEventの保存成功を認定しない。
 
 最終環境確認: 2026-10-23 10:20:32 JST。PID 3076とlauncherは存続し、port 3000のownerも同じ。ゲート閉鎖の自己報告を維持し、同PIDのinbound拒否記録と未知の外部fetch拒否記録はともに0件。C2は停止状態、既存DB中継processは存続している。これらはHTTP / DB接続による検査ではない。
 

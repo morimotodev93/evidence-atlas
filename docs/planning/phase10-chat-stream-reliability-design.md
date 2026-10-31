@@ -30,7 +30,7 @@
 - [Chat route](../../src/app/research/[id]/chat/route.ts)、[panel](../../src/app/research/[id]/_components/research-ai-panel.tsx)、[routeテスト](../../src/auth/chatRoutes.test.ts)、[panelテスト](../../src/app/research/[id]/_components/research-ai-panel.test.tsx)。
 - [Conversation detail GET](../../src/app/research/[id]/chat/conversations/[conversationId]/route.ts)、[list / create](../../src/app/research/[id]/chat/conversations/route.ts)、[Research認可](../../src/auth/requireResearchAccess.ts)、[Workspace認可](../../src/auth/requireWorkspaceAccess.ts)。
 - [contract](../../src/prisma/contract.prisma)、[data model](../architecture/data-model.md#710-conversation-and-message)、[AI architecture](../architecture/ai-architecture.md)、[引用関数](../../src/lib/ai/source-citations.ts)、[rate limit](../../src/lib/ai/chat-rate-limit.ts)。
-- [Phase 10受入文書](phase10-quality-acceptance.md)、[PR #23レビュー](phase10-offline-quality-gates-review.md)。PR #25の古いエラー残留記録は履歴であり、末尾follow-upと併読する。
+- [Phase 10受入文書](phase10-quality-acceptance.md)、[PR #23レビュー](../archive/phase10-offline-quality-gates-review.md)。PR #25の古いエラー残留記録は履歴であり、末尾follow-upと併読する。
 - インストール済み `ai@6.0.280` の `node_modules/ai/src/generate-text/stream-text.ts`、`src/text-stream/create-text-stream-response.ts`、`src/util/prepare-retries.ts`。`@ai-sdk/google@3.0.127`、`@prisma/orm-postgres@8.0.0-rc.12`。package.jsonの範囲指定だけからバージョンを推定していない。pnpm指定は `12.9.1`。外部サイト・APIは参照していない。
 
 ## 2. Current behavior

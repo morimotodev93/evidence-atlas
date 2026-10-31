@@ -560,7 +560,7 @@ DB操作・migration・seed、OAuth / Session / AI API、Cloud設定・deploy、
 
 ## PR #22 follow-up — Research一覧Focusのオフライン修正（2026-10-20 JST）
 
-**ローカル修正済み・ブラウザ再検証待ち。** [修正分析・証拠39件の安全確認・容量一覧](public-demo-list-focus-regression-fix.md)へ記録した。開始状態は `test/demo-contrast-focus-batch` / `c6d97ca`、既存の本書・Phase 10追記と証拠39件のみ。既存部分はbyte単位で保持し、証拠ファイルは変更していない。
+**ローカル修正済み・ブラウザ再検証待ち。** [修正分析・証拠39件の安全確認・容量一覧](../archive/public-demo-list-focus-regression-fix.md)へ記録した。開始状態は `test/demo-contrast-focus-batch` / `c6d97ca`、既存の本書・Phase 10追記と証拠39件のみ。既存部分はbyte単位で保持し、証拠ファイルは変更していない。
 
 一覧mainに詳細と同じ `[&_a]:scroll-mt-24 sm:[&_a]:scroll-mt-16 [&_a]:scroll-mb-2` を追加した。コード差分は `src/app/demo/page.tsx` の1行で、Demo内のanchorへ上96px / sm以上64px・下8px相当のscroll marginを指定する。共通cardと認証済みSaaS・Demo詳細・色 / font / outlineは変更しない。
 

@@ -10,7 +10,7 @@
 | V / Validation tests | Pass。限定された保存入力契約について完了候補とする |
 | AZ / Authorization tests | Pass。限定された逐次認可契約について完了候補とする |
 
-根拠は [PR #10 の受入条件](phase10-quality-acceptance.md) の Completion decision policy、
+根拠は [PR #10 の受入条件](../planning/phase10-quality-acceptance.md) の Completion decision policy、
 V、AZ、V / AZ / E の追加gate、Required safety gates。有限なdirect-call契約の判定であり、
 本番全体の安全性、実DB、OAuth、HTTP transport の合格を含まない。
 チェックボックスは変更していない。更新の承認・実施はこの報告の確認後に別途判断する。
@@ -28,7 +28,7 @@ Phase 10 の他の9項目にも変更はない。
 指定HEADと一致する。レビュー対象はこのHEADと、本報告に列挙したテスト差分。
 アプリ本体、DB contract、依存関係、テスト設定、ロードマップを変更していない。
 
-仕様として [product-definition.md](product-definition.md) §9.6–9.7、
+仕様として [product-definition.md](../planning/product-definition.md) §9.6–9.7、
 [data-model.md](../architecture/data-model.md) のscope・役割と§7.3–7.10、
 [directory-structure.md](../architecture/directory-structure.md) の入口一覧を照合した。
 対象の現行契約と実装に矛盾は見つからなかった。過去の「受入条件未定義」という記録は、
@@ -43,7 +43,7 @@ PR #10 より前の判断として保持し、今回の未完了理由に読み�
 | C/D / 過去記録 | `roadmap.md` の PR #6–#9。今回の実行と区別して再利用 |
 | G-local | HEAD、履歴、差分を確認。GitHub API・Checks・配備状況は未照会 |
 
-[source-memo.md](source-memo.md) に従い、今回の仕様判断はリポジトリ内の情報を用いた。
+[source-memo.md](../planning/source-memo.md) に従い、今回の仕様判断はリポジトリ内の情報を用いた。
 外部仕様やGitHubの現在状態を調査していない。PR番号はローカル履歴と文書の対応を表す。
 
 過去実績は PR #6: 55ファイル / 1,029件、PR #7: 56ファイル / 1,053件、

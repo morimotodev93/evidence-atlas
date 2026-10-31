@@ -105,6 +105,6 @@ The new API fails before service access in C2 and when disabled. Phase 9 and Pha
 10 completion decisions remain unchanged.
 
 Post-merge follow-up on `main` baseline `519e278`: see
-[Redis verification and ingress hardening](demo-chat-redis-verification.md) for the
+[Redis verification and ingress hardening](../planning/demo-chat-redis-verification.md) for the
 authentication-before-DB change, coverage gaps and manual-only dedicated Redis
 runner. This does not replace the historical results above.

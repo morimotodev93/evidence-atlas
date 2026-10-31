@@ -225,7 +225,7 @@ Phase 10 の11項目について、既存証拠、未検証範囲、今後の合
 ### 関連仕様・実行記録と整合性
 
 - [product-definition §9.6–9.7](product-definition.md#96-authentication--authorization)、[data-model §6–8](../architecture/data-model.md#6-data-boundaries)、[directory-structure](../architecture/directory-structure.md)、[AI architecture](../architecture/ai-architecture.md)、[design system](../design/design-system.md) を実装範囲の基準とする。
-- [C2 local PostgreSQL](c2-local-postgres.md) はtarget/role/portとmigrationの準備、[runtime](c2-local-runtime.md) は起動・OAuth・fixture・mock suiteの段階別記録。[runner refusal](c2-runner-config-refusal-report.md)、[D19](c2-d19-scenario-investigation.md) は失敗・offline修正を保持。[Route B](c2-e2e-session-route-b.md) の成功手順をOAuth成功に読み替えない。
+- [C2 local PostgreSQL](c2-local-postgres.md) はtarget/role/portとmigrationの準備、[runtime](c2-local-runtime.md) は起動・OAuth・fixture・mock suiteの段階別記録。[runner refusal](../archive/c2-runner-config-refusal-report.md)、[D19](../archive/c2-d19-scenario-investigation.md) は失敗・offline修正を保持。[Route B](c2-e2e-session-route-b.md) の成功手順をOAuth成功に読み替えない。
 - C2 Step 2-CのGoogleログインとUser/Account/Session増加、Steps 3-B/3-Cの8件fixture・手動閲覧は限定的な実DB利用記録。DB整合性・transaction・競合テストの合格ではない。後の手動Edge成功も自動Google OAuthの成功ではない。
 - **文書と現状の差異:** directory-structure の「E2E suite未配置」は現存3 suiteと相違する。AI architecture §6の「prompt追加は未コミット」は `e707e23` がHEADの祖先であること、およびquality reportの追記と相違する。ただし歴史的な実行時prompt identity・配備は未証明。`docs/planning/requireCurrentWorkspace.ts` はcookie導入前のsnapshotで現行runtime仕様に使わない。今回はこれらを報告し、原文を黙って更新しない。
 
@@ -1143,7 +1143,7 @@ Deployment ID / Commit SHA、4詳細の個別URL、会話で提供されたス�
 
 ## PR #22 follow-up — Research list Focus regressionの最小修正（2026-10-20 JST）
 
-**ローカル修正済み・ブラウザ再検証待ち**。[分析・証拠安全確認・容量一覧](public-demo-list-focus-regression-fix.md)と[Contrast / Focus追記](public-demo-contrast-visible-focus-review.md#pr-22-list-focus-offline-fix)を参照。開始時は `test/demo-contrast-focus-batch` / `c6d97ca` で、既存の2文書変更と証拠39件だけ。既存記録は上書きせず、証拠39件の全hash一致を確認して保持した。
+**ローカル修正済み・ブラウザ再検証待ち**。[分析・証拠安全確認・容量一覧](../archive/public-demo-list-focus-regression-fix.md)と[Contrast / Focus追記](public-demo-contrast-visible-focus-review.md#pr-22-list-focus-offline-fix)を参照。開始時は `test/demo-contrast-focus-batch` / `c6d97ca` で、既存の2文書変更と証拠39件だけ。既存記録は上書きせず、証拠39件の全hash一致を確認して保持した。
 
 一覧に詳細側のscroll marginがない実装差とC22の実測を根拠に、Demo一覧mainへ上96px / sm以上64px・下8px相当のanchor scroll marginを追加した。コード変更は `src/app/demo/page.tsx` のclassName 1行。共用Research card・認証済みSaaS・詳細・色 / font / outline・既存E2E・依存は変更しない。
 
@@ -1153,14 +1153,14 @@ Deployment ID / Commit SHA、4詳細の個別URL、会話で提供されたス�
 
 ## PR #23 — Offline Quality Gates（2026-10-22 JST）
 
-[今回のレビュー・受入対応・実行結果](phase10-offline-quality-gates-review.md)を参照。
+[今回のレビュー・受入対応・実行結果](../archive/phase10-offline-quality-gates-review.md)を参照。
 Unitは推定token数の丸め誤差を再現してFail、Integrationはoffline gate Pass・全体Partial、
 Error handlingは代表caller補完済み・runtime/stream gate未実行でPartial。Validation / Authorizationの既存限定Passとチェックを維持する。
 過去記録・roadmapのチェックボックスは変更せず、本番アプリ修正・実サービス・build・commitは行っていない。
 
 ### PR #23 follow-up — Token推定の精度修正（2026-10-22 JST）
 
-[修正後の証拠・分割への影響・別件Unicode課題](phase10-offline-quality-gates-review.md#pr-23-follow-up--chunk-token-estimation-precision-fix2026-10-22-jst)を追記した。
+[修正後の証拠・分割への影響・別件Unicode課題](../archive/phase10-offline-quality-gates-review.md#pr-23-follow-up--chunk-token-estimation-precision-fix2026-10-22-jst)を追記した。
 3関数の整数スケール化で元の再現FailをPassにし、全offline Vitestは66ファイル / 1,439件成功、失敗0、exit 0。
 Unitは有限契約のPass・完了候補とする。IntegrationはHTTP gate、Error handlingはstream/runtime gateが残るためPartialを維持。
 補助平面文字を分断し得る既存の走査境界問題は今回修正せず別課題とし、過去Fail記録・roadmapのチェックボックスは保持した。
@@ -1176,7 +1176,7 @@ UTF-16 offsetを維持しつつ、前進と後退で有効なsurrogate pairを�
 
 | Unitの有限条件 | 証拠・今回の判断 |
 | --- | --- |
-| 純粋policyの成功/無効値/境界/拒否をassertionへ対応付ける | [PR #23対応表](phase10-offline-quality-gates-review.md)を再利用。実schema129件、引用20件、dataset31件、Demo mode13件、C2 policy/CLI設定の既存assertionは変更なし、全回帰成功 |
+| 純粋policyの成功/無効値/境界/拒否をassertionへ対応付ける | [PR #23対応表](../archive/phase10-offline-quality-gates-review.md)を再利用。実schema129件、引用20件、dataset31件、Demo mode13件、C2 policy/CLI設定の既存assertionは変更なし、全回帰成功 |
 | 実chunkerの空白・短いASCII/CJK・閾値前後・推定値 | 既存25件を削除・弱体化せず保持。ASCII2303/2304/2305文字、CJK511/512/513文字、混在768-token境界とPR #23の丸め再現は全成功 |
 | 複数chunk、overlap、本文保持、終了性 | 既存4長文fixtureと今回の補助平面文字/ASCII混在/日本語混在の再構成・有限出力・推定overlap96–98（最後のcode pointの端数分を許容）を検査 |
 | 報告されたUnicode分断を解消する | 再現1件＋Unicode回帰8件追加。全chunk内の孤立surrogateなし、511/512/513絵文字の推定/分割整合、短い句点/段落による進捗fallbackを検査 |
@@ -1221,7 +1221,7 @@ C: Codexによるローカル固定モックの調査・実行。開始時にHEA
 [Chat panel](../../src/app/research/[id]/_components/research-ai-panel.tsx)、
 [History dialog](../../src/app/research/[id]/_components/research-ai-conversations-dialog.tsx)、
 [mobile wrapper](../../src/app/research/[id]/_components/research-ai-mobile-dialog.tsx)、
-[PR #23レビュー](phase10-offline-quality-gates-review.md)。仕様の成功条件と実装の不足を分け、仕様は変更しない。
+[PR #23レビュー](../archive/phase10-offline-quality-gates-review.md)。仕様の成功条件と実装の不足を分け、仕様は変更しない。
 
 - 認証・Research/Conversation確認・rate limit・context/retrieval・過去Message読取の後、USERを保存する。
   続いてConversationの `updatedAt` を `Temporal.Now.instant()` で1回更新し、`streamText` → `toTextStreamResponse()` を呼ぶ。
