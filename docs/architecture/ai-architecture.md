@@ -355,7 +355,17 @@ Success is HTTP **200**, `Cache-Control: no-store`:
 Errors retain `{ "error": "Demo Chat unavailable." }` with no-store and the existing
 404/403/400/401/413/415/429/503 boundaries (408 for body-read timeout). No prompt,
 answer, provider error details, token or credentials are logged or persisted by
-this path. Valid references establish membership only: prompt instructions and
+this path. HTTP 503 failures emit one best-effort server console error in the form
+`[demo-chat] failure category=invalid_response phase=validation status=503`.
+Categories are `provider_error`, `generation_timeout`, `invalid_response`,
+`generation_incomplete`, `lease_error`, `request_aborted` and `unexpected_error`;
+phases are fixed processing labels, including separate reserve/renew/release
+labels. Only category, phase and status are emitted, with no external error
+message/stack or request/session/operation identifiers. Logging failure does not
+alter the response or lease cleanup. If cleanup itself fails, `lease_error` in
+the release phase describes the final failure. These diagnostics do not establish
+remote provider termination or make quarantined capacity safe to release.
+Valid references establish membership only: prompt instructions and
 schema/allowlist validation cannot prove entailment, factual accuracy, evidence
 sufficiency or complete resistance to prompt injection. There is no external
 page-content verification. Public UI/Turnstile wiring, model quality, real provider

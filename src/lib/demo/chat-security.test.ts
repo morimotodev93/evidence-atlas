@@ -131,12 +131,15 @@ describe("Demo API ingress (offline dependencies)", () => {
     expect((await handler(request({ ...question(), researchId: id }))).status).toBe(401);
     expect(read).not.toHaveBeenCalled();
   });
-  it.each(["start", "question"])("fails closed on Redis %s failure without detail/logging", async (operation) => {
+  it.each(["start", "question"])("fails closed on Redis %s failure with only fixed diagnostics", async (operation) => {
     const issued = await store.start("a", researchId);
-    const log = vi.spyOn(console, "error"); redis.fail = true;
+    const log = vi.spyOn(console, "error").mockImplementation(() => {}); redis.fail = true;
     const response = await handler(request(operation === "start" ? startBody() : question(issued.threadId), cookie(issued.sessionId)));
     expect(response.status).toBe(503); expect(await response.json()).toEqual({ error: "Demo Chat unavailable." });
-    expect(response.headers.has("set-cookie")).toBe(false); expect(log).not.toHaveBeenCalled();
+    expect(response.headers.has("set-cookie")).toBe(false);
+    expect(log).toHaveBeenCalledExactlyOnceWith(
+      `[demo-chat] failure category=lease_error phase=${operation === "start" ? "session" : "check"} status=503`,
+    );
     if (operation === "question") expect(read).not.toHaveBeenCalled();
   });
   it("production store construction is lazy and rejects non-HTTPS Redis config", () => {

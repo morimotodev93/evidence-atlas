@@ -5,6 +5,7 @@ import { z } from "zod";
 import { DEMO_CHAT_LIMITS } from "./chat-config";
 import { getDemoChatModel } from "./chat-model";
 import { DemoChatError } from "./chat-security";
+import { DemoChatFailure } from "./chat-diagnostics";
 import type { DemoChatContext } from "./chat-context";
 import type { DemoChatStore } from "./chat-store";
 
@@ -54,13 +55,13 @@ const answerSchema = z.object({
 const technicalNamesInProse = /(?<![A-Za-z0-9_.\/:@-])(?:Next\.js|Node\.js|package\.json|tsconfig\.json)(?![A-Za-z0-9_\/:@?#-]|\.[A-Za-z0-9])/g;
 
 export function validateDemoAnswer(text: string, context: DemoChatContext) {
-  if (text.length > 16000) throw new DemoChatError(503);
+  if (text.length > 16000) throw new DemoChatFailure("invalid_response", "validation");
   let value: z.infer<typeof answerSchema>;
-  try { value = answerSchema.parse(JSON.parse(text)); } catch { throw new DemoChatError(503); }
+  try { value = answerSchema.parse(JSON.parse(text)); } catch { throw new DemoChatFailure("invalid_response", "validation"); }
   if (value.sourceIds.some((id) => !context.allowedSources.has(id))
     || /[<>]|\[|\]|[a-z][a-z0-9+.-]*:\/\/|www\./iu.test(value.answer)
     || /[\p{L}\p{N}-]+\.[\p{L}]{2,}/iu.test(value.answer.replace(technicalNamesInProse, "technical term"))
-    || (!value.insufficientEvidence && value.sourceIds.length === 0)) throw new DemoChatError(503);
+    || (!value.insufficientEvidence && value.sourceIds.length === 0)) throw new DemoChatFailure("invalid_response", "validation");
   return {
     answer: value.insufficientEvidence ? "The available Research does not provide enough evidence to answer this question." : value.answer,
     sources: value.insufficientEvidence ? [] : [...new Set(value.sourceIds)].map((id) => context.allowedSources.get(id)!),
@@ -83,19 +84,23 @@ export async function runDemoGeneration(
   let deadline: ReturnType<typeof setTimeout> | undefined;
   let refuse!: (error: DemoChatError) => void;
   const cancelled = new Promise<never>((_, reject) => { refuse = reject; });
-  const stop = () => {
+  let cancellation: DemoChatFailure | undefined;
+  const stop = (failure: DemoChatFailure) => {
+    if (stopped) return;
+    cancellation = failure;
     stopped = true;
     controller.abort();
-    refuse(new DemoChatError(503));
+    refuse(failure);
   };
+  const disconnect = () => stop(new DemoChatFailure("request_aborted", "generation"));
   const renew = async () => {
     try { await store.renew(lease); }
-    catch { stop(); return; }
+    catch { stop(new DemoChatFailure("lease_error", "renew")); return; }
     if (!stopped) heartbeat = setTimeout(() => { void renew(); }, DEMO_RENEW_MS);
   };
   try {
     const context = build();
-    if (clientSignal.aborted) throw new DemoChatError(503);
+    if (clientSignal.aborted) throw new DemoChatFailure("request_aborted", "preparation");
     if (!context.hasEvidence || context.allowedSources.size === 0) {
       return validateDemoAnswer(JSON.stringify({ answer: "Unknown", sourceIds: [], insufficientEvidence: true }), context);
     }
@@ -104,23 +109,28 @@ export async function runDemoGeneration(
     const submit = generate === generateDemoAnswer
       ? prepareDemoAnswer(context, question, controller.signal)
       : () => generate(context, question, controller.signal);
-    if (clientSignal.aborted) throw new DemoChatError(503);
-    clientSignal.addEventListener("abort", stop, { once: true });
-    deadline = setTimeout(stop, DEMO_GENERATION_MS);
+    if (clientSignal.aborted) throw new DemoChatFailure("request_aborted", "preparation");
+    clientSignal.addEventListener("abort", disconnect, { once: true });
+    deadline = setTimeout(() => stop(new DemoChatFailure("generation_timeout", "generation")), DEMO_GENERATION_MS);
     heartbeat = setTimeout(() => { void renew(); }, DEMO_RENEW_MS);
     submitted = true;
-    const result = await Promise.race([submit(), cancelled]);
-    if (stopped) throw new DemoChatError(503);
+    let result: Awaited<ReturnType<Generation>>;
+    try { result = await Promise.race([submit(), cancelled]); }
+    catch { throw cancellation ?? new DemoChatFailure("provider_error", "generation"); }
+    if (stopped) throw cancellation!;
     // Only these explicit terminal provider responses establish completion.
     completed = result.finishReason === "stop" || result.finishReason === "length";
-    if (!completed || result.finishReason !== "stop") throw new DemoChatError(503);
+    if (!completed || result.finishReason !== "stop") throw new DemoChatFailure("generation_incomplete", "generation");
     return validateDemoAnswer(result.text, context);
   } finally {
     stopped = true;
     if (deadline) clearTimeout(deadline);
     if (heartbeat) clearTimeout(heartbeat);
-    clientSignal.removeEventListener("abort", stop);
-    if (!submitted || completed) await store.release(lease);
+    clientSignal.removeEventListener("abort", disconnect);
+    if (!submitted || completed) {
+      try { await store.release(lease); }
+      catch { throw new DemoChatFailure("lease_error", "release"); }
+    }
     // Otherwise retain the lease forever, even after expiry/process death.
     // Redis release failure also denies the answer; never retry an uncertain call.
   }

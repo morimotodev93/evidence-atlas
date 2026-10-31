@@ -6,6 +6,7 @@ import { DemoChatStore, RENEW_LEASE, RELEASE_LEASE, RESERVE_QUESTION } from "./c
 import { OfflineRedis } from "./chat-test-redis";
 import { research, source, finding, comment } from "./test-fixtures";
 import type { FinishReason } from "ai";
+import { DemoChatError } from "./chat-security";
 
 const data = () => ({ research: { ...research, status: "COMPLETED" as const }, sources: [source],
   findings: [{ ...finding, displayStyle: "TEXT" as const }], comments: [{ ...comment, authorName: "Demo Author" }], tags: [] });
@@ -22,6 +23,7 @@ async function reserve() {
 }
 
 beforeEach(() => {
+  vi.spyOn(console, "error").mockImplementation(() => {});
   for (const [key, value] of Object.entries({
     PUBLIC_DEMO_MODE: "true", DEMO_CHAT_ENABLED: "true", C2_RUNTIME_MODE: "",
     DEMO_WORKSPACE_ID: "public", DEMO_GROQ_API_KEY: "synthetic", NEXT_PUBLIC_DEMO_TURNSTILE_SITE_KEY: "synthetic",
@@ -30,6 +32,99 @@ beforeEach(() => {
   })) vi.stubEnv(key, value);
   vi.stubGlobal("fetch", vi.fn(() => { throw new Error("Network forbidden"); }));
   redis = new OfflineRedis(); store = new DemoChatStore(redis.eval);
+});
+
+it.each([
+  ["provider", "provider_error", "generation", 1],
+  ["sync provider", "provider_error", "generation", 1],
+  ["timeout", "generation_timeout", "generation", 1],
+  ["json", "invalid_response", "validation", 0],
+  ["source", "invalid_response", "validation", 0],
+  ["length", "generation_incomplete", "generation", 0],
+  ["unknown finish", "generation_incomplete", "generation", 1],
+  ["reserve", "lease_error", "reserve", 0],
+  ["check", "lease_error", "check", 0],
+  ["renew", "lease_error", "renew", 1],
+  ["release", "lease_error", "release", 1],
+  ["abort", "request_aborted", "generation", 1],
+  ["pre-abort", "request_aborted", "preparation", 0],
+  ["research", "unexpected_error", "research", 0],
+] as const)("logs only fixed diagnostics for %s while preserving the 503 contract and lease policy", async (mode, category, phase, retained) => {
+  vi.useFakeTimers();
+  const session = await store.start("secret-turnstile-token", research.id);
+  const secret = "SECRET question answer source API-key cookie Redis-key DB-connection";
+  const generate = vi.fn(async () => terminal());
+  if (mode === "provider") generate.mockRejectedValue(new Error(secret));
+  if (mode === "sync provider") generate.mockImplementation(() => { throw new Error(secret); });
+  if (mode === "json") generate.mockResolvedValue(terminal(secret));
+  if (mode === "source") generate.mockResolvedValue(terminal(raw({ sourceIds: ["secret-source-id"] })));
+  if (mode === "length") generate.mockResolvedValue(terminal(raw(), "length"));
+  if (mode === "unknown finish") generate.mockResolvedValue(terminal(raw(), "other"));
+  if (mode === "reserve") vi.spyOn(store, "reserve").mockRejectedValue(new Error(secret));
+  if (mode === "check") vi.spyOn(store, "check").mockRejectedValue(new Error(secret));
+  if (mode === "release") vi.spyOn(store, "release").mockRejectedValue(new Error(secret));
+  if (mode === "renew") vi.spyOn(store, "renew").mockRejectedValue(new Error(secret));
+  const client = new AbortController();
+  const disconnect = () => client.abort(secret);
+  if (mode === "timeout" || mode === "renew" || mode === "abort") {
+    generate.mockImplementation(async () => {
+      if (mode === "abort") disconnect();
+      return new Promise(() => {});
+    });
+  }
+  if (mode === "pre-abort") disconnect();
+  const handler = createDemoChatHandler({ store: () => store, verify: vi.fn(),
+    publicResearch: async () => { if (mode === "research") throw new Error(secret); return data(); }, generate });
+  const pending = handler(new Request("https://demo.example.invalid/api/demo/chat", {
+    method: "POST", signal: client.signal,
+    headers: { origin: "https://demo.example.invalid", "content-type": "application/json",
+      cookie: `__Host-ea-demo-chat=${session.sessionId}` },
+    body: JSON.stringify({ operation: "question", researchId: research.id, threadId: session.threadId, message: secret }),
+  }));
+  if (mode === "timeout" || mode === "renew") await vi.advanceTimersByTimeAsync(DEMO_GENERATION_MS);
+  const response = await pending;
+  expect(response.status).toBe(503);
+  expect(response.headers.get("Cache-Control")).toBe("no-store");
+  expect(await response.json()).toEqual({ error: "Demo Chat unavailable." });
+  // Exact arguments exclude error objects, all content and all identifiers.
+  expect(console.error).toHaveBeenCalledExactlyOnceWith(
+    `[demo-chat] failure category=${category} phase=${phase} status=503`,
+  );
+  expect(leases()).toBe(retained);
+  expect(generate).toHaveBeenCalledTimes(["reserve", "check", "pre-abort", "research"].includes(mode) ? 0 : 1);
+});
+
+it("does not log successful answers or expected non-503 refusals", async () => {
+  const session = await store.start("synthetic", research.id);
+  const generate = vi.fn(async () => terminal());
+  const handler = createDemoChatHandler({ store: () => store, verify: vi.fn(), publicResearch: async () => data(), generate });
+  const request = () => new Request("https://demo.example.invalid/api/demo/chat", {
+    method: "POST", headers: { origin: "https://demo.example.invalid", "content-type": "application/json",
+      cookie: `__Host-ea-demo-chat=${session.sessionId}` },
+    body: JSON.stringify({ operation: "question", researchId: research.id, threadId: session.threadId, message: "question" }),
+  });
+  expect((await handler(request())).status).toBe(200);
+  expect(leases()).toBe(0);
+  vi.spyOn(store, "reserve").mockRejectedValue(new DemoChatError(429));
+  expect((await handler(request())).status).toBe(429);
+  expect(console.error).not.toHaveBeenCalled();
+});
+
+it("keeps the response and completed lease cleanup when logging throws", async () => {
+  vi.mocked(console.error).mockImplementation(() => { throw new Error("logger unavailable"); });
+  const session = await store.start("synthetic", research.id);
+  const release = vi.spyOn(store, "release");
+  const handler = createDemoChatHandler({ store: () => store, verify: vi.fn(), publicResearch: async () => data(),
+    generate: async () => terminal("invalid JSON") });
+  const response = await handler(new Request("https://demo.example.invalid/api/demo/chat", {
+    method: "POST", headers: { origin: "https://demo.example.invalid", "content-type": "application/json",
+      cookie: `__Host-ea-demo-chat=${session.sessionId}` },
+    body: JSON.stringify({ operation: "question", researchId: research.id, threadId: session.threadId, message: "question" }),
+  }));
+  expect(response.status).toBe(503);
+  expect(await response.json()).toEqual({ error: "Demo Chat unavailable." });
+  expect(release).toHaveBeenCalledOnce();
+  expect(leases()).toBe(0);
 });
 afterEach(() => {
   expect(fetch).not.toHaveBeenCalled();

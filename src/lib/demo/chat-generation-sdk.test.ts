@@ -68,7 +68,8 @@ it.each(["configuration", "serialization"])("releases a lease when built-in %s p
 it("keeps an installed SDK fetch abort rejection quarantined without assuming remote completion", async () => {
   fetcher.mockRejectedValue(new DOMException("Aborted", "AbortError"));
   const store = { renew: vi.fn(), release: vi.fn() };
-  await expect(runDemoGeneration(store, "owned-lease", context, "q", new AbortController().signal)).rejects.toThrow();
+  await expect(runDemoGeneration(store, "owned-lease", context, "q", new AbortController().signal))
+    .rejects.toMatchObject({ status: 503, category: "provider_error", phase: "generation" });
   expect(fetcher).toHaveBeenCalledOnce();
   expect(store.release).not.toHaveBeenCalled();
 });
