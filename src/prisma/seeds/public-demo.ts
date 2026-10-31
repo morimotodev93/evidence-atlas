@@ -56,9 +56,11 @@ const demoResearches: DemoResearch[] = [
     ],
 
     findings: [
+      // Verified against the linked primary publications on 2026-10-31.
+      // Preserve each study's completion-time metric and historical scope.
       {
         content:
-          "AI coding assistants can reduce the time required for some well-scoped software development tasks.",
+          "GitHub's 2022 randomized experiment assigned 95 professional developers to implement a JavaScript HTTP server with or without Copilot. It reported 55% faster task completion with Copilot: average completion times were 1 hour 11 minutes with Copilot versus 2 hours 41 minutes without. This measured task-completion result is distinct from the article's separate survey responses, and is not a general software-delivery productivity rate.",
         sourceKeys: ["github-productivity"],
       },
       {
@@ -68,8 +70,13 @@ const demoResearches: DemoResearch[] = [
       },
       {
         content:
-          "Experienced developers working in familiar codebases may experience different productivity effects from developers completing isolated or unfamiliar tasks.",
+          "METR's July 2025 randomized controlled trial covered 16 experienced open-source developers and 246 real issues in repositories they knew well. Allowing early-2025 AI tools increased issue-completion time by 19% compared with working without AI. This is a measured slowdown in that setting, not evidence that all developers or later AI tools are slower.",
         sourceKeys: ["metr-productivity"],
+      },
+      {
+        content:
+          "METR discusses high quality standards and implicit repository requirements, including testing, documentation and formatting, as possible explanations for limited AI usefulness. These are hypotheses rather than a single established cause of the slowdown. Its familiar-repository tasks differ from GitHub's isolated HTTP-server task; the studies do not establish a universal productivity effect.",
+        sourceKeys: ["metr-productivity", "github-productivity"],
       },
       {
         content:
