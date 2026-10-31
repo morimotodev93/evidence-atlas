@@ -1,281 +1,95 @@
 # Evidence Atlas
 
-> A collaborative research workspace for collecting evidence, organizing findings, and deepening knowledge with AI.
+An AI-assisted research workspace for collecting sources, organizing findings, discussing evidence, and preserving conclusions. Developed as a non-commercial portfolio project for small development and product teams.
 
-Evidence Atlas is an AI-assisted research workspace designed for small development and product teams.
+Research evidence often becomes scattered across links, notes, and conversations. Evidence Atlas keeps findings connected to their sources so that people can review the basis of a conclusion and ask AI questions about the knowledge they have saved.
 
-It helps teams collect sources, organize findings, discuss evidence, and build structured conclusions in one place. AI is used to help search, connect, and synthesize the knowledge accumulated within a workspace.
+[Live Demo](https://evidence-atlas-mu.vercel.app/demo) | [Source code](https://github.com/morimotodev93/evidence-atlas)
 
-## Project Status
+## Research workflow
 
-**Status:** Portfolio MVP / Public Demo live
+Organizations contain Workspaces, and each Workspace contains Research items focused on a topic or question.
 
-Evidence Atlas implements its core research workflow, authentication and Workspace authorization, Research-scoped AI conversations, Workspace-level retrieval with PostgreSQL and pgvector, background indexing, and a curated read-only Public Demo.
+- **Research** holds the question, description, status, and conclusion.
+- **Source** records a reference, including its title and URL.
+- **Finding** records an observation and can link to supporting Sources within the Research.
+- **Comment** supports Research-level discussion; **Conclusion** is the Research's optional summary field.
 
-The curated Public Demo is deployed on Vercel with authenticated SaaS entry points, public AI interaction, and background Inngest serving disabled for the portfolio deployment.
+Sources and Findings are separate records, not a mandatory linear pipeline. Findings may exist without linked Sources. AI answers are not automatically saved as Findings or Conclusions.
 
-The project is developed as a portfolio application with an emphasis on traceable evidence, grounded AI-assisted research, explicit authorization boundaries, and incremental architecture.
+## Public Demo
 
-## Core Concept
+Explore four curated Research items about **AI-Assisted Software Development**: Developer Productivity, Code Quality & Reliability, Developer Experience, and Adoption & Organizational Impact. Browse Sources, Findings, Comments, Conclusions, and Tags without signing in.
 
-The application is organized around a research workflow:
+The Research detail page also offers limited anonymous AI questions after Turnstile verification. Demo Chat uses **Groq Free Plan / `openai/gpt-oss-120b`**, with a **2,000-token output limit**, a **30-second generation deadline**, and **no automatic retry**. It answers from bounded Evidence stored in the selected Research and displays validated Source references. It does not fetch external pages or use Workspace vector retrieval.
 
-```text
-Organization
-    ↓
-Workspace
-    ↓
-Research
-    ↓
-Source
-    ↓
-Finding
-    ↓
-Discussion
-    ↓
-Conclusion
-```
+Research data is read-only for visitors: asking questions does not grant editing access to Research, Findings, or Sources. Chat uses anonymous Redis sessions and shared usage limits; it does not persist conversation history. Availability depends on provider capacity, quotas, and generation leases. A local timeout does not guarantee remote generation has stopped.
 
-Accumulated research knowledge can later be used by AI-assisted retrieval and synthesis:
+Production browsing, Turnstile, session creation, Japanese questions, Groq answers (including a METR/GitHub Copilot comparison), Source references, and the 2,000-token setting were confirmed in the maintainer's October 31, 2026 report. Production Evidence improvements were also reported applied. This documentation task did not access Production.
 
-```text
-Workspace
-    ↓
-Knowledge
-    ↓
-Embedding
-    ↓
-Vector Search
-    ↓
-AI
-    ↓
-Answer
-```
+## AI and technical design
 
-## Key Goals
+| Area | Implementation |
+| --- | --- |
+| Authenticated SaaS Chat | Gemini (`gemini-3.6-flash`), Research-scoped conversations, streamed answers, persisted history |
+| SaaS retrieval | Gemini embeddings, PostgreSQL/pgvector search over indexed knowledge in the authorized Workspace |
+| Public Demo Chat | Separate Groq model, bounded current-Research context, JSON responses, no embeddings or persisted history |
+| Evidence references | Request-specific Source allowlists and citation validation; references do not prove that every claim is supported |
+| Authorization | Auth.js sessions and server-side Workspace membership checks before protected data access |
+| Indexing | Inngest background refresh after relevant SaaS mutations; best-effort enqueue means the derived index can lag |
+| Demo boundary | Fixed published Workspace; authenticated SaaS entry points, write actions, and Inngest serving are disabled in Demo mode |
+| Anonymous Chat controls | Origin checks, Turnstile, session ownership, Redis quotas and concurrency leases, fail-closed admission |
 
-- Collect and organize research evidence
-- Keep sources and findings traceable
-- Support discussion and collaborative understanding
-- Build reusable research knowledge
-- Use AI to explore and synthesize accumulated evidence
-- Provide a practical example of a modern AI-enabled SaaS architecture
+AI uses saved Research content and Source metadata, not the full external documents behind Source URLs. Normal SaaS Chat additionally retrieves indexed Findings, Conclusions, and Research metadata from the same Workspace. Retrieval scope supplements server authorization.
 
-## Demo
+## Technology stack
 
-Evidence Atlas includes a curated, read-only Public Demo at `/demo`.
+- **Application:** Next.js App Router, React, TypeScript, Tailwind CSS, shadcn/ui
+- **Data and authentication:** PostgreSQL, pgvector, Prisma 8 data contract/runtime, Auth.js, Kysely auth adapter
+- **AI:** AI SDK, Google Generative AI/Gemini for SaaS, Groq for Demo
+- **Infrastructure:** Vercel, Inngest, Upstash Redis, Cloudflare Turnstile, Sentry
+- **Validation and testing:** Zod, Vitest, Playwright
 
-The Demo presents a prepared Workspace focused on **AI-Assisted Software Development**, containing four completed Research items covering:
+## Code and documentation
 
-- Developer Productivity
-- Code Quality & Reliability
-- Developer Experience
-- Adoption & Organizational Impact
+- [Directory structure](docs/architecture/directory-structure.md): routes, server boundaries, and source layout
+- [Data model](docs/architecture/data-model.md): entities and ownership
+- [AI architecture](docs/architecture/ai-architecture.md): SaaS retrieval, Demo Chat configuration, limits, and lease handling
+- [Product definition](docs/planning/product-definition.md): workflows and product scope
+- [Roadmap](docs/planning/roadmap.md): completed baselines, verification evidence, and remaining work
+- [Research policy](docs/planning/source-memo.md): source selection and evidence attribution
 
-Visitors can inspect Sources, Findings, supporting evidence links, Conclusions, Tags, and Comments without authentication.
+Dated planning reports and `docs/archive/` preserve historical verification results. Their earlier model limits and release decisions are not current deployment settings.
 
-The Public Demo is intentionally separated from the authenticated SaaS application. Visitors cannot create, edit, or delete persistent research data, authenticated SaaS routes are disabled in Public Demo deployment mode, and public AI interaction is not enabled.
+## Local development
 
-**Live Demo:** https://evidence-atlas-mu.vercel.app/demo
-
-## Technology Stack
-
-### Application
-
-- Next.js
-- React
-- TypeScript
-- Tailwind CSS
-
-### Application Infrastructure
-
-- Auth.js
-- Inngest
-- Upstash Redis
-- Sentry
-
-### UI
-
-- shadcn/ui
-- Lucide React
-- React Hook Form
-- Zod
-
-### Database
-
-- PostgreSQL
-- Prisma ORM
-- pgvector
-
-### AI
-
-- AI SDK
-- Google Generative AI
-- Gemini
-- Retrieval-Augmented Generation (RAG)
-- PostgreSQL + pgvector semantic retrieval
-
-### Testing
-
-- Vitest
-- Playwright
-
-## Documentation
-
-Project documentation is organized under `docs/`.
-
-- [Architecture](docs/architecture/) — Application architecture and project structure
-- [Planning](docs/planning/) — Roadmap and development planning
-- [Research Policy](docs/planning/source-memo.md) — Source selection, freshness, and separation of facts from inference
-- [Reference](docs/reference/) — Technical specifications and reference information
-- [Usage](docs/usage/) — Usage and operational documentation
-
-## Development
-
-Environment configuration is documented in `.env.example`. Secrets and provider credentials must remain outside the repository.
-
-### Requirements
-
-- Node.js 24
-- pnpm
-
-### Getting Started
-
-Clone the repository and install dependencies:
+Use **Node.js 24** for the documented development setup and **pnpm 12.9.1** (the package manager declared in `package.json`). Configure your own database, authentication, and provider services using [.env.example](.env.example); installing dependencies alone does not provision them. Never commit credentials.
 
 ```bash
 pnpm install
-```
-
-Start the development server:
-
-```bash
 pnpm dev
 ```
 
-The application will be available at the local development URL provided by Next.js.
+| Command | Purpose |
+| --- | --- |
+| `pnpm dev` | Start the development server |
+| `pnpm build` / `pnpm start` | Build / serve the production application |
+| `pnpm lint` | Run ESLint |
+| `pnpm test` | Run Vitest |
+| `pnpm test:e2e` | Run Public Demo Playwright smoke tests |
 
-### Local Chat without Upstash
+For local SaaS Chat without Upstash, the development-only `CHAT_RATE_LIMIT_BACKEND=memory` option is documented in [.env.example](.env.example) and the [AI rate-limit specification](docs/architecture/ai-architecture.md#rate-limiting--usage-tracking). It still requires normal authentication, database, and Google configuration. Demo Chat requires Redis.
 
-Normal local SaaS development can explicitly opt into a process-local Chat rate
-limit. In PowerShell, set the option for the development process:
+The default Playwright smoke suite targets the deployed read-only Demo. It restricts browser traffic to GET and does not exercise AI calls or authentication; see [playwright.config.ts](playwright.config.ts) and the [roadmap evidence](docs/planning/roadmap.md#phase-10--testing--quality).
 
-```powershell
-$env:CHAT_RATE_LIMIT_BACKEND = "memory"
-pnpm dev
-```
+## Status and limitations
 
-This requires `NODE_ENV=development` and limits each authenticated Workspace × User
-to 10 accepted Chat requests in a rolling 60-second window. It replaces only the
-rate-limit backend: normal authentication, authorization, the local database and
-Google generation/embedding configuration are still required. Public Demo and C2
-continue to reject Chat before the limiter runs.
+**Portfolio MVP; Public Demo with limited AI is live. Ver 1.00 is in preparation, not formally released.** Its final acceptance scope remains partly undecided; roadmap checkboxes retain their existing scope.
 
-Memory counters are local to one process, reset on restart or module reload, and
-are independent across workers or server instances. Expired timestamps and keys
-are pruned on the next rate-limit check; each active key retains at most ten
-timestamps. This is a development aid, not a distributed quota or production
-backend. The server-only option is described in `.env.example`; actual secret
-files do not need to be edited to use the process-scoped command above.
+Core research workflows, authentication/Workspace authorization, SaaS Chat/retrieval, and background indexing are implemented. The public portfolio deployment exposes the separate Demo experience; it is not an unrestricted SaaS instance.
 
-Unset the option, or select `upstash`, to use the standard Upstash backend. It
-requires `UPSTASH_REDIS_REST_URL` and `UPSTASH_REDIS_REST_TOKEN` (the installed
-Redis SDK also supports `KV_REST_API_URL` / `KV_REST_API_TOKEN` fallbacks).
-Missing credentials, an unknown backend, or `memory` outside development return
-HTTP 503 with code `CHAT_RATE_LIMIT_NOT_CONFIGURED`. Redis initialization/request
-failures and SDK timeout results return 503 with `CHAT_RATE_LIMIT_UNAVAILABLE`.
-These responses expose no connection details and stop before new Message,
-Conversation activity or usage writes, retrieval, embedding and generation.
-Ordinary quota denial remains 429 with `Retry-After`.
-
-The installed Upstash rate-limit SDK defaults to a five-second timeout that can
-resolve with `success: true, reason: "timeout"`. The Chat route treats this as
-503 rather than accepting the request. That does not cancel pending Redis or SDK
-analytics work. The UI uses a fixed availability message for 503 and never renders
-the raw service error body. Other Chat and saved-history behavior is unchanged.
-
-## Scripts
-
-| Command         | Description                  |
-| --------------- | ---------------------------- |
-| `pnpm dev`      | Start the development server |
-| `pnpm build`    | Build the application        |
-| `pnpm start`    | Start the production server  |
-| `pnpm lint`     | Run ESLint                   |
-| `pnpm test`     | Run unit tests               |
-| `pnpm test:e2e` | Run end-to-end tests         |
-
-### Public Demo E2E tests
-
-The Chromium smoke tests target the read-only Public Demo at
-`https://evidence-atlas-mu.vercel.app`. No local server or database is required.
-Install Chromium once, then run:
-
-```bash
-pnpm exec playwright install chromium
-pnpm test:e2e
-```
-
-To target another deployment configured in Public Demo mode:
-
-```powershell
-$env:E2E_BASE_URL = "https://your-public-demo.example"
-pnpm test:e2e
-Remove-Item Env:E2E_BASE_URL
-```
-
-In a POSIX shell, use `E2E_BASE_URL=https://your-public-demo.example pnpm test:e2e`.
-The suite checks the current curated seed, navigation, read-only UI, and GET 404
-boundaries with one worker. It stops on the first failure and retains failure
-traces in `test-results/`. The preflight requires the root to redirect to the Demo.
-Browser traffic is restricted to GET; no authentication or AI calls are made.
-These remote smoke tests do not replace database integration tests, AI answer
-quality tests, or verification of server-side write prevention.
-
-## Architecture
-
-The application follows a layered approach built around the Next.js App Router.
-
-```text
-Next.js App Router
-        ↓
-React Components
-        ↓
-Application Logic
-        ↓
-AI / Services
-        ↓
-Prisma
-        ↓
-PostgreSQL + pgvector
-```
-
-The architecture is intentionally incremental. The current implementation includes authentication and Workspace authorization, the core Research workflow, Research-scoped AI conversations, Workspace-level retrieval, background indexing, and a separate Public Demo boundary. Additional production and operational hardening remains tracked in the roadmap.
-
-See [Directory Structure](docs/architecture/directory-structure.md) for the current project structure.
-
-## Public Demo Safety Model
-
-The portfolio deployment is designed as a curated read-only experience rather than an unrestricted public SaaS instance.
-
-```text
-Portfolio Visitor
-       ↓
-Public Demo
-       ↓
-Curated Workspace
-       ↓
-Read-only Research Data
-```
-
-Public Demo mode disables authenticated SaaS entry points, Auth.js endpoints, Research chat endpoints, Server Action write paths, and the Inngest serving endpoint before their protected work is performed.
-
-The Public Demo is deployed on Vercel and backed by a dedicated Prisma Postgres database containing curated portfolio data. Repository and deployment credential exposure checks are complete. Database-role hardening and normal-SaaS operational hardening remain tracked separately in the project roadmap.
-
-## Repository
-
-Source code: https://github.com/morimotodev93/evidence-atlas
+Remaining work includes comprehensive normal-SaaS Production verification, AI answer-quality improvements, database-role hardening, Preview separation, and live Inngest Cloud integration verification. Synthetic model evaluations and bounded browser/security checks have specific limits; they do not establish general answer reliability or complete security. Uncertain Demo generation leases can exhaust capacity and leave Chat unavailable pending evidence-based recovery. See the roadmap for implementation, reported Production checks, and deferred work.
 
 ## License
 
-License information will be added as the project approaches its public release.
+License information has not yet been specified for public release.

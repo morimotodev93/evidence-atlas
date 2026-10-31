@@ -624,7 +624,7 @@ This distinction is important for traceability and AI retrieval.
 
 The public Demo has a curated, read-only implementation at `/demo` and `/demo/research/[researchId]`. Phase 9.2 provides an unauthenticated public read path separate from the authenticated SaaS application. Scoped deployed checks are recorded in [roadmap Phase 9](roadmap.md#phase-9--public-demo); PR #39 additionally records user-run Preview E2E 20/20, within the [reported scope](phase10-quality-acceptance.md#pr37-39-status-alignment).
 
-Visitors can explore a prepared Demo Workspace and review its accumulated research knowledge. AI-assisted public exploration remains a later phase; Demo pages do not display AI controls or expose chat endpoints.
+Visitors can explore a prepared Demo Workspace and review its accumulated research knowledge. Limited anonymous AI questions are available through a separate Demo Chat panel and API after Turnstile verification; Research data remains read-only.
 
 Visitors must not be able to create, edit, or delete persistent research data. Demo pages contain no mutation controls or Server Actions. Phase 9.3 additionally closes visitor-facing authenticated SaaS entry points in Public Demo deployment mode while preserving membership-based permissions in normal mode.
 
@@ -682,7 +682,7 @@ The initial direction is therefore:
 - No requirement for visitors to provide personal API credentials
 - No production SaaS administration through the public Demo
 
-Curated content, public read-only access, Demo labels, and the visitor-facing SaaS write lock are implemented, with local and selected deployed route-boundary checks recorded in [roadmap Phase 9](roadmap.md#phase-9--public-demo). Its scoped credential exposure review found no confirmed private credentials in reviewed repository files, reachable Git history, or deployed Demo HTML. Public AI interactions remain intentionally disabled for the current read-only Demo scope. Database-role hardening and live normal-SaaS Inngest Cloud integration verification remain incomplete; Public Demo disables Inngest serving and requires no runtime indexing. Background writes are outside the visitor-facing lock.
+Curated content, public read-only access, Demo labels, and the visitor-facing SaaS write lock are implemented, with local and selected deployed route-boundary checks recorded in [roadmap Phase 9](roadmap.md#phase-9--public-demo). Its scoped credential exposure review found no confirmed private credentials in reviewed repository files, reachable Git history, or deployed Demo HTML. Public Demo Chat now uses Groq Free Plan / `openai/gpt-oss-120b` with stored Research Evidence, Source references, anonymous quotas, a 2,000-token output limit, a 30-second generation deadline, and no automatic retry. The maintainer reports Production browsing, Turnstile/session creation, Japanese answers and Source references working on 2026-10-31 JST, including the 2,000-token setting and applied Evidence improvements. This documentation task did not rerun those checks; broader failure-path and recovery guarantees remain unverified. Database-role hardening and live normal-SaaS Inngest Cloud integration verification remain incomplete; Public Demo disables Inngest serving and requires no runtime indexing. Background writes are outside the visitor-facing lock.
 
 ---
 
@@ -851,7 +851,7 @@ The public deployment will be conceptually separated from the full authenticated
 
 The public Demo is a curated, read-only experience intended to demonstrate the product safely.
 
-Visitors can explore the prepared knowledge through the separate public read path without creating, editing, or deleting persistent Demo data. Public AI-assisted features remain planned and are not enabled by Phase 9.2.
+Visitors can explore the prepared knowledge through the separate public read path without creating, editing, or deleting persistent Demo data. The initial Phase 9.2 read-only scope was later extended with separate bounded Demo Chat; it grants no Research editing access and does not persist conversation history.
 
 ### 9.8 Incremental Architecture
 
@@ -940,7 +940,7 @@ The document should be revised when:
 
 ### Current Implementation Gaps
 
-The intended workflows above remain the product baseline. Current gaps through PR #39 (2026-10-26 JST):
+The intended workflows above remain the product baseline. The list below retains the PR #39 workflow baseline, with Public Demo Chat status updated from the maintainer's 2026-10-31 report. Ver 1.00 is in preparation; final acceptance conditions remain partly undecided.
 
 - Research creation and title/description editing, plus Source, Finding, and Comment CRUD, are implemented.
 - Workspace Tags can be created or reused by name, attached to Research, displayed on list/detail pages, and detached without deleting the Tag. Tag renaming, Workspace-level Tag deletion, and Tag filtering are not implemented.
@@ -952,7 +952,7 @@ The intended workflows above remain the product baseline. Current gaps through P
 - UC-05's broader conclusion workflow has only one optional text field in the current contract; multiple conclusion records and structured links to supporting Findings are not implemented.
 - Research-scoped AI conversations support explicit creation, streaming responses, saved history, and supporting Source links. Desktop starts with the side panel hidden; Ask AI opens it and Close hides it while retaining chat state and in-flight sends (PR #38). Smaller screens use an Ask AI dialog with separate state. Scoped browser checks are recorded in the [Phase 10 evidence](phase10-quality-acceptance.md#pr37-39-status-alignment). AI outputs are not automatically promoted into Findings or Conclusions.
 - UC-07 has a Phase 6 baseline: Research conversations combine current knowledge with relevant indexed Findings, Conclusions, and Research metadata from the same Workspace, including other Research items. Phase 8.3 adds asynchronous background reindexing after relevant Research/Finding mutations, with best-effort enqueue and a manual maintenance path. The broader use case remains incomplete: discussions and external Source bodies are not retrieved, the derived index can be stale, and citation eligibility does not prove a claim. Research metadata is discovery context rather than supported evidence.
-- Authentication, current Workspace selection, Workspace-based Research permission enforcement, onboarding, and Research-scoped AI route authorization are implemented. Related Research discovery, invitation and broader membership administration flows, and public AI usage controls remain pending.
+- Authentication, current Workspace selection, Workspace-based Research permission enforcement, onboarding, and Research-scoped AI route authorization are implemented. Related Research discovery, invitation and broader membership administration flows remain pending. Separate anonymous Demo Chat usage controls are implemented; they do not constitute unrestricted public SaaS access.
 - Curated Demo data and isolated-database indexing are verified. Phase 9.2 implements fixed-Workspace public read routes, and Phase 9.3 locks visitor-originated authenticated SaaS access/writes under required `PUBLIC_DEMO_MODE=true`. Local tests, selected deployed route-boundary checks, and a scoped credential exposure review are recorded in roadmap Phase 9; PR #39 adds user-run Preview E2E 20/20 for the CSS-updated Demo. Comprehensive normal-SaaS browser verification, security review, and infrastructure hardening remain incomplete; scoped C2 Smoke/Chat mock results do not establish live Google OAuth or production AI quality.
 - A Sentry error-monitoring baseline, configurable sampled performance tracing, and targeted retrieval/indexing spans with count-based attributes are implemented. Broader production monitoring requirements remain open; see the [roadmap](roadmap.md#phase-8--application-infrastructure).
 

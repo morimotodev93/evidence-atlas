@@ -1,8 +1,33 @@
 # evidence-atlas Roadmap
 
-> **Last Updated:** 2026-10-29
+> **Last Updated:** 2026-10-31
 
-Current stage: The portfolio MVP and curated read-only Public Demo are implemented, with scoped deployment checks recorded. Phases 4–7 are complete for their defined baselines; Phase 8 is complete for the defined application infrastructure baseline. Phase 10 has four completed checklist items (Unit, bounded E2E, Validation, Authorization); other quality work remains open. Phase 11 operational reviews and Phase 12 documentation are not complete. Checked items describe specific implementation or reported verification, not blanket production, OAuth, provider, or security validation.
+Current stage: The portfolio MVP and curated Public Demo with read-only Research and limited anonymous Chat are implemented, with scoped deployment checks recorded. Phases 4–7 are complete for their defined baselines; Phase 8 is complete for the defined application infrastructure baseline. Phase 10 has four completed checklist items (Unit, bounded E2E, Validation, Authorization); other quality work remains open. Phase 11 operational reviews and Phase 12 documentation are not complete. Checked items describe specific implementation or reported verification, not blanket production, OAuth, provider, or security validation.
+
+### Ver 1.00 preparation and current Production report (2026-10-31 JST)
+
+Ver 1.00 is **in preparation, not formally released**; final acceptance conditions
+remain partly undecided. Existing phase checkboxes are unchanged.
+
+| State | Scope |
+| --- | --- |
+| Implemented | Core research workflows, SaaS authorization, Gemini Chat/pgvector retrieval, background indexing, separate bounded anonymous Groq Demo Chat |
+| Production confirmed by maintainer | Public Research browsing, Turnstile, Chat session creation, Japanese questions, Groq answers including METR/GitHub Copilot comparison, Source references, 2,000-token output setting; Evidence improvements reported applied |
+| Implemented, Production verification incomplete | Comprehensive normal-SaaS workflows and live Inngest integration; Demo failure/recovery guarantees are not established by happy-path checks |
+| Planned / remaining | Existing unchecked quality and operational work; no phase is completed by this documentation review |
+| Ver 1.00 candidates | Current portfolio MVP and limited Demo experience; final release scope is not yet fixed |
+
+Demo Chat uses Groq Free Plan / `openai/gpt-oss-120b`, a 30-second generation
+deadline and zero automatic retries. Normal SaaS Chat/embeddings remain Gemini.
+Research data is read-only for visitors. This task verified local code and
+supplied operational reports only, without Production API/DB access.
+
+Dated PR reports below and linked preflight/recovery reports retain their original
+No-Go decisions and settings (including older output limits). They are historical
+checkpoints, not current deployment instructions. The maintainer's Production
+report supersedes the earlier unavailable-UI status; it does not establish Redis
+failover, uncertain remote termination, safe lease recovery, or completion of
+all earlier proposed checks. Those evidence gaps remain explicit.
 
 ## 1. Project Overview
 
@@ -438,15 +463,16 @@ This baseline does not include embedding usage tracking, monetary cost accountin
 **Goal:** Prepare a safe and understandable portfolio demonstration.
 
 **Release scope policy (2026-10-29 JST):** The implemented curated read-only Demo
-and a future limited Demo Chat release have separate acceptance scopes. Preserve
+and limited Demo Chat have separate acceptance scopes. Preserve
 the Demo/SaaS separation, server-side authorization and secret protection, and
 the fixed public-data boundary. Any public Chat additionally requires effective
 API abuse and cost controls, safe admission shutdown/feature disablement, and
 basic real-service and real-browser verification of the exposed feature.
 Resolving every availability or quality issue is not a universal release gate;
 material safety gaps remain blockers. The conditional Chat policy is defined in
-[Public Demo Strategy](#5-public-demo-strategy). This revision grants no activation:
-`DEMO_CHAT_ENABLED=false`, the disabled UI and the current public No-Go remain.
+[Public Demo Strategy](#5-public-demo-strategy). The 2026-10-29 revision granted no activation and retained the disabled UI /
+No-Go checkpoint. See the current Production report above for later operation;
+this does not mark all release-policy verification complete.
 
 - [x] Create curated Demo Workspace
 - [x] Create realistic Research data
@@ -491,7 +517,7 @@ The shell displays **Demo** and **Read-only demo** labels. Shared Research displ
 
 Set server-side `DEMO_WORKSPACE_ID` to the curated Workspace ID in the intended database; `.env.example` intentionally leaves it empty. All Research in that Workspace is published, so keep it dedicated to curated public content. Authenticated members retain their existing SaaS write permissions in normal mode; Public Demo deployment mode disables those entry points. Public visitors receive no membership or Demo User session. Vitest covers public read boundaries, related-data scope, Comment privacy, query ordering, UI/import separation, and failure propagation alongside existing authorization regressions.
 
-The GitHub link, Phase 9 portfolio documentation, final credential exposure review, and production deployment are complete. Public AI remains intentionally disabled for the current read-only Demo scope.
+The GitHub link, Phase 9 portfolio documentation, final credential exposure review, and production deployment are complete. Separate limited Public Demo Chat is now reported working in Production; Research data remains read-only.
 
 The deployed Public Demo uses a dedicated Prisma Postgres database and the Public Demo deployment lock. No private credential exposure was found in the reviewed repository files, reachable Git history, or deployed Demo HTML.
 
@@ -518,7 +544,7 @@ In Public Demo mode, `/` redirects to `/demo` before auth or database access. Re
 
 Server Actions also pass through the common boundary. Eight actions with pre-authentication child reads check deployment mode at entry: FindingSource attach/detach and Source/Finding/Comment update/delete. Onboarding, Research creation/updates, member roles, and Workspace switching remain protected through `requireUser()`. The inline sign-out Action checks the mode before `signOut()`. `notFound()` rejection is used for actions as well as pages; local direct POST checks confirmed the action error result and HTTP 404. Normal-mode input validation, membership checks, and ADMIN semantics are unchanged.
 
-Existing cookies do not bypass the lock: sessions are not evaluated by the protected entry points. Persisted Session rows are not revoked or deleted by enabling the mode. When normal mode is restored, still-valid sessions may work again. Public AI remains intentionally disabled for the current read-only Demo scope. Global session revocation, database-role hardening, normal-SaaS telemetry redaction, live Inngest Cloud integration verification, and Preview environment separation remain separate tasks. The lock covers visitor-originated SaaS operations, not all database or background writes.
+Existing cookies do not bypass the lock: sessions are not evaluated by the protected entry points. Persisted Session rows are not revoked or deleted by enabling the mode. When normal mode is restored, still-valid sessions may work again. Separate limited Public Demo Chat is now reported working in Production; Research data remains read-only. Global session revocation, database-role hardening, normal-SaaS telemetry redaction, live Inngest Cloud integration verification, and Preview environment separation remain separate tasks. The lock covers visitor-originated SaaS operations, not all database or background writes.
 
 Verification passed `pnpm lint`, `pnpm test --run` (17 files, 214 tests), and `pnpm build`. Tests exercise the real User/deployment guards, all eight early-read actions, representative writes, seven SaaS pages, root redirect, catch-all dispatch, sign-out, and all four chat handlers. Local production HTTP verification against the existing isolated database confirmed five public pages, seven unavailable SaaS pages, fourteen Auth GET/POST requests, four unavailable chat handlers, and 404 rejection results from all 22 registered Server Actions. Missing and invalid Demo Workspace configuration kept SaaS closed; normal mode preserved the sign-in redirect and Google provider dispatch. Verification used process-only local Auth host trust and a read-only connection, with identical before/after fingerprints for all 18 application/auth/index tables. No seed/reset/record writes or persisted environment changes occurred.
 
@@ -1410,11 +1436,11 @@ Authentication, advanced RAG, background processing, and other infrastructure sh
 
 The public portfolio deployment is not intended to function as an unrestricted public SaaS service.
 
-The Demo uses curated data with separate public read-only routes implemented in Phase 9.2 and a visitor-facing SaaS write lock in Phase 9.3. Public deployments must set `PUBLIC_DEMO_MODE=true`. The selected deployed Demo pages and visitor-facing route boundaries have been verified as recorded in Phase 9; public AI interaction remains disabled, and further normal-SaaS security, telemetry, and infrastructure hardening remain pending.
+The Demo uses curated data with separate public read-only routes implemented in Phase 9.2 and a visitor-facing SaaS write lock in Phase 9.3. Public deployments must set `PUBLIC_DEMO_MODE=true`. The selected deployed Demo pages and visitor-facing route boundaries have been verified as recorded in Phase 9; separate limited Public Demo Chat is now reported working in Production. Further normal-SaaS security, telemetry, and infrastructure hardening remain pending.
 
-### Current conditional Demo Chat release policy (2026-10-29 JST)
+### Historical conditional Demo Chat release policy (2026-10-29 JST)
 
-**Current decision: public activation remains No-Go.** Keep
+**Decision at the 2026-10-29 checkpoint: public activation remained No-Go.** The following policy and proposed verification scope are retained as recorded; see the current status above. At that checkpoint, the instruction was to keep
 `DEMO_CHAT_ENABLED=false` and the unavailable UI. This is a policy revision only,
 not activation approval, implementation, real-service verification or a new
 completion decision. The existing read-only Demo scope is independent.

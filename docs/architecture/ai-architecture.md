@@ -2,7 +2,30 @@
 
 > **Status:** Implemented Phase 6 baseline with Phase 7 route authorization and Phase 8.3 background indexing
 > **Scope:** Phase 5 AI Integration + Phase 6 Retrieval / RAG + Phase 7 AI route access control + Phase 8.3 Background Jobs
-> **Last Updated:** 2026-10-29
+> **Last Updated:** 2026-10-31
+
+## Current deployment status (2026-10-31 JST)
+
+Normal SaaS Chat and embeddings use Gemini; the separate Public Demo Chat uses
+Groq Free Plan / `openai/gpt-oss-120b`. Current Demo generation is bounded to
+**2,000 output tokens**, a **30-second deadline**, and **zero automatic retries**.
+It uses only bounded stored Evidence from the selected public Research, with
+Source references; no external page fetching, vector retrieval, or persisted
+conversation history is used. Research data remains read-only for visitors.
+
+The maintainer reports Production verification of Research browsing, Turnstile,
+anonymous session creation, Japanese questions, Groq generation, METR/GitHub
+Copilot comparison answers, Source references, and the 2,000-token setting, plus
+applied Production Evidence improvements. These are supplied operational results,
+not checks rerun during this documentation task. They do not establish all
+failure-path, Redis failover, remote cancellation, or recovery guarantees.
+
+Section 4.1 retains dated PR implementation and verification checkpoints. Its
+Coming soon / No-Go / unperformed-live-check statements describe those earlier
+checkpoints, not today's deployment. The code default remains disabled unless
+explicitly configured. Uncertain leases and stop-tolerant unavailability remain
+limitations; the Production happy path does not resolve them. Other sections
+primarily describe authenticated SaaS unless explicitly labelled Demo.
 
 ## C2 browser-test runtime boundary
 
@@ -53,7 +76,7 @@ Conversations and the interaction entry point remain scoped to a single Research
 
 The server derives the Workspace ID from the authorized current Research. Research-scoped AI Route Handlers authenticate the caller and verify access to the Research through its Workspace membership boundary before Conversation data, Research context, Workspace retrieval, or Message persistence is accessed.
 
-## Workspace filtering inside retrieval remains a data-selection boundary rather than an authorization mechanism. Authorization occurs before retrieval begins.
+Workspace filtering inside retrieval remains a data-selection boundary rather than an authorization mechanism. Authorization occurs before retrieval begins.
 
 ## 3. Research Context
 
@@ -84,9 +107,9 @@ AI requests use the AI SDK.
 
 Provider-specific model configuration is isolated from the Research chat flow so that application behavior does not need to depend directly on provider-specific APIs.
 
-The production Chat configuration uses Google Generative AI through `@ai-sdk/google`. `src/lib/ai/model.ts` configures the generation model ID `gemini-3.6-flash` and embedding model `gemini-embedding-001`; these are checked-in configurations, not provider-availability verification performed by this review.
+The authenticated SaaS Chat configuration uses Google Generative AI through `@ai-sdk/google`. `src/lib/ai/model.ts` configures the generation model ID `gemini-3.6-flash` and embedding model `gemini-embedding-001`; these are checked-in configurations, not provider-availability verification performed by this review.
 
-Synthetic quality evaluation can additionally select Groq's `openai/gpt-oss-120b` through `scripts/evaluation-models.ts`. Groq is evaluation-only and does not replace production Chat or embeddings. The evaluator uses Vercel AI SDK 6 and `@ai-sdk/groq` 3.x (`^3.0.72`), selected after a developer-reported `LanguageModelV4` / `LanguageModelV3` compatibility issue with the newer provider generation. `scripts/evaluate-ai-chat.ts` accepts a case ID followed by `gemini` (default) or `groq`, checking `GOOGLE_GENERATIVE_AI_API_KEY` or `GROQ_API_KEY` respectively. It loads `.env`, uses `buildChatSystemPrompt()` shared with the production route, and prints raw/validated responses, parsed citations/text, and reported usage. See the [AI Chat quality evaluation report](../planning/ai-chat-quality-evaluation.md#current-multi-provider-evaluation-runner) for commands and results; the direct runner bypasses production streaming and persistence.
+Synthetic quality evaluation can additionally select Groq's `openai/gpt-oss-120b` through `scripts/evaluation-models.ts`. Groq does not replace authenticated SaaS Chat or embeddings; it also serves the separate Public Demo path described below. The evaluator uses Vercel AI SDK 6 and `@ai-sdk/groq` 3.x (`^3.0.72`), selected after a developer-reported `LanguageModelV4` / `LanguageModelV3` compatibility issue with the newer provider generation. `scripts/evaluate-ai-chat.ts` accepts a case ID followed by `gemini` (default) or `groq`, checking `GOOGLE_GENERATIVE_AI_API_KEY` or `GROQ_API_KEY` respectively. It loads `.env`, uses `buildChatSystemPrompt()` shared with the production route, and prints raw/validated responses, parsed citations/text, and reported usage. See the [AI Chat quality evaluation report](../planning/ai-chat-quality-evaluation.md#current-multi-provider-evaluation-runner) for commands and results; the direct runner bypasses production streaming and persistence.
 
 The provider receives:
 
@@ -104,8 +127,9 @@ The transport is a plain text stream consumed with `fetch` and a stream reader. 
 
 ### 4.1 Public Demo Chat configuration contract
 
-**PR #45 connects server-side generation to the PR #42 security foundation;
-the public UI remains unavailable.**
+**Historical PR #45 checkpoint:** server-side generation connected to the PR #42
+security foundation while the public UI was unavailable. See the current
+deployment status above for the later Production report.
 `POST /api/demo/chat` is a separate Node.js Route Handler. No existing SaaS Chat,
 Auth.js or read-only Demo route is reused or changed. The default flag stays false;
 with complete configuration, authorized questions use the bounded generation
@@ -909,7 +933,7 @@ The current implementation does not implement:
 
 Authentication and Workspace-membership enforcement are implemented for the Research-scoped AI routes. They are application authorization responsibilities and are intentionally separate from retrieval filtering.
 
-AI chat burst rate limiting and chat-generation usage tracking are implemented for authenticated routes. Phase 9.2 adds separate read-only Public Demo routes without an AI panel, chat endpoint, or conversation history. Public AI access remains pending. Workspace retrieval does not by itself establish deployed public-demo readiness or a standalone Workspace chat workflow; Conversation ownership and routes remain Research-scoped.
+AI chat burst rate limiting and chat-generation usage tracking are implemented for authenticated routes. The initial Phase 9.2 Demo read routes were later extended with separate anonymous Demo Chat, now reported working in Production. Demo Research remains read-only and Demo conversation history is not persisted. Workspace retrieval does not by itself establish deployed public-demo readiness or a standalone Workspace chat workflow; Conversation ownership and routes remain Research-scoped.
 
 The remaining retrieval, public-access, and operational responsibilities require additional design and belong to later phases.
 
