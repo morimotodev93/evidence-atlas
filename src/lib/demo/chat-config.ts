@@ -14,7 +14,7 @@ export const DEMO_CHAT_LIMITS = Object.freeze({
   sourceWindowSeconds: 60,
   globalQuestionsPerDay: 50,
   maxConcurrentGenerations: 2,
-  maxOutputTokens: 700,
+  maxOutputTokens: 1200,
 } as const);
 
 export const DEMO_CHAT_REDIS = Object.freeze({

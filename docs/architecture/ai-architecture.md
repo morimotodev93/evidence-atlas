@@ -315,7 +315,7 @@ the model and returned as `contextTruncated`. The fixed prompt and bounded quest
 are additional to this Research budget; it is not a tokenizer-based input limit.
 
 The installed AI SDK **6.0.280**, Groq provider **3.0.72** and Next.js **16.3.8**
-source/types were checked. `generateText` uses `getDemoChatModel()`, 700 output
+source/types were checked. `generateText` uses `getDemoChatModel()`, 1200 output
 tokens, zero retries, no tools, no retrieval/embedding, and disabled SDK telemetry.
 The trusted system prompt is static; Research and the question are JSON in a user
 message. It instructs the model to ignore embedded instructions, use only stored
@@ -598,7 +598,7 @@ tests or production access were performed; offline Lua/SDK doubles cannot prove
 provider termination or deployed Function behavior.
 
 Each reservation counts even when future generation fails; release never refunds
-questions. These request counts and the configured 700 output-token target do
+questions. These request counts and the configured 1200 output-token target do
 **not guarantee a total token-consumption or monetary cap**. Bounded single-question
 generation, validated JSON and conservative lease integration are present in PR #45;
 public UI activation, history and remote cancellation confirmation remain absent.

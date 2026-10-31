@@ -101,7 +101,7 @@ describe("Demo Chat configuration eligibility (no public execution)", () => {
       maxUserQuestionsPerThread: 10, persistConversationHistory: false,
       maxInputCharacters: 500, anonymousSessionQuestions: 20,
       anonymousSessionWindowSeconds: 86400, sourceQuestions: 3, sourceWindowSeconds: 60,
-      globalQuestionsPerDay: 50, maxConcurrentGenerations: 2, maxOutputTokens: 700,
+      globalQuestionsPerDay: 50, maxConcurrentGenerations: 2, maxOutputTokens: 1200,
     });
     expect(Object.isFrozen(DEMO_CHAT_LIMITS)).toBe(true);
     expect(DEMO_CHAT_REDIS).toMatchObject({ backend: "upstash", failurePolicy: "deny", allowMemoryFallback: false });
