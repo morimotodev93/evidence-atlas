@@ -4,8 +4,8 @@ Status: Phase 3 curated Public Demo Research presentation localization implement
 2026-11-02. Canonical evidence remains English; full-site/database localization
 remains outside this scope.
 
-Phase 4.1a adds only the SaaS locale-cookie reader described below; it is not
-connected to application rendering.
+Phases 4.1a and 4.1b-1 add the SaaS locale-cookie reader and saving Server Action
+described below; they are not connected to application rendering.
 
 ## Routes and shared rendering
 
@@ -69,11 +69,32 @@ missing, empty or unsupported values (including `ja-JP` and `JA`) fall back to
 English. It does not write, delete or clear cookies and has no authentication,
 Workspace or database dependency.
 
-Cookie persistence, a SaaS language-switching UI/Action and passing the locale
-to screens are not implemented. Existing SaaS rendering and URL-based Public
-Demo language selection remain unchanged. Scoped unit tests mock `next/headers`
+The saving Action is described below. A SaaS language-switching UI and passing
+the locale to screens are not implemented. Existing SaaS rendering and URL-based
+Public Demo language selection remain unchanged. Scoped unit tests mock `next/headers`
 without a database or running server and verify resolution and absence of cookie
 mutations.
+
+## SaaS locale-cookie saving Action (Phase 4.1b-1)
+
+`src/lib/i18n/set-saas-locale.ts` uses `"use server"` and exports
+`setSaasLocale(locale: unknown): Promise<void>`. It validates client input with
+the existing `isLocale()` before accessing cookies. Only exact `en` and `ja`
+are accepted; all other inputs throw without changing cookies, rather than
+saving an English fallback. The Action shares `SAAS_LOCALE_COOKIE` with the
+reader and uses Next.js `cookies().set()` in the Server Action context.
+
+The cookie has `Path=/`, `SameSite=Lax`, `HttpOnly`, a 180-day `maxAge`
+(15,552,000 seconds), and `Secure` only when `NODE_ENV` is `production`.
+No authentication, Workspace or database dependency, redirect or explicit cache
+revalidation/refresh is introduced. Workspace and Auth.js cookies are untouched;
+locale is never an authorization or Workspace-selection input.
+
+Cookie saving is implemented, but the language-switching UI/Provider and locale
+delivery to screens remain deferred. SaaS screens still default to English and
+Public Demo continues to select its locale through URLs. Scoped mocked-cookie
+tests cover validation, attributes, environment-dependent `Secure`, preservation
+of other cookies and round trips through the existing reader.
 
 ## Language switching and Chat
 
