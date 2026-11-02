@@ -6,21 +6,18 @@ import { DemoShell } from "../../src/components/demo/demo-shell";
 import { DemoResearchView, DemoWorkspaceView } from "../../src/components/demo/demo-pages";
 import { resolveLocale } from "../../src/lib/i18n/locales";
 
+import { curatedFixture } from "../../src/lib/demo/curated-test-fixtures";
+
 const locale = resolveLocale(location.pathname.split("/")[1]);
 const localized = /^\/(en|ja)\//.test(location.pathname);
-const date = Temporal.Instant.from("2026-10-08T00:00:00Z");
-const research = {
-  id: "demo-research", title: "Developer Productivity", description: "Canonical English research description",
-  status: "COMPLETED" as const, conclusion: "Canonical saved conclusion", createdAt: date, updatedAt: date,
-};
-const source = { id: "demo-source", title: "Original publication title", url: "https://sources.invalid/evidence", updatedAt: date };
-const data = {
-  research, sources: [source], comments: [], tags: [],
-  findings: [{ id: "demo-finding", content: "Canonical evidence remains unchanged.", displayStyle: "TEXT" as const, updatedAt: date,
-    sources: [{ sourceId: source.id, source }] }],
-};
+const data = curatedFixture();
+data.sources[0].id = "demo-source";
+for (const finding of data.findings) {
+  for (const link of finding.sources) link.sourceId = link.source.id;
+}
+const { research } = data;
 const workspace = { id: "demo-workspace", name: "AI-Assisted Software Development", description: "Canonical workspace description",
-  organization: { id: "demo-org", name: "Evidence Atlas Demo" }, researches: [{ ...research, tags: [] }] };
+  organization: { id: "demo-org", name: "Evidence Atlas Demo" }, researches: [{ ...research, tags: data.tags }] };
 
 createRoot(document.getElementById("root")!).render(<ThemeProvider attribute="class">
   <DemoShell locale={locale} localized={localized}>

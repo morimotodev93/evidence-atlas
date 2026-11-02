@@ -92,7 +92,7 @@ export const test = base.extend<{ chatFixture: Harness }, { assets: Awaited<Retu
           if (harness.hold) await new Promise<void>((resolve) => { resume = resolve; });
           await route.fulfill({ status: harness.status, json: harness.status === 200 ? {
             answer: harness.answer ?? `Offline answer for ${post.researchId}`,
-            sources: [{ id: "demo-source", title: "Original publication title", url: "https://sources.invalid/evidence" }],
+            sources: [{ id: "demo-source", title: "Research: Quantifying GitHub Copilot's impact on developer productivity and happiness", url: "https://github.blog/news-insights/research/research-quantifying-github-copilots-impact-on-developer-productivity-and-happiness/" }],
             insufficientEvidence: false, contextTruncated: false, evidenceNotice: "Synthetic evidence only.",
           } : { error: "Synthetic refusal" } });
         }

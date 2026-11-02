@@ -29,6 +29,15 @@ report supersedes the earlier unavailable-UI status; it does not establish Redis
 failover, uncertain remote termination, safe lease recovery, or completion of
 all earlier proposed checks. Those evidence gaps remain explicit.
 
+### Public Demo localization (2026-11-02)
+
+Phases 1/2 established English/Japanese UI and routes. Phase 3 now adds reviewed
+Japanese presentation for the four curated Research topics, with exact English
+baseline/attribution guards and safe fallback. Original evidence and Chat remain
+canonical English. This completes the curated content scope only; full SaaS
+localization and deployed/runtime language verification remain open. See
+[i18n architecture](../architecture/i18n-foundation.md#phase-3-research-translation-catalog).
+
 ### Current planning entry points
 
 | Ongoing work / policy | Current document |
