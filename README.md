@@ -70,6 +70,10 @@ pnpm install
 pnpm dev
 ```
 
+For repeatable local Demo and SaaS UI review against a dedicated database, see
+the [local review guide](docs/development/local-review.md): `pnpm review:setup`,
+`pnpm review:check`, then `pnpm dev:review` (plus `pnpm review:login` for SaaS).
+
 | Command | Purpose |
 | --- | --- |
 | `pnpm dev` | Start the development server |

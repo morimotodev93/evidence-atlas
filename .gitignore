@@ -23,6 +23,7 @@
 # next.js
 /.next/
 /.next-c2/
+/.next-review/
 /out/
 
 # production
@@ -43,6 +44,7 @@ yarn-error.log*
 !.env.example
 !.env.c2.example
 !.env.c2.auth.example
+!.env.review.example
 
 # vercel
 .vercel

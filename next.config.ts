@@ -3,6 +3,7 @@ import { resolve } from "node:path";
 import { isC2Runtime } from "./src/lib/c2/service-policy.ts";
 
 const c2 = isC2Runtime();
+const review = process.env.REVIEW_RUNTIME_MODE === "local";
 const c2Aliases = {
   "@/lib/app-font": "./src/lib/c2/app-font.ts",
   "@sentry/nextjs": "./src/lib/c2/sentry-disabled.ts",
@@ -11,6 +12,11 @@ const c2Aliases = {
 
 const nextConfig: NextConfig = {
   reactCompiler: true,
+  ...(review ? {
+    distDir: ".next-review",
+    typescript: { tsconfigPath: "tsconfig.review.json" },
+    turbopack: { resolveAlias: { "@/lib/app-font": "./src/lib/review/app-font.ts" } },
+  } : {}),
   ...(c2
     ? ({
         distDir: ".next-c2",
@@ -36,7 +42,7 @@ const nextConfig: NextConfig = {
 // Next's default TS config loader transpiles to CommonJS. Keep dynamic imports
 // inside its supported async config function, never at module top level.
 export default async function configureNext() {
-  if (c2) return nextConfig;
+  if (c2 || review) return nextConfig;
   const sentryModule = await import("@sentry/nextjs/config");
   return sentryModule.withSentryConfig(nextConfig, {
       org: process.env.SENTRY_ORG,

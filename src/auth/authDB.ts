@@ -6,7 +6,7 @@ import { PostgresDialect } from "kysely";
 import { Pool } from "pg";
 
 import { AuthTableNamePlugin } from "./authTableNamePlugin";
-import { resolveRuntimeDatabaseUrl } from "../lib/c2/runtime-database.ts";
+import { resolveRuntimeDatabaseUrl } from "../lib/review/runtime-database.ts";
 
 const databaseUrl = resolveRuntimeDatabaseUrl(process.env);
 

@@ -5,7 +5,7 @@ import "temporal-polyfill/full/global";
 
 import type { Contract } from "./contract.d.ts";
 import contractJson from "./contract.json" with { type: "json" };
-import { resolveRuntimeDatabaseUrl } from "../lib/c2/runtime-database.ts";
+import { resolveRuntimeDatabaseUrl } from "../lib/review/runtime-database.ts";
 
 const databaseUrl = resolveRuntimeDatabaseUrl(process.env);
 

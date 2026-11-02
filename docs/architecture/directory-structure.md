@@ -93,11 +93,19 @@ evidence-atlas/
 - `architecture/` defines the data model, AI/RAG boundaries, and application structure.
 - `design/` defines the intended UX and reusable UI conventions.
 - `planning/` defines the product scope and implementation roadmap.
+- `development/` documents opt-in local developer workflows, including the [review database](../development/local-review.md).
 - `reference/` and `usage/` are reserved for future technical and operational documentation and are not currently checked in.
 
 `planning/getAccessibleWorkspaces.ts` and `planning/requireCurrentWorkspace.ts` are planning-stage code snapshots, not runtime entry points or the current implementation specification. The former currently matches the corresponding helper in `src/workspace/`; the latter predates cookie-based selection, access revalidation, and onboarding redirects. Current behavior lives in `src/workspace/`. Preserve these snapshots as historical context.
 
 ### Development artifacts and TypeScript scope
+
+The opt-in review launcher in `scripts/` verifies local Docker ownership and uses a
+dedicated `evidence_atlas_review` database/role. `src/lib/review/` guards the shared
+ORM/Auth connection resolver in review mode; other modes retain their existing
+resolver. Review Next uses `.next-review/` and `tsconfig.review.json`. Its explicit
+CLI session helper creates ordinary Auth.js sessions only in that verified local
+database, with no application authentication bypass or new application route.
 
 Store new review ZIPs, source copies, diffs, SHA-256 manifests, and review READMEs outside the repository, preferably in `../review-archive/`. Existing `build/` verification artifacts remain in place; this policy does not require deleting or moving historical evidence.
 

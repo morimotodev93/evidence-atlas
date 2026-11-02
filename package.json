@@ -6,6 +6,10 @@
   "scripts": {
     "dev": "next dev",
     "dev:c2": "node scripts/c2-app.ts",
+    "review:setup": "node scripts/review.ts setup",
+    "review:check": "node scripts/review.ts check",
+    "dev:review": "node scripts/review.ts dev",
+    "review:login": "node scripts/review.ts login",
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
