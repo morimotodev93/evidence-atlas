@@ -3,6 +3,8 @@ import { AppearanceSelect } from "@/components/appearance-select";
 import { Github } from "lucide-react";
 import Link from "next/link";
 import type { ReactNode } from "react";
+import { defaultLocale } from "@/lib/i18n/locales";
+import { translate } from "@/lib/i18n/translate";
 
 export default function DemoLayout({ children }: { children: ReactNode }) {
   return (
@@ -15,7 +17,7 @@ export default function DemoLayout({ children }: { children: ReactNode }) {
 
           <Badge variant="secondary">Demo</Badge>
 
-          <span className="text-sm text-muted-foreground">Read-only demo</span>
+          <span className="text-sm text-muted-foreground">{translate("demo.readOnly", defaultLocale)}</span>
 
           <a
             href="https://github.com/morimotodev93/evidence-atlas"
@@ -24,7 +26,7 @@ export default function DemoLayout({ children }: { children: ReactNode }) {
             className="ml-auto inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground"
           >
             <Github className="size-4" aria-hidden="true" />
-            Source code
+            {translate("demo.sourceCode", defaultLocale)}
           </a>
           <AppearanceSelect />
         </div>

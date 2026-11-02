@@ -32,6 +32,7 @@ function renderWithLayout(page: ReactNode) {
 function expectReadOnly(html: string) {
   expect(html).toContain("Read-only demo");
   expect(html).toContain(">Demo<");
+  expect(html).toContain(">Source code</a>");
   // Appearance remains static until mounted; public research stays read-only.
   expect(html).toContain('data-slot="appearance-placeholder"');
   expect(html).toContain("Appearance");
@@ -73,6 +74,15 @@ describe("Public Demo pages", () => {
       expect(html).toContain(value);
     }
     expect(html).toContain(`href="/demo/research/${research.id}"`);
+    expect(html).toContain('aria-label="Research list"');
+  });
+
+  it("keeps the English empty state and accessible list label", async () => {
+    mocks.getDemoWorkspace.mockResolvedValue({ ...workspace, researches: [] });
+    const html = renderWithLayout(await DemoPage());
+    expectReadOnly(html);
+    expect(html).toContain('aria-label="Research list"');
+    expect(html).toContain("No research available.");
   });
 
   it.each([undefined, "true"])("renders Research detail without a session or research controls in deployment mode %s", async (mode) => {
@@ -86,6 +96,7 @@ describe("Public Demo pages", () => {
       expect(html).toContain(value);
     }
     expect(html).toContain('href="/demo"');
+    expect(html).toContain("← Back to Demo Workspace</a>");
     expect(html.match(/href="https:\/\/example.com\/evidence"/g)).toHaveLength(2);
     expect(html).not.toContain(comment.user.email);
     expect(mocks.getDemoResearch).toHaveBeenCalledExactlyOnceWith(research.id);
