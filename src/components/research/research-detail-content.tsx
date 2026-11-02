@@ -1,3 +1,5 @@
+import { defaultLocale, type Locale } from "@/lib/i18n/locales";
+import { translate } from "@/lib/i18n/translate";
 import Link from "next/link";
 import type { ReactNode } from "react";
 import { Badge } from "@/components/ui/badge";
@@ -81,16 +83,17 @@ function EmptyState({ children }: { children: ReactNode }) {
   return <p className="mt-4 rounded-md border border-dashed px-4 py-3 text-sm leading-6 text-muted-foreground">{children}</p>;
 }
 
-export function ResearchHeader({ research, tags, controls }: {
+export function ResearchHeader({ research, tags, controls, locale = defaultLocale }: {
   research: ResearchDisplay;
   tags: { id: string; name: string }[];
   controls?: HeaderControls;
+  locale?: Locale;
 }) {
   return (
     <header className="min-w-0 border-b pb-8 [overflow-wrap:anywhere]">
       <div className="flex flex-col items-start justify-between gap-4 sm:flex-row">
         <div className="min-w-0 flex-1">
-          <p className="text-sm text-muted-foreground">Research</p>
+          <p className="text-sm text-muted-foreground">{translate("research.label", locale)}</p>
 
           <h1 className="mt-2 text-3xl leading-tight font-semibold tracking-tight sm:text-4xl">
             {research.title}
@@ -102,7 +105,7 @@ export function ResearchHeader({ research, tags, controls }: {
 
       <div className={`mt-4 ${actionGroup}`}>
         <Badge variant="outline">
-          {formatResearchStatus(research.status)}
+          {formatResearchStatus(research.status, locale)}
         </Badge>
 
         {controls?.status}
@@ -126,29 +129,30 @@ export function ResearchHeader({ research, tags, controls }: {
       </div>}
 
       <div className="mt-4 flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground">
-        <span>Created {formatDate(research.createdAt)}</span>
-        <span>Updated {formatDate(research.updatedAt)}</span>
+        <span>{translate("research.created", locale)} {formatDate(research.createdAt, locale)}</span>
+        <span>{translate("research.updated", locale)} {formatDate(research.updatedAt, locale)}</span>
       </div>
     </header>
   );
 }
 
-export function ResearchDetailContent({ research, sources, findings, comments, controls }: {
+export function ResearchDetailContent({ research, sources, findings, comments, controls, locale = defaultLocale }: {
   research: ResearchDisplay;
   sources: SourceDisplay[];
   findings: FindingDisplay[];
   comments: CommentDisplay[];
   controls?: ContentControls;
+  locale?: Locale;
 }) {
   return (
     <div className="min-w-0 [overflow-wrap:anywhere]">
       {/* Sources */}
       <section className="border-b py-8">
-        <SectionHeading title="Sources" description="External sources used in this research." count={`${sources.length} sources`} action={controls?.addSource} />
+        <SectionHeading title={translate("research.sources", locale)} description={translate("research.sourcesDescription", locale)} count={translate("research.sourceCount", locale, { count: sources.length })} action={controls?.addSource} />
 
         <div className="mt-4 space-y-3">
           {sources.length === 0 ? (
-            <EmptyState>No sources yet.</EmptyState>
+            <EmptyState>{translate("research.noSources", locale)}</EmptyState>
           ) : (
             sources.map((source) => {
               const href = safeSourceHref(source.url);
@@ -159,7 +163,7 @@ export function ResearchDetailContent({ research, sources, findings, comments, c
                     {source.url}
                   </p>
                   <p className="mt-2 text-xs text-muted-foreground">
-                    Updated {formatDate(source.updatedAt)}
+                    {translate("research.updated", locale)} {formatDate(source.updatedAt, locale)}
                   </p>
                 </>
               );
@@ -192,11 +196,11 @@ export function ResearchDetailContent({ research, sources, findings, comments, c
 
       {/* Findings */}
       <section className="border-b py-8">
-        <SectionHeading title="Findings" description="Evidence and insights extracted from the sources." count={`${findings.length} findings`} action={controls?.addFinding} />
+        <SectionHeading title={translate("research.findings", locale)} description={translate("research.findingsDescription", locale)} count={translate("research.findingCount", locale, { count: findings.length })} action={controls?.addFinding} />
 
         <div className="mt-4 space-y-3">
           {findings.length === 0 ? (
-            <EmptyState>No findings yet.</EmptyState>
+            <EmptyState>{translate("research.noFindings", locale)}</EmptyState>
           ) : (
             findings.map((finding) => {
               const attachedSourceIds = new Set(
@@ -224,7 +228,7 @@ export function ResearchDetailContent({ research, sources, findings, comments, c
                   {finding.sources.length > 0 && (
                     <div className="mt-4 space-y-2 border-l-2 pl-4">
                       <p className="text-xs font-medium text-muted-foreground">
-                        Supporting sources
+                        {translate("research.supporting", locale)}
                       </p>
 
                       {finding.sources.map((findingSource) => {
@@ -262,12 +266,12 @@ export function ResearchDetailContent({ research, sources, findings, comments, c
 
                   <div className="mt-4 flex flex-wrap items-center justify-between gap-x-4 gap-y-3">
                     <span className="text-xs text-muted-foreground">
-                      {finding.displayStyle}
+                      {finding.displayStyle === "TEXT" ? translate("research.text", locale) : finding.displayStyle}
                     </span>
 
                     <div className={actionGroup}>
                       <span className="text-xs text-muted-foreground">
-                        Updated {formatDate(finding.updatedAt)}
+                        {translate("research.updated", locale)} {formatDate(finding.updatedAt, locale)}
                       </span>
 
                       {controls?.finding?.(finding)}
@@ -282,11 +286,11 @@ export function ResearchDetailContent({ research, sources, findings, comments, c
 
       {/* Discussion */}
       <section className="border-b py-8">
-        <SectionHeading title="Discussion" description="Discuss questions, interpretations, and unresolved points." count={`${comments.length} comments`} action={controls?.addComment} />
+        <SectionHeading title={translate("research.discussion", locale)} description={translate("research.discussionDescription", locale)} count={translate("research.commentCount", locale, { count: comments.length })} action={controls?.addComment} />
 
         <div className="mt-4 space-y-3">
           {comments.length === 0 ? (
-            <EmptyState>No discussion yet.</EmptyState>
+            <EmptyState>{translate("research.noDiscussion", locale)}</EmptyState>
           ) : (
             comments.map((comment) => (
               <article
@@ -304,7 +308,7 @@ export function ResearchDetailContent({ research, sources, findings, comments, c
 
                   <div className={actionGroup}>
                     <span className="text-xs text-muted-foreground">
-                      Commented {formatDate(comment.createdAt)}
+                      {translate("research.commented", locale)} {formatDate(comment.createdAt, locale)}
                     </span>
 
                     {controls?.comment && <div className={actionGroup}>{controls.comment(comment)}</div>}
@@ -318,14 +322,14 @@ export function ResearchDetailContent({ research, sources, findings, comments, c
 
       {/* Conclusion */}
       <section className="py-8">
-        <SectionHeading title="Conclusion" description="Current synthesis of this research." action={controls?.conclusion} />
+        <SectionHeading title={translate("research.conclusion", locale)} description={translate("research.conclusionDescription", locale)} action={controls?.conclusion} />
 
         {research.conclusion ? (
           <p className="mt-4 max-w-3xl whitespace-pre-wrap text-base leading-7">
             {research.conclusion}
           </p>
         ) : (
-          <EmptyState>No conclusion yet.</EmptyState>
+          <EmptyState>{translate("research.noConclusion", locale)}</EmptyState>
         )}
       </section>
     </div>

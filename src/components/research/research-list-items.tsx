@@ -1,3 +1,5 @@
+import { defaultLocale, type Locale } from "@/lib/i18n/locales";
+import { translate } from "@/lib/i18n/translate";
 import Link from "next/link";
 
 import { Badge } from "@/components/ui/badge";
@@ -12,18 +14,19 @@ export type ResearchListItem = {
   tags: { id: string; name: string }[];
 };
 
-export function formatResearchStatus(status: string) {
+export function formatResearchStatus(status: string, locale: Locale = defaultLocale) {
   switch (status) {
-    case "IN_PROGRESS": return "In progress";
-    case "COMPLETED": return "Completed";
-    case "ARCHIVED": return "Archived";
+    case "IN_PROGRESS": return translate("research.inProgress", locale);
+    case "COMPLETED": return translate("research.completed", locale);
+    case "ARCHIVED": return translate("research.archived", locale);
     default: return status;
   }
 }
 
-export function ResearchListItems({ items, basePath, showStatus = false }: {
+export function ResearchListItems({ items, basePath, showStatus = false, locale = defaultLocale }: {
   items: ResearchListItem[];
-  basePath: "/research" | "/demo/research";
+  basePath: "/research" | "/demo/research" | `/${Locale}/demo/research`;
+  locale?: Locale;
   showStatus?: boolean;
 }) {
   return (
@@ -37,14 +40,14 @@ export function ResearchListItems({ items, basePath, showStatus = false }: {
               {research.description && (
                 <p className="mt-1 line-clamp-2 text-sm text-muted-foreground">{research.description}</p>
               )}
-              {showStatus && <Badge className="mt-3" variant="outline">{formatResearchStatus(research.status)}</Badge>}
+              {showStatus && <Badge className="mt-3" variant="outline">{formatResearchStatus(research.status, locale)}</Badge>}
               {research.tags.length > 0 && (
                 <div className="mt-4 flex flex-wrap items-center gap-2">
                   {research.tags.map((tag) => <Badge key={tag.id} variant="secondary">{tag.name}</Badge>)}
                 </div>
               )}
             </div>
-            <span className="shrink-0 text-xs text-muted-foreground">{formatDate(research.createdAt)}</span>
+            <span className="shrink-0 text-xs text-muted-foreground">{formatDate(research.createdAt, locale)}</span>
           </div>
         </Link>
       ))}

@@ -1,26 +1,12 @@
 import { notFound } from "next/navigation";
-import { ResearchListItems } from "@/components/research/research-list-items";
 import { getDemoWorkspace } from "@/lib/demo/read";
-import { defaultLocale } from "@/lib/i18n/locales";
-import { translate } from "@/lib/i18n/translate";
+import { DemoWorkspaceView } from "@/components/demo/demo-pages";
+import { demoMetadata } from "@/lib/i18n/demo-routes";
 
-// Revalidate the publication configuration and database on every request.
 export const dynamic = "force-dynamic";
-
+export const metadata = demoMetadata("en");
 export default async function DemoPage() {
   const workspace = await getDemoWorkspace();
   if (!workspace) notFound();
-
-  return <main className="mx-auto w-full max-w-5xl px-4 py-6 sm:px-6 sm:py-8 [&_a]:scroll-mt-24 sm:[&_a]:scroll-mt-16 [&_a]:scroll-mb-2">
-    <header className="mb-6">
-      <p className="text-sm text-muted-foreground">{workspace.organization.name}</p>
-      <h1 className="mt-1 text-2xl font-semibold tracking-tight">{workspace.name}</h1>
-      {workspace.description && <p className="mt-3 max-w-3xl text-sm leading-6 text-muted-foreground">{workspace.description}</p>}
-    </header>
-    <section aria-label={translate("demo.researchList", defaultLocale)}>
-      {workspace.researches.length > 0 ?
-        <ResearchListItems items={workspace.researches} basePath="/demo/research" showStatus /> :
-        <p className="text-sm text-muted-foreground">{translate("demo.noResearch", defaultLocale)}</p>}
-    </section>
-  </main>;
+  return DemoWorkspaceView({ workspace });
 }

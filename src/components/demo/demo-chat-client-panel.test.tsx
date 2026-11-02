@@ -26,6 +26,7 @@ vi.mock("react", async (original) => ({
 vi.mock("@/components/ui/button", () => ({ Button: "button" }));
 vi.mock("@/components/ui/textarea", () => ({ Textarea: "textarea" }));
 vi.mock("next/script", () => ({ default: "turnstile-script" }));
+vi.mock("./demo-language", () => ({ useDemoChatActivity: () => ({ busy: false, setBusy() {} }) }));
 type Element = ReactElement<Record<string, unknown> & { children?: ReactNode }>;
 function elements(node: ReactNode): Element[] {
   if (Array.isArray(node)) return node.flatMap(elements);

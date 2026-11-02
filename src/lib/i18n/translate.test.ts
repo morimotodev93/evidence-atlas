@@ -1,6 +1,6 @@
 import { describe, expect, expectTypeOf, it } from "vitest";
 
-import { en, type TranslationKey } from "./dictionaries/en";
+import { en, type Dictionary, type TranslationKey } from "./dictionaries/en";
 import { ja } from "./dictionaries/ja";
 import { defaultLocale, isLocale, resolveLocale, supportedLocales } from "./locales";
 import { translate } from "./translate";
@@ -26,7 +26,7 @@ describe("locale selection", () => {
 
 describe("UI translations", () => {
   it("preserves the stable keys and existing English copy", () => {
-    expect(en).toEqual({
+    expect(en).toMatchObject({
       "demo.readOnly": "Read-only demo",
       "demo.sourceCode": "Source code",
       "demo.researchList": "Research list",
@@ -49,7 +49,11 @@ describe("UI translations", () => {
   });
 
   it("falls back per key when a Japanese translation is absent", () => {
-    expect(Object.hasOwn(ja, "demo.noResearch")).toBe(false);
-    expect(translate("demo.noResearch", "ja")).toBe("No research available.");
+    const partial: { -readonly [K in keyof Dictionary]?: string } = ja;
+    const saved = partial["demo.noResearch"];
+    try {
+      delete partial["demo.noResearch"];
+      expect(translate("demo.noResearch", "ja")).toBe("No research available.");
+    } finally { partial["demo.noResearch"] = saved; }
   });
 });

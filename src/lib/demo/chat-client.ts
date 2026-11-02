@@ -1,3 +1,5 @@
+import { defaultLocale, type Locale } from "@/lib/i18n/locales";
+import { translate } from "@/lib/i18n/translate";
 import { z } from "zod";
 
 export type DemoChatSource = { id: string; title: string; url: string };
@@ -31,18 +33,18 @@ export type DemoChatState = {
 };
 class HttpError extends Error { constructor(readonly status: number) { super(); } }
 
-export function demoChatErrorMessage(status: number): string {
-  if (status === 429) return "Demo usage or capacity limit reached. Availability may not recover automatically. No question was retried.";
-  if (status === 401) return "Your session has expired. Start a new verified session to continue.";
-  if (status === 403) return "Chat authorization or verification failed. Start a new verified session to continue.";
-  if (status === 404) return "Chat or this public Research is unavailable.";
-  if ([400, 408, 413, 415].includes(status)) return "The request was refused. Check your question before submitting again.";
-  return "Chat could not complete the request. Its outcome may be uncertain and a question may have been counted. Nothing was retried automatically.";
+export function demoChatErrorMessage(status: number, locale: Locale = defaultLocale): string {
+  if (status === 429) return translate("chat.errorLimit", locale);
+  if (status === 401) return translate("chat.errorSession", locale);
+  if (status === 403) return translate("chat.errorAuth", locale);
+  if (status === 404) return translate("chat.errorUnavailable", locale);
+  if ([400, 408, 413, 415].includes(status)) return translate("chat.errorRequest", locale);
+  return translate("chat.errorUnknown", locale);
 }
 
 // One in-memory controller per mounted Research. No history, tokens or cookies
 // are persisted. Status guards run synchronously, before React rerenders.
-export function createDemoChatClient(enabled: boolean, researchId: string, sources: DemoChatSource[], fetcher: typeof fetch = fetch) {
+export function createDemoChatClient(enabled: boolean, researchId: string, sources: DemoChatSource[], fetcher: typeof fetch = fetch, locale: Locale = defaultLocale) {
   const initial: DemoChatState = { status: enabled ? "idle" : "disabled" };
   let state = initial;
   let pending: AbortController | undefined;
@@ -62,7 +64,7 @@ export function createDemoChatClient(enabled: boolean, researchId: string, sourc
     const status = error instanceof HttpError ? error.status : 503;
     publish({ ...state, status: status === 429 ? "limited" : "error",
       threadId: [401, 403, 404].includes(status) ? undefined : state.threadId,
-      notice: demoChatErrorMessage(status) });
+      notice: demoChatErrorMessage(status, locale) });
   };
   return {
     getSnapshot: () => state,
@@ -76,7 +78,7 @@ export function createDemoChatClient(enabled: boolean, researchId: string, sourc
     },
     verificationFailed(id: number, expired = false) {
       if (id !== attempt || state.status !== "verifying" || pending) return;
-      publish({ status: "error", notice: expired ? "Verification expired. Start again with a new challenge." : "Verification failed. Start again with a new challenge." });
+      publish({ status: "error", notice: expired ? translate("chat.errorExpired", locale) : translate("chat.errorVerification", locale) });
     },
     async verified(id: number, token: string) {
       if (!enabled || id !== attempt || state.status !== "verifying" || pending) return;
@@ -93,7 +95,7 @@ export function createDemoChatClient(enabled: boolean, researchId: string, sourc
       if (!enabled || pending || !state.threadId || !["ready", "answered", "error"].includes(state.status)) return;
       if (!message.trim() || Array.from(message).length > 500
         || /[\uD800-\uDBFF](?![\uDC00-\uDFFF])|(?<![\uD800-\uDBFF])[\uDC00-\uDFFF]/u.test(message)) {
-        publish({ ...state, status: "error", notice: "Enter a question of 1–500 Unicode characters." }); return;
+        publish({ ...state, status: "error", notice: translate("chat.errorQuestion", locale) }); return;
       }
       pending = new AbortController();
       const current = version;

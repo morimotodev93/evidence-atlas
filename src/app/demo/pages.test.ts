@@ -47,7 +47,7 @@ function expectReadOnly(html: string) {
     expect(chat).not.toMatch(/<form|<input|<select|\baction=|\bformAction=/);
   }
   const readOnlyHtml = chat ? html.replace(chat, "") : html;
-  expect(readOnlyHtml).not.toMatch(/<form|<button|<input|<textarea|<select|role="combobox"|\/edit|\/settings|\/research\/new|\/chat|Ask AI|Sign out/);
+  expect(readOnlyHtml.slice(readOnlyHtml.indexOf("<main"))).not.toMatch(/<form|<button|<input|<textarea|<select|role="combobox"|\/edit|\/settings|\/research\/new|\/chat|Ask AI|Sign out/);
   expect(readOnlyHtml.slice(readOnlyHtml.indexOf("<main"))).not.toMatch(/<form|<button|<input|<textarea|<select/);
   expect(mocks.auth).not.toHaveBeenCalled();
 }
@@ -153,7 +153,7 @@ describe("Public Demo pages", () => {
       // Inspect server-to-client props as well as markup: only the Site Key and
       // the public Research/Source projection may cross this boundary.
       const panel = page.props.children.at(-1);
-      expect(panel.props).toEqual({ researchTitle: research.title,
+      expect(panel.props).toEqual({ locale: "en", researchTitle: research.title,
         researchId: mode === "enabled" ? research.id : undefined,
         siteKey: mode === "enabled" ? config.NEXT_PUBLIC_DEMO_TURNSTILE_SITE_KEY : undefined,
         sources: mode === "enabled" ? [{ id: source.id, title: source.title, url: source.url }] : undefined,

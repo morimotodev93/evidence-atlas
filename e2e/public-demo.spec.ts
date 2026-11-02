@@ -148,7 +148,7 @@ async function pressTab(page: Page, key: "Tab" | "Shift+Tab", target?: Locator) 
     && target && await target.evaluate((element) => element.matches('main a[target="_blank"]'));
   const snapshot = () => target!.evaluate((element) => {
     const style = getComputedStyle(element);
-    const header = document.querySelector("body > header")?.getBoundingClientRect();
+    const header = document.querySelector("body header")?.getBoundingClientRect();
     const rect = element.getBoundingClientRect();
     return {
       host: location.hostname,
@@ -401,11 +401,13 @@ for (const viewport of [{ width: 375, height: 812 }, { width: 768, height: 1024 
         await expectResponsiveElement(page, back);
         const appearance = page.getByRole("combobox", { name: "Appearance", exact: true });
         await expect(appearance).toBeEnabled();
-        // The hydrated header adds a tab stop between Source code and Back.
+        const language = page.getByRole("combobox", { name: "Language", exact: true });
+        await expect(language).toHaveValue("en");
+        // Appearance and Language are the header controls before Back.
         const detailLinks = [
           page.getByRole("link", { name: "Evidence Atlas", exact: true }),
           page.getByRole("link", { name: "Source code", exact: true }),
-          appearance, back, ...sourceLinks, ...supportingLinks,
+          appearance, language, back, ...sourceLinks, ...supportingLinks,
         ];
         const externalLinks = new Set([...sourceLinks, ...supportingLinks]);
         const expectDetailFocus = async (target: Locator) => {
@@ -456,7 +458,8 @@ test("list and detail expose read-only UI with only an unavailable Chat preview"
     await expect(page.getByText("Read-only demo", { exact: true })).toBeVisible();
     await expect(page.getByRole("button", { name: operationName, includeHidden: true })).toHaveCount(0);
     await expect(page.getByRole("link", { name: operationName, includeHidden: true })).toHaveCount(0);
-    await expect(page.getByRole("combobox", { includeHidden: true })).toHaveCount(1);
+    await expect(page.getByRole("combobox", { includeHidden: true })).toHaveCount(2);
+    await expect(page.getByRole("banner").getByRole("combobox", { name: "Language", exact: true })).toHaveValue("en");
     const appearance = page.getByRole("banner")
       .getByRole("combobox", { name: "Appearance", exact: true });
     await expect(appearance).toBeEnabled();
@@ -611,7 +614,9 @@ for (const viewport of [
       await expect(appearance).toBeEnabled();
       await expect(site).toHaveAttribute("href", "/demo");
       await expect(code).toHaveAttribute("href", "https://github.com/morimotodev93/evidence-atlas");
-      const listLinks = [site, code, appearance, ...await list.getByRole("link").all()];
+      const language = page.getByRole("combobox", { name: "Language", exact: true });
+      await expect(language).toHaveValue("en");
+      const listLinks = [site, code, appearance, language, ...await list.getByRole("link").all()];
       for (const link of listLinks) {
         await expectTabReachable(page, link);
         await expectExposedKeyboardFocus(link);
@@ -654,7 +659,7 @@ for (const viewport of [
       }
 
       const back = page.getByRole("link", { name: "← Back to Demo Workspace", exact: true });
-      const detailLinks = [site, code, appearance, back, ...sourceLinks, ...supportingLinks];
+      const detailLinks = [site, code, appearance, language, back, ...sourceLinks, ...supportingLinks];
       const externalLinks = new Set([...sourceLinks, ...supportingLinks]);
       const detailURL = page.url();
       const expectDetailFocus = async (link: Locator) => {

@@ -2,7 +2,7 @@ import { defineConfig, devices } from "@playwright/test";
 
 export default defineConfig({
   testDir: "./e2e",
-  testIgnore: "demo-chat-isolated.spec.ts", // Dedicated offline config only.
+  testIgnore: ["demo-chat-isolated.spec.ts", "demo-i18n-isolated.spec.ts"], // Dedicated offline config only.
   workers: 1,
   maxFailures: 1,
   timeout: 60_000,

@@ -1,5 +1,8 @@
 "use client";
 
+import { defaultLocale, type Locale } from "@/lib/i18n/locales";
+import { translate } from "@/lib/i18n/translate";
+
 import Script from "next/script";
 import { useEffect, useRef } from "react";
 
@@ -14,8 +17,8 @@ type Turnstile = {
 };
 declare global { interface Window { turnstile?: Turnstile } }
 
-export function DemoChatTurnstile({ siteKey, onToken, onFailure }: {
-  siteKey: string; onToken: (token: string) => void; onFailure: (expired: boolean) => void;
+export function DemoChatTurnstile({ siteKey, onToken, onFailure, locale = defaultLocale }: {
+  siteKey: string; locale?: Locale; onToken: (token: string) => void; onFailure: (expired: boolean) => void;
 }) {
   const container = useRef<HTMLDivElement>(null);
   const widget = useRef<string | undefined>(undefined);
@@ -32,7 +35,7 @@ export function DemoChatTurnstile({ siteKey, onToken, onFailure }: {
     callbacks.current.onFailure(expired);
   };
   return <>
-    <div ref={container} className="mt-4 min-w-0" aria-label="Verify to start Demo Chat" />
+    <div ref={container} className="mt-4 min-w-0" aria-label={translate("chat.verifyLabel", locale)} />
     <Script
       id="demo-chat-turnstile"
       src="https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit"
