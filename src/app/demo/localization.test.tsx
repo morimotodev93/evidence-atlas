@@ -5,6 +5,10 @@ import LocalizedDemoPage from "../[locale]/demo/page";
 import LocalizedResearchPage from "../[locale]/demo/research/[researchId]/page";
 import LocalizedLayout from "../[locale]/demo/layout";
 import { workspace, research, source, finding } from "@/lib/demo/test-fixtures";
+import { curatedFixture } from "@/lib/demo/curated-test-fixtures";
+import { researchJa } from "@/lib/demo/research-ja";
+import DemoPage from "./page";
+import DemoResearchPage from "./research/[researchId]/page";
 
 const mocks = vi.hoisted(() => ({ readWorkspace: vi.fn(), readResearch: vi.fn() }));
 vi.mock("@/lib/demo/read", () => ({ getDemoWorkspace: mocks.readWorkspace, getDemoResearch: mocks.readResearch }));
@@ -18,6 +22,27 @@ beforeEach(() => {
 });
 
 describe("localized route entrypoints with offline reads", () => {
+  it.each(Object.keys(researchJa) as (keyof typeof researchJa)[])("presents curated %s in Japanese and canonical English on all English routes", async (key) => {
+    const data = curatedFixture(key);
+    mocks.readWorkspace.mockResolvedValue({ ...workspace, researches: [{ ...data.research, tags: data.tags }] });
+    mocks.readResearch.mockResolvedValue(data);
+    const params = Promise.resolve({ locale: "ja", researchId: data.research.id });
+    const jaList = renderToStaticMarkup(await LocalizedDemoPage({ params }));
+    const jaDetail = renderToStaticMarkup(await LocalizedResearchPage({ params }));
+    expect(jaList).toContain(researchJa[key].title);
+    for (const text of [researchJa[key].title, researchJa[key].description, researchJa[key].conclusion, researchJa[key].comment]) expect(jaDetail).toContain(text);
+    expect(jaList).toContain(`/ja/demo/research/${data.research.id}`);
+    const enParams = Promise.resolve({ locale: "en", researchId: data.research.id });
+    const english = [
+      await LocalizedDemoPage({ params: enParams }), await LocalizedResearchPage({ params: enParams }),
+      await DemoPage(), await DemoResearchPage({ params: enParams }),
+    ];
+    for (const page of english) {
+      const html = renderToStaticMarkup(page);
+      expect(html).toContain(data.research.title.replaceAll("&", "&amp;"));
+      expect(html).not.toContain(researchJa[key].title);
+    }
+  });
   it.each(["en", "ja"])("renders %s UI while retaining evidence and IDs", async (locale) => {
     const params = Promise.resolve({ locale, researchId: research.id });
     const list = renderToStaticMarkup(await LocalizedDemoPage({ params }));

@@ -1,7 +1,8 @@
 # English/Japanese localization foundation
 
-Status: Phase 2 Public Demo UI localization implemented, 2026-11-02. Research
-evidence translation and full-site localization remain outside this scope.
+Status: Phase 3 curated Public Demo Research presentation localization implemented,
+2026-11-02. Canonical evidence remains English; full-site/database localization
+remains outside this scope.
 
 ## Routes and shared rendering
 
@@ -31,8 +32,9 @@ English sentences. `Dictionary` gives each key a string value; `ja.ts` uses
 keys. Phase 2 extends the five original keys to cover Demo navigation, Research
 section descriptions/counts/status/dates and empty states, Appearance, Chat
 instructions/controls/placeholder/status/errors, and accessible labels. Research
-text, Workspace names, Tags, Comments, original source titles and AI prose are
-canonical content and remain unchanged.
+text, Tags and curated Comments use the separate Phase 3 presentation catalog
+described below. Workspace names/descriptions, original source titles and AI prose
+remain unchanged. All canonical database content remains unchanged.
 
 `translate(key, locale)` accepts only typed keys, selects a supported locale, and
 falls back per missing entry to English. Omitting the locale also selects English.
@@ -76,11 +78,12 @@ page; this is not an unsaved-draft confirmation feature.
 
 `getDemoQuestions(canonicalResearchTitle, locale)` selects English/Japanese
 topic-specific prompts from saved-evidence question lists. The four canonical
-English titles remain the topic keys because research content is not localized.
+English titles remain the topic keys: the display overlay never replaces the
+canonical title passed to Chat.
 Unknown titles use language-specific general questions. Existing no-consecutive-
 repeat selection, input focus, editable insertion, draft protection and manual
-submission remain. If titles become editable/localized, migrate topic selection
-to stable ID-based configuration as separate content work.
+submission remain. The Japanese display title is never used for topic selection. Editable canonical
+titles would require a separate topic-selection design.
 
 Only client-facing Chat notices are localized. Request bodies still carry the
 user's exact English/Japanese question and the same Research ID, with no locale
@@ -139,16 +142,16 @@ or translation relations. Research and Source IDs are language independent;
 Findings retain their `FindingSource` relationships. Source metadata consists of
 title, URL, and timestamps, without a separate publication-language/title field.
 The seed profile contains English research descriptions, findings, conclusions,
-source titles, comments, and sample conversations; it stays unchanged.
+source titles, comments, and sample conversations. Its content is now extracted to
+`lib/demo/curated-content.ts`; persisted values and seeding relationships are unchanged.
 
-**Database schema changes are unnecessary for an initial Japanese Demo.** UI
-translation alone can show canonical English evidence; a small curated Demo can
-later add a version-controlled presentation overlay keyed by canonical Research,
-Finding, and Source IDs plus locale. That overlay is not implemented here. Resolve
-overlays only after the existing public Workspace/read boundary, fall back per
-field to canonical English, and retain canonical IDs, URLs, and original titles.
-Workspace and Tag display names may use the same approach. Do not use mutable
-English titles as overlay keys or repurpose `Finding.data` as a translation store.
+**Database schema changes are unnecessary for this curated Japanese Demo.**
+The Phase 3 presentation overlay is implemented after the existing public read
+boundary. Code-only semantic keys in the seed catalog identify curated Research
+and Findings without persisting new columns or reusing generated database IDs.
+The matching and fallback rules below supersede the earlier proposed ID overlay.
+Workspace names/descriptions remain canonical; known Research Tag names are
+translated only within a matched Demo presentation. `Finding.data` is unused.
 
 If editable multilingual research is later required, consider separate translation
 records keyed uniquely by entity ID and locale, with original revision/fingerprint,
@@ -159,7 +162,7 @@ not duplicate evidence records, rewrite seed data, or feed translated overlays i
 retrieval/AI context implicitly. Original publication titles and citation identity
 must remain available even when a translated display title exists.
 
-## Scoped verification and Phase 3 candidates
+## Scoped verification and remaining candidates
 
 Vitest exercises actual legacy/localized route entrypoints with mocked public
 reads, locale validation, metadata, dictionaries/fallback, English compatibility,
@@ -179,9 +182,106 @@ These are synthetic component/browser checks plus route unit tests, **not a
 running Next.js HTTP/RSC/hydration or deployed SEO verification**. No real database
 or AI service is contacted. Full suites and production builds are outside scope.
 
-Phase 3 candidates: accurate root HTML language, Next.js/runtime and deployed SEO
+Remaining candidates: accurate root HTML language, Next.js/runtime and deployed SEO
 verification in an authorized isolated environment, native-language copy review,
 global error localization, richer plural/message formatting if needed, and
-reviewed ID/locale content overlays with stale-translation detection. Editable
+localization beyond the curated Demo catalog. Editable
 multilingual content storage remains a future design decision. Never duplicate
 canonical Research, Source or Finding records for language variants.
+
+
+## Phase 3 Research translation catalog
+
+The four topics are Developer Productivity, Code Quality & Reliability,
+Developer Experience, and Adoption & Organizational Impact. Japanese presentation
+covers four titles/descriptions/conclusions, 17 Findings, four curated discussion
+comments and known Research Tag labels. Workspace copy, user names, sample saved
+conversations, original publication titles/URLs and AI prose are not translated.
+The Japanese wording is a presentation derivative, never a newly verified source.
+No external research or factual additions were made as part of translation.
+
+### Catalog and matching
+
+- `src/lib/demo/curated-content.ts` owns the original English seed data and adds
+  code-only semantic Research/Finding keys. `public-demo.ts` imports it; no schema,
+  generated contract, database row, ID generation or seed write behavior changes.
+- `research-translation-baseline.json` is an independent, version-controlled
+  snapshot of the reviewed English content and source attribution, with those
+  semantic keys. It is deliberately not computed from live seed content at runtime.
+- `research-ja.ts` stores Japanese fields under Research semantic keys, with
+  Findings under their own semantic keys. Missing entries/fields are allowed by
+  the resolver and fall back to canonical text.
+- `research-presentation.ts` resolves display copies only in `DemoWorkspaceView`
+  and `DemoResearchView`, after the existing fixed-Workspace public read boundary.
+  Reads, evidence selection and Chat context never import the presentation overlay.
+
+A Research matches exactly one baseline title + description pair. Exact comparison
+includes case, whitespace and punctuation. These two fields jointly form the
+canonical identity guard; a change to either conservatively falls back for the
+whole Research. List rows with duplicate identity pairs remain English. Detail
+matching also requires the complete original Source title/URL multiset. Source
+order and generated IDs do not affect the match; added/removed/edited Sources
+conservatively fall back for the whole detail. Duplicate baseline identities are
+rejected rather than selected by array order.
+
+Within a matched Research, the conclusion must equal its independent English
+baseline. Each Finding matches exactly one baseline content string and must be
+unique among the displayed Findings, with the same supporting Source title/URL
+multiset. Missing, changed, duplicated or differently attributed Findings retain
+English. A curated comment matches the exact expected text within that Research
+and must be unique among its comments; other or edited comments remain English.
+No matching uses array position or generated database IDs. No fuzzy, normalized,
+or cross-Research search is performed. Missing Japanese fields retain English.
+
+Exact duplicate canonical Research records cannot be distinguished on a detail
+page without persisted semantic identity. Such a detail can display the same
+translation only when its identity and complete source attribution match; it
+cannot pick a different catalog entry. Lists reject duplicate identity pairs.
+Comments are matched by scoped content, not author identity. This is appropriate
+for the curated read-only Demo, not general editable multilingual data.
+
+### Evidence, identity and dates
+
+All Research/Finding/Source/Comment/Tag IDs, source links and FindingSource
+relationships are retained. Only text-bearing display copies change. Canonical
+objects and timestamps are not mutated. Original source publication titles and
+URLs remain visible in Sources, supporting references and Chat citations.
+Tag names are translated only through an exact known-label map; unknown names
+remain English and no new tag records are created. Existing optional locale date
+formatting uses `ja-JP` for Japanese and `en-US` for English, including Research,
+Source, Finding and Comment timestamps. Global/authenticated behavior is unchanged.
+
+Developer Productivity preserves the GitHub 2022 experiment's 95 professional
+developers, JavaScript HTTP-server task, reported 55% faster completion, and
+1h11m/2h41m averages. METR retains July 2025, 16 experienced developers, 246 real
+issues in familiar repositories, early-2025 tools, and 19% increased completion
+time. Proposed explanations remain hypotheses; neither result is presented as a
+universal productivity effect. The translations add no metrics or citations.
+
+Chat still receives canonical English Research titles for suggestions, original
+Research IDs and original Sources. The question is sent unchanged; UI locale does
+not force answer language. Backend model/security/quotas/validation/retention and
+evidence retrieval are unchanged. Translated Findings never become AI evidence.
+
+### Maintenance and limits
+
+When canonical curated English changes, review the Japanese against that exact
+revision and its original attribution. Update the affected baseline and Japanese
+fields together only after reviewing facts, scope and uncertainty. Do not blindly
+regenerate the baseline to make tests pass. The baseline/seed alignment test
+flags repository drift; runtime guards protect against deployed database drift.
+A deployed database still containing the old reviewed English can use its matching
+old translation safely. Reseeding with new IDs does not change matching.
+
+Focused tests exercise all four topics, all translated fields, baseline coverage,
+reordered Findings/reseeded IDs, duplicate/missing/stale/misattributed content,
+English routes, original links, tags/dates and unchanged canonical Chat context.
+The isolated browser fixture now uses the curated English seed content, with all
+HTTP fulfilled/aborted locally and no live AI/database connections. It verifies
+Japanese study figures/conditions/uncertainty/comments, original Source links,
+Chat question passthrough and language navigation at three viewport widths.
+These checks remain synthetic browser/component plus route unit tests, not live
+Next.js RSC/hydration, deployed SEO, Production data or live model verification.
+Independent native-language editorial review remains desirable. Full SaaS data
+localization, translated Sources, root HTML language and global errors remain
+outside scope.
