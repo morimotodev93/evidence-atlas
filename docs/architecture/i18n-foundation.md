@@ -4,6 +4,9 @@ Status: Phase 3 curated Public Demo Research presentation localization implement
 2026-11-02. Canonical evidence remains English; full-site/database localization
 remains outside this scope.
 
+Phase 4.1a adds only the SaaS locale-cookie reader described below; it is not
+connected to application rendering.
+
 ## Routes and shared rendering
 
 - `/demo` and `/demo/research/[researchId]` retain default English behavior with no redirects.
@@ -56,6 +59,21 @@ A lightweight dictionary is sufficient for these static labels. A library could
 later help with plural rules, formatted messages, locale negotiation, and route/SEO
 integration, at the cost of dependencies and routing/provider configuration.
 Reassess when those requirements exist; no i18n library is installed.
+
+## SaaS locale-cookie reader (Phase 4.1a)
+
+`src/lib/i18n/saas-locale.ts` is a server-only module. Its asynchronous
+`getSaasLocale(): Promise<Locale>` reads `evidence_atlas_locale` through Next.js
+`cookies()` and reuses `resolveLocale()`. Only exact `en` and `ja` values are valid;
+missing, empty or unsupported values (including `ja-JP` and `JA`) fall back to
+English. It does not write, delete or clear cookies and has no authentication,
+Workspace or database dependency.
+
+Cookie persistence, a SaaS language-switching UI/Action and passing the locale
+to screens are not implemented. Existing SaaS rendering and URL-based Public
+Demo language selection remain unchanged. Scoped unit tests mock `next/headers`
+without a database or running server and verify resolution and absence of cookie
+mutations.
 
 ## Language switching and Chat
 
