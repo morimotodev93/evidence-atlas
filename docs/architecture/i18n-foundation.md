@@ -4,8 +4,9 @@ Status: Phase 3 curated Public Demo Research presentation localization implement
 2026-11-02. Canonical evidence remains English; full-site/database localization
 remains outside this scope.
 
-Phases 4.1a and 4.1b-1 add the SaaS locale-cookie reader and saving Server Action
-described below; they are not connected to application rendering.
+Phases 4.1a and 4.1b-1 add the SaaS locale-cookie reader and saving Server Action.
+Phase 4.1b-2 connects them to the shared SaaS Header, with switching limited to
+Home until input-state preservation is verified. SaaS page translation is deferred.
 
 ## Routes and shared rendering
 
@@ -50,7 +51,7 @@ Do not pass arbitrary external strings as translation keys. Dates use `ja-JP`
 for Japanese and the existing `en-US` formatting for English.
 
 The dictionary helpers have no dependencies, request state or side effects and
-work in server or client modules. Route parameters select the UI language, with
+work in server or client modules. Demo route parameters select its UI language, with
 no cookie/header/browser negotiation. Existing English wording is retained,
 apart from additive language controls, metadata and a bilingual input hint.
 The root layout, global theme initialization and hydration suppression are unchanged.
@@ -69,9 +70,9 @@ missing, empty or unsupported values (including `ja-JP` and `JA`) fall back to
 English. It does not write, delete or clear cookies and has no authentication,
 Workspace or database dependency.
 
-The saving Action is described below. A SaaS language-switching UI and passing
-the locale to screens are not implemented. Existing SaaS rendering and URL-based
-Public Demo language selection remain unchanged. Scoped unit tests mock `next/headers`
+The saving Action and Header control are described below. Locale delivery to SaaS
+page content and its translation are not implemented. URL-based Public Demo
+language selection remains unchanged. Scoped unit tests mock `next/headers`
 without a database or running server and verify resolution and absence of cookie
 mutations.
 
@@ -90,13 +91,54 @@ No authentication, Workspace or database dependency, redirect or explicit cache
 revalidation/refresh is introduced. Workspace and Auth.js cookies are untouched;
 locale is never an authorization or Workspace-selection input.
 
-Cookie saving is implemented, but the language-switching UI/Provider and locale
-delivery to screens remain deferred. SaaS screens still default to English and
-Public Demo continues to select its locale through URLs. Scoped mocked-cookie
+Cookie saving is implemented; no Provider is introduced. SaaS page content still
+defaults to English and Public Demo continues to select its locale through URLs.
+Scoped mocked-cookie
 tests cover validation, attributes, environment-dependent `Secure`, preservation
 of other cookies and round trips through the existing reader.
 
-## Language switching and Chat
+## SaaS Header language control (Phase 4.1b-2)
+
+The existing Server Component `AppShell` now awaits `getSaasLocale()` and passes
+the typed locale through `AppHeader` to the client `SaasLanguageSelect`. The same
+cookie-derived prop determines the initial server markup and client selection;
+missing/invalid cookies still select English. No new Provider, locale-based key,
+root-layout change or page-content translation is introduced. Only the control's
+language label reuses the existing dictionary; navigation and page copy remain
+English. The Header wraps its controls at narrow widths alongside the existing
+Workspace slot and Sign out. Appearance remains in navigation.
+
+The labeled native select offers English / 日本語 and calls `setSaasLocale()`
+inside a transition. It disables while pending, guards immediate duplicate events,
+and restores the server-provided selection with an accessible generic error on
+failure. Cookie mutation in a Server Action causes a server rerender according to
+the [Next.js mutation documentation](https://nextjs.org/docs/app/getting-started/mutating-data).
+The updated Shell reads the new cookie again; no extra `router.refresh()`, URL
+change, document reload, redirect or navigation is added. Authentication and
+Workspace code and cookies are unchanged.
+
+**Input-protection restriction:** switching is enabled only at the exact Home
+pathname `/`, which currently has no research drafts, dialogs or AI panel. Every
+other pathname (including unknown/unavailable pathnames) disables the control and
+explains the Home-only restriction. Research list filters, create/edit forms,
+Source/Finding/Comment dialogs, settings forms and Research AI input, sending and
+streaming therefore cannot initiate a locale mutation/rerender from the Header.
+No distributed dirty-state or AI-activity tracking is added. Ordinary navigation
+and Workspace switching retain their existing behavior; this is not a general
+unsaved-input guard.
+
+Scoped tests cover actual cookie resolution through Shell/Header markup, changed
+server props, native labels, production handler closures with mocked hooks/Action,
+pending/duplicate/failure behavior, restricted routes, unchanged links and separate
+Demo rendering. Hook doubles do not verify React scheduling or RSC merging.
+**Phase 4.1b-3 remains open:** verify the real Next.js/Review DB round trip, initial
+hydration, URL/query/fragment and auth/Workspace preservation, keyboard/focus,
+narrow Header layouts and Appearance/Sign out interactions. Actual form, Dialog
+and AI input/conversation/stream state preservation is unverified; keep switching
+disabled there until it is demonstrated safe. No Review DB, live AI, Production
+Build or full E2E was used for Phase 4.1b-2.
+
+## Demo language switching and Chat
 
 The header adds a native labeled select with English/日本語 options and the current
 locale selected. It supports keyboard use and wraps with the existing header at

@@ -3,17 +3,20 @@ import type { ReactNode } from "react";
 
 import { signOut } from "@/auth";
 import { requireApplicationEnabled } from "@/lib/deployment-mode";
+import { defaultLocale, type Locale } from "@/lib/i18n/locales";
 import { AppNavigationMenu } from "./app-navigation";
+import { SaasLanguageSelect } from "./saas-language-select";
 
 type AppHeaderProps = {
   children?: ReactNode;
+  locale?: Locale;
 };
 
-export function AppHeader({ children }: AppHeaderProps) {
+export function AppHeader({ children, locale = defaultLocale }: AppHeaderProps) {
   return (
     <header className="sticky top-0 z-10 border-b bg-background/95 backdrop-blur">
       <div className="w-full px-3 py-2 sm:px-6 sm:py-0">
-        <div className="flex items-center justify-between gap-3 sm:h-14">
+        <div className="flex flex-wrap items-center justify-between gap-3 sm:min-h-14">
           <div className="flex min-w-0 items-center gap-2 sm:gap-3">
             <AppNavigationMenu />
             <Link href="/" className="min-w-0 rounded-sm text-sm font-semibold outline-none focus-visible:ring-2 focus-visible:ring-ring sm:text-base">
@@ -21,7 +24,8 @@ export function AppHeader({ children }: AppHeaderProps) {
             </Link>
           </div>
 
-          <div className="flex shrink-0 items-center gap-3">
+          <div className="flex max-w-full flex-wrap items-center gap-3">
+            <SaasLanguageSelect locale={locale} />
             <form
               action={async () => {
                 "use server";
