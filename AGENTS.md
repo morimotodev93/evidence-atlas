@@ -66,3 +66,6 @@
 - For substantial changes, create a Review ZIP when requested or required by the task.
 - Report changed files, behavior, tests, remaining risks, and final Git status.
 - Leave all changes uncommitted and unpushed for user review.
+- Treat `AGENTS.md` and referenced project documentation as standing instructions; do not require task prompts to repeat them.
+- Prefer established implementation patterns over new abstractions for similar features.
+- When the task scope is clear, inspect the relevant code and proceed without unnecessary planning phases or repeated confirmation.
