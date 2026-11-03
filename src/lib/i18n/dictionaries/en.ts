@@ -1,5 +1,15 @@
 // English defines the stable UI key contract.
 export const en = {
+  "dashboard.description": "Explore, organize, and build reusable knowledge from your research.",
+  "dashboard.recentResearch": "Recent Research",
+  "dashboard.viewAll": "View all",
+  "dashboard.noResearch": "No research yet.",
+  "dashboard.workspaceSummary": "Workspace Summary",
+  "dashboard.tags": "Tags",
+  "dashboard.sources": "Sources",
+  "dashboard.findings": "Findings",
+  "dashboard.sourceCount": "{count} sources",
+  "dashboard.findingCount": "{count} findings",
   "dialog.close": "Close",
   "nav.primary": "Primary navigation",
   "nav.home": "Home",

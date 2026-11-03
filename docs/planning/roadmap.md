@@ -65,6 +65,27 @@ language attributes are unchanged; real browser Escape/focus/portal verification
 remains open beyond the scoped DB-free markup/forwarding tests.
 See [common UI](../architecture/i18n-foundation.md#saas-common-ui-phase-42b).
 
+### SaaS Home Dashboard localization (2026-11-03)
+
+Phase 4.3 localizes the authenticated `/` Dashboard body using the existing SaaS
+locale cookie, dictionary and date formatter. Japanese preserves Research,
+Source, Finding and Workspace terminology; original Workspace names and Research
+titles/descriptions, aggregate values, query scopes, routes and English copy are
+unchanged. Home-only language switching remains in force. Research/settings page
+bodies, Source/Finding forms, onboarding, business dialogs, AI Panel and Action
+error adoption remain deferred; Public Demo and Prisma/DB are unchanged.
+
+Focused DB-free Vitest **8 files / 132 tests**, existing Home authorization
+**4 tests**, changed-file ESLint and whitespace checks passed. Review DB read-only
+diagnostics and real Chrome checks covered populated/empty Home in both languages
+at 1280/768/375px, real cookie-triggered rerender/reload, preserved session/Workspace,
+the Research switching restriction and independent Demo locale. No horizontal
+overflow or card-grid regressions were observed with Review system Sans.
+Four unrelated existing settings static-render authorization tests failed on
+async AppShell and reproduced with pre-change Home; no settings implementation/test changes were made. Production
+font verification remains open. No full suite, full E2E or Production Build ran.
+See [Dashboard scope and verification](../architecture/i18n-foundation.md#saas-home-dashboard-phase-43).
+
 ### Current planning entry points
 
 | Ongoing work / policy | Current document |

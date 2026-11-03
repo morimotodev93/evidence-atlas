@@ -11,6 +11,8 @@ Phase 4.2a localizes shared SaaS navigation only, using that same cookie-derived
 locale; page bodies and business forms/dialogs remain English.
 Phase 4.2b adds opt-in translation of the shared Dialog's own Close controls;
 existing business Dialogs have not been connected to the locale.
+Phase 4.3 localizes the authenticated Home Dashboard body. Research/settings page
+bodies, business forms/dialogs, onboarding and AI Panel remain untranslated.
 
 ## Routes and shared rendering
 
@@ -74,8 +76,8 @@ missing, empty or unsupported values (including `ja-JP` and `JA`) fall back to
 English. It does not write, delete or clear cookies and has no authentication,
 Workspace or database dependency.
 
-The saving Action and Header control are described below. Locale delivery to SaaS
-page content and its translation are not implemented. URL-based Public Demo
+The saving Action and Header control are described below. Phase 4.3 adds locale
+delivery to the Home Dashboard body only. URL-based Public Demo
 language selection remains unchanged. Scoped unit tests mock `next/headers`
 without a database or running server and verify resolution and absence of cookie
 mutations.
@@ -95,8 +97,8 @@ No authentication, Workspace or database dependency, redirect or explicit cache
 revalidation/refresh is introduced. Workspace and Auth.js cookies are untouched;
 locale is never an authorization or Workspace-selection input.
 
-Cookie saving is implemented; no Provider is introduced. SaaS page content still
-defaults to English and Public Demo continues to select its locale through URLs.
+Cookie saving is implemented; no Provider is introduced. Phase 4.3 connects the
+Home body; other SaaS page bodies still default to English. Public Demo selects its locale through URLs.
 Scoped mocked-cookie
 tests cover validation, attributes, environment-dependent `Secure`, preservation
 of other cookies and round trips through the existing reader.
@@ -233,6 +235,60 @@ new language attributes here; their Japanese text can still inherit root English
 in portal DOM. No global portal-language solution is introduced. Business Dialog
 localization, SaaS page bodies/AI Panel, Action errors, auth, DB/Prisma and Public
 Demo are unchanged. Home-only language switching remains in force.
+
+## SaaS Home Dashboard (Phase 4.3)
+
+Implemented 2026-11-03: the `/` Server Component calls `getSaasLocale()` after
+the existing public-deployment redirect and authentication guard. `translate()`
+renders its fixed copy; `formatDate(updatedAt, locale)` reuses the existing
+English/Japanese date formatting. `<main lang={locale}>` identifies the body
+language without changing root layout. AppShell independently uses the same
+request cookie for shared navigation. No Provider/Context or client cookie read
+is introduced. The existing language-select Server Action updates the cookie and
+Next.js rerenders Home with the new locale, without additional refresh/navigation.
+
+Ten `dashboard.*` keys cover the description, Recent Research, View all, empty
+state, Workspace Summary, Tags, Source/Finding labels and interpolated counts.
+Japanese uses 最近のResearch, すべて表示, Researchはまだありません。,
+Workspaceの概要, タグ, Source/Finding and `{count} 件`. The description is
+Researchを探索・整理し、繰り返し活用できる知識を蓄積しましょう。
+Workspace/Research labels and Updated reuse existing navigation/date dictionary
+keys. Separate Dashboard Source/Finding keys preserve SaaS product terminology;
+the existing Demo keys deliberately use different Japanese wording and are unchanged.
+
+Workspace names and Research titles/descriptions remain verbatim. No content
+catalog overlay is used. Query conditions, recent ordering/three-item limit,
+aggregate calculations, hrefs, CSS/classes, card layout and English copy are
+unchanged. Dates remain date-only, as before. Missing/invalid locale falls back
+to English. Home-only switching, cookie attributes, auth, Prisma/DB, Public Demo,
+root layout and common error contracts are unchanged. Research list/detail/create/
+edit, Source/Finding, Organization/Workspace settings, onboarding, business
+dialogs and AI Panel are outside this translation scope.
+
+Validation: DB-free focused Vitest **8 files / 132 tests** passed, including
+13 new Home tests for locale/default/fallback, original data, counts/dates,
+aggregates, empty state, query scopes, links/order, cookie-save rerender and Demo
+redirect. Existing Home authorization tests: **4 passed / 16 unrelated skipped**.
+Changed TS/TSX ESLint and `git diff --check` passed. The broader authorization
+file also exposed four existing settings-page static-render failures involving
+async AppShell; all four reproduced with the pre-change Home in an ignored test
+copy. Those settings and their test are unchanged in this phase.
+
+Read-only `pnpm review:check` passed against `evidence_atlas_review`; the existing
+`pnpm dev:review` server was reused after verifying its process ancestry. Review
+login used the existing dedicated helper. Real installed Chrome checked **12
+Home states**: populated/empty Workspace × English/Japanese × 1280/768/375px.
+No horizontal overflow; summary cards keep equal heights and four/four/two columns.
+Screenshots were inspected for Japanese wrapping and spacing. Counts stayed
+2/1/1/0 in the populated fixture and all-zero in the empty fixture. The actual
+language-select Action updated Home in both directions without URL change or
+auth/Workspace-cookie change; Japanese survived reload. Research retained the
+disabled language control and `/ja/demo` retained independent URL-based language.
+No browser page errors were observed. Business data was not created/edited/deleted,
+and no fixtures were reinserted. Screenshots/measurements are local ignored
+artifacts in `test-results/phase43/`. Review uses system Sans; Production IBM Plex
+Sans and physical mobile devices remain unverified. No Production Build, full
+suite, full E2E or live AI/provider checks were run.
 
 ## SaaS error display contract (Phase 4.1c)
 

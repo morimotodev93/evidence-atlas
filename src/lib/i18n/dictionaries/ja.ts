@@ -1,6 +1,16 @@
 import type { Dictionary } from "./en";
 
 export const ja = {
+  "dashboard.description": "Researchを探索・整理し、繰り返し活用できる知識を蓄積しましょう。",
+  "dashboard.recentResearch": "最近のResearch",
+  "dashboard.viewAll": "すべて表示",
+  "dashboard.noResearch": "Researchはまだありません。",
+  "dashboard.workspaceSummary": "Workspaceの概要",
+  "dashboard.tags": "タグ",
+  "dashboard.sources": "Source",
+  "dashboard.findings": "Finding",
+  "dashboard.sourceCount": "Source {count} 件",
+  "dashboard.findingCount": "Finding {count} 件",
   "dialog.close": "閉じる",
   "nav.primary": "メインナビゲーション",
   "nav.home": "ホーム",
