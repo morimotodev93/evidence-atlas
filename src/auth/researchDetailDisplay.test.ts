@@ -43,11 +43,18 @@ beforeAll(async () => {
   // Keep real guards and shared rendering; replace interactive client dialogs only.
   for (const [file, name] of Object.entries(components)) {
     vi.doMock(`@/app/research/[id]/_components/${file}`, () => ({
-      [name]: (props: { locale?: Locale; researchId?: string; initialStatus?: string }) =>
+      [name]: (props: { locale?: Locale; researchId?: string; initialStatus?: string; sourceId?: string; title?: string; url?: string }) =>
         createElement("span", name === "EditResearchStatusDialog" ? {
           "data-status-locale": props.locale,
           "data-status-research": props.researchId,
           "data-status-initial": props.initialStatus,
+        } : ["AddSourceDialog", "EditSourceDialog", "DeleteSourceDialog"].includes(name) ? {
+          "data-source-control": name,
+          "data-source-locale": props.locale,
+          "data-research-id": props.researchId,
+          "data-source-id": props.sourceId,
+          "data-source-title": props.title,
+          "data-source-url": props.url,
         } : null, name),
     }));
   }
@@ -67,6 +74,23 @@ beforeEach(() => {
 });
 
 describe("Authenticated Research detail after display extraction", () => {
+  it.each([undefined, "invalid", "en", "ja"])("passes locale %s and original Source data to all Source controls", async (value) => {
+    mocks.cookie.mockReturnValue(value === undefined ? undefined : { value });
+    const stored = { ...source, title: "Original Paper 2026 p.12", url: "HTTPS://Example.COM/Paper%2FOriginal?ref=en#Citation" };
+    mocks.models.Source.query.all.mockResolvedValue([stored]);
+    const html = renderToStaticMarkup(await DetailPage({ params: Promise.resolve({ id: research.id }) }));
+    const locale = value === "ja" ? "ja" : "en";
+    expect(html).toContain(`data-source-control="AddSourceDialog" data-source-locale="${locale}" data-research-id="${research.id}"`);
+    expect(html).toContain(`data-source-control="EditSourceDialog" data-source-locale="${locale}" data-source-id="${stored.id}" data-source-title="${stored.title}" data-source-url="${stored.url}"`);
+    expect(html).toContain(`data-source-control="DeleteSourceDialog" data-source-locale="${locale}" data-source-id="${stored.id}"`);
+    // The existing render-only safety helper normalizes href casing; displayed
+    // text and editable values must still retain the original URL spelling.
+    expect(html).toContain('href="https://example.com/Paper%2FOriginal?ref=en#Citation"');
+    expect(html).toContain(`>${stored.url}</p>`);
+    expect(html).toContain(stored.title);
+    expect(mocks.models.Source.where).toHaveBeenCalledWith({ researchId: research.id });
+  });
+
   it("preserves editing controls, Source linking, settings, and desktop/mobile AI", async () => {
     const html = renderToStaticMarkup(await DetailPage({ params: Promise.resolve({ id: research.id }) }));
     expect([...html.matchAll(/<h2[^>]*>([^<]+)<\/h2>/g)].map((match) => match[1]))

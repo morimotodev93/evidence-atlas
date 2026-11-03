@@ -2,6 +2,9 @@
 
 import { useActionState, useState } from "react";
 
+import { resolveLocale, type Locale } from "@/lib/i18n/locales";
+import { translate } from "@/lib/i18n/translate";
+
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -21,6 +24,7 @@ import {
 import { updateSource, type UpdateSourceState } from "../_actions/updateSource";
 
 type EditSourceDialogProps = {
+  locale?: Locale;
   sourceId: string;
   title: string;
   url: string;
@@ -31,10 +35,12 @@ const initialState: UpdateSourceState = {
 };
 
 export function EditSourceDialog({
+  locale: requestedLocale,
   sourceId,
   title,
   url,
 }: EditSourceDialogProps) {
+  const locale = resolveLocale(requestedLocale);
   const [state, action, isPending] = useActionState(
     updateSource.bind(null, sourceId),
     initialState,
@@ -54,17 +60,17 @@ export function EditSourceDialog({
       <DialogTrigger
         render={
           <Button variant="outline" size="sm">
-            Edit
+            {translate("saasSource.edit", locale)}
           </Button>
         }
       />
 
-      <DialogContent>
+      <DialogContent locale={locale}>
         <DialogHeader>
-          <DialogTitle>Edit Source</DialogTitle>
+          <DialogTitle>{translate("saasSource.editTitle", locale)}</DialogTitle>
 
           <DialogDescription>
-            Update the source used in this research.
+            {translate("saasSource.editDescription", locale)}
           </DialogDescription>
         </DialogHeader>
 
@@ -72,6 +78,7 @@ export function EditSourceDialog({
           {state.error && (
             <p
               role="alert"
+              lang="en"
               className="rounded-md border border-destructive/30 bg-destructive/5 px-3 py-2 text-sm text-destructive-text"
             >
               {state.error}
@@ -79,14 +86,14 @@ export function EditSourceDialog({
           )}
 
           <div className="space-y-2">
-            <Label htmlFor={`source-title-${sourceId}`}>Title</Label>
+            <Label htmlFor={`source-title-${sourceId}`}>{translate("saasSource.title", locale)}</Label>
 
             <Input
               id={`source-title-${sourceId}`}
               name="title"
               value={editTitle}
               onChange={(event) => setEditTitle(event.target.value)}
-              placeholder="Source title"
+              placeholder={translate("saasSource.titlePlaceholder", locale)}
               required
             />
 
@@ -105,7 +112,7 @@ export function EditSourceDialog({
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor={`source-url-${sourceId}`}>URL</Label>
+            <Label htmlFor={`source-url-${sourceId}`}>{translate("saasSource.url", locale)}</Label>
 
             <Input
               id={`source-url-${sourceId}`}
@@ -119,7 +126,7 @@ export function EditSourceDialog({
 
           <DialogFooter>
             <Button type="submit" disabled={isPending || isInvalid}>
-              {isPending ? "Saving..." : "Save Changes"}
+              {translate(isPending ? "saasSource.saving" : "saasSource.saveChanges", locale)}
             </Button>
           </DialogFooter>
         </form>

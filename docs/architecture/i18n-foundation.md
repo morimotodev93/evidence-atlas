@@ -27,6 +27,52 @@ the same locale flow. Phase 4.5b-2 adds fixed Research edit UI and the detail
 page's Edit link. Phase 4.5b-3 adds the Research status Dialog through the same
 locale flow. Other business dialogs and AI remain deferred.
 
+Phase 4.6a adds Source creation/editing/deletion Dialogs through the same locale
+flow. Finding, comment, tag and AI controls remain deferred.
+
+## SaaS Source UI (Phase 4.6a)
+
+Implemented 2026-11-03. The Research detail page passes its existing resolved
+AppShell locale to AddSourceDialog, EditSourceDialog and DeleteSourceDialog.
+Their optional locale defaults/falls back to English through `resolveLocale`.
+The `saasSource.*` dictionary entries cover triggers, headings, descriptions,
+Title/URL labels, existing placeholders, submit buttons and existing pending
+labels. Source terminology stays Source in Japanese. The Source list heading,
+description, count, empty state and updated date already use the Phase 4.5a
+`saasResearch` entries; no second list implementation is added. There is no
+Source type/status display in the current UI.
+
+`DialogContent locale={locale}` translates Close and marks each portaled Popup's
+language. Existing Action errors remain verbatim with `lang="en"`. Dialog
+open/close behavior, controlled title/URL state, length counters/limits, pending
+disablement, input IDs/names/types/required attributes, bound Research/Source IDs
+and FormData remain unchanged. No Action, validation, authorization, persistence,
+schema or relationship behavior changes. Original Source titles (including
+publication/citation metadata), URLs and other user content are not translated.
+Existing render-only HTTP(S) link validation/normalization is retained; displayed
+and editable URLs preserve their original spelling. No Public Demo overlays,
+Finding/comment/tag/AI UI changes or broader language switching are introduced.
+
+Validation: focused DB-free Vitest **10 files / 424 tests**, changed-file ESLint,
+TypeScript (`--noEmit --incremental false`) and diff whitespace checks passed.
+New tests cover English/Japanese/default/invalid/missing-key fallback, real shared
+Dialog Popup language and Close label, input contracts/original values, bound
+mock Action IDs and unchanged FormData, existing length/pending behavior and
+verbatim errors. Detail tests verify cookie-locale propagation and original Source
+data/links. Existing mocked-I/O Action/schema tests and Demo/status regressions
+also pass. Hook doubles do not verify browser scheduling, live portal/focus or
+native submission. Initial Vitest startup hit sandbox `spawn EPERM`; rerunning
+with subprocess permission succeeded. Four initial new test failures assumed
+unnormalized href casing; expectations were corrected to the existing safety
+helper's behavior without changing implementation.
+
+The existing Review server responded to a read-only request, but unauthenticated
+`/research` redirected to sign-in. No session was created or writes submitted.
+Review UI at 1280/768/375px, keyboard/focus, live state retention, hydration and
+Production font widths remain unverified. No Review restart, DB/fixture changes,
+full test suite, full E2E or Production Build was performed. Action error
+localization and Finding/comment/tag/AI controls remain deferred.
+
 ## SaaS Research status Dialog (Phase 4.5b-3)
 
 Implemented 2026-11-03. The detail page passes its existing resolved AppShell

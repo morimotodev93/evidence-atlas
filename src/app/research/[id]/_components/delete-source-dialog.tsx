@@ -2,6 +2,9 @@
 
 import { useActionState } from "react";
 
+import { resolveLocale, type Locale } from "@/lib/i18n/locales";
+import { translate } from "@/lib/i18n/translate";
+
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -15,6 +18,7 @@ import {
 import { deleteSource, type DeleteSourceState } from "../_actions/deleteSource";
 
 type DeleteSourceDialogProps = {
+  locale?: Locale;
   sourceId: string;
 };
 
@@ -22,7 +26,8 @@ const initialState: DeleteSourceState = {
   error: null,
 };
 
-export function DeleteSourceDialog({ sourceId }: DeleteSourceDialogProps) {
+export function DeleteSourceDialog({ sourceId, locale: requestedLocale }: DeleteSourceDialogProps) {
+  const locale = resolveLocale(requestedLocale);
   const [state, action, isPending] = useActionState(
     deleteSource.bind(null, sourceId),
     initialState,
@@ -33,18 +38,17 @@ export function DeleteSourceDialog({ sourceId }: DeleteSourceDialogProps) {
       <DialogTrigger
         render={
           <Button variant="destructive" size="sm">
-            Delete
+            {translate("saasSource.delete", locale)}
           </Button>
         }
       />
 
-      <DialogContent>
+      <DialogContent locale={locale}>
         <DialogHeader>
-          <DialogTitle>Delete Source</DialogTitle>
+          <DialogTitle>{translate("saasSource.deleteTitle", locale)}</DialogTitle>
 
           <DialogDescription>
-            Are you sure you want to delete this source? This action cannot be
-            undone.
+            {translate("saasSource.deleteDescription", locale)}
           </DialogDescription>
         </DialogHeader>
 
@@ -52,6 +56,7 @@ export function DeleteSourceDialog({ sourceId }: DeleteSourceDialogProps) {
           {state.error && (
             <p
               role="alert"
+              lang="en"
               className="mb-4 rounded-md border border-destructive/30 bg-destructive/5 px-3 py-2 text-sm text-destructive-text"
             >
               {state.error}
@@ -60,7 +65,7 @@ export function DeleteSourceDialog({ sourceId }: DeleteSourceDialogProps) {
 
           <DialogFooter>
             <Button type="submit" variant="destructive" disabled={isPending}>
-              {isPending ? "Deleting..." : "Delete Source"}
+              {translate(isPending ? "saasSource.deleting" : "saasSource.deleteTitle", locale)}
             </Button>
           </DialogFooter>
         </form>

@@ -1,6 +1,6 @@
 # evidence-atlas Roadmap
 
-> **Last Updated:** 2026-10-31
+> **Last Updated:** 2026-11-03
 
 Current stage: The portfolio MVP and curated Public Demo with read-only Research and limited anonymous Chat are implemented, with scoped deployment checks recorded. Phases 4–7 are complete for their defined baselines; Phase 8 is complete for the defined application infrastructure baseline. Phase 10 has four completed checklist items (Unit, bounded E2E, Validation, Authorization); other quality work remains open. Phase 11 operational reviews and Phase 12 documentation are not complete. Checked items describe specific implementation or reported verification, not blanket production, OAuth, provider, or security validation.
 
@@ -37,6 +37,27 @@ baseline/attribution guards and safe fallback. Original evidence and Chat remain
 canonical English. This completes the curated content scope only; full SaaS
 localization and deployed/runtime language verification remain open. See
 [i18n architecture](../architecture/i18n-foundation.md#phase-3-research-translation-catalog).
+
+### SaaS Source UI localization (2026-11-03)
+
+Phase 4.6a completes fixed English/Japanese Source UI: the existing translated
+list/empty-state/date display plus Add, Edit and Delete Source Dialogs. The
+detail page propagates its resolved AppShell locale to these three controls.
+New `saasSource.*` entries cover fixed copy and existing pending states; shared
+Dialog Close/language support is reused. Original Source content, publication
+metadata, URL spelling, Research relationships, Action/form/validation contracts,
+pending/error behavior and Home-only language switching are retained. Source
+type/status controls do not exist. Action-derived errors remain English;
+Finding, comment, tag and AI UI remain outside this phase.
+
+Focused DB-free Vitest **10 files / 424 tests**, changed-file ESLint, TypeScript
+and diff whitespace checks passed. Tests cover translated copy/fallback, original
+data/URLs, locale propagation, form/Action binding, length/pending/error behavior
+and existing Action/schema/Demo/status regressions. Review HTTP responded but
+Research redirected to sign-in; no session or writes were made. Browser checks
+at 1280/768/375px, keyboard/focus, hydration/live state retention and Production
+font widths remain open. No DB/fixture changes, Review restart, full suite, full
+E2E or Production Build. See [Source UI scope and verification limits](../architecture/i18n-foundation.md#saas-source-ui-phase-46a).
 
 ### SaaS Research status Dialog localization (2026-11-03)
 

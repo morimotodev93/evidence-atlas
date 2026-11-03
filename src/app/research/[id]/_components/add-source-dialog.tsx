@@ -2,6 +2,9 @@
 
 import { useActionState, useState } from "react";
 
+import { resolveLocale, type Locale } from "@/lib/i18n/locales";
+import { translate } from "@/lib/i18n/translate";
+
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -21,6 +24,7 @@ import {
 import { createSource, type CreateSourceState } from "../_actions/createSource";
 
 type AddSourceDialogProps = {
+  locale?: Locale;
   researchId: string;
 };
 
@@ -28,7 +32,8 @@ const initialState: CreateSourceState = {
   error: null,
 };
 
-export function AddSourceDialog({ researchId }: AddSourceDialogProps) {
+export function AddSourceDialog({ researchId, locale: requestedLocale }: AddSourceDialogProps) {
+  const locale = resolveLocale(requestedLocale);
   const [state, action, isPending] = useActionState(
     createSource.bind(null, researchId),
     initialState,
@@ -44,14 +49,14 @@ export function AddSourceDialog({ researchId }: AddSourceDialogProps) {
 
   return (
     <Dialog>
-      <DialogTrigger render={<Button size="sm">Add Source</Button>} />
+      <DialogTrigger render={<Button size="sm">{translate("saasSource.add", locale)}</Button>} />
 
-      <DialogContent>
+      <DialogContent locale={locale}>
         <DialogHeader>
-          <DialogTitle>Add Source</DialogTitle>
+          <DialogTitle>{translate("saasSource.add", locale)}</DialogTitle>
 
           <DialogDescription>
-            Add an external source used in this research.
+            {translate("saasSource.addDescription", locale)}
           </DialogDescription>
         </DialogHeader>
 
@@ -59,6 +64,7 @@ export function AddSourceDialog({ researchId }: AddSourceDialogProps) {
           {state.error && (
             <p
               role="alert"
+              lang="en"
               className="rounded-md border border-destructive/30 bg-destructive/5 px-3 py-2 text-sm text-destructive-text"
             >
               {state.error}
@@ -66,14 +72,14 @@ export function AddSourceDialog({ researchId }: AddSourceDialogProps) {
           )}
 
           <div className="space-y-2">
-            <Label htmlFor="source-title">Title</Label>
+            <Label htmlFor="source-title">{translate("saasSource.title", locale)}</Label>
 
             <Input
               id="source-title"
               name="title"
               value={title}
               onChange={(event) => setTitle(event.target.value)}
-              placeholder="Source title"
+              placeholder={translate("saasSource.titlePlaceholder", locale)}
               required
             />
 
@@ -92,7 +98,7 @@ export function AddSourceDialog({ researchId }: AddSourceDialogProps) {
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="source-url">URL</Label>
+            <Label htmlFor="source-url">{translate("saasSource.url", locale)}</Label>
 
             <Input
               id="source-url"
@@ -100,14 +106,14 @@ export function AddSourceDialog({ researchId }: AddSourceDialogProps) {
               type="url"
               value={url}
               onChange={(event) => setUrl(event.target.value)}
-              placeholder="https://example.com"
+              placeholder={translate("saasSource.urlPlaceholder", locale)}
               required
             />
           </div>
 
           <DialogFooter>
             <Button type="submit" disabled={isPending || isInvalid}>
-              {isPending ? "Adding..." : "Add Source"}
+              {translate(isPending ? "saasSource.adding" : "saasSource.add", locale)}
             </Button>
           </DialogFooter>
         </form>

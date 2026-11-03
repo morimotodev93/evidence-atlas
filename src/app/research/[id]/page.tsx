@@ -123,10 +123,10 @@ export default async function ResearchDetailPage({
             }))}
             controls={{
               conclusion: <EditConclusionDialog researchId={research.id} initialConclusion={research.conclusion} />,
-              addSource: <AddSourceDialog researchId={research.id} />,
+              addSource: <AddSourceDialog locale={locale} researchId={research.id} />,
               source: (source) => <>
-                <EditSourceDialog sourceId={source.id} title={source.title} url={source.url} />
-                <DeleteSourceDialog sourceId={source.id} />
+                <EditSourceDialog locale={locale} sourceId={source.id} title={source.title} url={source.url} />
+                <DeleteSourceDialog locale={locale} sourceId={source.id} />
               </>,
               addFinding: <AddFindingDialog researchId={research.id} />,
               finding: (finding) => <>
