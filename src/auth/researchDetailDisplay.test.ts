@@ -44,7 +44,7 @@ beforeAll(async () => {
   // Keep real guards and shared rendering; replace interactive client dialogs only.
   for (const [file, name] of Object.entries(components)) {
     vi.doMock(`@/app/research/[id]/_components/${file}`, () => ({
-      [name]: (props: { locale?: Locale; researchId?: string; initialStatus?: string; sourceId?: string; title?: string; url?: string; findingId?: string; content?: string; sources?: { id: string; title: string }[] }) =>
+      [name]: (props: { locale?: Locale; researchId?: string; initialStatus?: string; sourceId?: string; title?: string; url?: string; findingId?: string; content?: string; sources?: { id: string; title: string }[]; commentId?: string; tagId?: string; initialConclusion?: string | null }) =>
         createElement("span", name === "EditResearchStatusDialog" ? {
           "data-status-locale": props.locale,
           "data-status-research": props.researchId,
@@ -63,6 +63,14 @@ beforeAll(async () => {
           "data-finding-id": props.findingId,
           "data-finding-content": props.content,
           "data-available-sources": props.sources?.map((source) => source.id).join(","),
+        } : ["AddCommentDialog", "EditCommentDialog", "DeleteCommentDialog", "AddTagDialog", "DetachTagDialog", "EditConclusionDialog"].includes(name) ? {
+          "data-discussion-control": name,
+          "data-control-locale": props.locale,
+          "data-research-id": props.researchId,
+          "data-comment-id": props.commentId,
+          "data-comment-content": props.content,
+          "data-tag-id": props.tagId,
+          "data-conclusion": props.initialConclusion,
         } : null, name),
     }));
   }
@@ -82,6 +90,43 @@ beforeEach(() => {
 });
 
 describe("Authenticated Research detail after display extraction", () => {
+  it.each([undefined, "invalid", "en", "ja"])("passes locale %s and original comment/tag/conclusion data to controls", async (value) => {
+    mocks.cookie.mockReturnValue(value === undefined ? undefined : { value });
+    const originalComment = "原文 comment [source:original]";
+    const originalConclusion = "原文 conclusion https://Example.COM/Original";
+    const originalTag = "Original tag / 原文";
+    mocks.models.Research.query.first.mockResolvedValue({ ...research, conclusion: originalConclusion });
+    mocks.models.Comment.query.all.mockResolvedValue([{ ...comment, content: originalComment }]);
+    mocks.models.ResearchTag.query.all.mockResolvedValue([{ ...researchTag, tag: { ...researchTag.tag, name: originalTag } }]);
+    const html = renderToStaticMarkup(await DetailPage({ params: Promise.resolve({ id: research.id }) }));
+    const locale = value === "ja" ? "ja" : "en";
+    for (const name of ["AddCommentDialog", "EditCommentDialog", "DeleteCommentDialog", "AddTagDialog", "DetachTagDialog", "EditConclusionDialog"])
+      expect(html).toContain(`data-discussion-control="${name}" data-control-locale="${locale}"`);
+    expect(html).toContain(`data-discussion-control="AddCommentDialog" data-control-locale="${locale}" data-research-id="${research.id}"`);
+    expect(html).toContain(`data-comment-id="${comment.id}" data-comment-content="${originalComment}"`);
+    expect(html).toContain(`data-discussion-control="DeleteCommentDialog" data-control-locale="${locale}" data-comment-id="${comment.id}"`);
+    expect(html).toContain(`data-discussion-control="AddTagDialog" data-control-locale="${locale}" data-research-id="${research.id}"`);
+    expect(html).toContain(`data-discussion-control="DetachTagDialog" data-control-locale="${locale}" data-research-id="${research.id}" data-tag-id="${researchTag.tag.id}"`);
+    expect(html).toContain(`data-discussion-control="EditConclusionDialog" data-control-locale="${locale}" data-research-id="${research.id}" data-conclusion="${originalConclusion}"`);
+    for (const original of [originalComment, originalConclusion, originalTag, comment.user.name]) expect(html).toContain(original);
+    expect(mocks.models.Comment.where).toHaveBeenCalledWith({ researchId: research.id });
+    expect(mocks.models.ResearchTag.where).toHaveBeenCalledWith({ researchId: research.id });
+  });
+
+  it.each(["en", "ja"] as const)("preserves author name/username/null fallback precedence in %s", async (locale) => {
+    mocks.cookie.mockReturnValue({ value: locale });
+    for (const [name, username, expected] of [
+      ["Original Name / 原名", "original-user", "Original Name / 原名"],
+      [null, "original-user", "original-user"],
+      [null, null, locale === "ja" ? "不明なユーザー" : "Unknown user"],
+      ["", "original-user", ""],
+    ]) {
+      mocks.models.Comment.query.all.mockResolvedValue([{ ...comment, user: { ...comment.user, name, username } }]);
+      const html = renderToStaticMarkup(await DetailPage({ params: Promise.resolve({ id: research.id }) }));
+      expect(html).toContain(`<span class="text-xs text-muted-foreground">${expected}</span>`);
+    }
+  });
+
   it.each([undefined, "invalid", "en", "ja"])("passes Finding locale %s and preserves content, associations and removal Action", async (value) => {
     mocks.cookie.mockReturnValue(value === undefined ? undefined : { value });
     const storedContent = "原文 excerpt / Original [source:original-id], Paper 2026 p.12";

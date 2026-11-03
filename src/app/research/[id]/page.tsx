@@ -100,8 +100,8 @@ export default async function ResearchDetailPage({
           controls={{
             edit: <Link href={`/research/${research.id}/edit`} className="shrink-0 rounded-md border px-3 py-2 text-sm font-medium outline-none hover:bg-muted/50 focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2">{translate("saasResearch.edit", locale)}</Link>,
             status: <EditResearchStatusDialog locale={locale} researchId={research.id} initialStatus={research.status} />,
-            addTag: <AddTagDialog researchId={research.id} />,
-            tag: (tagId) => <DetachTagDialog researchId={research.id} tagId={tagId} />,
+            addTag: <AddTagDialog locale={locale} researchId={research.id} />,
+            tag: (tagId) => <DetachTagDialog locale={locale} researchId={research.id} tagId={tagId} />,
           }}
         />
         {/* The body remains server-rendered; only desktop AI visibility is client state. */}
@@ -119,10 +119,10 @@ export default async function ResearchDetailPage({
               id: comment.id,
               content: comment.content,
               createdAt: comment.createdAt,
-              authorName: comment.user.name ?? comment.user.username ?? "Unknown user",
+              authorName: comment.user.name ?? comment.user.username ?? translate("saasComment.unknownUser", locale),
             }))}
             controls={{
-              conclusion: <EditConclusionDialog researchId={research.id} initialConclusion={research.conclusion} />,
+              conclusion: <EditConclusionDialog locale={locale} researchId={research.id} initialConclusion={research.conclusion} />,
               addSource: <AddSourceDialog locale={locale} researchId={research.id} />,
               source: (source) => <>
                 <EditSourceDialog locale={locale} sourceId={source.id} title={source.title} url={source.url} />
@@ -137,10 +137,10 @@ export default async function ResearchDetailPage({
                 <Button type="submit" variant="ghost" size="sm">{translate("saasFinding.removeSource", locale)}</Button>
               </form>,
               findingSources: (findingId, availableSources) => <ManageFindingSourcesDialog locale={locale} findingId={findingId} sources={availableSources} />,
-              addComment: <AddCommentDialog researchId={research.id} />,
+              addComment: <AddCommentDialog locale={locale} researchId={research.id} />,
               comment: (comment) => <>
-                <EditCommentDialog commentId={comment.id} content={comment.content} />
-                <DeleteCommentDialog commentId={comment.id} />
+                <EditCommentDialog locale={locale} commentId={comment.id} content={comment.content} />
+                <DeleteCommentDialog locale={locale} commentId={comment.id} />
               </>,
             }}
           />

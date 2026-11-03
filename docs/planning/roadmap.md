@@ -38,6 +38,31 @@ canonical English. This completes the curated content scope only; full SaaS
 localization and deployed/runtime language verification remain open. See
 [i18n architecture](../architecture/i18n-foundation.md#phase-3-research-translation-catalog).
 
+### SaaS comment, tag and conclusion UI localization (2026-11-03)
+
+Phase 4.6c completes fixed English/Japanese comment add/edit/delete, tag
+add/detach and conclusion edit Dialogs through the existing AppShell locale.
+The existing translated display sections remain in use; the fixed Unknown user
+fallback and tag-removal icon label are now localized. Original comments, author
+names/usernames, tag names, conclusions and relationships remain unchanged.
+Input/blank/length/pending/open-close behavior, conclusion clearing, exact bound
+IDs/FormData, Actions, validation and authorization are retained. Shared Dialog
+locale/Close support is reused without wrapper changes. Tag management remains
+name-based addition and relationship detachment; no selector is introduced.
+Action-derived errors stay English. Research/Source/Finding functionality and
+AI conversation UI are unchanged.
+
+Focused DB-free Vitest **11 files / 614 tests**, changed-file ESLint, TypeScript
+and diff whitespace checks passed. Tests cover translated/fallback/accessibility
+copy, Popup language, original input/display values and relationships, form/mock
+Action contracts, state/limits/pending/errors, conclusion clearing and author
+fallback precedence, plus existing Action/schema/Source/Finding/Demo regressions.
+Review redirected to sign-in; no session, writes, fixture changes or restart.
+Browser layout/focus/hydration/live-state and Production font checks remain open.
+No scoped implementation deferred; AI UI and Action error localization remain
+outside scope. No full suite, full E2E or Production Build. See
+[comment, tag and conclusion scope](../architecture/i18n-foundation.md#saas-comments-tags-and-conclusions-ui-phase-46c).
+
 ### SaaS Finding and relationship UI localization (2026-11-03)
 
 Phase 4.6b completes fixed English/Japanese Finding add/edit/delete Dialogs and

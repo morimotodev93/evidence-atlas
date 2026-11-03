@@ -21,6 +21,25 @@ function renderSource(url: string) {
 }
 
 describe("Research Source render boundary", () => {
+  it.each(["en", "ja"] as const)("localizes comment/conclusion display and keeps original content/tags in %s", (locale) => {
+    const storedResearch = { ...research, conclusion: "原文 conclusion\nOriginal [source:source-original]" };
+    const storedComment = { id: comment.id, content: "原文 comment\nOriginal https://Example.COM/Original", authorName: "Original Author / 原名", createdAt: comment.createdAt };
+    const storedTag = { ...researchTag.tag, name: "原文 / Original Tag" };
+    const snapshot = JSON.stringify([storedResearch, storedComment, storedTag]);
+    const tagControl = vi.fn(() => <button>Detach</button>);
+    const header = renderToStaticMarkup(<ResearchHeader research={storedResearch} tags={[storedTag]} locale={locale} messageScope="saasResearch" controls={{ tag: tagControl }} />);
+    const props = { research: storedResearch, sources: [], findings: [], comments: [storedComment], locale, messageScope: "saasResearch" as const };
+    const html = renderToStaticMarkup(<ResearchDetailContent {...props} />);
+    for (const label of locale === "ja" ? ["ディスカッション", "コメント 1 件", "疑問や解釈、未解決の論点を話し合います。", "投稿日", "結論", "現時点でのResearchのまとめです。"]
+      : ["Discussion", "1 comments", "Discuss questions, interpretations, and unresolved points.", "Commented", "Conclusion", "Current synthesis of this research."]) expect(html).toContain(label);
+    for (const original of [storedResearch.conclusion, storedComment.content, storedComment.authorName]) expect(html).toContain(original);
+    expect(header).toContain(storedTag.name);
+    expect(tagControl).toHaveBeenCalledExactlyOnceWith(storedTag.id);
+    expect(JSON.stringify([storedResearch, storedComment, storedTag])).toBe(snapshot);
+    const empty = renderToStaticMarkup(<ResearchDetailContent {...props} research={{ ...storedResearch, conclusion: null }} comments={[]} />);
+    for (const label of locale === "ja" ? ["コメントはまだありません。", "コメント 0 件", "結論はまだありません。"] : ["No discussion yet.", "0 comments", "No conclusion yet."]) expect(empty).toContain(label);
+  });
+
   it.each(["en", "ja"] as const)("preserves Finding content and relationships in the %s SaaS display", (locale) => {
     const originalContent = "原文 excerpt\nOriginal [source:source-original] — Paper 2026 p.12";
     const stored = { ...finding, content: originalContent };

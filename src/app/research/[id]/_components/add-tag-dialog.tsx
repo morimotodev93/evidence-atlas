@@ -2,6 +2,9 @@
 
 import { useActionState, useState } from "react";
 
+import { resolveLocale, type Locale } from "@/lib/i18n/locales";
+import { translate } from "@/lib/i18n/translate";
+
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -19,6 +22,7 @@ import { MAX_TAG_LENGTH } from "@/types/research/tag";
 import { createTag, type CreateTagState } from "../_actions/createTag";
 
 type AddTagDialogProps = {
+  locale?: Locale;
   researchId: string;
 };
 
@@ -26,7 +30,8 @@ const initialState: CreateTagState = {
   error: null,
 };
 
-export function AddTagDialog({ researchId }: AddTagDialogProps) {
+export function AddTagDialog({ researchId, locale: requestedLocale }: AddTagDialogProps) {
+  const locale = resolveLocale(requestedLocale);
   const [name, setName] = useState("");
 
   const [state, action, isPending] = useActionState(
@@ -41,16 +46,16 @@ export function AddTagDialog({ researchId }: AddTagDialogProps) {
       <DialogTrigger
         render={
           <Button variant="outline" size="sm">
-            Add tag
+            {translate("saasTag.addTitle", locale)}
           </Button>
         }
       />
 
-      <DialogContent>
+      <DialogContent locale={locale}>
         <DialogHeader>
-          <DialogTitle>Add tag</DialogTitle>
+          <DialogTitle>{translate("saasTag.addTitle", locale)}</DialogTitle>
           <DialogDescription>
-            Add a tag to organize this research.
+            {translate("saasTag.addDescription", locale)}
           </DialogDescription>
         </DialogHeader>
 
@@ -58,6 +63,7 @@ export function AddTagDialog({ researchId }: AddTagDialogProps) {
           {state.error && (
             <p
               role="alert"
+              lang="en"
               className="rounded-md border border-destructive/30 bg-destructive/5 px-3 py-2 text-sm text-destructive-text"
             >
               {state.error}
@@ -65,7 +71,7 @@ export function AddTagDialog({ researchId }: AddTagDialogProps) {
           )}
 
           <div className="space-y-2">
-            <Label htmlFor="name">Tag</Label>
+            <Label htmlFor="name">{translate("saasTag.label", locale)}</Label>
 
             <Input
               id="name"
@@ -94,7 +100,7 @@ export function AddTagDialog({ researchId }: AddTagDialogProps) {
               type="submit"
               disabled={isPending || isOverLimit || name.trim().length === 0}
             >
-              {isPending ? "Adding..." : "Add Tag"}
+              {translate(isPending ? "saasTag.adding" : "saasTag.add", locale)}
             </Button>
           </DialogFooter>
         </form>

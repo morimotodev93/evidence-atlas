@@ -3,6 +3,9 @@
 import { useActionState } from "react";
 
 import { XIcon } from "@/components/icons";
+import { resolveLocale, type Locale } from "@/lib/i18n/locales";
+import { translate } from "@/lib/i18n/translate";
+
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -16,6 +19,7 @@ import {
 import { detachTag, type DetachTagState } from "../_actions/detachTag";
 
 type DetachTagDialogProps = {
+  locale?: Locale;
   researchId: string;
   tagId: string;
 };
@@ -24,7 +28,8 @@ const initialState: DetachTagState = {
   error: null,
 };
 
-export function DetachTagDialog({ researchId, tagId }: DetachTagDialogProps) {
+export function DetachTagDialog({ researchId, tagId, locale: requestedLocale }: DetachTagDialogProps) {
+  const locale = resolveLocale(requestedLocale);
   const [state, action, isPending] = useActionState(
     detachTag.bind(null, researchId, tagId),
     initialState,
@@ -34,18 +39,18 @@ export function DetachTagDialog({ researchId, tagId }: DetachTagDialogProps) {
     <Dialog>
       <DialogTrigger
         render={
-          <Button variant="ghost" size="icon-sm" aria-label="Detach tag">
+          <Button variant="ghost" size="icon-sm" aria-label={translate("saasTag.detachLabel", locale)}>
             <XIcon className="size-3.5" />
           </Button>
         }
       />
 
-      <DialogContent>
+      <DialogContent locale={locale}>
         <DialogHeader>
-          <DialogTitle>Detach Tag</DialogTitle>
+          <DialogTitle>{translate("saasTag.detachTitle", locale)}</DialogTitle>
 
           <DialogDescription>
-            Are you sure you want to detach this tag from the research?
+            {translate("saasTag.detachDescription", locale)}
           </DialogDescription>
         </DialogHeader>
 
@@ -53,6 +58,7 @@ export function DetachTagDialog({ researchId, tagId }: DetachTagDialogProps) {
           {state.error && (
             <p
               role="alert"
+              lang="en"
               className="mb-4 rounded-md border border-destructive/30 bg-destructive/5 px-3 py-2 text-sm text-destructive-text"
             >
               {state.error}
@@ -61,7 +67,7 @@ export function DetachTagDialog({ researchId, tagId }: DetachTagDialogProps) {
 
           <DialogFooter>
             <Button type="submit" variant="destructive" disabled={isPending}>
-              {isPending ? "Detach..." : "Detach Tag"}
+              {translate(isPending ? "saasTag.detaching" : "saasTag.detachTitle", locale)}
             </Button>
           </DialogFooter>
         </form>

@@ -34,6 +34,62 @@ Phase 4.6b adds Finding creation/editing/deletion and supporting Source
 association/removal UI. Comment, tag, conclusion editing and AI controls remain
 deferred.
 
+Phase 4.6c adds comment creation/editing/deletion, tag addition/detachment and
+conclusion editing UI. AI controls and Action error localization remain deferred.
+
+## SaaS comments, tags and conclusions UI (Phase 4.6c)
+
+Implemented 2026-11-03. The Research detail page passes its resolved AppShell
+locale to AddCommentDialog, EditCommentDialog, DeleteCommentDialog, AddTagDialog,
+DetachTagDialog and EditConclusionDialog. Optional locale props resolve missing
+or invalid values to English. New `saasComment.*`, `saasTag.*` and
+`saasConclusion.*` dictionary entries cover fixed triggers, titles, descriptions,
+confirmation text, labels, the existing comment placeholder, submit/pending labels
+and the tag-detachment icon's accessible name. Existing English copy is retained,
+including the distinct Add tag/Add Tag casing and Detach... pending label.
+
+Comment/Conclusion section headings, descriptions, counts, dates and empty states
+already use Phase 4.5a's `saasResearch` entries. The fixed Unknown user fallback is
+now localized only when both name and username are nullish; original names,
+usernames and empty-string precedence remain unchanged. Comment bodies, tag names,
+conclusion text and all Research relationships stay original. Tags use the existing
+name input/create-or-attach workflow; no tag selection widget, tag-name translation,
+new empty state or tag deletion behavior is added.
+
+Each portaled Popup reuses `DialogContent locale={locale}` for its language and
+Close control. No Select is present in this scope. Existing uncontrolled Dialog
+open/close behavior, controlled input state, IDs/names, required/maxLength attributes,
+length counters/limits, blank-tag disablement and pending behavior are retained.
+The conclusion trigger still distinguishes a truthy initial conclusion from a
+missing/empty one; null defaults to an empty input and clearing remains allowed.
+No locale-driven input reset, FormData, Action binding, validation, authorization,
+database, indexing, schema or stored-value change is made. In particular, tag
+detachment still binds both Research ID and tag ID and only removes their existing
+relationship. Existing Action-derived error text is rendered verbatim with
+`lang="en"`; no message matching or structured-error adoption is introduced.
+Research/Source/Finding behavior, Public Demo overlays, Home-only language switching
+and AI conversation UI are unchanged.
+
+Validation: focused DB-free Vitest **11 files / 614 tests**, changed-file ESLint,
+TypeScript (`--noEmit --incremental false`) and diff whitespace checks passed.
+The new Dialog suite covers English/Japanese/default/invalid/missing-key fallback,
+real shared Popup language/Close, tag icon accessibility, original input values,
+exact field attributes, bound mock Action IDs and FormData, length/blank/pending
+states, verbatim errors and conclusion empty/default/clear behavior. Page tests
+verify all six locale/ID/content deliveries and author fallback precedence. Shared
+display tests verify original multiline comments/conclusions, tag names/IDs and
+translated populated/empty UI without object mutation. Existing mocked-I/O
+Action/schema tests and Source/Finding/Demo regressions pass. Initial sandbox
+Vitest startup failed with `spawn EPERM`; the same tests passed with subprocess
+permission. Hook doubles do not establish real browser scheduling or submission.
+
+The existing Review server returned 307 from `/research` to `/api/auth/signin`.
+No session was created, writes submitted, fixtures modified or server restarted.
+Real-browser layout at 1280/768/375px, focus/keyboard, live input retention,
+portal placement, hydration and Production font widths remain unverified. No
+full suite, full E2E or Production Build was run. No scoped component was deferred;
+AI UI and Action error localization remain outside this phase.
+
 ## SaaS Finding and relationship UI (Phase 4.6b)
 
 Implemented 2026-11-03. The Research detail page passes its existing resolved

@@ -2,6 +2,9 @@
 
 import { useActionState } from "react";
 
+import { resolveLocale, type Locale } from "@/lib/i18n/locales";
+import { translate } from "@/lib/i18n/translate";
+
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -18,6 +21,7 @@ import {
 } from "../_actions/deleteComment";
 
 type DeleteCommentDialogProps = {
+  locale?: Locale;
   commentId: string;
 };
 
@@ -25,7 +29,8 @@ const initialState: DeleteCommentState = {
   error: null,
 };
 
-export function DeleteCommentDialog({ commentId }: DeleteCommentDialogProps) {
+export function DeleteCommentDialog({ commentId, locale: requestedLocale }: DeleteCommentDialogProps) {
+  const locale = resolveLocale(requestedLocale);
   const [state, action, isPending] = useActionState(
     deleteComment.bind(null, commentId),
     initialState,
@@ -36,18 +41,17 @@ export function DeleteCommentDialog({ commentId }: DeleteCommentDialogProps) {
       <DialogTrigger
         render={
           <Button variant="destructive" size="sm">
-            Delete
+            {translate("saasComment.delete", locale)}
           </Button>
         }
       />
 
-      <DialogContent>
+      <DialogContent locale={locale}>
         <DialogHeader>
-          <DialogTitle>Delete Comment</DialogTitle>
+          <DialogTitle>{translate("saasComment.deleteTitle", locale)}</DialogTitle>
 
           <DialogDescription>
-            Are you sure you want to delete this comment? This action cannot be
-            undone.
+            {translate("saasComment.deleteDescription", locale)}
           </DialogDescription>
         </DialogHeader>
 
@@ -55,6 +59,7 @@ export function DeleteCommentDialog({ commentId }: DeleteCommentDialogProps) {
           {state.error && (
             <p
               role="alert"
+              lang="en"
               className="mb-4 rounded-md border border-destructive/30 bg-destructive/5 px-3 py-2 text-sm text-destructive-text"
             >
               {state.error}
@@ -63,7 +68,7 @@ export function DeleteCommentDialog({ commentId }: DeleteCommentDialogProps) {
 
           <DialogFooter>
             <Button type="submit" variant="destructive" disabled={isPending}>
-              {isPending ? "Deleting..." : "Delete Comment"}
+              {translate(isPending ? "saasComment.deleting" : "saasComment.deleteTitle", locale)}
             </Button>
           </DialogFooter>
         </form>

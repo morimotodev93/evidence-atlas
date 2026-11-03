@@ -2,6 +2,9 @@
 
 import { useActionState, useState } from "react";
 
+import { resolveLocale, type Locale } from "@/lib/i18n/locales";
+import { translate } from "@/lib/i18n/translate";
+
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -22,6 +25,7 @@ import {
 import { MAX_COMMENT_LENGTH } from "@/types/research/comment";
 
 type AddCommentDialogProps = {
+  locale?: Locale;
   researchId: string;
 };
 
@@ -29,7 +33,8 @@ const initialState: CreateCommentState = {
   error: null,
 };
 
-export function AddCommentDialog({ researchId }: AddCommentDialogProps) {
+export function AddCommentDialog({ researchId, locale: requestedLocale }: AddCommentDialogProps) {
+  const locale = resolveLocale(requestedLocale);
   const [content, setContent] = useState("");
 
   const [state, action, isPending] = useActionState(
@@ -41,15 +46,14 @@ export function AddCommentDialog({ researchId }: AddCommentDialogProps) {
 
   return (
     <Dialog>
-      <DialogTrigger render={<Button size="sm">Add Comment</Button>} />
+      <DialogTrigger render={<Button size="sm">{translate("saasComment.add", locale)}</Button>} />
 
-      <DialogContent>
+      <DialogContent locale={locale}>
         <DialogHeader>
-          <DialogTitle>Add Comment</DialogTitle>
+          <DialogTitle>{translate("saasComment.add", locale)}</DialogTitle>
 
           <DialogDescription>
-            Add a question, interpretation, or unresolved point to this
-            research.
+            {translate("saasComment.addDescription", locale)}
           </DialogDescription>
         </DialogHeader>
 
@@ -57,6 +61,7 @@ export function AddCommentDialog({ researchId }: AddCommentDialogProps) {
           {state.error && (
             <p
               role="alert"
+              lang="en"
               className="rounded-md border border-destructive/30 bg-destructive/5 px-3 py-2 text-sm text-destructive-text"
             >
               {state.error}
@@ -64,14 +69,14 @@ export function AddCommentDialog({ researchId }: AddCommentDialogProps) {
           )}
 
           <div className="space-y-2">
-            <Label htmlFor="comment-content">Comment</Label>
+            <Label htmlFor="comment-content">{translate("saasComment.label", locale)}</Label>
 
             <Textarea
               id="comment-content"
               name="content"
               value={content}
               onChange={(event) => setContent(event.target.value)}
-              placeholder="Add a question, interpretation, or unresolved point..."
+              placeholder={translate("saasComment.contentPlaceholder", locale)}
               className="min-h-32 max-h-[60vh] resize-y overflow-y-auto"
               required
             />
@@ -92,7 +97,7 @@ export function AddCommentDialog({ researchId }: AddCommentDialogProps) {
 
           <DialogFooter>
             <Button type="submit" disabled={isPending || isOverLimit}>
-              {isPending ? "Adding..." : "Add Comment"}
+              {translate(isPending ? "saasComment.adding" : "saasComment.add", locale)}
             </Button>
           </DialogFooter>
         </form>

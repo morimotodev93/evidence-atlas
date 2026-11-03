@@ -2,6 +2,9 @@
 
 import { useActionState, useState } from "react";
 
+import { resolveLocale, type Locale } from "@/lib/i18n/locales";
+import { translate } from "@/lib/i18n/translate";
+
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -22,6 +25,7 @@ import {
 import { MAX_COMMENT_LENGTH } from "@/types/research/comment";
 
 type EditCommentDialogProps = {
+  locale?: Locale;
   commentId: string;
   content: string;
 };
@@ -31,9 +35,11 @@ const initialState: UpdateCommentState = {
 };
 
 export function EditCommentDialog({
+  locale: requestedLocale,
   commentId,
   content,
 }: EditCommentDialogProps) {
+  const locale = resolveLocale(requestedLocale);
   const [editedContent, setEditedContent] = useState(content);
 
   const [state, action, isPending] = useActionState(
@@ -48,22 +54,23 @@ export function EditCommentDialog({
       <DialogTrigger
         render={
           <Button variant="outline" size="sm">
-            Edit
+            {translate("saasComment.edit", locale)}
           </Button>
         }
       />
 
-      <DialogContent>
+      <DialogContent locale={locale}>
         <DialogHeader>
-          <DialogTitle>Edit Comment</DialogTitle>
+          <DialogTitle>{translate("saasComment.editTitle", locale)}</DialogTitle>
 
-          <DialogDescription>Update this discussion comment.</DialogDescription>
+          <DialogDescription>{translate("saasComment.editDescription", locale)}</DialogDescription>
         </DialogHeader>
 
         <form action={action} className="space-y-4">
           {state.error && (
             <p
               role="alert"
+              lang="en"
               className="rounded-md border border-destructive/30 bg-destructive/5 px-3 py-2 text-sm text-destructive-text"
             >
               {state.error}
@@ -71,7 +78,7 @@ export function EditCommentDialog({
           )}
 
           <div className="space-y-2">
-            <Label htmlFor={`comment-content-${commentId}`}>Comment</Label>
+            <Label htmlFor={`comment-content-${commentId}`}>{translate("saasComment.label", locale)}</Label>
 
             <Textarea
               id={`comment-content-${commentId}`}
@@ -98,7 +105,7 @@ export function EditCommentDialog({
 
           <DialogFooter>
             <Button type="submit" disabled={isPending || isOverLimit}>
-              {isPending ? "Saving..." : "Save Changes"}
+              {translate(isPending ? "saasComment.saving" : "saasComment.saveChanges", locale)}
             </Button>
           </DialogFooter>
         </form>

@@ -2,6 +2,9 @@
 
 import { useActionState, useState } from "react";
 
+import { resolveLocale, type Locale } from "@/lib/i18n/locales";
+import { translate } from "@/lib/i18n/translate";
+
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -22,6 +25,7 @@ import {
 import { MAX_CONCLUSION_LENGTH } from "@/types/research/conclusion";
 
 type EditConclusionDialogProps = {
+  locale?: Locale;
   researchId: string;
   initialConclusion: string | null;
 };
@@ -31,9 +35,11 @@ const initialState: UpdateConclusionState = {
 };
 
 export function EditConclusionDialog({
+  locale: requestedLocale,
   researchId,
   initialConclusion,
 }: EditConclusionDialogProps) {
+  const locale = resolveLocale(requestedLocale);
   const [conclusion, setConclusion] = useState(initialConclusion ?? "");
   const [state, action, isPending] = useActionState(
     updateConclusion.bind(null, researchId),
@@ -47,17 +53,17 @@ export function EditConclusionDialog({
       <DialogTrigger
         render={
           <Button variant="outline" size="sm">
-            {initialConclusion ? "Edit" : "Add conclusion"}
+            {translate(initialConclusion ? "saasConclusion.edit" : "saasConclusion.add", locale)}
           </Button>
         }
       />
 
-      <DialogContent>
+      <DialogContent locale={locale}>
         <DialogHeader>
-          <DialogTitle>Edit conclusion</DialogTitle>
+          <DialogTitle>{translate("saasConclusion.editTitle", locale)}</DialogTitle>
 
           <DialogDescription>
-            Update the current conclusion for this research.
+            {translate("saasConclusion.editDescription", locale)}
           </DialogDescription>
         </DialogHeader>
 
@@ -65,6 +71,7 @@ export function EditConclusionDialog({
           {state.error && (
             <p
               role="alert"
+              lang="en"
               className="rounded-md border border-destructive/30 bg-destructive/5 px-3 py-2 text-sm text-destructive-text"
             >
               {state.error}
@@ -73,7 +80,7 @@ export function EditConclusionDialog({
 
           <div className="space-y-2">
             <Label htmlFor={`conclusion-content-${researchId}`}>
-              Conclusion
+              {translate("saasConclusion.label", locale)}
             </Label>
 
             <Textarea
@@ -101,7 +108,7 @@ export function EditConclusionDialog({
 
           <DialogFooter>
             <Button type="submit" disabled={isPending || isOverLimit}>
-              {isPending ? "Saving..." : "Save Changes"}
+              {translate(isPending ? "saasConclusion.saving" : "saasConclusion.saveChanges", locale)}
             </Button>
           </DialogFooter>
         </form>
