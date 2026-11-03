@@ -21,6 +21,26 @@ function renderSource(url: string) {
 }
 
 describe("Research Source render boundary", () => {
+  it.each(["en", "ja"] as const)("preserves Finding content and relationships in the %s SaaS display", (locale) => {
+    const originalContent = "原文 excerpt\nOriginal [source:source-original] — Paper 2026 p.12";
+    const stored = { ...finding, content: originalContent };
+    const snapshot = JSON.stringify(stored);
+    const props = { research, sources: [source], findings: [stored], comments: [], locale, messageScope: "saasResearch" as const };
+    const html = renderToStaticMarkup(<ResearchDetailContent {...props} />);
+    for (const label of locale === "ja" ? ["Finding 1 件", "Sourceから得られたEvidenceと知見です。", "根拠となるSource", "テキスト", "更新日"]
+      : ["1 findings", "Evidence and insights extracted from the sources.", "Supporting sources", "TEXT", "Updated"]) expect(html).toContain(label);
+    expect(html).toContain(originalContent);
+    expect(html).toContain(source.title);
+    expect(html).toContain(`href="${source.url}"`);
+    expect(JSON.stringify(stored)).toBe(snapshot);
+    expect(stored.displayStyle).toBe("TEXT");
+    const empty = renderToStaticMarkup(<ResearchDetailContent {...props} findings={[]} />);
+    expect(empty).toContain(locale === "ja" ? "Findingはまだありません。" : "No findings yet.");
+    expect(empty).toContain(locale === "ja" ? "Finding 0 件" : "0 findings");
+    const unknown = renderToStaticMarkup(<ResearchDetailContent {...props} findings={[{ ...stored, displayStyle: "FUTURE_STYLE" }]} />);
+    expect(unknown).toContain("FUTURE_STYLE");
+  });
+
   it.each([
     ["https://example.com/path", "https://example.com/path"],
     ["HTTP://EXAMPLE.COM", "http://example.com/"],

@@ -2,6 +2,9 @@
 
 import { useActionState } from "react";
 
+import { resolveLocale, type Locale } from "@/lib/i18n/locales";
+import { translate } from "@/lib/i18n/translate";
+
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -18,6 +21,7 @@ import {
 } from "../_actions/deleteFinding";
 
 type DeleteFindingDialogProps = {
+  locale?: Locale;
   findingId: string;
 };
 
@@ -25,7 +29,8 @@ const initialState: DeleteFindingState = {
   error: null,
 };
 
-export function DeleteFindingDialog({ findingId }: DeleteFindingDialogProps) {
+export function DeleteFindingDialog({ findingId, locale: requestedLocale }: DeleteFindingDialogProps) {
+  const locale = resolveLocale(requestedLocale);
   const [state, action, isPending] = useActionState(
     deleteFinding.bind(null, findingId),
     initialState,
@@ -36,18 +41,17 @@ export function DeleteFindingDialog({ findingId }: DeleteFindingDialogProps) {
       <DialogTrigger
         render={
           <Button variant="destructive" size="sm">
-            Delete
+            {translate("saasFinding.delete", locale)}
           </Button>
         }
       />
 
-      <DialogContent>
+      <DialogContent locale={locale}>
         <DialogHeader>
-          <DialogTitle>Delete Finding</DialogTitle>
+          <DialogTitle>{translate("saasFinding.deleteTitle", locale)}</DialogTitle>
 
           <DialogDescription>
-            Are you sure you want to delete this finding? This action cannot be
-            undone.
+            {translate("saasFinding.deleteDescription", locale)}
           </DialogDescription>
         </DialogHeader>
 
@@ -55,6 +59,7 @@ export function DeleteFindingDialog({ findingId }: DeleteFindingDialogProps) {
           {state.error && (
             <p
               role="alert"
+              lang="en"
               className="mb-4 rounded-md border border-destructive/30 bg-destructive/5 px-3 py-2 text-sm text-destructive-text"
             >
               {state.error}
@@ -63,7 +68,7 @@ export function DeleteFindingDialog({ findingId }: DeleteFindingDialogProps) {
 
           <DialogFooter>
             <Button type="submit" variant="destructive" disabled={isPending}>
-              {isPending ? "Deleting..." : "Delete Finding"}
+              {translate(isPending ? "saasFinding.deleting" : "saasFinding.deleteTitle", locale)}
             </Button>
           </DialogFooter>
         </form>

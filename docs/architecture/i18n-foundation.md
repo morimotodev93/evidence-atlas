@@ -30,6 +30,63 @@ locale flow. Other business dialogs and AI remain deferred.
 Phase 4.6a adds Source creation/editing/deletion Dialogs through the same locale
 flow. Finding, comment, tag and AI controls remain deferred.
 
+Phase 4.6b adds Finding creation/editing/deletion and supporting Source
+association/removal UI. Comment, tag, conclusion editing and AI controls remain
+deferred.
+
+## SaaS Finding and relationship UI (Phase 4.6b)
+
+Implemented 2026-11-03. The Research detail page passes its existing resolved
+AppShell locale to AddFindingDialog, EditFindingDialog, DeleteFindingDialog and
+ManageFindingSourcesDialog. Optional locale props use `resolveLocale` for English
+default/invalid fallback. New `saasFinding.*` keys translate fixed triggers,
+headings, descriptions, confirmation text, Finding label, existing placeholder,
+submit/pending labels, supporting Source selection and relationship removal.
+Japanese retains Finding/Source/Research terminology. Finding list headings,
+counts, empty states, supporting labels, known TEXT display and dates already use
+the Phase 4.5a `saasResearch` dictionary. There is no standalone Finding detail
+route or separate source-excerpt field in this UI.
+
+Each Dialog reuses `DialogContent locale={locale}` for Popup language and Close.
+The association Select's separate Popup uses `SelectContent lang={locale}`;
+shared wrappers remain unchanged. Existing Action errors stay verbatim with
+`lang="en"`; the association error retains its plain paragraph rather than
+acquiring new alert behavior. Finding content, excerpts/citations embedded in
+content, original Source titles/URLs and relationships remain unchanged. TEXT and
+unknown display-style values retain their existing display rules and stored
+values. Source choices still exclude attached Sources; the association trigger
+is still omitted when no unattached Sources exist.
+
+Controlled content/selection/open state, null/empty-selection handling, pending
+disablement, length limits/counters, field names/IDs/required/rows attributes,
+FormData, bound IDs and all Actions remain unchanged. Closing/reopening the
+association Dialog does not add a selection reset. Removal keeps its existing
+direct bound `detachFindingSource` form with no new confirmation or pending state.
+No validation, authorization, database, schema, indexing, locale persistence,
+Public Demo overlay or Home-only language-switching changes are introduced.
+Comment, tag, conclusion and AI editing controls are outside this phase.
+
+Validation: focused DB-free Vitest passed **10 files / 488 distinct tests across
+focused runs** (10 files / 486 tests, then the expanded display file / 24 tests
+replacing its earlier 22). Changed-file ESLint, TypeScript
+(`--noEmit --incremental false`) and diff whitespace checks passed. New hook-double
+tests cover English/Japanese/default/invalid/missing-key fallback, real shared
+Dialog/Select Popup language and Close, original content/Source choices, exact
+FormData and mock Action binding, length/pending/error behavior, and selection
+retention through locale rerenders and close/reopen. Page tests verify locale and
+original-ID/content propagation, available Source filtering and bound removal
+arguments. Display tests verify translated labels/empty states, original content,
+links, relationships and known/unknown display styles. Existing mocked-I/O
+Action/schema and Source/Demo regressions also pass. Initial sandbox Vitest startup
+failed with `spawn EPERM`; the same tests passed with subprocess permission.
+
+The existing Review server returned 307 from `/research` to `/api/auth/signin`.
+No session was created or writes submitted. Real-browser layout at 1280/768/375px,
+keyboard/focus, live state retention, portal placement, hydration and Production
+font widths remain unverified; hook doubles do not establish these behaviors.
+No Review restart, DB/fixture changes, full suite, full E2E or Production Build.
+Action error localization remains deferred.
+
 ## SaaS Source UI (Phase 4.6a)
 
 Implemented 2026-11-03. The Research detail page passes its existing resolved

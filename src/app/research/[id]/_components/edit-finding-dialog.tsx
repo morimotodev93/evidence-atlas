@@ -2,6 +2,9 @@
 
 import { useActionState, useState } from "react";
 
+import { resolveLocale, type Locale } from "@/lib/i18n/locales";
+import { translate } from "@/lib/i18n/translate";
+
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -21,6 +24,7 @@ import {
 } from "../_actions/updateFinding";
 
 type EditFindingDialogProps = {
+  locale?: Locale;
   findingId: string;
   content: string;
 };
@@ -30,9 +34,11 @@ const initialState: UpdateFindingState = {
 };
 
 export function EditFindingDialog({
+  locale: requestedLocale,
   findingId,
   content,
 }: EditFindingDialogProps) {
+  const locale = resolveLocale(requestedLocale);
   const [editedContent, setEditedContent] = useState(content);
 
   const [state, action, isPending] = useActionState(
@@ -47,17 +53,17 @@ export function EditFindingDialog({
       <DialogTrigger
         render={
           <Button variant="outline" size="sm">
-            Edit
+            {translate("saasFinding.edit", locale)}
           </Button>
         }
       />
 
-      <DialogContent>
+      <DialogContent locale={locale}>
         <DialogHeader>
-          <DialogTitle>Edit Finding</DialogTitle>
+          <DialogTitle>{translate("saasFinding.editTitle", locale)}</DialogTitle>
 
           <DialogDescription>
-            Update this evidence or insight.
+            {translate("saasFinding.editDescription", locale)}
           </DialogDescription>
         </DialogHeader>
 
@@ -65,6 +71,7 @@ export function EditFindingDialog({
           {state.error && (
             <p
               role="alert"
+              lang="en"
               className="rounded-md border border-destructive/30 bg-destructive/5 px-3 py-2 text-sm text-destructive-text"
             >
               {state.error}
@@ -72,7 +79,7 @@ export function EditFindingDialog({
           )}
 
           <div className="space-y-2">
-            <Label htmlFor={`finding-content-${findingId}`}>Finding</Label>
+            <Label htmlFor={`finding-content-${findingId}`}>{translate("saasFinding.label", locale)}</Label>
 
             <Textarea
               id={`finding-content-${findingId}`}
@@ -100,7 +107,7 @@ export function EditFindingDialog({
 
           <DialogFooter>
             <Button type="submit" disabled={isPending || isOverLimit}>
-              {isPending ? "Saving..." : "Save Changes"}
+              {translate(isPending ? "saasFinding.saving" : "saasFinding.saveChanges", locale)}
             </Button>
           </DialogFooter>
         </form>

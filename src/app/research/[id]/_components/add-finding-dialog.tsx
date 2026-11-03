@@ -2,6 +2,9 @@
 
 import { useActionState, useState } from "react";
 
+import { resolveLocale, type Locale } from "@/lib/i18n/locales";
+import { translate } from "@/lib/i18n/translate";
+
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -21,6 +24,7 @@ import {
 } from "../_actions/createFinding";
 
 type AddFindingDialogProps = {
+  locale?: Locale;
   researchId: string;
 };
 
@@ -28,7 +32,8 @@ const initialState: CreateFindingState = {
   error: null,
 };
 
-export function AddFindingDialog({ researchId }: AddFindingDialogProps) {
+export function AddFindingDialog({ researchId, locale: requestedLocale }: AddFindingDialogProps) {
+  const locale = resolveLocale(requestedLocale);
   const [content, setContent] = useState("");
 
   const [state, action, isPending] = useActionState(
@@ -40,14 +45,14 @@ export function AddFindingDialog({ researchId }: AddFindingDialogProps) {
 
   return (
     <Dialog>
-      <DialogTrigger render={<Button size="sm">Add Finding</Button>} />
+      <DialogTrigger render={<Button size="sm">{translate("saasFinding.add", locale)}</Button>} />
 
-      <DialogContent>
+      <DialogContent locale={locale}>
         <DialogHeader>
-          <DialogTitle>Add Finding</DialogTitle>
+          <DialogTitle>{translate("saasFinding.add", locale)}</DialogTitle>
 
           <DialogDescription>
-            Add an evidence or insight from this research.
+            {translate("saasFinding.addDescription", locale)}
           </DialogDescription>
         </DialogHeader>
 
@@ -55,6 +60,7 @@ export function AddFindingDialog({ researchId }: AddFindingDialogProps) {
           {state.error && (
             <p
               role="alert"
+              lang="en"
               className="rounded-md border border-destructive/30 bg-destructive/5 px-3 py-2 text-sm text-destructive-text"
             >
               {state.error}
@@ -62,14 +68,14 @@ export function AddFindingDialog({ researchId }: AddFindingDialogProps) {
           )}
 
           <div className="space-y-2">
-            <Label htmlFor="finding-content">Finding</Label>
+            <Label htmlFor="finding-content">{translate("saasFinding.label", locale)}</Label>
 
             <Textarea
               id="finding-content"
               name="content"
               value={content}
               onChange={(event) => setContent(event.target.value)}
-              placeholder="Describe the evidence or insight..."
+              placeholder={translate("saasFinding.contentPlaceholder", locale)}
               rows={6}
               className="min-h-32 max-h-[60vh] resize-y overflow-y-auto"
               required
@@ -91,7 +97,7 @@ export function AddFindingDialog({ researchId }: AddFindingDialogProps) {
 
           <DialogFooter>
             <Button type="submit" disabled={isPending || isOverLimit}>
-              {isPending ? "Adding..." : "Add Finding"}
+              {translate(isPending ? "saasFinding.adding" : "saasFinding.add", locale)}
             </Button>
           </DialogFooter>
         </form>

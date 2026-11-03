@@ -1,15 +1,16 @@
-import { createElement, type ReactNode } from "react";
+import { Children, createElement, isValidElement, type ReactElement, type ReactNode } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { research, source, finding, comment, researchTag } from "@/lib/demo/test-fixtures";
 import { resolveLocale, type Locale } from "@/lib/i18n/locales";
+import { ResearchDetailContent } from "@/components/research/research-detail-content";
 
 const mocks = vi.hoisted(() => {
   const models = Object.fromEntries(["Research", "WorkspaceMembership", "Source", "Finding", "Comment", "ResearchTag"].map((name) => {
     const query = { first: vi.fn(), all: vi.fn(), include: vi.fn() };
     return [name, { where: vi.fn(() => query), query }];
   }));
-  return { models, auth: vi.fn(), redirect: vi.fn(), notFound: vi.fn(), cookie: vi.fn() };
+  return { models, auth: vi.fn(), redirect: vi.fn(), notFound: vi.fn(), cookie: vi.fn(), detach: vi.fn() };
 });
 vi.mock("next/headers", () => ({ cookies: async () => ({ get: mocks.cookie }) }));
 vi.mock("@/components/layout/app-shell", () => ({
@@ -18,7 +19,7 @@ vi.mock("@/components/layout/app-shell", () => ({
 vi.mock("@/prisma/db", () => ({ db: { orm: { public: mocks.models } } }));
 vi.mock("@/auth", () => ({ auth: mocks.auth, signOut: vi.fn() }));
 vi.mock("next/navigation", () => ({ usePathname: () => "/research/research-id", redirect: mocks.redirect, notFound: mocks.notFound }));
-vi.mock("@/app/research/[id]/_actions/detachFindingSource", () => ({ detachFindingSource: vi.fn() }));
+vi.mock("@/app/research/[id]/_actions/detachFindingSource", () => ({ detachFindingSource: mocks.detach }));
 
 const components = {
   "add-comment-dialog": "AddCommentDialog",
@@ -43,7 +44,7 @@ beforeAll(async () => {
   // Keep real guards and shared rendering; replace interactive client dialogs only.
   for (const [file, name] of Object.entries(components)) {
     vi.doMock(`@/app/research/[id]/_components/${file}`, () => ({
-      [name]: (props: { locale?: Locale; researchId?: string; initialStatus?: string; sourceId?: string; title?: string; url?: string }) =>
+      [name]: (props: { locale?: Locale; researchId?: string; initialStatus?: string; sourceId?: string; title?: string; url?: string; findingId?: string; content?: string; sources?: { id: string; title: string }[] }) =>
         createElement("span", name === "EditResearchStatusDialog" ? {
           "data-status-locale": props.locale,
           "data-status-research": props.researchId,
@@ -55,6 +56,13 @@ beforeAll(async () => {
           "data-source-id": props.sourceId,
           "data-source-title": props.title,
           "data-source-url": props.url,
+        } : ["AddFindingDialog", "EditFindingDialog", "DeleteFindingDialog", "ManageFindingSourcesDialog"].includes(name) ? {
+          "data-finding-control": name,
+          "data-finding-locale": props.locale,
+          "data-research-id": props.researchId,
+          "data-finding-id": props.findingId,
+          "data-finding-content": props.content,
+          "data-available-sources": props.sources?.map((source) => source.id).join(","),
         } : null, name),
     }));
   }
@@ -74,6 +82,37 @@ beforeEach(() => {
 });
 
 describe("Authenticated Research detail after display extraction", () => {
+  it.each([undefined, "invalid", "en", "ja"])("passes Finding locale %s and preserves content, associations and removal Action", async (value) => {
+    mocks.cookie.mockReturnValue(value === undefined ? undefined : { value });
+    const storedContent = "原文 excerpt / Original [source:original-id], Paper 2026 p.12";
+    const stored = { ...finding, content: storedContent };
+    mocks.models.Finding.query.all.mockResolvedValue([stored]);
+    const page = await DetailPage({ params: Promise.resolve({ id: research.id }) });
+    const html = renderToStaticMarkup(page);
+    const locale = value === "ja" ? "ja" : "en";
+    expect(html).toContain(`data-finding-control="AddFindingDialog" data-finding-locale="${locale}" data-research-id="${research.id}"`);
+    expect(html).toContain(`data-finding-control="EditFindingDialog" data-finding-locale="${locale}" data-finding-id="${finding.id}" data-finding-content="${storedContent}"`);
+    expect(html).toContain(`data-finding-control="DeleteFindingDialog" data-finding-locale="${locale}" data-finding-id="${finding.id}"`);
+    expect(html).toContain(`data-finding-control="ManageFindingSourcesDialog" data-finding-locale="${locale}" data-finding-id="${finding.id}" data-available-sources="unattached-source"`);
+    expect(html).toContain(locale === "ja" ? "関連付けを解除" : "Remove");
+    expect(html).toContain(storedContent);
+    expect(html).toContain(source.title);
+    expect(html).toContain(`href="${source.url}"`);
+    expect(mocks.models.Finding.where).toHaveBeenCalledWith({ researchId: research.id });
+
+    // Inspect the real page's render slot to invoke only its mocked bound Action.
+    type Node = ReactElement<Record<string, unknown> & { children?: ReactNode }>;
+    const nodes = (node: ReactNode): Node[] => Children.toArray(node).flatMap((child) => isValidElement<Node["props"]>(child)
+      ? [child, ...nodes(child.props.children)] : []);
+    const body = page.props.children(locale);
+    const detail = nodes(body).find((node) => node.type === ResearchDetailContent)!;
+    const controls = detail.props.controls as { findingSource: (findingId: string, sourceId: string) => ReactElement<{ action: () => Promise<void> }> };
+    const form = controls.findingSource(finding.id, source.id);
+    expect(form.type).toBe("form");
+    await form.props.action();
+    expect(mocks.detach).toHaveBeenCalledExactlyOnceWith(finding.id, source.id);
+  });
+
   it.each([undefined, "invalid", "en", "ja"])("passes locale %s and original Source data to all Source controls", async (value) => {
     mocks.cookie.mockReturnValue(value === undefined ? undefined : { value });
     const stored = { ...source, title: "Original Paper 2026 p.12", url: "HTTPS://Example.COM/Paper%2FOriginal?ref=en#Citation" };
@@ -115,7 +154,7 @@ describe("Authenticated Research detail after display extraction", () => {
     const html = renderToStaticMarkup(await DetailPage({ params: Promise.resolve({ id: research.id }) }));
     for (const text of ["lang=\"ja\"", "← Research一覧に戻る", "Source 2 件", "Finding 1 件", "作成日", "完了",
       research.title, research.description, research.conclusion, source.title, finding.content, comment.content,
-      "EditResearchStatusDialog", "ResearchAiMobileDialog", "ResearchAiPanel", "Remove"])
+      "EditResearchStatusDialog", "ResearchAiMobileDialog", "ResearchAiPanel", "関連付けを解除"])
       expect(html).toContain(text);
     expect(html).toContain(`href="/research/${research.id}/edit"`);
     expect(html).toMatch(new RegExp(`href="/research/${research.id}/edit"[^>]*>編集</a>`));

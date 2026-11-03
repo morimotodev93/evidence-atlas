@@ -2,6 +2,9 @@
 
 import { useActionState, useState } from "react";
 
+import { resolveLocale, type Locale } from "@/lib/i18n/locales";
+import { translate } from "@/lib/i18n/translate";
+
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -27,6 +30,7 @@ type Source = {
 };
 
 type ManageFindingSourcesDialogProps = {
+  locale?: Locale;
   findingId: string;
   sources: Source[];
 };
@@ -36,9 +40,11 @@ const initialState = {
 };
 
 export function ManageFindingSourcesDialog({
+  locale: requestedLocale,
   findingId,
   sources,
 }: ManageFindingSourcesDialogProps) {
+  const locale = resolveLocale(requestedLocale);
   const [open, setOpen] = useState(false);
   const [sourceId, setSourceId] = useState("");
 
@@ -54,14 +60,14 @@ export function ManageFindingSourcesDialog({
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger render={<Button variant="outline" size="sm" />}>
-        Add source
+        {translate("saasFinding.addSource", locale)}
       </DialogTrigger>
 
-      <DialogContent>
+      <DialogContent locale={locale}>
         <DialogHeader>
-          <DialogTitle>Add supporting source</DialogTitle>
+          <DialogTitle>{translate("saasFinding.supportingTitle", locale)}</DialogTitle>
           <DialogDescription>
-            Select a source from this research to support the finding.
+            {translate("saasFinding.supportingDescription", locale)}
           </DialogDescription>
         </DialogHeader>
 
@@ -76,12 +82,12 @@ export function ManageFindingSourcesDialog({
             }}
           >
             <SelectTrigger className="w-full">
-              <SelectValue placeholder="Select a source">
+              <SelectValue placeholder={translate("saasFinding.selectSource", locale)}>
                 {selectedSource?.title}
               </SelectValue>
             </SelectTrigger>
 
-            <SelectContent>
+            <SelectContent lang={locale}>
               {sources.map((source) => (
                 <SelectItem key={source.id} value={source.id}>
                   {source.title}
@@ -91,12 +97,12 @@ export function ManageFindingSourcesDialog({
           </Select>
 
           {state.error && (
-            <p className="text-sm text-destructive">{state.error}</p>
+            <p lang="en" className="text-sm text-destructive">{state.error}</p>
           )}
 
           <DialogFooter>
             <Button type="submit" disabled={pending || !sourceId}>
-              {pending ? "Adding..." : "Add source"}
+              {translate(pending ? "saasFinding.adding" : "saasFinding.addSource", locale)}
             </Button>
           </DialogFooter>
         </form>

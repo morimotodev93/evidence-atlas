@@ -128,15 +128,15 @@ export default async function ResearchDetailPage({
                 <EditSourceDialog locale={locale} sourceId={source.id} title={source.title} url={source.url} />
                 <DeleteSourceDialog locale={locale} sourceId={source.id} />
               </>,
-              addFinding: <AddFindingDialog researchId={research.id} />,
+              addFinding: <AddFindingDialog locale={locale} researchId={research.id} />,
               finding: (finding) => <>
-                <EditFindingDialog findingId={finding.id} content={finding.content} />
-                <DeleteFindingDialog findingId={finding.id} />
+                <EditFindingDialog locale={locale} findingId={finding.id} content={finding.content} />
+                <DeleteFindingDialog locale={locale} findingId={finding.id} />
               </>,
               findingSource: (findingId, sourceId) => <form action={detachFindingSource.bind(null, findingId, sourceId)}>
-                <Button type="submit" variant="ghost" size="sm">Remove</Button>
+                <Button type="submit" variant="ghost" size="sm">{translate("saasFinding.removeSource", locale)}</Button>
               </form>,
-              findingSources: (findingId, availableSources) => <ManageFindingSourcesDialog findingId={findingId} sources={availableSources} />,
+              findingSources: (findingId, availableSources) => <ManageFindingSourcesDialog locale={locale} findingId={findingId} sources={availableSources} />,
               addComment: <AddCommentDialog researchId={research.id} />,
               comment: (comment) => <>
                 <EditCommentDialog commentId={comment.id} content={comment.content} />

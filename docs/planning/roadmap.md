@@ -38,6 +38,28 @@ canonical English. This completes the curated content scope only; full SaaS
 localization and deployed/runtime language verification remain open. See
 [i18n architecture](../architecture/i18n-foundation.md#phase-3-research-translation-catalog).
 
+### SaaS Finding and relationship UI localization (2026-11-03)
+
+Phase 4.6b completes fixed English/Japanese Finding add/edit/delete Dialogs and
+supporting Source association/removal controls, using the existing AppShell
+locale flow and new `saasFinding.*` dictionary entries. Existing translated
+Finding list/detail-section headings, counts, empty states, dates and display
+labels remain in use. Shared Dialog locale and local Select Popup language props
+cover portaled UI. Original content/citations/URLs, internal values, association
+IDs, available-Source filtering, FormData, Actions, validation, selection/open
+state, pending and error behavior are retained. Action errors remain English.
+No comment, tag, conclusion or AI control localization is included.
+
+Focused DB-free Vitest passed **10 files / 488 distinct tests across focused
+runs**, changed-file ESLint, TypeScript and diff whitespace checks passed.
+Tests cover translated UI/fallback, original content/relationship values,
+selection/open/pending/length/error behavior, Popup language/Close and exact mock
+Action binding/FormData, plus existing Action/schema/Source/Demo regressions.
+Review redirected unauthenticated Research requests to sign-in; no session or
+writes were made. Browser layout/focus/hydration/live-state checks remain open.
+No Review restart, DB/fixture changes, full suite, full E2E or Production Build.
+See [Finding and relationship scope](../architecture/i18n-foundation.md#saas-finding-and-relationship-ui-phase-46b).
+
 ### SaaS Source UI localization (2026-11-03)
 
 Phase 4.6a completes fixed English/Japanese Source UI: the existing translated
