@@ -13,6 +13,8 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
+import { resolveLocale, type Locale } from "@/lib/i18n/locales";
+import { translate } from "@/lib/i18n/translate";
 import {
   Select,
   SelectContent,
@@ -31,7 +33,14 @@ type ResearchStatus = "IN_PROGRESS" | "COMPLETED" | "ARCHIVED";
 type EditResearchStatusDialogProps = {
   researchId: string;
   initialStatus: ResearchStatus;
+  locale?: Locale;
 };
+
+const statusLabels = {
+  IN_PROGRESS: "saasResearch.inProgress",
+  COMPLETED: "saasResearch.completed",
+  ARCHIVED: "saasResearch.archived",
+} as const;
 
 const initialState: UpdateResearchStatusState = {
   error: null,
@@ -40,7 +49,9 @@ const initialState: UpdateResearchStatusState = {
 export function EditResearchStatusDialog({
   researchId,
   initialStatus,
+  locale: requestedLocale,
 }: EditResearchStatusDialogProps) {
+  const locale = resolveLocale(requestedLocale);
   const [status, setStatus] = useState<ResearchStatus>(initialStatus);
 
   const [state, action, isPending] = useActionState(
@@ -53,16 +64,16 @@ export function EditResearchStatusDialog({
       <DialogTrigger
         render={
           <Button variant="outline" size="sm">
-            Edit status
+            {translate("saasResearch.editStatus", locale)}
           </Button>
         }
       />
 
-      <DialogContent>
+      <DialogContent locale={locale}>
         <DialogHeader>
-          <DialogTitle>Edit research status</DialogTitle>
+          <DialogTitle>{translate("saasResearch.statusDialogTitle", locale)}</DialogTitle>
           <DialogDescription>
-            Update the current status of this research.
+            {translate("saasResearch.statusDialogDescription", locale)}
           </DialogDescription>
         </DialogHeader>
 
@@ -70,6 +81,7 @@ export function EditResearchStatusDialog({
           {state.error && (
             <p
               role="alert"
+              lang="en"
               className="rounded-md border border-destructive/30 bg-destructive/5 px-3 py-2 text-sm text-destructive-text"
             >
               {state.error}
@@ -77,7 +89,7 @@ export function EditResearchStatusDialog({
           )}
 
           <div className="space-y-2">
-            <Label>Status</Label>
+            <Label>{translate("saasResearch.status", locale)}</Label>
 
             <Select
               name="status"
@@ -89,20 +101,20 @@ export function EditResearchStatusDialog({
               }}
             >
               <SelectTrigger className="w-full">
-                <SelectValue />
+                <SelectValue>{locale === "ja" ? translate(statusLabels[status], locale) : undefined}</SelectValue>
               </SelectTrigger>
 
-              <SelectContent>
-                <SelectItem value="IN_PROGRESS">In progress</SelectItem>
-                <SelectItem value="COMPLETED">Completed</SelectItem>
-                <SelectItem value="ARCHIVED">Archived</SelectItem>
+              <SelectContent lang={locale}>
+                <SelectItem value="IN_PROGRESS">{translate(statusLabels.IN_PROGRESS, locale)}</SelectItem>
+                <SelectItem value="COMPLETED">{translate(statusLabels.COMPLETED, locale)}</SelectItem>
+                <SelectItem value="ARCHIVED">{translate(statusLabels.ARCHIVED, locale)}</SelectItem>
               </SelectContent>
             </Select>
           </div>
 
           <DialogFooter>
             <Button type="submit" disabled={isPending}>
-              {isPending ? "Saving..." : "Save Changes"}
+              {translate(isPending ? "saasResearch.saving" : "saasResearch.saveChanges", locale)}
             </Button>
           </DialogFooter>
         </form>

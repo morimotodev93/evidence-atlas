@@ -43,7 +43,12 @@ beforeAll(async () => {
   // Keep real guards and shared rendering; replace interactive client dialogs only.
   for (const [file, name] of Object.entries(components)) {
     vi.doMock(`@/app/research/[id]/_components/${file}`, () => ({
-      [name]: () => createElement("span", null, name),
+      [name]: (props: { locale?: Locale; researchId?: string; initialStatus?: string }) =>
+        createElement("span", name === "EditResearchStatusDialog" ? {
+          "data-status-locale": props.locale,
+          "data-status-research": props.researchId,
+          "data-status-initial": props.initialStatus,
+        } : null, name),
     }));
   }
   DetailPage = (await import("@/app/research/[id]/page")).default;
@@ -90,6 +95,7 @@ describe("Authenticated Research detail after display extraction", () => {
       expect(html).toContain(text);
     expect(html).toContain(`href="/research/${research.id}/edit"`);
     expect(html).toMatch(new RegExp(`href="/research/${research.id}/edit"[^>]*>編集</a>`));
+    expect(html).toContain(`data-status-locale="ja" data-status-research="${research.id}" data-status-initial="${research.status}"`);
     expect(research.status).toBe("COMPLETED");
     expect(mocks.models.WorkspaceMembership.where).toHaveBeenCalledWith({ userId: "user-id", workspaceId: research.workspaceId });
   });
@@ -108,6 +114,7 @@ describe("Authenticated Research detail after display extraction", () => {
     const html = renderToStaticMarkup(await DetailPage({ params: Promise.resolve({ id: research.id }) }));
     for (const text of ["lang=\"en\"", "← Back to Research", "Completed", "Created", "2 sources"]) expect(html).toContain(text);
     expect(html).toMatch(new RegExp(`href="/research/${research.id}/edit"[^>]*>Edit</a>`));
+    expect(html).toContain(`data-status-locale="en" data-status-research="${research.id}" data-status-initial="${research.status}"`);
   });
 
   it("still rejects unauthenticated detail requests before reading Research", async () => {

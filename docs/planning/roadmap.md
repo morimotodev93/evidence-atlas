@@ -38,6 +38,24 @@ canonical English. This completes the curated content scope only; full SaaS
 localization and deployed/runtime language verification remain open. See
 [i18n architecture](../architecture/i18n-foundation.md#phase-3-research-translation-catalog).
 
+### SaaS Research status Dialog localization (2026-11-03)
+
+Phase 4.5b-3 localizes the Research status trigger, Dialog title/description,
+Status label/options, Save Changes/Saving and Close accessibility label. The
+detail page passes its existing AppShell locale. DialogContent's locale prop
+and a local SelectContent language prop cover their separate portaled Popups,
+without shared-component changes. Internal status values, form/Action binding,
+selection/open/close/pending behavior, authorization and DB behavior are retained.
+Existing English Action errors remain verbatim; no state reset or error-contract
+change is added. Home-only language switching and Public Demo are unchanged.
+
+Focused DB-free Vitest **8 files / 193 tests**, changed-file ESLint and TypeScript
+passed. Review HTTP responded but Research required authentication; no session or
+status writes were made. Real-browser checks at 1280/768/375px, keyboard/focus,
+portal placement and live state retention, plus Production font verification,
+remain open. No Review restart, full suite, full E2E or Production Build. See
+[status Dialog scope](../architecture/i18n-foundation.md#saas-research-status-dialog-phase-45b-3).
+
 ### SaaS Research editing localization (2026-11-03)
 
 Phase 4.5b-2 completes fixed English/Japanese UI for `/research/[id]/edit` and

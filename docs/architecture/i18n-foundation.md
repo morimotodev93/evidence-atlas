@@ -24,7 +24,41 @@ and Action error-contract adoption remain outside this scope.
 Phase 4.5a adds Research list/detail read-only UI through AppShell's locale slots.
 Phase 4.5b-1 adds fixed UI on Research creation and its list entry link through
 the same locale flow. Phase 4.5b-2 adds fixed Research edit UI and the detail
-page's Edit link. Status dialogs and AI remain deferred.
+page's Edit link. Phase 4.5b-3 adds the Research status Dialog through the same
+locale flow. Other business dialogs and AI remain deferred.
+
+## SaaS Research status Dialog (Phase 4.5b-3)
+
+Implemented 2026-11-03. The detail page passes its existing resolved AppShell
+locale to `EditResearchStatusDialog`. Its optional locale defaults/falls back to
+English through `resolveLocale`. Five new `saasResearch.*` keys translate the
+trigger, title, description, Status label and Saving state; Save Changes and the
+three status display labels reuse existing keys. Japanese selected-value copy is
+explicit, following the member-role forms, while English keeps Base UI's existing
+value rendering. Internal enum values and the `status` field name are unchanged.
+
+`DialogContent locale={locale}` reuses shared Close localization and sets `lang`
+on the Dialog Popup. `SelectContent lang={locale}` marks its separate portaled
+Popup locally; no shared Dialog/Select changes or global portal solution are
+introduced. Existing Action errors render verbatim with `lang="en"` inside the
+localized Dialog. `useState`, `useActionState`, bound Research ID, FormData,
+pending disabled/save labels and Base UI open/close behavior are retained. No
+selection reset, Action/validation/access/DB change or error translation is added.
+Home-only language switching and Public Demo remain unchanged.
+
+Validation: focused DB-free Vitest **8 files / 193 tests**, changed-file ESLint
+and TypeScript (`--noEmit --incremental false`) passed. Hook-double tests inspect
+English/Japanese/default/invalid/missing-key fallback, status values/selection,
+pending state, unchanged Action errors and mocked Action binding/FormData. Real
+shared wrapper trees verify both Popup language props and the Close label; detail
+tests verify locale/ID/status propagation. Existing mocked-I/O Action tests cover
+validation, authorization, persistence and redirect boundaries. These are not
+browser scheduling, portal-placement or focus tests. Review HTTP responded, but
+unauthenticated `/research` redirected to sign-in; no session was created or data
+modified. Browser checks at 1280/768/375px (layout/overflow, keyboard/focus, live
+open/close and selection retention) and Production font widths remain unverified.
+No status submission, fixtures/DB changes, Review restart, full suite, full E2E
+or Production Build was performed.
 
 ## SaaS Research editing UI (Phase 4.5b-2)
 
