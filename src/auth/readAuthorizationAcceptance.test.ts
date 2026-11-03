@@ -54,7 +54,10 @@ vi.mock("@/app/settings/organization/_components/organization-member-role-form",
     "data-organization": organizationId, "data-user": userId }, "organization-role-control"),
 }));
 vi.mock("@/app/settings/workspace/_components/workspace-member-role-form", () => ({
-  WorkspaceMemberRoleForm: () => createElement("span", null, "workspace-role-control"),
+  WorkspaceMemberRoleForm: ({ locale, initialRole, workspaceId, userId }: {
+    locale?: Locale; initialRole: string; workspaceId: string; userId: string;
+  }) => createElement("span", { "data-locale": locale, "data-role": initialRole,
+    "data-workspace": workspaceId, "data-user": userId }, "workspace-role-control"),
 }));
 
 const userId = "reader";
@@ -177,6 +180,41 @@ describe("Organization localized presentation with real membership guards", () =
         expect(html).toContain(locale === "ja" ? "メンバー" : "MEMBER");
       }
       expect(mocks.models.Membership.where).toHaveBeenCalledWith({ userId, organizationId: workspace.organizationId });
+      expectNoWrites();
+    }
+  });
+});
+
+describe("Workspace localized presentation with real membership guards", () => {
+  it.each([undefined, "invalid", "ja-JP", "en", "ja"])("preserves member data and local role controls for cookie %s", async (locale) => {
+    mocks.cookieGet.mockImplementation((name) => name === CURRENT_WORKSPACE_COOKIE
+      ? { value: workspace.id } : name === "evidence_atlas_locale" && locale !== undefined ? { value: locale } : undefined);
+    const currentWorkspace = { ...workspace, name: "Original Workspace 日本語", memberships: [
+      { userId, role: "MEMBER", user: { name: "Original Name 原文", email: "original@example.test" } },
+      { userId: "admin-id", role: "ADMIN", user: { name: null, email: "admin@example.test" } },
+    ] };
+    mocks.models.Workspace.first.mockResolvedValue(currentWorkspace);
+    for (const role of ["MEMBER", "ADMIN"]) {
+      mocks.models.WorkspaceMembership.rows = [{ ...member, role }];
+      // Organization authority must not determine Workspace controls.
+      mocks.models.Membership.rows = [{ userId, organizationId: workspace.organizationId, role: role === "MEMBER" ? "ADMIN" : "MEMBER" }];
+      const html = renderToStaticMarkup(await WorkspaceSettings());
+      for (const text of [currentWorkspace.name, "Original Name 原文", "original@example.test", "admin@example.test"]) expect(html).toContain(text);
+      expect(html).toContain(locale === "ja" ? "メンバー" : "Members");
+      expect(html).toContain(locale === "ja" ? "このWorkspaceにアクセスできるメンバーです。" : "People who have access to this workspace.");
+      expect(html).toContain(`<main lang="${locale === "ja" ? "ja" : "en"}"`);
+      expect(html.includes("workspace-role-control")).toBe(role === "ADMIN");
+      if (role === "ADMIN") {
+        expect(html).toContain('data-role="ADMIN"');
+        expect(html).toContain('data-role="MEMBER"');
+        expect(html).toContain(`data-locale="${locale === "ja" ? "ja" : "en"}"`);
+        expect(html).toContain(`data-workspace="${workspace.id}"`);
+        expect(html).toContain('data-user="admin-id"');
+      } else {
+        expect(html).toContain(locale === "ja" ? "管理者" : "ADMIN");
+        expect(html).toContain(locale === "ja" ? "メンバー" : "MEMBER");
+      }
+      expect(mocks.models.WorkspaceMembership.where).toHaveBeenCalledWith({ userId, workspaceId: workspace.id });
       expectNoWrites();
     }
   });

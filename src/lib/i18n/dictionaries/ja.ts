@@ -1,6 +1,7 @@
 import type { Dictionary } from "./en";
 
 export const ja = {
+  "workspace.membersDescription": "このWorkspaceにアクセスできるメンバーです。",
   "organization.members": "メンバー",
   "organization.membersDescription": "このOrganizationに所属するメンバーです。",
   "organization.adminBadge": "管理者",

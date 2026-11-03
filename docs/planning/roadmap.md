@@ -125,6 +125,26 @@ is covered by mocks. Production font/physical-device and real save/error checks
 remain open. No Production Build, full suite or full E2E ran.
 See [Organization scope](../architecture/i18n-foundation.md#saas-organization-settings-phase-44a-2).
 
+### SaaS Workspace settings localization (2026-11-03)
+
+Phase 4.4a-3 localizes the Workspace settings body and member-role form using the
+existing AppShell locale slot. Only the Workspace description adds a dictionary
+key; member/role/save text reuses Organization entries. Names, personal data,
+ADMIN/MEMBER values, Workspace guards, cross-scope permission boundaries,
+last-ADMIN protection, updating Action and English string errors are unchanged.
+Workspace settings are now localized; Onboarding, Research bodies, AI Panel and
+structured-error adoption remain open. Home-only language switching is retained.
+
+Focused DB-free Vitest **6 files / 128 tests**, changed-file ESLint and whitespace
+checks passed. Read-only Review checks and Chrome verified both languages at
+1280/768/375px, original data, ADMIN controls, keyboard/focus, local selection and
+restoration, unchanged control sizes, preserved auth/Workspace cookies and disabled
+language switching. MEMBER viewing is covered by mocks. No overflow/page errors,
+Workspace POST, role save, fixture reinsertion, auth/Action/Prisma/DB/Public Demo
+changes, Production Build, full suite or full E2E. Production fonts, physical
+devices and actual save/error browser states remain unverified.
+See [Workspace settings scope](../architecture/i18n-foundation.md#saas-workspace-settings-phase-44a-3).
+
 ### Current planning entry points
 
 | Ongoing work / policy | Current document |

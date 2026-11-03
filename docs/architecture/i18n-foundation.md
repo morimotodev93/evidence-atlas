@@ -17,6 +17,8 @@ Phase 4.4a-1 localizes only the Workspace Selector's existing placeholder on
 Home and the Research list; Organization/Workspace settings bodies remain English.
 Phase 4.4a-2 adds the Organization settings body and member-role form. Workspace
 settings, onboarding and Action error localization remain outside this scope.
+Phase 4.4a-3 adds the Workspace settings body and member-role form using the same
+locale flow and shared dictionary entries. Onboarding and Research bodies remain untranslated.
 
 ## Routes and shared rendering
 
@@ -391,6 +393,45 @@ DB-free tests because the existing Reviewer is ADMIN. Local screenshots/metrics
 are ignored under `test-results/phase44a2/`. Production fonts, physical mobile
 devices, actual saving/error states and independent native-language editorial
 review remain unverified. No Production Build, full suite or full E2E was run.
+
+## SaaS Workspace settings (Phase 4.4a-3)
+
+Implemented 2026-11-03: `/settings/workspace` reuses AppShell's existing server
+body slot and passes its resolved locale to `WorkspaceMemberRoleForm`, defaulting
+to English when omitted. No AppShell change or additional locale-cookie read is
+needed. Body and portaled SelectContent language follow the same Organization
+pattern; English SelectValue rendering and all CSS remain unchanged.
+
+The only new dictionary key is `workspace.membersDescription`: English retains
+`People who have access to this workspace.`, Japanese uses
+`このWorkspaceにアクセスできるメンバーです。`. Members, Badge/option role labels,
+Save and Saving... reuse the existing `organization.*` entries (メンバー,
+管理者/メンバー, 保存, 保存中...). `nav.workspace` retains the product term Workspace.
+There are no new Role labels or features. Names, emails, IDs and stored data stay
+verbatim. ADMIN/MEMBER values/comparisons, form Action arguments, membership and
+Organization/Workspace permission boundaries, last-ADMIN protection, cookies,
+revalidation and `error: string | null` behavior are unchanged. Existing English
+Action errors remain English; no string matching or error-contract changes occur.
+
+DB-free focused Vitest **6 files / 128 tests** passed, including all original
+authorization cases (the file now has 32), actual member-role guards/last-ADMIN
+checks, default/invalid locale, original data, role-based controls with opposite
+Organization authority, both role transition arguments/values and error display.
+Organization form, Shell locale flow and Home-only switching tests also passed.
+Changed-file ESLint and `git diff --check` passed.
+
+Read-only Review diagnostics confirmed `evidence_atlas_review`; the existing
+verified server was reused. Chrome checked English/Japanese at 1280/768/375px,
+original member data, ADMIN UI, translated options, keyboard selection/cancel,
+focus return and local selection/restoration. No horizontal overflow/page errors;
+Selector stayed 128×32px and Save height 28px. Existing mobile email truncation
+remains. Auth/Workspace cookies and locale were preserved; language switching was
+disabled on this route. No Workspace POST was attempted and no role was saved.
+MEMBER viewing is covered by DB-free tests. Local screenshots/metrics are ignored
+under `test-results/phase44a3/`. No auth/Action, Prisma/DB, Public Demo or fixture
+changes; no Production Build, full suite or full E2E. Production fonts, physical
+mobile devices and actual save/error browser states remain unverified. Onboarding,
+Research bodies, AI Panel and structured-error adoption remain outside this scope.
 
 ## SaaS error display contract (Phase 4.1c)
 
