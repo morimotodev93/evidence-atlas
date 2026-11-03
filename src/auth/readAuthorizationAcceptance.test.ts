@@ -24,7 +24,7 @@ const mocks = vi.hoisted(() => {
 });
 
 // Exercise all access/selection helpers, including getAccessibleWorkspaces.
-// Replace only external I/O and interactive children; no real session or DB.
+// Replace external I/O, shell framing and interactive children; no real session or DB.
 vi.mock("@/auth", () => ({ auth: mocks.auth }));
 vi.mock("@/prisma/db", () => ({ db: {
   orm: { public: mocks.models }, transaction: mocks.transaction,
@@ -34,8 +34,10 @@ vi.mock("next/headers", () => ({ cookies: async () => ({
   get: mocks.cookieGet, set: mocks.cookieSet,
 }) }));
 vi.mock("next/cache", () => ({ refresh: mocks.refresh, revalidatePath: mocks.revalidatePath }));
-vi.mock("@/components/layout/app-header", () => ({
-  AppHeader: ({ children }: { children?: ReactNode }) => createElement("header", null, children),
+// Keep authorization checks on real page bodies without rendering the async RSC shell.
+vi.mock("@/components/layout/app-shell", () => ({
+  AppShell: ({ children, header }: { children: ReactNode; header?: ReactNode }) =>
+    createElement("div", { "data-testid": "mock-app-shell" }, header, children),
 }));
 vi.mock("@/components/workspace/workspace-selector", () => ({
   WorkspaceSelector: () => null,
