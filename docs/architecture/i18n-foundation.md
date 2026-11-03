@@ -23,7 +23,39 @@ Phase 4.4b adds the standalone Onboarding page/form. Research bodies, AI Panel
 and Action error-contract adoption remain outside this scope.
 Phase 4.5a adds Research list/detail read-only UI through AppShell's locale slots.
 Phase 4.5b-1 adds fixed UI on Research creation and its list entry link through
-the same locale flow. Research edit/dialog UI and AI remain deferred.
+the same locale flow. Phase 4.5b-2 adds fixed Research edit UI and the detail
+page's Edit link. Status dialogs and AI remain deferred.
+
+## SaaS Research editing UI (Phase 4.5b-2)
+
+Implemented 2026-11-03. `/research/[id]/edit` receives the resolved locale from
+AppShell's existing server body slot and sets `lang` on its main content. Shared
+`saasResearch.title`/`description` keys and six new `saasResearch.*` entries cover
+the back link, heading, introductory copy, Cancel, Save Changes and the detail
+page's Edit link. English copy and CSS are unchanged. The edit back link has a
+separate key from the list-return link because its destination is the Research
+detail. No new cookie read, context, URL scheme or locale persistence is added.
+
+The Server Component's uncontrolled form, original title/description defaults,
+null-description fallback, HTML attributes and label associations are unchanged.
+`updateResearch.bind(null, research.id)`, FormData, access/existence checks,
+validation, DB update, indexing, Cancel destination and success redirect are
+retained. Action validation exceptions and `Research not found.` remain English;
+structured errors, pending/disabled state and dirty/leave confirmation are deferred.
+Home-only Language Select restrictions and Public Demo are unchanged. Status
+dialog localization remains Phase 4.5b-3; other Research operations and AI are out
+of scope.
+
+Validation: focused DB-free Vitest **10 files / 226 tests**, changed-file ESLint
+and TypeScript (`--noEmit --incremental false`) passed. Tests cover real Shell
+locale delivery, English/default/invalid-cookie fallback, Japanese copy, original
+mixed-language defaults, null description, form attributes, mocked bound Action
+ID/FormData, back/Cancel/Edit links, existing real access guards with mocked I/O,
+Action persistence/redirect boundaries and language-switching restrictions.
+No actual Save, DB/fixture changes, Review server start/restart, full suite, full
+E2E or Production Build. Review browser checks at 1280/768/375px (layout, widths,
+wrapping/overflow, keyboard, hydration and live input preservation) and Production
+IBM Plex Sans verification remain open.
 
 ## SaaS Research creation UI (Phase 4.5b-1)
 

@@ -9,6 +9,7 @@ import {
 import { requireUser } from "@/auth/requireUser";
 
 import { updateResearch } from "@/app/research/_actions/updateResearch";
+import { translate } from "@/lib/i18n/translate";
 
 type ResearchEditPageProps = {
   params: Promise<{
@@ -37,20 +38,20 @@ export default async function ResearchEditPage({
 
   return (
     <AppShell>
-      <main className="mx-auto w-full max-w-3xl px-4 py-8 sm:px-6">
+      {(locale) => <main lang={locale} className="mx-auto w-full max-w-3xl px-4 py-8 sm:px-6">
         <div className="mb-8">
           <Link
             href={`/research/${research.id}`}
             className="text-sm text-muted-foreground hover:text-foreground"
           >
-            ← Back to Research
+            {translate("saasResearch.backToResearch", locale)}
           </Link>
 
           <h1 className="mt-4 text-2xl font-semibold tracking-tight">
-            Edit Research
+            {translate("saasResearch.editTitle", locale)}
           </h1>
           <p className="mt-1 text-sm text-muted-foreground">
-            Update the research title and description.
+            {translate("saasResearch.editDescription", locale)}
           </p>
         </div>
 
@@ -60,7 +61,7 @@ export default async function ResearchEditPage({
         >
           <div className="space-y-2">
             <label htmlFor="title" className="text-sm font-medium">
-              Title
+              {translate("saasResearch.title", locale)}
             </label>
 
             <input
@@ -75,7 +76,7 @@ export default async function ResearchEditPage({
 
           <div className="space-y-2">
             <label htmlFor="description" className="text-sm font-medium">
-              Description
+              {translate("saasResearch.description", locale)}
             </label>
 
             <textarea
@@ -92,18 +93,18 @@ export default async function ResearchEditPage({
               href={`/research/${research.id}`}
               className="rounded-md border px-4 py-2 text-sm font-medium outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
             >
-              Cancel
+              {translate("saasResearch.cancel", locale)}
             </Link>
 
             <button
               type="submit"
               className="rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
             >
-              Save Changes
+              {translate("saasResearch.saveChanges", locale)}
             </button>
           </div>
         </form>
-      </main>
+      </main>}
     </AppShell>
   );
 }

@@ -98,7 +98,7 @@ export default async function ResearchDetailPage({
           research={research}
           tags={researchTags.map(({ tag }) => ({ id: tag.id, name: tag.name }))}
           controls={{
-            edit: <Link href={`/research/${research.id}/edit`} className="shrink-0 rounded-md border px-3 py-2 text-sm font-medium outline-none hover:bg-muted/50 focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2">Edit</Link>,
+            edit: <Link href={`/research/${research.id}/edit`} className="shrink-0 rounded-md border px-3 py-2 text-sm font-medium outline-none hover:bg-muted/50 focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2">{translate("saasResearch.edit", locale)}</Link>,
             status: <EditResearchStatusDialog researchId={research.id} initialStatus={research.status} />,
             addTag: <AddTagDialog researchId={research.id} />,
             tag: (tagId) => <DetachTagDialog researchId={research.id} tagId={tagId} />,

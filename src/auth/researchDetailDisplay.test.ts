@@ -75,6 +75,7 @@ describe("Authenticated Research detail after display extraction", () => {
     expect(html).toContain(research.conclusion);
     expect(html).toContain(comment.user.name);
     expect(html).toContain(`href="/research/${research.id}/edit"`);
+    expect(html).toMatch(new RegExp(`href="/research/${research.id}/edit"[^>]*>Edit</a>`));
     expect(html).toContain("Remove");
     for (const name of Object.values(components)) expect(html).toContain(name);
     expect(mocks.models.WorkspaceMembership.where).toHaveBeenCalledWith({ userId: "user-id", workspaceId: research.workspaceId });
@@ -88,6 +89,7 @@ describe("Authenticated Research detail after display extraction", () => {
       "EditResearchStatusDialog", "ResearchAiMobileDialog", "ResearchAiPanel", "Remove"])
       expect(html).toContain(text);
     expect(html).toContain(`href="/research/${research.id}/edit"`);
+    expect(html).toMatch(new RegExp(`href="/research/${research.id}/edit"[^>]*>編集</a>`));
     expect(research.status).toBe("COMPLETED");
     expect(mocks.models.WorkspaceMembership.where).toHaveBeenCalledWith({ userId: "user-id", workspaceId: research.workspaceId });
   });
@@ -105,6 +107,7 @@ describe("Authenticated Research detail after display extraction", () => {
     mocks.cookie.mockReturnValue(value === undefined ? undefined : { value });
     const html = renderToStaticMarkup(await DetailPage({ params: Promise.resolve({ id: research.id }) }));
     for (const text of ["lang=\"en\"", "← Back to Research", "Completed", "Created", "2 sources"]) expect(html).toContain(text);
+    expect(html).toMatch(new RegExp(`href="/research/${research.id}/edit"[^>]*>Edit</a>`));
   });
 
   it("still rejects unauthenticated detail requests before reading Research", async () => {

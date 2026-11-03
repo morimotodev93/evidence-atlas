@@ -38,6 +38,24 @@ canonical English. This completes the curated content scope only; full SaaS
 localization and deployed/runtime language verification remain open. See
 [i18n architecture](../architecture/i18n-foundation.md#phase-3-research-translation-catalog).
 
+### SaaS Research editing localization (2026-11-03)
+
+Phase 4.5b-2 completes fixed English/Japanese UI for `/research/[id]/edit` and
+the detail page's Edit link through the existing AppShell locale flow and
+`saasResearch.*` dictionary. Original input defaults, HTML form attributes,
+`updateResearch.bind(null, research.id)`, access/existence checks, validation,
+DB update, indexing, Cancel/back destinations and success redirect are unchanged.
+Action exceptions remain English. Home-only language switching and Public Demo
+are retained. Status dialogs remain Phase 4.5b-3; structured errors, pending and
+unsaved-state handling, other Research operations and AI remain deferred.
+
+Focused DB-free Vitest **10 files / 226 tests**, changed-file ESLint and TypeScript
+passed. No actual Save, DB/fixture/Prisma changes, Review server start/restart,
+full suite, full E2E or Production Build. Review browser layout/overflow/keyboard/
+hydration/input-preservation checks at 1280/768/375px and Production IBM Plex Sans
+verification remain open. See
+[Research editing scope](../architecture/i18n-foundation.md#saas-research-editing-ui-phase-45b-2).
+
 ### SaaS Research creation localization (2026-11-03)
 
 Phase 4.5b-1 completes fixed English/Japanese UI for `/research/new` and the
