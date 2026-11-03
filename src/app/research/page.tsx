@@ -100,12 +100,13 @@ export default async function Research({ searchParams }: ResearchPageProps) {
 
   return (
     <AppShell
-      header={
+      header={(locale) => (
         <WorkspaceSelector
+          locale={locale}
           workspaces={workspaceOptions}
           currentWorkspaceId={workspace.id}
         />
-      }
+      )}
     >
       <main className="mx-auto w-full max-w-5xl px-4 py-6 sm:px-6 sm:py-8">
         <header className="mb-6 flex items-end justify-between gap-4">

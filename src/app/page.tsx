@@ -66,6 +66,7 @@ export default async function Home() {
     <AppShell
       header={
         <WorkspaceSelector
+          locale={locale}
           workspaces={workspaceOptions}
           currentWorkspaceId={workspace.id}
         />

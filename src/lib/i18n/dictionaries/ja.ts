@@ -1,6 +1,7 @@
 import type { Dictionary } from "./en";
 
 export const ja = {
+  "workspaceSelector.placeholder": "Workspaceを選択",
   "dashboard.description": "Researchを探索・整理し、繰り返し活用できる知識を蓄積しましょう。",
   "dashboard.recentResearch": "最近のResearch",
   "dashboard.viewAll": "すべて表示",

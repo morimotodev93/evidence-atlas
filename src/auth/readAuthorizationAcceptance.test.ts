@@ -107,6 +107,16 @@ const pages = [
   { name: "Organization settings", run: OrganizationSettings },
   { name: "Workspace settings", run: WorkspaceSettings },
 ];
+it.each(["en", "ja"] as const)("supplies the Shell's %s locale to the Research Workspace selector without another locale read", async (locale) => {
+  const page = await ResearchList({ searchParams: Promise.resolve({}) });
+  const header = page.props.header(locale);
+  expect(header.props.locale).toBe(locale);
+  expect(header.props.currentWorkspaceId).toBe(workspace.id);
+  expect(header.props.workspaces).toEqual([{ id: workspace.id, name: workspace.name }]);
+  expect(mocks.cookieGet.mock.calls.some(([name]) => name === "evidence_atlas_locale")).toBe(false);
+  expectNoWrites();
+});
+
 it.each(pages)("redirects unauthenticated $name before private reads", async ({ run }) => {
   mocks.auth.mockResolvedValue(null);
   await expect(run()).rejects.toBe(redirectError);

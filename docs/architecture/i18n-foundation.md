@@ -13,6 +13,8 @@ Phase 4.2b adds opt-in translation of the shared Dialog's own Close controls;
 existing business Dialogs have not been connected to the locale.
 Phase 4.3 localizes the authenticated Home Dashboard body. Research/settings page
 bodies, business forms/dialogs, onboarding and AI Panel remain untranslated.
+Phase 4.4a-1 localizes only the Workspace Selector's existing placeholder on
+Home and the Research list; Organization/Workspace settings bodies remain English.
 
 ## Routes and shared rendering
 
@@ -289,6 +291,54 @@ and no fixtures were reinserted. Screenshots/measurements are local ignored
 artifacts in `test-results/phase43/`. Review uses system Sans; Production IBM Plex
 Sans and physical mobile devices remain unverified. No Production Build, full
 suite, full E2E or live AI/provider checks were run.
+
+## SaaS Workspace Selector (Phase 4.4a-1)
+
+Implemented 2026-11-03: `WorkspaceSelector` owns only one fixed string, the
+`SelectValue` placeholder. `workspaceSelector.placeholder` retains English
+`Select workspace` and supplies Japanese `Workspaceを選択` through `translate()`.
+The optional `locale?: Locale` defaults to English. Names and item values remain
+verbatim. No labels, explanations, loading/error notices or empty-state UI are
+added. With a valid selected Workspace, its original name remains visible;
+the placeholder normally does not appear. Existing Base UI value fallback behavior
+is unchanged, including its handling of an unmatched non-null ID.
+
+Home passes its already-read locale. The Research list uses AppShell's optional
+server-only `header(locale) => ReactNode` slot, which AppShell resolves using its
+existing single `getSaasLocale()` call before passing the result to AppHeader.
+Existing ReactNode header slots remain supported. The callback is evaluated on
+the server and is not passed to client components. No additional cookie read,
+Provider/Context or client locale state is added. Research list body/filter copy
+and Organization/Workspace settings bodies remain untranslated.
+
+The switch Action, auth/membership checks, Workspace cookie and refresh, original
+IDs, selected value, pending disablement and error propagation are unchanged.
+There are no CSS, dimensions, dropdown-placement, focus or keyboard-handler
+changes. Locale is a display prop only; Home-only language switching remains.
+Public Demo, Prisma/DB and canonical data are unchanged.
+
+Focused DB-free Vitest **7 files / 94 tests** passed: Selector placeholder/default,
+original names/IDs/items/selection, Action input and error behavior; Home/Research
+locale wiring and no additional locale read; Shell slot/fallback; existing
+switch/membership/current-Workspace and Home-only language restrictions. Existing
+assertions were retained. The previously recorded four settings authorization
+static-render failures were repaired separately in `4840a2e`; the authorization
+file now passes all 22 tests, including two added Selector wiring cases.
+Changed-file ESLint and `git diff --check` passed.
+
+Read-only Review diagnostics passed; the verified existing Review server was
+reused. Real Chrome checked both languages at 1280/768/375px, dropdown names and
+selected state, unchanged 224px desktop/tablet and 351px mobile widths and 32px
+height, Enter/Escape and focus return. End/Home + Enter switched only the two
+existing fixture Workspaces on Home and Research, retaining locale and auth
+session; Research's language select remained disabled. No horizontal overflow or
+page errors occurred. Normal Review fixtures always select a valid Workspace,
+so translated placeholder rendering is covered by the DB-free primitive test,
+not the authenticated screen. Local screenshots/measurements are ignored under
+`test-results/phase44a1/`. No business data writes, fixture reinsertion, DB setup,
+Production Build, full suite, full E2E or live AI calls were performed. Review
+system Sans, installed desktop Chrome and emulated widths do not verify the
+Production font or physical mobile devices.
 
 ## SaaS error display contract (Phase 4.1c)
 

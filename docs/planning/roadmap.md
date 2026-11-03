@@ -86,6 +86,25 @@ async AppShell and reproduced with pre-change Home; no settings implementation/t
 font verification remains open. No full suite, full E2E or Production Build ran.
 See [Dashboard scope and verification](../architecture/i18n-foundation.md#saas-home-dashboard-phase-43).
 
+### SaaS Workspace Selector localization (2026-11-03)
+
+Phase 4.4a-1 localizes only the existing `Select workspace` placeholder as
+`Workspaceを選択`. Original Workspace names/IDs, switching Action, membership,
+cookie/refresh and styling remain unchanged. Home passes its existing locale;
+Research list receives AppShell's locale through a server-only header slot without
+another cookie read. Organization/Workspace settings bodies and Research list
+body remain untranslated; Home-only language switching is retained.
+
+Focused DB-free Vitest **7 files / 94 tests**, changed-file ESLint and whitespace
+checks passed. Review read-only diagnostics and Chrome at 1280/768/375px confirmed
+both languages, original dropdown names/selection, dimensions, keyboard operation,
+switching between existing fixture Workspaces on Home/Research and auth/locale
+preservation. The normally hidden placeholder is verified through the Select
+primitive test. No business data, Prisma/DB, Production Build, full suite or full
+E2E changes/runs. The four earlier settings test failures were separately repaired
+in `4840a2e`; the complete authorization file passes in this scoped run.
+See [Selector scope and verification](../architecture/i18n-foundation.md#saas-workspace-selector-phase-44a-1).
+
 ### Current planning entry points
 
 | Ongoing work / policy | Current document |

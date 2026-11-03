@@ -27,6 +27,18 @@ beforeEach(() => {
 });
 
 describe("Authenticated application shell", () => {
+  it.each([
+    [undefined, "en"], ["invalid", "en"], ["en", "en"], ["ja", "ja"],
+  ])("passes resolved cookie %s to the server header slot once", async (value, expected) => {
+    mocks.get.mockReturnValue(value === undefined ? undefined : { value });
+    const header = vi.fn((locale) => <button data-locale={locale}>Original Workspace</button>);
+    const html = renderToStaticMarkup(await AppShell({ header, children: <main>Body</main> }));
+    expect(header).toHaveBeenCalledExactlyOnceWith(expected);
+    expect(mocks.get).toHaveBeenCalledExactlyOnceWith("evidence_atlas_locale");
+    expect(html).toContain(`data-locale="${expected}"`);
+    expect(html).toContain("Original Workspace");
+  });
+
   it("composes header, navigation, server content and the existing Workspace selector slot", async () => {
     const html = renderToStaticMarkup(await AppShell({
       header: <button>Workspace selector</button>,

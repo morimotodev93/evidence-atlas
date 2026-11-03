@@ -1,6 +1,8 @@
 "use client";
 
 import { useTransition } from "react";
+import type { Locale } from "@/lib/i18n/locales";
+import { translate } from "@/lib/i18n/translate";
 
 import {
   Select,
@@ -19,11 +21,13 @@ type WorkspaceOption = {
 type WorkspaceSelectorProps = {
   workspaces: WorkspaceOption[];
   currentWorkspaceId: string;
+  locale?: Locale;
 };
 
 export function WorkspaceSelector({
   workspaces,
   currentWorkspaceId,
+  locale = "en",
 }: WorkspaceSelectorProps) {
   const [isPending, startTransition] = useTransition();
 
@@ -46,7 +50,7 @@ export function WorkspaceSelector({
       }}
     >
       <SelectTrigger className="w-full sm:w-56">
-        <SelectValue placeholder="Select workspace">
+        <SelectValue placeholder={translate("workspaceSelector.placeholder", locale)}>
           {currentWorkspace?.name}
         </SelectValue>
       </SelectTrigger>

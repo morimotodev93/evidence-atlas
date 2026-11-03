@@ -23,9 +23,9 @@ vi.mock("@/components/layout/app-shell", () => ({
   AppShell: ({ children, header }: { children: ReactNode; header: ReactNode }) => <>{header}{children}</>,
 }));
 vi.mock("@/components/workspace/workspace-selector", () => ({
-  WorkspaceSelector: ({ currentWorkspaceId, workspaces }: {
-    currentWorkspaceId: string; workspaces: { id: string; name: string }[];
-  }) => <div data-workspace={currentWorkspaceId}>{workspaces.map(({ id, name }) => <span key={id}>{name}</span>)}</div>,
+  WorkspaceSelector: ({ currentWorkspaceId, workspaces, locale }: {
+    currentWorkspaceId: string; workspaces: { id: string; name: string }[]; locale?: string;
+  }) => <div data-workspace={currentWorkspaceId} data-selector-locale={locale}>{workspaces.map(({ id, name }) => <span key={id}>{name}</span>)}</div>,
 }));
 vi.mock("next/link", () => ({
   default: ({ children, ...props }: { children: ReactNode; href: string }) => createElement("a", props, children),
@@ -63,6 +63,7 @@ describe("SaaS Dashboard localization", () => {
       "Recent Research", "View all", "Workspace Summary", "Research", "Sources", "Findings", "Tags",
       "1 findings · 2 sources · Updated Jan 4, 2026"]) expect(html).toContain(text);
     expect(html).toContain('<main lang="en"');
+    expect(html).toContain('data-selector-locale="en"');
     expect(mocks.get).toHaveBeenCalledWith("evidence_atlas_locale");
     expect(mocks.set).not.toHaveBeenCalled();
   });
@@ -75,6 +76,7 @@ describe("SaaS Dashboard localization", () => {
       "Finding 1 件 · Source 2 件 · 更新日 2026年1月4日", "Finding 0 件 · Source 0 件",
       workspace.name, "Other Workspace", "Original Research 4", "Original description 4 原文"]) expect(html).toContain(text);
     expect(html).toContain('<main lang="ja"');
+    expect(html).toContain('data-selector-locale="ja"');
     expect(html).toContain('data-workspace="workspace-original"');
     expect(html).not.toMatch(/リサーチ|情報源|調査結果/);
   });

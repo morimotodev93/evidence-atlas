@@ -1,5 +1,6 @@
 // English defines the stable UI key contract.
 export const en = {
+  "workspaceSelector.placeholder": "Select workspace",
   "dashboard.description": "Explore, organize, and build reusable knowledge from your research.",
   "dashboard.recentResearch": "Recent Research",
   "dashboard.viewAll": "View all",
