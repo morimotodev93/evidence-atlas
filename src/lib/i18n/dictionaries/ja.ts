@@ -1,6 +1,20 @@
 import type { Dictionary } from "./en";
 
 export const ja = {
+  "nav.primary": "メインナビゲーション",
+  "nav.home": "ホーム",
+  "nav.research": "Research",
+  "nav.settings": "設定",
+  "nav.organization": "Organization",
+  "nav.workspace": "Workspace",
+  "nav.application": "アプリケーション",
+  "nav.menu": "メニュー",
+  "nav.title": "ナビゲーション",
+  "nav.close": "ナビゲーションを閉じる",
+  "nav.signOut": "ログアウト",
+  "nav.homeOnly": "ホームのみ",
+  "nav.languageRestriction": "未保存の入力やAIの会話を保護するため、言語の切り替えはホームでのみ利用できます。",
+  "nav.languageSaveError": "言語を保存できませんでした。もう一度お試しください。",
   "errors.invalidInput": "入力内容を確認して、もう一度お試しください。",
   "errors.inputTooLong": "{maxLength}文字以内で入力してください。",
   "errors.unauthenticated": "続けるにはログインしてください。",

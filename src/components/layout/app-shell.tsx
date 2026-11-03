@@ -12,7 +12,7 @@ export async function AppShell({ children, header }: { children: ReactNode; head
     <>
       <AppHeader locale={locale}>{header}</AppHeader>
       <div className="flex min-h-[calc(100dvh-3.5rem)]">
-        <AppSidebar />
+        <AppSidebar locale={locale} />
         <div className="min-w-0 flex-1">{children}</div>
       </div>
     </>

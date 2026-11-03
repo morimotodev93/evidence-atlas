@@ -4,11 +4,17 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { AppShell } from "./app-shell";
 import { DemoShell } from "@/components/demo/demo-shell";
 
-const mocks = vi.hoisted(() => ({ cookies: vi.fn(), get: vi.fn() }));
+const mocks = vi.hoisted(() => ({ cookies: vi.fn(), get: vi.fn(), pathname: "/" }));
 vi.mock("next/headers", () => ({ cookies: mocks.cookies }));
 
 vi.mock("@/auth", () => ({ signOut: vi.fn() }));
-vi.mock("next/navigation", () => ({ usePathname: () => "/" }));
+vi.mock("next/navigation", () => ({ usePathname: () => mocks.pathname }));
+// Expose the mobile tree to compare its locale with the desktop tree. Real
+// portal, focus and dismissal behavior is outside this static-markup test.
+vi.mock("@base-ui/react/dialog", () => ({ Dialog: {
+  Root: "dialog-root", Trigger: "button", Portal: "dialog-portal", Backdrop: "dialog-backdrop",
+  Popup: "dialog-popup", Title: "h2", Close: "dialog-close",
+} }));
 vi.mock("next/link", () => ({
   default: ({ children, ...props }: { children: ReactNode; href: string }) => createElement("a", props, children),
 }));
@@ -17,6 +23,7 @@ beforeEach(() => {
   vi.clearAllMocks();
   mocks.cookies.mockResolvedValue({ get: mocks.get });
   mocks.get.mockReturnValue(undefined);
+  mocks.pathname = "/";
 });
 
 describe("Authenticated application shell", () => {
@@ -32,8 +39,8 @@ describe("Authenticated application shell", () => {
     expect(html).toContain("Workspace selector");
     expect(html).toContain("Server page content");
     expect(html.match(/<main>/g)).toHaveLength(1);
-    expect(html.match(/href="\/settings\/organization"/g)).toHaveLength(1);
-    expect(html.match(/href="\/settings\/workspace"/g)).toHaveLength(1);
+    expect(html.match(/href="\/settings\/organization"/g)).toHaveLength(2);
+    expect(html.match(/href="\/settings\/workspace"/g)).toHaveLength(2);
     expect(html.match(/<select/g)).toHaveLength(1);
     expect(html).toContain("flex-wrap");
   });
@@ -46,7 +53,11 @@ describe("Authenticated application shell", () => {
     expect(mocks.get).toHaveBeenCalledExactlyOnceWith("evidence_atlas_locale");
     expect(html).toContain(`<option value="${expected}" lang="${expected}" selected=""`);
     expect(html).toContain("English page content");
-    expect(html).toContain("Sign out");
+    expect(html).toContain(expected === "ja" ? "ログアウト" : "Sign out");
+    expect(html.match(new RegExp(`aria-label="${expected === "ja" ? "アプリケーション" : "Application"}"`, "g")))
+      .toHaveLength(2);
+    expect(html).toContain(expected === "ja" ? "メニュー" : "Menu");
+    expect(html).toContain(expected === "ja" ? "外観" : "Appearance");
   });
 
   it("reflects a changed cookie on the next server render without changing the content or navigation", async () => {
@@ -61,6 +72,24 @@ describe("Authenticated application shell", () => {
     expect(english.match(/href="[^"]*"/g)).toEqual(japanese.match(/href="[^"]*"/g));
     expect(japanese).toContain('value="Unsaved example"');
     // This is server markup, not proof of live input-state preservation.
+  });
+
+  it("keeps shared Japanese navigation on Research while preserving names, page text and the Home-only guard", async () => {
+    mocks.get.mockReturnValue({ value: "ja" });
+    mocks.pathname = "/research/research-id";
+    const html = renderToStaticMarkup(await AppShell({
+      header: <button data-workspace-id="workspace-id">Original Workspace / Original Organization</button>,
+      children: <main><h1>Original Research title</h1><p>English page content</p><span>User Name / user@example.test</span></main>,
+    }));
+    for (const text of ["ログアウト", "ホーム", "設定", "外観", "テーマ", "メニュー", "ホームのみ",
+      "Original Workspace / Original Organization", "Original Research title", "English page content", "User Name / user@example.test"]) {
+      expect(html).toContain(text);
+    }
+    expect(html.match(/href="\/research" aria-current="page"/g)).toHaveLength(2);
+    expect(html).toContain('data-workspace-id="workspace-id"');
+    expect(html.match(/<select\b[^>]*>/)?.[0]).toContain('disabled=""');
+    expect(html).toContain("未保存の入力やAIの会話を保護するため");
+    expect(html).toContain('value="ja" lang="ja" selected=""');
   });
 
   it.each(["en", "ja"] as const)("keeps the %s Public Demo independent of SaaS cookies and controls", (locale) => {

@@ -7,6 +7,8 @@ remains outside this scope.
 Phases 4.1a and 4.1b-1 add the SaaS locale-cookie reader and saving Server Action.
 Phase 4.1b-2 connects them to the shared SaaS Header, with switching limited to
 Home until input-state preservation is verified. SaaS page translation is deferred.
+Phase 4.2a localizes shared SaaS navigation only, using that same cookie-derived
+locale; page bodies and business forms/dialogs remain English.
 
 ## Routes and shared rendering
 
@@ -103,9 +105,9 @@ The existing Server Component `AppShell` now awaits `getSaasLocale()` and passes
 the typed locale through `AppHeader` to the client `SaasLanguageSelect`. The same
 cookie-derived prop determines the initial server markup and client selection;
 missing/invalid cookies still select English. No new Provider, locale-based key,
-root-layout change or page-content translation is introduced. Only the control's
-language label reuses the existing dictionary; navigation and page copy remain
-English. The Header wraps its controls at narrow widths alongside the existing
+root-layout change or page-content translation is introduced. At Phase 4.1b-2,
+only the control's language label used the dictionary; Phase 4.2a below extends
+translation to shared navigation. The Header wraps its controls at narrow widths alongside the existing
 Workspace slot and Sign out. Appearance remains in navigation.
 
 The labeled native select offers English / 日本語 and calls `setSaasLocale()`
@@ -137,6 +139,47 @@ narrow Header layouts and Appearance/Sign out interactions. Actual form, Dialog
 and AI input/conversation/stream state preservation is unverified; keep switching
 disabled there until it is demonstrated safe. No Review DB, live AI, Production
 Build or full E2E was used for Phase 4.1b-2.
+
+## SaaS shared navigation (Phase 4.2a)
+
+Implemented 2026-11-03: `AppShell` reads `getSaasLocale()` once and passes the
+same typed value to `AppHeader` and `AppSidebar`. Header passes it to
+`AppNavigationMenu` and `SaasLanguageSelect`; desktop/mobile `NavigationLinks`
+pass it to the existing `AppearanceSelect`. Optional navigation locale props
+default to English. No Provider, Context, client cookie read or locale state is
+added. Missing/invalid cookies and missing Japanese keys retain English fallback
+through the existing resolver and `translate()`.
+
+Fourteen `nav.*` dictionary keys cover the actual fixed navigation text: Primary
+navigation, Home, Research, Settings, Organization, Workspace, Application landmark,
+Menu, Navigation title, Close navigation, Sign out, Home only, language restriction
+explanation and language-save failure. Japanese preserves Research, Organization,
+Workspace and the Evidence Atlas brand; Home becomes ホーム, Settings 設定 and
+Sign out ログアウト. Appearance/options and the language label reuse existing
+dictionary keys. Organization/Workspace are the actual link labels; no new
+"Organization settings" or "Workspace settings" labels are introduced.
+
+All hrefs, active-route checks, IDs, permissions, sign-out Action and Workspace
+selector slot remain unchanged. Organization/Workspace names, user names/email,
+Research titles and supplied page content are not translated. A Japanese cookie
+therefore keeps navigation Japanese after leaving Home, with the language select
+disabled everywhere except exact `/`, as before. The Phase 4.1c error contract is
+unchanged; only the language control's own fixed notice is translated here.
+
+Header, Sidebar and mobile overlay use the same locale and retain their original
+CSS, widths, spacing, responsive breakpoints, focus styles, Base UI modal behavior
+and close-on-navigation handlers. Scoped Vitest tests verify English/Japanese
+markup, cookie/default/fallback propagation, matching desktop/mobile links and
+active states, accessible labels, navigation handlers, preserved caller text and
+the Home-only guard. Mobile portal contents are exposed by a test double; these
+are DB-free markup/handler checks, not browser layout, real keyboard/focus,
+Next.js hydration or RSC verification. Actual narrow-screen wrapping and visual
+balance remain unverified in a browser.
+
+Only shared navigation is localized. Dashboard/Research/settings page bodies,
+Source/Finding forms, business dialogs, AI Panel and existing Action errors remain
+outside this phase. Public Demo, root `<html lang>`, authentication, DB/Prisma,
+locale saving behavior and the language-switching scope are unchanged.
 
 ## SaaS error display contract (Phase 4.1c)
 
@@ -257,7 +300,7 @@ this phase localizes Demo empty states and Chat errors, not global error handlin
 
 | Text category | Current location / behavior | Localization approach |
 | --- | --- | --- |
-| Static interface | Demo shell/pages, shared `components/research`, Appearance and Chat | Typed UI dictionaries and accessible labels; authenticated navigation remains English |
+| Static interface | Demo shell/pages, shared `components/research`, Appearance and Chat; SaaS Header/Sidebar/mobile navigation | Typed UI dictionaries and accessible labels; shared SaaS navigation follows the cookie locale, while SaaS page bodies remain English |
 | Saved research | `Research.title`, nullable `description` and `conclusion`; `Finding.content`, optional `data`; Workspace description, Tags, Comments | Separate presentation translations, with canonical evidence retained |
 | Source titles and citations | `Source.title`, `url`; `FindingSource` links; source IDs validated in Demo chat | Preserve original title, URL, IDs, and citation links; optional translated title is a clearly labeled display aid |
 | AI output and question suggestions | `lib/demo/chat-generation`, `chat-client`; `chat-questions.ts` selects prompts by canonical English Research title and locale | Keep UI locale independent of AI answer language; only predefined suggestions and client-facing notices are translated |

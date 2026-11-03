@@ -45,6 +45,16 @@ messages and scoped DB-free tests. Existing Action return types and forms remain
 unchanged; integration is deferred. Home-only language switching remains in force.
 See [error display contract](../architecture/i18n-foundation.md#saas-error-display-contract-phase-41c).
 
+### SaaS shared navigation localization (2026-11-03)
+
+Phase 4.2a localizes Header, Sidebar and mobile navigation using the existing
+cookie-derived locale, including accessible labels, Appearance and language-control
+notices. English copy, routes, active states, Workspace/auth behavior and the
+Home-only language-switching restriction are retained. Page bodies, business
+forms/dialogs and Action error adoption remain deferred. Verification is limited
+to DB-free Vitest markup/handler tests; browser layout and hydration remain open.
+See [shared navigation](../architecture/i18n-foundation.md#saas-shared-navigation-phase-42a).
+
 ### Current planning entry points
 
 | Ongoing work / policy | Current document |

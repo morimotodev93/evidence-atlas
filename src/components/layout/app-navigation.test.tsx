@@ -3,6 +3,8 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { AppNavigationMenu, AppSidebar } from "./app-navigation";
+import type { Dictionary } from "@/lib/i18n/dictionaries/en";
+import { ja } from "@/lib/i18n/dictionaries/ja";
 
 const state = vi.hoisted(() => ({ pathname: "/", open: false, effect: undefined as (() => (() => void)) | undefined }));
 vi.mock("next/navigation", () => ({ usePathname: () => state.pathname }));
@@ -31,6 +33,49 @@ beforeEach(() => { state.pathname = "/"; state.open = false; state.effect = unde
 afterEach(() => vi.unstubAllGlobals());
 
 describe("Application navigation", () => {
+  describe.each(["en", "ja"] as const)("%s navigation", (locale) => {
+    it.each([
+      ["/", "/"], ["/research", "/research"], ["/research/new", "/research"],
+      ["/research/id", "/research"], ["/research/id/edit", "/research"],
+      ["/settings/organization", "/settings/organization"], ["/settings/workspace", "/settings/workspace"],
+      ["/research-other", undefined],
+    ])("keeps desktop/mobile destinations and active state for %s", (pathname, active) => {
+      state.pathname = pathname;
+      const desktop = renderToStaticMarkup(<AppSidebar locale={locale} />);
+      const mobile = renderToStaticMarkup(<AppNavigationMenu locale={locale} />);
+      for (const html of [desktop, mobile]) {
+        expect(html.match(/href="[^"]*"/g)).toEqual([
+          'href="/"', 'href="/research"', 'href="/settings/organization"', 'href="/settings/workspace"',
+        ]);
+        expect(html.match(/aria-current="page"/g) ?? []).toHaveLength(active ? 1 : 0);
+        if (active) expect(html).toContain(`href="${active}" aria-current="page"`);
+        for (const text of locale === "ja"
+          ? ["ホーム", "Research", "Organization", "Workspace", "設定", "メインナビゲーション", "外観", "テーマ"]
+          : ["Home", "Research", "Organization", "Workspace", "Settings", "Primary navigation", "Appearance", "Theme"]) {
+          expect(html).toContain(text);
+        }
+        expect(html).toContain(`aria-label="${locale === "ja" ? "アプリケーション" : "Application"}"`);
+        expect(html).toContain("focus-visible:ring-2");
+      }
+      expect(mobile).toContain(locale === "ja" ? ">メニュー<" : ">Menu<");
+      expect(mobile).toContain(locale === "ja" ? ">ナビゲーション<" : ">Navigation<");
+      expect(mobile).toContain(`aria-label="${locale === "ja" ? "ナビゲーションを閉じる" : "Close navigation"}"`);
+    });
+  });
+
+  it("falls back to English for a missing Japanese navigation key", () => {
+    const partial: { -readonly [K in keyof Dictionary]?: string } = ja;
+    const saved = partial["nav.home"];
+    try {
+      delete partial["nav.home"];
+      for (const component of [<AppSidebar locale="ja" key="sidebar" />, <AppNavigationMenu locale="ja" key="mobile" />]) {
+        const html = renderToStaticMarkup(component);
+        expect(html).toContain("Home");
+        expect(html).toContain("設定");
+      }
+    } finally { partial["nav.home"] = saved; }
+  });
+
   it.each([
     ["/", "/"], ["/research", "/research"], ["/research/new", "/research"],
     ["/research/id", "/research"], ["/research/id/edit", "/research"],
@@ -75,8 +120,8 @@ describe("Application navigation", () => {
     expect(html).not.toContain('data-slot="select-trigger"');
   });
 
-  it("accepts Base UI open/close events and closes on every navigation link, including the current page", () => {
-    const root = AppNavigationMenu();
+  it.each(["en", "ja"] as const)("accepts Base UI open/close events and closes on every %s navigation link, including the current page", (locale) => {
+    const root = AppNavigationMenu({ locale });
     const onOpenChange = root.props.onOpenChange as (open: boolean) => void;
     onOpenChange(true);
     expect(state.open).toBe(true);

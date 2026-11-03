@@ -2,6 +2,7 @@ import { isValidElement, type ChangeEvent, type ReactElement, type ReactNode } f
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import type { Locale } from "@/lib/i18n/locales";
+import { translate } from "@/lib/i18n/translate";
 import { SaasLanguageSelect } from "./saas-language-select";
 
 const state = vi.hoisted(() => ({
@@ -68,6 +69,7 @@ describe("SaaS language select", () => {
     expect(select(locale).props.value).toBe(locale);
     expect(select(locale).props.disabled).toBe(false);
     expect(nodes.find((node) => node.type === "label")?.props.htmlFor).toBe(select(locale).props.id);
+    expect(nodes.find((node) => node.type === "label")?.props.children).toBe(translate("demo.language", locale));
     expect(nodes.filter((node) => node.type === "option").map((node) => node.props.children)).toEqual(["English", "日本語"]);
     expect(state.save).not.toHaveBeenCalled();
   });
@@ -113,7 +115,7 @@ describe("SaaS language select", () => {
     expect(select(locale).props.value).toBe(locale);
     expect(select(locale).props.disabled).toBe(false);
     expect(select(locale).props["aria-describedby"]).toBe("saas-language-error");
-    expect(view(locale).find((node) => node.props.role === "alert")?.props.children).toBe("Could not save language. Try again.");
+    expect(view(locale).find((node) => node.props.role === "alert")?.props.children).toBe(translate("nav.languageSaveError", locale));
     change(next, locale);
     await state.task;
     expect(state.save).toHaveBeenCalledTimes(2);
@@ -136,7 +138,9 @@ describe("SaaS language select", () => {
     expect(select("ja").props.value).toBe("ja");
     expect(select("ja").props["aria-describedby"]).toBe("saas-language-restriction");
     expect(nodes.find((node) => node.props.id === "saas-language-restriction")).toBeDefined();
-    expect(select("ja").props.title).toContain("unsaved input and AI conversations");
+    expect(select("ja").props.title).toBe("未保存の入力やAIの会話を保護するため、言語の切り替えはホームでのみ利用できます。");
+    expect(nodes.find((node) => node.props.id === "saas-language-restriction")?.props.children)
+      .toEqual(expect.arrayContaining([expect.objectContaining({ props: { "aria-hidden": "true", children: "ホームのみ" } })]));
     change("en", "ja");
     expect(state.save).not.toHaveBeenCalled();
     expect(state.task).toBeUndefined();

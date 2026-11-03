@@ -17,7 +17,7 @@ export function SaasLanguageSelect({ locale }: { locale: Locale }) {
   // Home has no draft forms or AI panel. All other routes fail closed until
   // their input/stream preservation has been verified in a real Next.js app.
   const allowed = pathname === "/";
-  const reason = "Language switching is available on Home only to protect unsaved input and AI conversations.";
+  const reason = translate("nav.languageRestriction", locale);
 
   return <div className="flex max-w-full flex-wrap items-center gap-2 text-sm" aria-busy={pending}>
     <label htmlFor={id} className="text-xs text-muted-foreground">{translate("demo.language", locale)}</label>
@@ -37,7 +37,7 @@ export function SaasLanguageSelect({ locale }: { locale: Locale }) {
             // navigation, document reload or additional refresh is needed.
             await setSaasLocale(next);
           } catch {
-            setError("Could not save language. Try again.");
+            setError(translate("nav.languageSaveError", locale));
           } finally {
             setSelection(null);
             saving.current = false;
@@ -48,7 +48,7 @@ export function SaasLanguageSelect({ locale }: { locale: Locale }) {
       <option value="ja" lang="ja">日本語</option>
     </select>
     {!allowed && <span id={`${id}-restriction`} title={reason} className="text-xs text-muted-foreground">
-      <span aria-hidden="true">Home only</span><span className="sr-only">{reason}</span>
+      <span aria-hidden="true">{translate("nav.homeOnly", locale)}</span><span className="sr-only">{reason}</span>
     </span>}
     {error && <span id={`${id}-error`} role="alert" className="text-xs text-destructive">{error}</span>}
   </div>;
