@@ -35,7 +35,7 @@ describe("Research read-only list localization", () => {
     const locale = value === "ja" ? "ja" : "en";
     for (const text of [research.title, research.description, "Original Workspace", formatDate(research.createdAt, locale),
       `href="/research/${research.id}"`, 'href="/research/new"', 'action="/research"', 'method="get"',
-      'value="COMPLETED" selected=""', 'value="oldest" selected=""', "New Research"])
+      'value="COMPLETED" selected=""', 'value="oldest" selected=""', locale === "ja" ? "新しいResearch" : "New Research"])
       expect(html).toContain(text);
     expect(html).toContain(locale === "ja" ? 'aria-label="Research一覧"' : 'aria-label="Research list"');
     expect(html).toContain(locale === "ja" ? "すべてのステータス" : "All statuses");

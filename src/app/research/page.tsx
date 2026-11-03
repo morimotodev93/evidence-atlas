@@ -123,7 +123,7 @@ export default async function Research({ searchParams }: ResearchPageProps) {
             href="/research/new"
             className={buttonVariants({ variant: "default" })}
           >
-            New Research
+            {translate("saasResearch.new", locale)}
           </Link>
         </header>
         {/* Search Bar */}

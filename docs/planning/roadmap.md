@@ -38,6 +38,24 @@ canonical English. This completes the curated content scope only; full SaaS
 localization and deployed/runtime language verification remain open. See
 [i18n architecture](../architecture/i18n-foundation.md#phase-3-research-translation-catalog).
 
+### SaaS Research creation localization (2026-11-03)
+
+Phase 4.5b-1 completes fixed English/Japanese UI for `/research/new` and the
+Research list's New Research link, using AppShell's existing locale slot and
+`saasResearch.*` dictionary entries. English copy, native form attributes,
+uncontrolled input, direct `createResearch` connection, validation/auth/Workspace
+checks, DB payload, indexing and redirect are unchanged. Home-only language
+switching and Public Demo are unchanged. Action errors remain English exceptions;
+structured errors, pending states, Research edit/status dialogs and later
+Source/Finding/comment/tag/AI work remain deferred.
+
+Focused DB-free Vitest **9 files / 178 tests**, changed-file ESLint and TypeScript
+passed. No actual form submission, DB/fixture/Prisma changes, Review server
+start/restart, full suite, full E2E or Production Build. Review browser checks at
+1280/768/375px (wrapping, widths, overflow, keyboard, hydration and live input
+preservation) and Production IBM Plex Sans verification remain open. See
+[Research creation scope](../architecture/i18n-foundation.md#saas-research-creation-ui-phase-45b-1).
+
 ### SaaS Research read-only localization (2026-11-03)
 
 Phase 4.5a implements English/Japanese Research list/detail read-only UI using
@@ -45,7 +63,7 @@ AppShell's existing locale slots, without another cookie read. Search/filter/sor
 display, empty states, back navigation, section labels, status display, dates and
 counts are localized. Original content, GET values, routes, access guards and
 queries remain unchanged. Separate SaaS dictionary entries preserve product terms
-without changing Public Demo Japanese copy. Write-entry labels/forms/dialogs,
+without changing Public Demo Japanese copy. At this checkpoint, write-entry labels/forms/dialogs,
 Source/Finding operations, comment/tag editing and AI remain deferred to the
 existing Phase 4.5b/4.6/4.7 scope; Home-only language switching remains in force.
 

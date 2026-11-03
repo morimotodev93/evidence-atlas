@@ -22,7 +22,38 @@ locale flow and shared dictionary entries. Onboarding and Research bodies remain
 Phase 4.4b adds the standalone Onboarding page/form. Research bodies, AI Panel
 and Action error-contract adoption remain outside this scope.
 Phase 4.5a adds Research list/detail read-only UI through AppShell's locale slots.
-Research write forms/dialogs and AI remain deferred.
+Phase 4.5b-1 adds fixed UI on Research creation and its list entry link through
+the same locale flow. Research edit/dialog UI and AI remain deferred.
+
+## SaaS Research creation UI (Phase 4.5b-1)
+
+Implemented 2026-11-03. `/research/new` uses AppShell's existing server body slot
+and marks its main content with `lang`. New `saasResearch.*` entries translate
+the heading, introductory copy, Title/Description labels, both placeholders and
+submit button. The Research list reuses its existing locale to translate only
+the New Research link. English copy and CSS remain unchanged; Japanese retains
+the product term Research. Missing/invalid cookies still resolve to English,
+without another cookie reader, client context, URL or DB persistence.
+
+The form remains an uncontrolled Server Component form connected directly to
+`createResearch`. Input names, required/type/rows attributes, label associations,
+FormData shape, validation/trim/null handling, authentication, Workspace checks,
+DB payload, indexing and success redirect remain unchanged. Input content is
+not translated. Home-only Language Select restrictions and Public Demo behavior
+are retained. Action validation errors remain English exceptions; structured
+errors, pending/disabled submit state and other form enhancements are deferred.
+
+Validation: focused DB-free Vitest **9 files / 178 tests**, changed-file ESLint
+and TypeScript (`--noEmit --incremental false`) passed. Coverage includes the real
+AppShell's locale/cookie flow into the creation page, English/default/invalid
+fallback, Japanese copy, disabled language switching, native form attributes,
+Action identity, list link, and existing mocked-I/O auth/validation/persistence/
+redirect boundaries. The authorization page suite uses a synchronous Shell double;
+creation and Shell tests separately exercise the real Shell. No actual submission,
+DB/fixture changes, Review server start/restart, full suite, full E2E or Production
+Build. Review browser checks (1280/768/375px wrapping, widths, overflow, keyboard,
+hydration and live input preservation) and Production IBM Plex Sans verification
+remain open. Research edit/status dialogs and later operations remain deferred.
 
 ## SaaS Research read-only UI (Phase 4.5a)
 
@@ -48,7 +79,7 @@ Evidence. Separate dictionary entries resolve this copy conflict without changin
 Demo behavior or translating user content. Titles, descriptions, conclusions,
 Source titles/URLs, Findings, comments, author names and tag names stay verbatim.
 
-Write-entry labels (New Research, Edit and dialog triggers), forms, status changes,
+At the Phase 4.5a checkpoint, write-entry labels (New Research, Edit and dialog triggers), forms, status changes,
 Source/Finding/comment/tag operations and AI UI remain English pending Phases
 4.5b/4.6/4.7. Actions, access boundaries, DB queries, Prisma, dependency versions
 and Home-only Language Select restriction are unchanged. Status values and

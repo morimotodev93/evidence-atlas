@@ -4,6 +4,8 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import ResearchEditPage from "@/app/research/[id]/edit/page";
 import NewResearchPage from "@/app/research/new/page";
+import { AppSidebar } from "@/components/layout/app-navigation";
+import type { Locale } from "@/lib/i18n/locales";
 
 const mocks = vi.hoisted(() => {
   const researchQuery = { first: vi.fn() };
@@ -21,6 +23,13 @@ const mocks = vi.hoisted(() => {
 });
 
 vi.mock("@/auth", () => ({ auth: mocks.auth }));
+// Static rendering cannot await the async Shell. Its real locale propagation
+// is covered separately; keep the navigation used by these authorization checks.
+vi.mock("@/components/layout/app-shell", () => ({
+  AppShell: ({ children }: { children: ReactNode | ((locale: Locale) => ReactNode) }) =>
+    createElement("div", null, createElement(AppSidebar),
+      typeof children === "function" ? children("en") : children),
+}));
 vi.mock("@/prisma/db", () => ({
   db: {
     orm: {
