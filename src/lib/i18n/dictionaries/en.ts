@@ -1,5 +1,12 @@
 // English defines the stable UI key contract.
 export const en = {
+  "errors.invalidInput": "Check your input and try again.",
+  "errors.inputTooLong": "Use {maxLength} characters or fewer.",
+  "errors.unauthenticated": "Sign in to continue.",
+  "errors.forbidden": "You do not have permission to perform this action.",
+  "errors.notFound": "The requested item could not be found.",
+  "errors.conflict": "This action cannot be completed in the current state. Check and try again.",
+  "errors.internal": "Something went wrong. Please try again.",
   "chat.evidenceNotice": "Source references identify stored Research metadata; they do not verify factual accuracy or indicate external pages were read.",
   "demo.readOnly": "Read-only demo",
   "demo.sourceCode": "Source code",

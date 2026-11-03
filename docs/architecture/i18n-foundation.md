@@ -138,6 +138,65 @@ and AI input/conversation/stream state preservation is unverified; keep switchin
 disabled there until it is demonstrated safe. No Review DB, live AI, Production
 Build or full E2E was used for Phase 4.1b-2.
 
+## SaaS error display contract (Phase 4.1c)
+
+Implemented 2026-11-03: `src/lib/i18n/errors.ts` provides a display-only
+`DisplayError` union, its `ErrorCode` type and `getErrorMessage(error, locale?)`.
+Existing Actions, forms and their error return types are unchanged; adoption is
+deferred to later phases. Home-only language switching remains in force.
+
+Repository investigation found five failure categories:
+
+- Input validation: Research create/edit throws the first Zod issue; Source and
+  Finding Actions usually return it as `{ error: string | null }`. Schemas contain
+  English required/length/URL messages; role and onboarding validation use fixed
+  English notices. There is no shared structured field-error contract.
+- Authentication/authorization: `requireUser()` redirects to sign-in; admin
+  guards throw `Forbidden`. Research access combines missing/inaccessible records
+  into `ResearchAccessError`, which many Actions expose as `Research not found.`.
+  Future adoption must preserve this information boundary and navigation behavior.
+- Missing data: Source, Finding and membership Actions return fixed not-found
+  messages; Research edit can throw instead.
+- Business restrictions/conflicts: role changes preserve at least one admin;
+  evidence attachment checks Research ownership; duplicate Tags are rejected.
+- Unexpected failures: many write catches return operation-specific generic
+  notices, while unexpected access/read/indexing failures can propagate.
+
+Client dialogs use `useActionState` and render `state.error` directly, often in
+an alert; onboarding and member-role forms also render that string. The new helper
+does not parse these strings, Zod messages, exceptions or DB error codes.
+
+| Stable code | Dictionary key | Parameters |
+| --- | --- | --- |
+| `INVALID_INPUT` | `errors.invalidInput` | None |
+| `INPUT_TOO_LONG` | `errors.inputTooLong` | `params.maxLength`: positive safe integer |
+| `UNAUTHENTICATED` | `errors.unauthenticated` | None |
+| `FORBIDDEN` | `errors.forbidden` | None |
+| `NOT_FOUND` | `errors.notFound` | None |
+| `CONFLICT` | `errors.conflict` | None |
+| `INTERNAL_ERROR` | `errors.internal` | None |
+
+Callers will choose codes from structured failure conditions, never by matching
+existing English wording. Example:
+`getErrorMessage({ code: "INPUT_TOO_LONG", params: { maxLength: 200 } }, "ja")`
+returns `200文字以内で入力してください。`. No arbitrary field names, entity names,
+operation text or diagnostic strings are interpolated. All seven keys have English
+and Japanese entries; no existing Demo wording changes.
+
+The function accepts unknown boundary input and maps only allowlisted codes to
+typed keys. Unknown codes (including prototype property names), missing/invalid
+length parameters and raw exceptions produce the generic internal-error notice.
+`message`, `stack`, `cause` and extra parameters are ignored, never displayed.
+It reuses `translate()` for English default/unsupported-locale resolution,
+per-key English fallback when Japanese is absent, and named interpolation.
+
+This synchronous pure helper and its dictionary-only dependency graph have no
+Prisma/DB, Next.js, cookie, auth, request state, server-only or client-only dependency;
+they can be imported on either side. Scoped Node tests cover both languages,
+temporarily missing Japanese entries, interpolation, malformed/unknown input,
+diagnostic non-disclosure and repeated calls with frozen inputs. Browser/RSC
+integration and all existing Action/form adoption remain unimplemented.
+
 ## Demo language switching and Chat
 
 The header adds a native labeled select with English/日本語 options and the current

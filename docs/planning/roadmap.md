@@ -38,6 +38,13 @@ canonical English. This completes the curated content scope only; full SaaS
 localization and deployed/runtime language verification remain open. See
 [i18n architecture](../architecture/i18n-foundation.md#phase-3-research-translation-catalog).
 
+### SaaS i18n error foundation (2026-11-03)
+
+Phase 4.1c implements the display-only error-code contract, seven English/Japanese
+messages and scoped DB-free tests. Existing Action return types and forms remain
+unchanged; integration is deferred. Home-only language switching remains in force.
+See [error display contract](../architecture/i18n-foundation.md#saas-error-display-contract-phase-41c).
+
 ### Current planning entry points
 
 | Ongoing work / policy | Current document |

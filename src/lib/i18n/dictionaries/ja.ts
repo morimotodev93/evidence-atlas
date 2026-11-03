@@ -1,6 +1,13 @@
 import type { Dictionary } from "./en";
 
 export const ja = {
+  "errors.invalidInput": "入力内容を確認して、もう一度お試しください。",
+  "errors.inputTooLong": "{maxLength}文字以内で入力してください。",
+  "errors.unauthenticated": "続けるにはログインしてください。",
+  "errors.forbidden": "この操作を行う権限がありません。",
+  "errors.notFound": "対象のデータが見つかりません。",
+  "errors.conflict": "現在の状態ではこの操作を完了できません。確認して、もう一度お試しください。",
+  "errors.internal": "エラーが発生しました。もう一度お試しください。",
   "chat.evidenceNotice": "参照先は、リサーチに保存された情報源のメタデータです。内容の正確性を保証するものでも、外部ページを読み込んだことを示すものでもありません。",
   "demo.readOnly": "閲覧専用デモ",
   "demo.sourceCode": "ソースコード",
