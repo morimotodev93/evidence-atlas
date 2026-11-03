@@ -8,6 +8,7 @@ import ResearchList from "@/app/research/page";
 import OrganizationSettings from "@/app/settings/organization/page";
 import WorkspaceSettings from "@/app/settings/workspace/page";
 import { CURRENT_WORKSPACE_COOKIE } from "@/workspace/currentWorkspace";
+import { resolveLocale, type Locale } from "@/lib/i18n/locales";
 
 type Row = Record<string, unknown>;
 const mocks = vi.hoisted(() => {
@@ -36,8 +37,9 @@ vi.mock("next/headers", () => ({ cookies: async () => ({
 vi.mock("next/cache", () => ({ refresh: mocks.refresh, revalidatePath: mocks.revalidatePath }));
 // Keep authorization checks on real page bodies without rendering the async RSC shell.
 vi.mock("@/components/layout/app-shell", () => ({
-  AppShell: ({ children, header }: { children: ReactNode; header?: ReactNode }) =>
-    createElement("div", { "data-testid": "mock-app-shell" }, header, children),
+  AppShell: ({ children, header }: { children: ReactNode | ((locale: Locale) => ReactNode); header?: ReactNode }) =>
+    createElement("div", { "data-testid": "mock-app-shell" }, header,
+      typeof children === "function" ? children(resolveLocale(mocks.cookieGet("evidence_atlas_locale")?.value)) : children),
 }));
 vi.mock("@/components/workspace/workspace-selector", () => ({
   WorkspaceSelector: () => null,
@@ -46,7 +48,10 @@ vi.mock("@/app/onboarding/_components/onboarding-form", () => ({
   OnboardingForm: () => createElement("form", { "data-onboarding": true }),
 }));
 vi.mock("@/app/settings/organization/_components/organization-member-role-form", () => ({
-  OrganizationMemberRoleForm: () => createElement("span", null, "organization-role-control"),
+  OrganizationMemberRoleForm: ({ locale, initialRole, organizationId, userId }: {
+    locale?: Locale; initialRole: string; organizationId: string; userId: string;
+  }) => createElement("span", { "data-locale": locale, "data-role": initialRole,
+    "data-organization": organizationId, "data-user": userId }, "organization-role-control"),
 }));
 vi.mock("@/app/settings/workspace/_components/workspace-member-role-form", () => ({
   WorkspaceMemberRoleForm: () => createElement("span", null, "workspace-role-control"),
@@ -141,6 +146,39 @@ describe("onboarding read with real accessible-Workspace lookup", () => {
     expect(mocks.models.WorkspaceMembership.where).toHaveBeenCalledExactlyOnceWith({ userId });
     expect(mocks.redirect).toHaveBeenCalledExactlyOnceWith("/");
     expectNoWrites();
+  });
+});
+
+describe("Organization localized presentation with real membership guards", () => {
+  it.each([undefined, "invalid", "ja-JP", "en", "ja"])("renders original member data and role-based controls for cookie %s", async (locale) => {
+    mocks.cookieGet.mockImplementation((name) => name === CURRENT_WORKSPACE_COOKIE
+      ? { value: workspace.id } : name === "evidence_atlas_locale" && locale !== undefined ? { value: locale } : undefined);
+    const organization = { id: workspace.organizationId, name: "Original Organization 日本語", memberships: [
+      { userId, role: "MEMBER", user: { name: "Original Name 原文", email: "original@example.test" } },
+      { userId: "admin-id", role: "ADMIN", user: { name: null, email: "admin@example.test" } },
+    ] };
+    mocks.models.Organization.first.mockResolvedValue(organization);
+    for (const role of ["MEMBER", "ADMIN"]) {
+      mocks.models.Membership.rows = [{ userId, organizationId: workspace.organizationId, role }];
+      const html = renderToStaticMarkup(await OrganizationSettings());
+      for (const text of [organization.name, "Original Name 原文", "original@example.test", "admin@example.test"]) expect(html).toContain(text);
+      expect(html).toContain(locale === "ja" ? "メンバー" : "Members");
+      expect(html).toContain(locale === "ja" ? "このOrganizationに所属するメンバーです。" : "People who belong to this organization.");
+      expect(html).toContain(`<main lang="${locale === "ja" ? "ja" : "en"}"`);
+      expect(html.includes("organization-role-control")).toBe(role === "ADMIN");
+      if (role === "ADMIN") {
+        expect(html).toContain('data-role="ADMIN"');
+        expect(html).toContain('data-role="MEMBER"');
+        expect(html).toContain(`data-locale="${locale === "ja" ? "ja" : "en"}"`);
+        expect(html).toContain(`data-organization="${workspace.organizationId}"`);
+        expect(html).toContain('data-user="admin-id"');
+      } else {
+        expect(html).toContain(locale === "ja" ? "管理者" : "ADMIN");
+        expect(html).toContain(locale === "ja" ? "メンバー" : "MEMBER");
+      }
+      expect(mocks.models.Membership.where).toHaveBeenCalledWith({ userId, organizationId: workspace.organizationId });
+      expectNoWrites();
+    }
   });
 });
 

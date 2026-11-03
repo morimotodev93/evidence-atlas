@@ -15,6 +15,8 @@ Phase 4.3 localizes the authenticated Home Dashboard body. Research/settings pag
 bodies, business forms/dialogs, onboarding and AI Panel remain untranslated.
 Phase 4.4a-1 localizes only the Workspace Selector's existing placeholder on
 Home and the Research list; Organization/Workspace settings bodies remain English.
+Phase 4.4a-2 adds the Organization settings body and member-role form. Workspace
+settings, onboarding and Action error localization remain outside this scope.
 
 ## Routes and shared rendering
 
@@ -339,6 +341,56 @@ not the authenticated screen. Local screenshots/measurements are ignored under
 Production Build, full suite, full E2E or live AI calls were performed. Review
 system Sans, installed desktop Chrome and emulated widths do not verify the
 Production font or physical mobile devices.
+
+## SaaS Organization settings (Phase 4.4a-2)
+
+Implemented 2026-11-03: `/settings/organization` and its member-role form use
+eight `organization.*` dictionary keys. Members becomes メンバー; the description
+is このOrganizationに所属するメンバーです。; ADMIN/Admin becomes 管理者,
+MEMBER/Member becomes メンバー, Save becomes `保存` and Saving... becomes `保存中...`.
+The Organization label reuses `nav.organization` and remains English. No new Role
+label, success notice, permission explanation or other UI is added.
+
+AppShell's optional server-only `children(locale) => ReactNode` slot extends the
+existing header-slot pattern. Its existing single `getSaasLocale()` call resolves
+the cookie, then supplies the same typed locale to navigation and the Organization
+body. The page completes its existing auth/membership/data checks before creating
+the slot. It passes locale to the client form; omitted form locale stays English.
+There is no extra locale-cookie read, Provider/Context or root-layout change.
+The body uses `lang={locale}`, and the form's portaled SelectContent receives the
+same language. English SelectValue keeps the primitive's existing value rendering;
+Japanese supplies the translated selected label explicitly.
+
+Organization names, member names/emails, IDs, stored data and role submission
+values remain verbatim. Display-only Badge/option labels do not change ADMIN/MEMBER
+comparisons, membership/admin guards, last-ADMIN protection, Action binding,
+FormData `role`, pending/unchanged disablement or revalidation. CSS is unchanged.
+The Action still returns `error: string | null`; all four existing English error
+notices remain unchanged. `getErrorMessage()` cannot safely consume that contract
+without structured codes; no English-string matching or diagnostic exposure is
+introduced. Error-contract adoption is deferred. Workspace settings, onboarding,
+Research bodies and AI Panel remain untranslated; Home-only switching is retained.
+
+Focused DB-free Vitest **5 files / 114 tests** passed, including every existing
+authorization case (the file now has 27 tests), real member-role guard/last-ADMIN
+tests, both role displays/control visibility, original personal data, default and
+invalid-locale fallback, unchanged form Action arguments/values/errors, Shell
+single-read propagation and language-switching restrictions. Changed-file ESLint
+and `git diff --check` passed. No auth/Action, Prisma/DB or Public Demo code changed.
+
+Review read-only diagnostics passed and the existing verified Review server was
+reused. Real Chrome checked English/Japanese at 1280/768/375px: original fixture
+Organization/member data, ADMIN controls, selected labels/options, Enter/Escape,
+focus return and local selection/restoration without submission. Selector size
+remained 128×32px; no horizontal overflow or page errors occurred. Mobile email
+truncation follows the unchanged existing CSS. Auth/Workspace cookies and locale
+were retained, and language switching stayed disabled here. Organization POSTs
+were blocked by the runner and none were attempted; no role change, fixture
+reinsertion or business-data write occurred. MEMBER-only viewing is covered by
+DB-free tests because the existing Reviewer is ADMIN. Local screenshots/metrics
+are ignored under `test-results/phase44a2/`. Production fonts, physical mobile
+devices, actual saving/error states and independent native-language editorial
+review remain unverified. No Production Build, full suite or full E2E was run.
 
 ## SaaS error display contract (Phase 4.1c)
 

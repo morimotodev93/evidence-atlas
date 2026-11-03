@@ -1,5 +1,13 @@
 // English defines the stable UI key contract.
 export const en = {
+  "organization.members": "Members",
+  "organization.membersDescription": "People who belong to this organization.",
+  "organization.adminBadge": "ADMIN",
+  "organization.memberBadge": "MEMBER",
+  "organization.adminOption": "Admin",
+  "organization.memberOption": "Member",
+  "organization.save": "Save",
+  "organization.saving": "Saving...",
   "workspaceSelector.placeholder": "Select workspace",
   "dashboard.description": "Explore, organize, and build reusable knowledge from your research.",
   "dashboard.recentResearch": "Recent Research",

@@ -105,6 +105,26 @@ E2E changes/runs. The four earlier settings test failures were separately repair
 in `4840a2e`; the complete authorization file passes in this scoped run.
 See [Selector scope and verification](../architecture/i18n-foundation.md#saas-workspace-selector-phase-44a-1).
 
+### SaaS Organization settings localization (2026-11-03)
+
+Phase 4.4a-2 localizes only the Organization settings body and member-role form.
+Organization names and personal data stay verbatim; role labels become 管理者 /
+メンバー while ADMIN/MEMBER values, comparisons, access checks, last-ADMIN guard
+and the updating Action remain unchanged. AppShell supplies its existing locale
+to the server body slot and client form without an additional cookie read.
+The existing string-based Action errors remain English pending structured-code
+adoption. Workspace settings, onboarding, Research bodies and AI Panel remain
+untranslated; Home-only language switching is retained.
+
+Focused DB-free Vitest **5 files / 114 tests**, changed-file ESLint and whitespace
+checks passed. Review read-only diagnostics and real Chrome checked both languages
+at 1280/768/375px, original data, ADMIN controls, disabled language switching,
+keyboard/focus and local role selection/restoration. No overflow or page errors;
+no Organization POST, role update or fixture reinsertion. MEMBER-only visibility
+is covered by mocks. Production font/physical-device and real save/error checks
+remain open. No Production Build, full suite or full E2E ran.
+See [Organization scope](../architecture/i18n-foundation.md#saas-organization-settings-phase-44a-2).
+
 ### Current planning entry points
 
 | Ongoing work / policy | Current document |

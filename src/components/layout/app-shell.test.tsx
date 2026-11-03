@@ -29,6 +29,18 @@ beforeEach(() => {
 describe("Authenticated application shell", () => {
   it.each([
     [undefined, "en"], ["invalid", "en"], ["en", "en"], ["ja", "ja"],
+  ])("resolves cookie %s once for the server body slot and navigation", async (value, expected) => {
+    mocks.get.mockReturnValue(value === undefined ? undefined : { value });
+    const body = vi.fn((locale) => <main lang={locale}>Original Organization</main>);
+    const html = renderToStaticMarkup(await AppShell({ children: body }));
+    expect(body).toHaveBeenCalledExactlyOnceWith(expected);
+    expect(mocks.get).toHaveBeenCalledExactlyOnceWith("evidence_atlas_locale");
+    expect(html).toContain(`<main lang="${expected}">Original Organization</main>`);
+    expect(html).toContain(expected === "ja" ? "ログアウト" : "Sign out");
+  });
+
+  it.each([
+    [undefined, "en"], ["invalid", "en"], ["en", "en"], ["ja", "ja"],
   ])("passes resolved cookie %s to the server header slot once", async (value, expected) => {
     mocks.get.mockReturnValue(value === undefined ? undefined : { value });
     const header = vi.fn((locale) => <button data-locale={locale}>Original Workspace</button>);

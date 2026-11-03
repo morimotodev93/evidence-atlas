@@ -5,6 +5,7 @@ import { requireUser } from "@/auth/requireUser";
 import { AppShell } from "@/components/layout/app-shell";
 import { Badge } from "@/components/ui/badge";
 import { db } from "@/prisma/db";
+import { translate } from "@/lib/i18n/translate";
 import { requireCurrentWorkspace } from "@/workspace/requireCurrentWorkspace";
 import { OrganizationMemberRoleForm } from "./_components/organization-member-role-form";
 
@@ -29,66 +30,68 @@ export default async function OrganizationSettingsPage() {
 
   return (
     <AppShell>
+      {(locale) => (
+        <main lang={locale} className="mx-auto w-full max-w-5xl px-4 py-6 sm:px-6 sm:py-8">
+          <header className="mb-8">
+            <p className="text-sm text-muted-foreground">{translate("nav.organization", locale)}</p>
 
-      <main className="mx-auto w-full max-w-5xl px-4 py-6 sm:px-6 sm:py-8">
-        <header className="mb-8">
-          <p className="text-sm text-muted-foreground">Organization</p>
+            <div className="mt-1 flex flex-wrap items-center gap-3">
+              <h1 className="text-2xl font-semibold tracking-tight">
+                {organization.name}
+              </h1>
 
-          <div className="mt-1 flex flex-wrap items-center gap-3">
-            <h1 className="text-2xl font-semibold tracking-tight">
-              {organization.name}
-            </h1>
+              <Badge variant="outline">{translate(currentMembership.role === "ADMIN" ? "organization.adminBadge" : "organization.memberBadge", locale)}</Badge>
+            </div>
+          </header>
 
-            <Badge variant="outline">{currentMembership.role}</Badge>
-          </div>
-        </header>
-
-        <section aria-labelledby="members-heading">
-          <div className="mb-4">
-            <h2
-              id="members-heading"
-              className="text-lg font-semibold tracking-tight"
-            >
-              Members
-            </h2>
-
-            <p className="mt-1 text-sm text-muted-foreground">
-              People who belong to this organization.
-            </p>
-          </div>
-
-          <div className="divide-y rounded-lg border">
-            {organization.memberships.map((membership) => (
-              <div
-                key={membership.userId}
-                className="flex items-center justify-between gap-4 p-4"
+          <section aria-labelledby="members-heading">
+            <div className="mb-4">
+              <h2
+                id="members-heading"
+                className="text-lg font-semibold tracking-tight"
               >
-                <div className="min-w-0">
-                  <p className="truncate font-medium">
-                    {membership.user.name ?? membership.user.email}
-                  </p>
+                {translate("organization.members", locale)}
+              </h2>
 
-                  {membership.user.name && (
-                    <p className="truncate text-sm text-muted-foreground">
-                      {membership.user.email}
+              <p className="mt-1 text-sm text-muted-foreground">
+                {translate("organization.membersDescription", locale)}
+              </p>
+            </div>
+
+            <div className="divide-y rounded-lg border">
+              {organization.memberships.map((membership) => (
+                <div
+                  key={membership.userId}
+                  className="flex items-center justify-between gap-4 p-4"
+                >
+                  <div className="min-w-0">
+                    <p className="truncate font-medium">
+                      {membership.user.name ?? membership.user.email}
                     </p>
+
+                    {membership.user.name && (
+                      <p className="truncate text-sm text-muted-foreground">
+                        {membership.user.email}
+                      </p>
+                    )}
+                  </div>
+
+                  {currentMembership.role === "ADMIN" ? (
+                    <OrganizationMemberRoleForm
+                      locale={locale}
+                      organizationId={organization.id}
+                      userId={membership.userId}
+                      initialRole={membership.role}
+                    />
+                  ) : (
+                    <Badge variant="secondary">{translate(membership.role === "ADMIN" ? "organization.adminBadge" : "organization.memberBadge", locale)}</Badge>
                   )}
                 </div>
-
-                {currentMembership.role === "ADMIN" ? (
-                  <OrganizationMemberRoleForm
-                    organizationId={organization.id}
-                    userId={membership.userId}
-                    initialRole={membership.role}
-                  />
-                ) : (
-                  <Badge variant="secondary">{membership.role}</Badge>
-                )}
-              </div>
-            ))}
-          </div>
-        </section>
-      </main>
+              ))}
+            </div>
+          </section>
+        </main>
+      )}
     </AppShell>
   );
 }

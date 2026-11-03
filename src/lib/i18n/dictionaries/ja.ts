@@ -1,6 +1,14 @@
 import type { Dictionary } from "./en";
 
 export const ja = {
+  "organization.members": "メンバー",
+  "organization.membersDescription": "このOrganizationに所属するメンバーです。",
+  "organization.adminBadge": "管理者",
+  "organization.memberBadge": "メンバー",
+  "organization.adminOption": "管理者",
+  "organization.memberOption": "メンバー",
+  "organization.save": "保存",
+  "organization.saving": "保存中...",
   "workspaceSelector.placeholder": "Workspaceを選択",
   "dashboard.description": "Researchを探索・整理し、繰り返し活用できる知識を蓄積しましょう。",
   "dashboard.recentResearch": "最近のResearch",

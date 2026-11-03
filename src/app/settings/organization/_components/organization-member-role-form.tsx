@@ -1,6 +1,8 @@
 "use client";
 
 import { useActionState, useState } from "react";
+import type { Locale } from "@/lib/i18n/locales";
+import { translate } from "@/lib/i18n/translate";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -22,6 +24,7 @@ type OrganizationMemberRoleFormProps = {
   organizationId: string;
   userId: string;
   initialRole: OrganizationRole;
+  locale?: Locale;
 };
 
 const initialState: UpdateOrganizationMemberRoleState = {
@@ -32,6 +35,7 @@ export function OrganizationMemberRoleForm({
   organizationId,
   userId,
   initialRole,
+  locale = "en",
 }: OrganizationMemberRoleFormProps) {
   const [role, setRole] = useState<OrganizationRole>(initialRole);
 
@@ -52,12 +56,13 @@ export function OrganizationMemberRoleForm({
         }}
       >
         <SelectTrigger className="w-32">
-          <SelectValue />
+          {/* Preserve the primitive's existing English value rendering. */}
+          <SelectValue>{locale === "ja" ? translate(role === "ADMIN" ? "organization.adminOption" : "organization.memberOption", locale) : undefined}</SelectValue>
         </SelectTrigger>
 
-        <SelectContent>
-          <SelectItem value="ADMIN">Admin</SelectItem>
-          <SelectItem value="MEMBER">Member</SelectItem>
+        <SelectContent lang={locale}>
+          <SelectItem value="ADMIN">{translate("organization.adminOption", locale)}</SelectItem>
+          <SelectItem value="MEMBER">{translate("organization.memberOption", locale)}</SelectItem>
         </SelectContent>
       </Select>
 
@@ -67,7 +72,7 @@ export function OrganizationMemberRoleForm({
         size="sm"
         disabled={isPending || role === initialRole}
       >
-        {isPending ? "Saving..." : "Save"}
+        {translate(isPending ? "organization.saving" : "organization.save", locale)}
       </Button>
 
       {state.error && <p className="text-sm text-destructive">{state.error}</p>}
