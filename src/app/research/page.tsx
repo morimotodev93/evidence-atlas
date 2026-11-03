@@ -10,6 +10,7 @@ import { requireCurrentWorkspace } from "@/workspace/requireCurrentWorkspace";
 
 import { WorkspaceSelector } from "@/components/workspace/workspace-selector";
 import { getAccessibleWorkspaces } from "@/workspace/getAccessibleWorkspaces";
+import { translate } from "@/lib/i18n/translate";
 
 type ResearchPageProps = {
   searchParams: Promise<{
@@ -108,13 +109,13 @@ export default async function Research({ searchParams }: ResearchPageProps) {
         />
       )}
     >
-      <main className="mx-auto w-full max-w-5xl px-4 py-6 sm:px-6 sm:py-8">
+      {(locale) => <main lang={locale} className="mx-auto w-full max-w-5xl px-4 py-6 sm:px-6 sm:py-8">
         <header className="mb-6 flex items-end justify-between gap-4">
           <div>
             <p className="text-sm text-muted-foreground">{workspace.name}</p>
 
             <h1 className="mt-1 text-2xl font-semibold tracking-tight">
-              Research
+              {translate("saasResearch.label", locale)}
             </h1>
           </div>
 
@@ -132,7 +133,7 @@ export default async function Research({ searchParams }: ResearchPageProps) {
           className="mb-6 flex flex-col gap-2 sm:flex-row sm:items-center"
         >
           <label htmlFor="research-search" className="sr-only">
-            Search research
+            {translate("saasResearch.search", locale)}
           </label>
 
           <Input
@@ -140,12 +141,12 @@ export default async function Research({ searchParams }: ResearchPageProps) {
             name="query"
             type="search"
             defaultValue={query}
-            placeholder="Search research..."
+            placeholder={translate("saasResearch.searchPlaceholder", locale)}
             className="w-full sm:max-w-md"
           />
 
           <label htmlFor="research-status" className="sr-only">
-            Filter by status
+            {translate("saasResearch.filterStatus", locale)}
           </label>
 
           <select
@@ -154,14 +155,14 @@ export default async function Research({ searchParams }: ResearchPageProps) {
             defaultValue={selectedStatus}
             className="h-8 rounded-lg border border-input bg-background px-2.5 text-sm"
           >
-            <option value="">All statuses</option>
-            <option value="IN_PROGRESS">In progress</option>
-            <option value="COMPLETED">Completed</option>
-            <option value="ARCHIVED">Archived</option>
+            <option value="">{translate("saasResearch.allStatuses", locale)}</option>
+            <option value="IN_PROGRESS">{translate("research.inProgress", locale)}</option>
+            <option value="COMPLETED">{translate("research.completed", locale)}</option>
+            <option value="ARCHIVED">{translate("research.archived", locale)}</option>
           </select>
 
           <label htmlFor="research-sort" className="sr-only">
-            Sort research
+            {translate("saasResearch.sort", locale)}
           </label>
 
           <select
@@ -170,34 +171,35 @@ export default async function Research({ searchParams }: ResearchPageProps) {
             defaultValue={selectedSort}
             className="h-8 rounded-lg border border-input bg-background px-2.5 text-sm"
           >
-            <option value="updated">Recently updated</option>
-            <option value="newest">Newest</option>
-            <option value="oldest">Oldest</option>
+            <option value="updated">{translate("saasResearch.recentlyUpdated", locale)}</option>
+            <option value="newest">{translate("saasResearch.newest", locale)}</option>
+            <option value="oldest">{translate("saasResearch.oldest", locale)}</option>
           </select>
 
           <Button type="submit" variant="outline">
-            Apply
+            {translate("saasResearch.apply", locale)}
           </Button>
         </form>
 
         {/* Research List */}
-        <section aria-label="Research list">
+        <section aria-label={translate("saasResearch.list", locale)}>
           {researches.length === 0 ? (
             <div className="rounded-lg border border-dashed p-8 text-center">
-              <h2 className="font-medium">No research yet</h2>
+              <h2 className="font-medium">{translate("saasResearch.noResearch", locale)}</h2>
               <p className="mt-1 text-sm text-muted-foreground">
-                Create your first research to start building your knowledge.
+                {translate("saasResearch.noResearchDescription", locale)}
               </p>
             </div>
           ) : sortedResearches.length === 0 ? (
             <div className="rounded-lg border border-dashed p-8 text-center">
-              <h2 className="font-medium">No research found</h2>
+              <h2 className="font-medium">{translate("saasResearch.noResults", locale)}</h2>
               <p className="mt-1 text-sm text-muted-foreground">
-                Try a different search term.
+                {translate("saasResearch.noResultsDescription", locale)}
               </p>
             </div>
           ) : (
             <ResearchListItems
+              locale={locale}
               items={sortedResearches.map((research) => ({
                 ...research,
                 tags: researchTags.filter((link) => link.researchId === research.id)
@@ -207,7 +209,7 @@ export default async function Research({ searchParams }: ResearchPageProps) {
             />
           )}
         </section>
-      </main>
+      </main>}
     </AppShell>
   );
 }

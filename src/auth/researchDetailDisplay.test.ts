@@ -1,15 +1,20 @@
-import { createElement } from "react";
+import { createElement, type ReactNode } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { research, source, finding, comment, researchTag } from "@/lib/demo/test-fixtures";
+import { resolveLocale, type Locale } from "@/lib/i18n/locales";
 
 const mocks = vi.hoisted(() => {
   const models = Object.fromEntries(["Research", "WorkspaceMembership", "Source", "Finding", "Comment", "ResearchTag"].map((name) => {
     const query = { first: vi.fn(), all: vi.fn(), include: vi.fn() };
     return [name, { where: vi.fn(() => query), query }];
   }));
-  return { models, auth: vi.fn(), redirect: vi.fn(), notFound: vi.fn() };
+  return { models, auth: vi.fn(), redirect: vi.fn(), notFound: vi.fn(), cookie: vi.fn() };
 });
+vi.mock("next/headers", () => ({ cookies: async () => ({ get: mocks.cookie }) }));
+vi.mock("@/components/layout/app-shell", () => ({
+  AppShell: ({ children }: { children: (locale: Locale) => ReactNode }) => createElement("div", null, children(resolveLocale(mocks.cookie()?.value))),
+}));
 vi.mock("@/prisma/db", () => ({ db: { orm: { public: mocks.models } } }));
 vi.mock("@/auth", () => ({ auth: mocks.auth, signOut: vi.fn() }));
 vi.mock("next/navigation", () => ({ usePathname: () => "/research/research-id", redirect: mocks.redirect, notFound: mocks.notFound }));
@@ -45,6 +50,7 @@ beforeAll(async () => {
 });
 beforeEach(() => {
   vi.clearAllMocks();
+  mocks.cookie.mockReturnValue(undefined);
   mocks.auth.mockResolvedValue({ user: { id: "user-id" } });
   for (const model of Object.values(mocks.models)) model.query.include.mockReturnValue(model.query);
   mocks.models.Research.query.first.mockResolvedValue(research);
@@ -69,11 +75,36 @@ describe("Authenticated Research detail after display extraction", () => {
     expect(html).toContain(research.conclusion);
     expect(html).toContain(comment.user.name);
     expect(html).toContain(`href="/research/${research.id}/edit"`);
-    expect(html).toContain('href="/settings/workspace"');
-    expect(html).toContain("Sign out");
     expect(html).toContain("Remove");
     for (const name of Object.values(components)) expect(html).toContain(name);
     expect(mocks.models.WorkspaceMembership.where).toHaveBeenCalledWith({ userId: "user-id", workspaceId: research.workspaceId });
+  });
+
+  it("passes the cookie locale to read-only content while preserving data and controls", async () => {
+    mocks.cookie.mockReturnValue({ value: "ja" });
+    const html = renderToStaticMarkup(await DetailPage({ params: Promise.resolve({ id: research.id }) }));
+    for (const text of ["lang=\"ja\"", "← Research一覧に戻る", "Source 2 件", "Finding 1 件", "作成日", "完了",
+      research.title, research.description, research.conclusion, source.title, finding.content, comment.content,
+      "EditResearchStatusDialog", "ResearchAiMobileDialog", "ResearchAiPanel", "Remove"])
+      expect(html).toContain(text);
+    expect(html).toContain(`href="/research/${research.id}/edit"`);
+    expect(research.status).toBe("COMPLETED");
+    expect(mocks.models.WorkspaceMembership.where).toHaveBeenCalledWith({ userId: "user-id", workspaceId: research.workspaceId });
+  });
+
+  it("localizes empty read-only sections", async () => {
+    mocks.cookie.mockReturnValue({ value: "ja" });
+    mocks.models.Research.query.first.mockResolvedValue({ ...research, conclusion: null });
+    for (const name of ["Source", "Finding", "Comment", "ResearchTag"]) mocks.models[name].query.all.mockResolvedValue([]);
+    const html = renderToStaticMarkup(await DetailPage({ params: Promise.resolve({ id: research.id }) }));
+    for (const text of ["Sourceはまだありません。", "Findingはまだありません。", "コメントはまだありません。", "結論はまだありません。", "Source 0 件"])
+      expect(html).toContain(text);
+  });
+
+  it.each([undefined, "invalid", "en"])("retains English detail for cookie %s", async (value) => {
+    mocks.cookie.mockReturnValue(value === undefined ? undefined : { value });
+    const html = renderToStaticMarkup(await DetailPage({ params: Promise.resolve({ id: research.id }) }));
+    for (const text of ["lang=\"en\"", "← Back to Research", "Completed", "Created", "2 sources"]) expect(html).toContain(text);
   });
 
   it("still rejects unauthenticated detail requests before reading Research", async () => {

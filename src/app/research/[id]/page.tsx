@@ -28,6 +28,7 @@ import {
   ResearchAccessError,
 } from "@/auth/requireResearchAccess";
 import { requireUser } from "@/auth/requireUser";
+import { translate } from "@/lib/i18n/translate";
 
 type ResearchDetailPageProps = {
   params: Promise<{
@@ -79,7 +80,7 @@ export default async function ResearchDetailPage({
   return (
     <AppShell>
 
-      <main className="mx-auto w-full max-w-5xl px-4 pb-24 pt-6 sm:px-6 sm:pb-24 sm:pt-8 lg:pb-8 xl:max-w-7xl">
+      {(locale) => <main lang={locale} className="mx-auto w-full max-w-5xl px-4 pb-24 pt-6 sm:px-6 sm:pb-24 sm:pt-8 lg:pb-8 xl:max-w-7xl">
         {" "}
         {/* Back */}
         <div className="mb-6">
@@ -87,11 +88,13 @@ export default async function ResearchDetailPage({
             href="/research"
             className="text-sm text-muted-foreground hover:text-foreground"
           >
-            ← Back to Research
+            {translate("saasResearch.back", locale)}
           </Link>
         </div>
         {/* Research Header */}
         <ResearchHeader
+          locale={locale}
+          messageScope="saasResearch"
           research={research}
           tags={researchTags.map(({ tag }) => ({ id: tag.id, name: tag.name }))}
           controls={{
@@ -107,6 +110,8 @@ export default async function ResearchDetailPage({
           sources={sources.map((source) => ({ id: source.id, title: source.title, url: source.url }))}
         >
           <ResearchDetailContent
+            locale={locale}
+            messageScope="saasResearch"
             research={research}
             sources={sources}
             findings={findings}
@@ -157,7 +162,7 @@ export default async function ResearchDetailPage({
             />
           </div>
         </div>
-      </main>
+      </main>}
     </AppShell>
   );
 }

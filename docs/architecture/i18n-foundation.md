@@ -21,6 +21,49 @@ Phase 4.4a-3 adds the Workspace settings body and member-role form using the sam
 locale flow and shared dictionary entries. Onboarding and Research bodies remain untranslated.
 Phase 4.4b adds the standalone Onboarding page/form. Research bodies, AI Panel
 and Action error-contract adoption remain outside this scope.
+Phase 4.5a adds Research list/detail read-only UI through AppShell's locale slots.
+Research write forms/dialogs and AI remain deferred.
+
+## SaaS Research read-only UI (Phase 4.5a)
+
+Implemented 2026-11-03. `/research` and `/research/[id]` receive `getSaasLocale()`'s
+resolved locale through AppShell's existing server body slot; the list header
+slot still supplies the same locale to WorkspaceSelector. No additional cookie
+read, URL locale, client context or locale persistence is introduced. The main
+content has `lang`; interactive children receive no new locale/state.
+
+The list translates search labels/placeholder, status-filter and sort labels,
+Apply, accessible list label, empty Workspace and no-results messages. GET names,
+values, filtering/sorting, links and original input remain unchanged. Card dates
+use the existing `formatDate` locale parameter; cards continue to omit status
+badges as before. Detail translates the back link, Research label, status display,
+created/updated dates, common Source/Finding/Discussion/Conclusion section copy,
+counts, read-only empty states and existing read-only metadata. Counts retain
+their array lengths. Date meaning and implicit timezone remain unchanged.
+
+Shared detail components opt into `messageScope="saasResearch"` for SaaS copy.
+The existing `research` scope remains the default for Public Demo: its Japanese
+terminology differs from the SaaS requirement to retain Research/Source/Finding/
+Evidence. Separate dictionary entries resolve this copy conflict without changing
+Demo behavior or translating user content. Titles, descriptions, conclusions,
+Source titles/URLs, Findings, comments, author names and tag names stay verbatim.
+
+Write-entry labels (New Research, Edit and dialog triggers), forms, status changes,
+Source/Finding/comment/tag operations and AI UI remain English pending Phases
+4.5b/4.6/4.7. Actions, access boundaries, DB queries, Prisma, dependency versions
+and Home-only Language Select restriction are unchanged. Status values and
+unknown-status fallback remain intact; only known display labels translate.
+
+Validation: focused DB-free Vitest **9 files / 147 tests**, changed-file ESLint
+and TypeScript (`--noEmit --incremental false`) passed. Tests cover English/default/
+invalid-cookie fallback, Japanese populated/empty display, original data and links,
+GET values, status labels, real mocked-I/O access guards, shared locale propagation,
+language switching restrictions and Demo regressions. The detail access test uses
+a synchronous locale-aware shell double; actual shell rendering has separate
+coverage. No DB writes, fixture changes, full suite, full E2E or Production Build.
+Review browser hydration, 1280/768/375px wrapping/overflow, keyboard/focus and
+Production IBM Plex Sans text widths remain unverified; no Review server was
+started or restarted. Phase 4.5b and later plans remain unchanged.
 
 ## Routes and shared rendering
 

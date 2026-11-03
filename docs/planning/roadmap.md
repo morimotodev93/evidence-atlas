@@ -38,6 +38,23 @@ canonical English. This completes the curated content scope only; full SaaS
 localization and deployed/runtime language verification remain open. See
 [i18n architecture](../architecture/i18n-foundation.md#phase-3-research-translation-catalog).
 
+### SaaS Research read-only localization (2026-11-03)
+
+Phase 4.5a implements English/Japanese Research list/detail read-only UI using
+AppShell's existing locale slots, without another cookie read. Search/filter/sort
+display, empty states, back navigation, section labels, status display, dates and
+counts are localized. Original content, GET values, routes, access guards and
+queries remain unchanged. Separate SaaS dictionary entries preserve product terms
+without changing Public Demo Japanese copy. Write-entry labels/forms/dialogs,
+Source/Finding operations, comment/tag editing and AI remain deferred to the
+existing Phase 4.5b/4.6/4.7 scope; Home-only language switching remains in force.
+
+Focused DB-free Vitest **9 files / 147 tests**, changed-file ESLint and TypeScript
+passed. Review browser checks at 1280/768/375px, hydration/overflow and Production
+font widths remain unverified. No fixtures, DB data, Prisma, dependencies, full
+suite, full E2E or Production Build changes/runs. See
+[Research read-only scope](../architecture/i18n-foundation.md#saas-research-read-only-ui-phase-45a).
+
 ### SaaS i18n error foundation (2026-11-03)
 
 Phase 4.1c implements the display-only error-code contract, seven English/Japanese
