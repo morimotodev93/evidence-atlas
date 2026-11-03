@@ -24,6 +24,26 @@ vi.mock("react", async (original) => ({
 beforeEach(() => { state.mounted = false; state.theme = undefined; state.setTheme.mockReset(); });
 
 describe("Appearance selector", () => {
+  it.each(["en", "ja"] as const)("uses existing %s labels and preserves theme values and changes", (locale) => {
+    const initial = renderToStaticMarkup(<AppearanceSelect locale={locale} />);
+    expect(initial).toContain(locale === "ja" ? "外観" : "Appearance");
+    expect(initial).toContain(locale === "ja" ? "テーマ" : "Theme");
+    state.mounted = true;
+    state.theme = "dark";
+    const selector = AppearanceSelect({ locale }).props.children[1];
+    expect(selector.props.items).toEqual(locale === "ja" ? [
+      { value: "light", label: "ライト" }, { value: "dark", label: "ダーク" }, { value: "system", label: "システム" },
+    ] : [
+      { value: "light", label: "Light" }, { value: "dark", label: "Dark" }, { value: "system", label: "System" },
+    ]);
+    expect(selector.props.value).toBe("dark");
+    const mounted = renderToStaticMarkup(<AppearanceSelect locale={locale} />);
+    expect(mounted).toContain(locale === "ja" ? ">ダーク<" : ">Dark<");
+    expect(mounted).toContain('aria-labelledby="appearance-label"');
+    for (const value of ["light", "dark", "system", "invalid", null]) selector.props.onValueChange(value);
+    expect(state.setTheme.mock.calls).toEqual([["light"], ["dark"], ["system"]]);
+  });
+
   it("renders the same static placeholder for SSR and the initial hydration snapshot regardless of preference", () => {
     const server = renderToStaticMarkup(<AppearanceSelect />);
     state.theme = "dark";

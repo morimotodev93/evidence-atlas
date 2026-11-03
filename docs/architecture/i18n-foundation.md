@@ -9,6 +9,8 @@ Phase 4.1b-2 connects them to the shared SaaS Header, with switching limited to
 Home until input-state preservation is verified. SaaS page translation is deferred.
 Phase 4.2a localizes shared SaaS navigation only, using that same cookie-derived
 locale; page bodies and business forms/dialogs remain English.
+Phase 4.2b adds opt-in translation of the shared Dialog's own Close controls;
+existing business Dialogs have not been connected to the locale.
 
 ## Routes and shared rendering
 
@@ -180,6 +182,57 @@ Only shared navigation is localized. Dashboard/Research/settings page bodies,
 Source/Finding forms, business dialogs, AI Panel and existing Action errors remain
 outside this phase. Public Demo, root `<html lang>`, authentication, DB/Prisma,
 locale saving behavior and the language-switching scope are unchanged.
+
+## SaaS common UI (Phase 4.2b)
+
+Implemented 2026-11-03: Appearance already receives the same cookie-derived
+locale as the navigation through `AppShell` → Header/mobile menu and Sidebar →
+`NavigationLinks` → `AppearanceSelect`. Its existing `appearance.*` keys cover
+Appearance/Theme/Light/Dark/System (外観/テーマ/ライト/ダーク/システム).
+No Appearance implementation, theme values (`light`, `dark`, `system`), persistence,
+English/日本語 language options or switching behavior changes in this phase.
+
+`components/ui/dialog.tsx` owns two fixed Close labels: an `sr-only` span in
+the top-right icon button and an optional visible Footer button. Both reuse the
+single new `dialog.close` key (English `Close`, Japanese `閉じる`).
+`DialogContent` and `DialogFooter` each accept an optional `locale?: Locale`;
+omission retains English. No Context/Provider or cookie read is added. Existing
+business callers pass no locale and remain English, including their titles,
+descriptions, form controls and Close labels. Adoption is deferred.
+
+For opt-in use, pass the same locale to both `DialogContent` and any
+`DialogFooter showCloseButton`; the Footer does not infer it from Content.
+For example, use `<DialogContent locale={locale}>` and
+`<DialogFooter locale={locale} showCloseButton>`. Content sets `lang` on the
+actual Base UI Popup inside its Portal, so language does not rely on DOM ancestry
+under AppShell. An explicit locale takes precedence over a caller's `lang` on
+Content; without locale, an existing caller-provided `lang` is preserved and no
+Popup language is added by default. Each generated Close label has its own
+language attribute so its pronunciation does not depend on caller content.
+Popup language applies to its supplied content: callers are responsible for using
+matching language or explicit overrides on mixed-language children.
+
+Portal/Backdrop/Popup structure, button variants/positions/sizes, CSS, focus props,
+refs, Root event callbacks and Base UI Close primitives remain unchanged. Escape,
+focus trapping and close behavior remain delegated to Base UI. The generic
+`DialogClose` wrapper does not own text and is unchanged.
+
+Scoped DB-free Vitest checks cover default/English/Japanese Close markup using
+the real Base UI Close, missing Japanese fallback, Popup/Portal structure and
+language props, legacy props/children/visibility, unchanged styles and forwarding
+of Escape/Close dismissal reports. For static button rendering only, the test
+substitutes a plain container for Popup: actual Popup requires a browser Portal.
+Appearance tests cover translated options and unchanged theme values/handlers;
+existing Shell tests retain cookie-to-display coverage. These checks do not
+dispatch real browser keys or verify focus trapping, portal placement, hydration
+or visual layout. Browser interaction verification remains open.
+
+Root `<html lang="en">` is unchanged. Existing business Dialogs, the separately
+implemented mobile-navigation Popup and Appearance Select's portal are not given
+new language attributes here; their Japanese text can still inherit root English
+in portal DOM. No global portal-language solution is introduced. Business Dialog
+localization, SaaS page bodies/AI Panel, Action errors, auth, DB/Prisma and Public
+Demo are unchanged. Home-only language switching remains in force.
 
 ## SaaS error display contract (Phase 4.1c)
 

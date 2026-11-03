@@ -1,6 +1,7 @@
 import type { Dictionary } from "./en";
 
 export const ja = {
+  "dialog.close": "閉じる",
   "nav.primary": "メインナビゲーション",
   "nav.home": "ホーム",
   "nav.research": "Research",

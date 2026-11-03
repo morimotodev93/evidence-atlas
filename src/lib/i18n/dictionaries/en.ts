@@ -1,5 +1,6 @@
 // English defines the stable UI key contract.
 export const en = {
+  "dialog.close": "Close",
   "nav.primary": "Primary navigation",
   "nav.home": "Home",
   "nav.research": "Research",

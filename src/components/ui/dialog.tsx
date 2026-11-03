@@ -6,6 +6,8 @@ import { cn } from "cn"
 
 import { Button } from "@/components/ui/button"
 import { XIcon } from "lucide-react"
+import { resolveLocale, type Locale } from "@/lib/i18n/locales"
+import { translate } from "@/lib/i18n/translate"
 
 function Dialog({ ...props }: DialogPrimitive.Root.Props) {
   return <DialogPrimitive.Root data-slot="dialog" {...props} />
@@ -43,9 +45,12 @@ function DialogContent({
   className,
   children,
   showCloseButton = true,
+  locale,
+  lang,
   ...props
 }: DialogPrimitive.Popup.Props & {
   showCloseButton?: boolean
+  locale?: Locale
 }) {
   return (
     <DialogPortal>
@@ -57,6 +62,7 @@ function DialogContent({
           className
         )}
         {...props}
+        lang={locale === undefined ? lang : resolveLocale(locale)}
       >
         {children}
         {showCloseButton && (
@@ -72,7 +78,7 @@ function DialogContent({
           >
             <XIcon
             />
-            <span className="sr-only">Close</span>
+            <span className="sr-only" lang={resolveLocale(locale)}>{translate("dialog.close", locale)}</span>
           </DialogPrimitive.Close>
         )}
       </DialogPrimitive.Popup>
@@ -93,10 +99,12 @@ function DialogHeader({ className, ...props }: React.ComponentProps<"div">) {
 function DialogFooter({
   className,
   showCloseButton = false,
+  locale,
   children,
   ...props
 }: React.ComponentProps<"div"> & {
   showCloseButton?: boolean
+  locale?: Locale
 }) {
   return (
     <div
@@ -109,8 +117,8 @@ function DialogFooter({
     >
       {children}
       {showCloseButton && (
-        <DialogPrimitive.Close render={<Button variant="outline" />}>
-          Close
+        <DialogPrimitive.Close lang={resolveLocale(locale)} render={<Button variant="outline" />}>
+          {translate("dialog.close", locale)}
         </DialogPrimitive.Close>
       )}
     </div>

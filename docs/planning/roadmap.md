@@ -55,6 +55,16 @@ forms/dialogs and Action error adoption remain deferred. Verification is limited
 to DB-free Vitest markup/handler tests; browser layout and hydration remain open.
 See [shared navigation](../architecture/i18n-foundation.md#saas-shared-navigation-phase-42a).
 
+### SaaS common UI localization (2026-11-03)
+
+Phase 4.2b adds opt-in English/Japanese Close labels to shared Dialog Content and
+Footer, with language on the portaled Popup and generated labels. Existing
+Appearance translation/theme behavior is retained and tested. Business Dialogs
+remain English until explicit locale adoption. Root language and other popup
+language attributes are unchanged; real browser Escape/focus/portal verification
+remains open beyond the scoped DB-free markup/forwarding tests.
+See [common UI](../architecture/i18n-foundation.md#saas-common-ui-phase-42b).
+
 ### Current planning entry points
 
 | Ongoing work / policy | Current document |
