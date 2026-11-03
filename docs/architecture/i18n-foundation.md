@@ -19,6 +19,8 @@ Phase 4.4a-2 adds the Organization settings body and member-role form. Workspace
 settings, onboarding and Action error localization remain outside this scope.
 Phase 4.4a-3 adds the Workspace settings body and member-role form using the same
 locale flow and shared dictionary entries. Onboarding and Research bodies remain untranslated.
+Phase 4.4b adds the standalone Onboarding page/form. Research bodies, AI Panel
+and Action error-contract adoption remain outside this scope.
 
 ## Routes and shared rendering
 
@@ -432,6 +434,47 @@ under `test-results/phase44a3/`. No auth/Action, Prisma/DB, Public Demo or fixtu
 changes; no Production Build, full suite or full E2E. Production fonts, physical
 mobile devices and actual save/error browser states remain unverified. Onboarding,
 Research bodies, AI Panel and structured-error adoption remain outside this scope.
+
+## SaaS Onboarding (Phase 4.4b)
+
+Implemented 2026-11-03: the standalone `/onboarding` Server Component calls
+`getSaasLocale()` only after authentication and the existing accessible-Workspace
+check. Already provisioned users still redirect to `/` before the locale read.
+The page sets `<main lang={locale}>` and passes locale to `OnboardingForm`, whose
+optional prop defaults to English. Onboarding does not use AppShell and gains no
+Header/language control; no additional Provider, state or cookie mechanism exists.
+
+Eight `onboarding.*` keys cover the existing title, description, two labels/two
+placeholders and idle/pending button text. Japanese uses Workspaceの初期設定,
+Organization名, Workspace名, Workspaceを作成 and 作成中..., retaining Organization,
+Workspace and Research product terms. Example placeholders remain Acme Research
+and Research in both languages. English wording, CSS, uncontrolled inputs,
+required attributes, field IDs/names and all three pending-disabled controls are
+unchanged. No client length limit is added; the Action retains its existing
+trim + 1–100-character validation and all creation/membership/Cookie/redirect logic.
+User-entered values are passed verbatim by the form, with no new normalization.
+
+There are no independent fixed UI error strings. The Action's validation and
+creation-failure notices remain English through the unchanged `error: string | null`
+contract. `getErrorMessage()` requires structured codes, so it is not connected;
+no string matching, error-contract change or new diagnostic display occurs.
+Browser-native required-field messages remain browser-controlled. Existing error
+paragraph semantics are retained. Home-only language switching is unchanged.
+
+DB-free Vitest **7 files / 114 tests**, changed-file ESLint and whitespace checks
+passed, including cookie fallback/guard order, form constraints/raw values/pending/
+errors, existing creation validation/initial selection/redirect and authorization.
+Read-only Review diagnostics passed; no fixtures or users were created. Since the
+existing Reviewer is provisioned, live initial Onboarding was not exercised.
+An additional isolated capture check used real components with mocked I/O/Action
+states; Chrome checked 18 static cases (en/ja × idle/pending/error × 1280/768/375px)
+using CSS read from the verified Review server. No overflow/page errors or
+submissions; labels, Tab focus and raw input FormData were checked. These are
+synthetic markup/native-input checks, not Next.js hydration, real React submission
+scheduling, live success/error handling or actual provisioning. Production fonts
+and physical devices remain unverified. Local artifacts are ignored under
+`test-results/phase44b/`. No auth/Action/Prisma/DB/Public Demo changes, full suite,
+full E2E or Production Build occurred. Research bodies and AI Panel remain deferred.
 
 ## SaaS error display contract (Phase 4.1c)
 

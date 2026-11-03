@@ -1,6 +1,8 @@
 "use client";
 
 import { useActionState } from "react";
+import type { Locale } from "@/lib/i18n/locales";
+import { translate } from "@/lib/i18n/translate";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -14,7 +16,7 @@ const initialState: CreateInitialWorkspaceState = {
   error: null,
 };
 
-export function OnboardingForm() {
+export function OnboardingForm({ locale = "en" }: { locale?: Locale } = {}) {
   const [state, action, isPending] = useActionState(
     createInitialWorkspace,
     initialState,
@@ -24,13 +26,13 @@ export function OnboardingForm() {
     <form action={action} className="space-y-5">
       <div className="space-y-2">
         <label htmlFor="organizationName" className="text-sm font-medium">
-          Organization name
+          {translate("onboarding.organizationName", locale)}
         </label>
 
         <Input
           id="organizationName"
           name="organizationName"
-          placeholder="Acme Research"
+          placeholder={translate("onboarding.organizationPlaceholder", locale)}
           required
           disabled={isPending}
         />
@@ -38,13 +40,13 @@ export function OnboardingForm() {
 
       <div className="space-y-2">
         <label htmlFor="workspaceName" className="text-sm font-medium">
-          Workspace name
+          {translate("onboarding.workspaceName", locale)}
         </label>
 
         <Input
           id="workspaceName"
           name="workspaceName"
-          placeholder="Research"
+          placeholder={translate("onboarding.workspacePlaceholder", locale)}
           required
           disabled={isPending}
         />
@@ -53,7 +55,7 @@ export function OnboardingForm() {
       {state.error && <p className="text-sm text-destructive">{state.error}</p>}
 
       <Button type="submit" disabled={isPending}>
-        {isPending ? "Creating..." : "Create workspace"}
+        {translate(isPending ? "onboarding.creating" : "onboarding.create", locale)}
       </Button>
     </form>
   );

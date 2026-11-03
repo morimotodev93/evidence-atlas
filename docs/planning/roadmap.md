@@ -145,6 +145,25 @@ changes, Production Build, full suite or full E2E. Production fonts, physical
 devices and actual save/error browser states remain unverified.
 See [Workspace settings scope](../architecture/i18n-foundation.md#saas-workspace-settings-phase-44a-3).
 
+### SaaS Onboarding localization (2026-11-03)
+
+Phase 4.4b localizes the existing standalone Onboarding page/form using the SaaS
+locale reader after auth/Workspace checks, with English fallback and an explicit
+form prop. Eight keys cover title, description, labels, example placeholders and
+idle/pending buttons. User inputs, uncontrolled state, required/pending behavior,
+Action validation/creation, initial Workspace cookie and redirect are unchanged.
+Both Action error notices remain English pending structured-code adoption.
+No language control is added; Home-only switching is retained. Research bodies,
+AI Panel and other deferred localization are not completed by this phase.
+
+Focused DB-free Vitest **7 files / 114 tests**, changed-file ESLint and whitespace
+checks passed. Read-only Review diagnostics passed. The provisioned fixture cannot
+exercise initial Onboarding; no new user or DB records were created. Real-component
+static captures with mocked I/O/Action states and Review CSS passed 18 isolated
+Chrome layout/native-input cases at 1280/768/375px. Live first-user flow, hydration,
+real submit scheduling, Production fonts/devices remain unverified. No full suite,
+full E2E or Production Build ran. See [Onboarding scope](../architecture/i18n-foundation.md#saas-onboarding-phase-44b).
+
 ### Current planning entry points
 
 | Ongoing work / policy | Current document |

@@ -1,5 +1,13 @@
 // English defines the stable UI key contract.
 export const en = {
+  "onboarding.title": "Set up your workspace",
+  "onboarding.description": "Create your organization and first workspace to start organizing research.",
+  "onboarding.organizationName": "Organization name",
+  "onboarding.workspaceName": "Workspace name",
+  "onboarding.organizationPlaceholder": "Acme Research",
+  "onboarding.workspacePlaceholder": "Research",
+  "onboarding.create": "Create workspace",
+  "onboarding.creating": "Creating...",
   "workspace.membersDescription": "People who have access to this workspace.",
   "organization.members": "Members",
   "organization.membersDescription": "People who belong to this organization.",

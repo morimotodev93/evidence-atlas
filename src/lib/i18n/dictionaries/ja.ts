@@ -1,6 +1,14 @@
 import type { Dictionary } from "./en";
 
 export const ja = {
+  "onboarding.title": "Workspaceの初期設定",
+  "onboarding.description": "Organizationと最初のWorkspaceを作成して、Researchの整理を始めましょう。",
+  "onboarding.organizationName": "Organization名",
+  "onboarding.workspaceName": "Workspace名",
+  "onboarding.organizationPlaceholder": "Acme Research",
+  "onboarding.workspacePlaceholder": "Research",
+  "onboarding.create": "Workspaceを作成",
+  "onboarding.creating": "作成中...",
   "workspace.membersDescription": "このWorkspaceにアクセスできるメンバーです。",
   "organization.members": "メンバー",
   "organization.membersDescription": "このOrganizationに所属するメンバーです。",
