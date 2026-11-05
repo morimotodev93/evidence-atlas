@@ -1,5 +1,11 @@
 // English defines the stable UI key contract.
 export const en = {
+  "errors.organizationInvalidRole": "Invalid organization role.",
+  "errors.workspaceInvalidRole": "Invalid workspace role.",
+  "errors.memberNotFound": "Member not found.",
+  "errors.organizationLastAdmin": "An organization must have at least one admin.",
+  "errors.workspaceLastAdmin": "A workspace must have at least one admin.",
+  "errors.memberRoleUpdateFailed": "Failed to update member role. Please try again.",
   "errors.onboardingInvalidInput": "Enter an organization name and workspace name.",
   "errors.onboardingCreateFailed": "Failed to create your workspace. Please try again.",
   "errors.applicationTitle": "Application error",

@@ -13,6 +13,12 @@ const messages = [
   ["INTERNAL_ERROR", "Something went wrong. Please try again.", "エラーが発生しました。もう一度お試しください。"],
   ["ONBOARDING_INVALID_INPUT", "Enter an organization name and workspace name.", "Organization名とWorkspace名を入力してください。"],
   ["ONBOARDING_CREATE_FAILED", "Failed to create your workspace. Please try again.", "Workspaceを作成できませんでした。もう一度お試しください。"],
+  ["ORGANIZATION_INVALID_ROLE", "Invalid organization role.", "Organizationのロールが無効です。"],
+  ["WORKSPACE_INVALID_ROLE", "Invalid workspace role.", "Workspaceのロールが無効です。"],
+  ["MEMBER_NOT_FOUND", "Member not found.", "メンバーが見つかりません。"],
+  ["ORGANIZATION_LAST_ADMIN", "An organization must have at least one admin.", "Organizationには管理者が1人以上必要です。"],
+  ["WORKSPACE_LAST_ADMIN", "A workspace must have at least one admin.", "Workspaceには管理者が1人以上必要です。"],
+  ["MEMBER_ROLE_UPDATE_FAILED", "Failed to update member role. Please try again.", "メンバーのロールを更新できませんでした。もう一度お試しください。"],
 ] as const satisfies ReadonlyArray<readonly [ErrorCode, string, string]>;
 
 describe("error display contract", () => {

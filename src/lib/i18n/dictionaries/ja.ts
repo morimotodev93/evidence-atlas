@@ -1,6 +1,12 @@
 import type { Dictionary } from "./en";
 
 export const ja = {
+  "errors.organizationInvalidRole": "Organizationのロールが無効です。",
+  "errors.workspaceInvalidRole": "Workspaceのロールが無効です。",
+  "errors.memberNotFound": "メンバーが見つかりません。",
+  "errors.organizationLastAdmin": "Organizationには管理者が1人以上必要です。",
+  "errors.workspaceLastAdmin": "Workspaceには管理者が1人以上必要です。",
+  "errors.memberRoleUpdateFailed": "メンバーのロールを更新できませんでした。もう一度お試しください。",
   "errors.onboardingInvalidInput": "Organization名とWorkspace名を入力してください。",
   "errors.onboardingCreateFailed": "Workspaceを作成できませんでした。もう一度お試しください。",
   "errors.applicationTitle": "アプリケーションエラー",

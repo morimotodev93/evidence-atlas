@@ -2,7 +2,8 @@
 
 Status: SaaS fixed UI localization through Phase 4.7b, Phase 4.8a language
 boundaries, Phase 4.8b-1 authentication presentation and Phase 4.8b-2 generic
-failure/404 presentation and Phase 4.8c-1 Onboarding structured Action errors
+failure/404 presentation, Phase 4.8c-1 Onboarding structured Action errors and
+Phase 4.8c-2 Organization/Workspace role Action errors
 implemented, 2026-11-05.
 Phase 3 curated Public Demo Research
 presentation localization is also implemented. Canonical content is unchanged;
@@ -15,8 +16,8 @@ dialogs, AI fixed UI/local error notices/history dates and application-owned
 Google sign-in/authentication error pages. Global failures use a context-free
 bilingual fallback; 404s use the SaaS cookie or established Demo URL language.
 User-authored content,
-Source metadata, IDs and AI prose retain their original values. Onboarding uses
-structured localized Action errors; Organization/Workspace role and Research
+Source metadata, IDs and AI prose retain their original values. Onboarding and
+Organization/Workspace role Actions use structured localized errors; Research
 Action errors remain English. The phase-by-phase entries below describe each phase's original
 scope and verification; their deferred work is historical when a later entry
 records its completion.
@@ -59,6 +60,83 @@ AI errors, history date formatting and the API's preview fallback remain deferre
 
 Phase 4.7b completes local AI error feedback and history date/time localization.
 The ambiguous API preview fallback and broader error/state contracts remain deferred.
+
+## Organization and Workspace role Action errors (Phase 4.8c-2)
+
+Implemented 2026-11-05 against clean `main` at `2561d9b`. Inspection found exactly
+two membership-management Actions: `updateOrganizationMemberRole` and
+`updateWorkspaceMemberRole`, each used by its matching settings member-role form.
+Both Action-owned `error` properties now use `DisplayError | null` and render
+through the existing `getErrorMessage()` infrastructure. Six new parameter-free
+codes preserve all eight returned failure branches and exact English messages;
+shared missing-member and update-failure meanings reuse the same codes.
+
+| Action / existing failure branch | Code | Dictionary key | English meaning retained |
+| --- | --- | --- | --- |
+| Organization role schema fails | `ORGANIZATION_INVALID_ROLE` | `errors.organizationInvalidRole` | Invalid organization role. |
+| Workspace role schema fails | `WORKSPACE_INVALID_ROLE` | `errors.workspaceInvalidRole` | Invalid workspace role. |
+| Either Action: target membership absent after ADMIN guard | `MEMBER_NOT_FOUND` | `errors.memberNotFound` | Member not found. |
+| Organization ADMIN → MEMBER with scoped admin count ≤ 1 | `ORGANIZATION_LAST_ADMIN` | `errors.organizationLastAdmin` | An organization must have at least one admin. |
+| Workspace ADMIN → MEMBER with scoped admin count ≤ 1 | `WORKSPACE_LAST_ADMIN` | `errors.workspaceLastAdmin` | A workspace must have at least one admin. |
+| Either Action: existing update catch | `MEMBER_ROLE_UPDATE_FAILED` | `errors.memberRoleUpdateFailed` | Failed to update member role. Please try again. |
+
+Japanese preserves the Organization/Workspace product terms and uses ロール,
+メンバー and 管理者: invalid role notices distinguish the scope, missing-member
+feedback is `メンバーが見つかりません。`, last-ADMIN feedback says that the scope
+requires at least one administrator, and save failure asks the user to try again.
+Only these actual structured branches choose codes. No message matching, schema
+issue parsing, arbitrary parameters or exception details enter returned state.
+
+The security/execution order is unchanged: role validation → `requireUser()` →
+the scope-specific ADMIN guard → target membership lookup → no-op comparison →
+scoped last-ADMIN count when needed → exact scoped update → settings-path
+revalidation. Invalid-role feedback remains before authentication and contains no
+membership information. Unauthorized callers still throw/redirect before target
+lookup, including when a target exists elsewhere or the actor is ADMIN only in
+another scope/tenant. Target absence is disclosed only after the existing ADMIN
+guard. Authentication, actor/target/count read failures and revalidation failures
+still propagate outside the update catch; they are not converted to membership
+notices. No guard, query predicate, mutation payload, transaction, redirect,
+cookie, revalidation path or last-ADMIN comparison is changed. Authorized no-ops
+still return `{ error: null }` without update/count/revalidation; successful updates
+return the same null error and revalidate only their existing settings path.
+
+Forms resolve their existing optional locale prop with `resolveLocale` and use
+the same scoped display approach as Onboarding: their four expected codes follow
+that locale, while unexpected/malformed/legacy error data uses English through
+the helper and `lang="en"`. Raw legacy English messages are not echoed or matched.
+Missing Japanese keys retain per-entry English fallback. Existing bound IDs,
+`useState`/`useActionState`, initial null error, selected role, internal
+`ADMIN`/`MEMBER` values, option labels, pending/unchanged Save disablement, Select
+change handlers/portal placement, CSS and plain error-paragraph semantics remain
+unchanged. No effects, remounts, state resets, input clearing, live region, focus
+change or broader language switching is introduced. Onboarding, Research Actions,
+authentication configuration, schemas and provisioning remain unchanged.
+
+Validation: focused DB-free Vitest **9 files / 422 tests**, changed-file ESLint,
+TypeScript (`--noEmit --incremental false`) and diff whitespace checks passed.
+Real guard-chain tests cover both Actions' failure branches, authentication and
+ADMIN scope/tenant boundaries, indistinguishable target existence before
+authorization, last-ADMIN refusal at counts zero/one, allowed demotion with another
+ADMIN, promotions, authorized no-ops, exact scoped updates, execution order and
+revalidation paths. Unexpected read/auth/cache failures preserve their exception
+identity; update exceptions return only the code. Form/helper tests cover both
+languages/default/invalid locale, all new English meanings, missing-entry fallback,
+unknown/malformed/prototype-like codes and raw legacy strings, unread diagnostic
+getters, retained selection/pending Save state and exact retry IDs/FormData/state.
+Existing Onboarding, access, Public Demo Action restrictions and Home-only selector
+regressions pass. The initial sandbox Vitest startup hit `spawn EPERM`; the same
+offline selection passed with subprocess permission and the existing artifact
+exclusion. No dependency, package-manager or test-configuration changes were made.
+
+These are mocked-I/O/React-hook checks, not browser scheduling, Server Action
+serialization, focus/keyboard or live persistence evidence. Concurrent demotions
+and real rollback remain unverified: the original read/count/update sequence has
+no new atomicity guarantee. Existing role Select triggers still lack an explicit
+accessible name; error paragraphs retain no alert/live-region semantics. Missing
+Japanese entry fallback inherits the selected locale tag. Native-language copy
+review remains outstanding. No live database writes, authentication, Review
+session, browser, full suite, full E2E or Production Build was performed.
 
 ## Onboarding structured Action errors (Phase 4.8c-1)
 
@@ -1229,16 +1307,17 @@ full E2E or Production Build occurred. Research bodies and AI Panel remain defer
 Implemented 2026-11-03: `src/lib/i18n/errors.ts` provides a display-only
 `DisplayError` union, its `ErrorCode` type and `getErrorMessage(error, locale?)`.
 The original phase left Actions, forms and their error return types unchanged.
-Phase 4.8c-1 above now adopts it for Onboarding only and adds two specific codes;
-other Action adoption remains deferred. Home-only language switching remains in force.
+Phase 4.8c-1 adopts it for Onboarding and adds two specific codes; Phase 4.8c-2
+adds the two member-role Actions and six codes. Research Action adoption remains
+deferred. Home-only language switching remains in force.
 
 Repository investigation found five failure categories:
 
 - Input validation: Research create/edit throws the first Zod issue; Source and
   Finding Actions usually return it as `{ error: string | null }`. Schemas contain
-  English required/length/URL messages; role validation uses fixed English
-  notices. Onboarding now uses the two structured notices described in Phase
-  4.8c-1. There is still no shared structured field-error contract.
+  English required/length/URL messages. Onboarding and member-role validation now
+  use the structured notices described in Phases 4.8c-1/4.8c-2. There is still no
+  shared structured field-error contract.
 - Authentication/authorization: `requireUser()` redirects to sign-in; admin
   guards throw `Forbidden`. Research access combines missing/inaccessible records
   into `ResearchAccessError`, which many Actions expose as `Research not found.`.
@@ -1250,9 +1329,9 @@ Repository investigation found five failure categories:
 - Unexpected failures: many write catches return operation-specific generic
   notices, while unexpected access/read/indexing failures can propagate.
 
-Client dialogs use `useActionState` and render `state.error` directly, often in
-an alert; member-role forms also render that string. Onboarding now displays its
-structured state through this helper. The helper does not parse legacy strings,
+Research dialogs use `useActionState` and render `state.error` directly, often in
+an alert. Onboarding and member-role forms now display their structured state
+through this helper. The helper does not parse legacy strings,
 Zod messages, exceptions or DB error codes.
 
 | Stable code | Dictionary key | Parameters |
@@ -1266,12 +1345,18 @@ Zod messages, exceptions or DB error codes.
 | `INTERNAL_ERROR` | `errors.internal` | None |
 | `ONBOARDING_INVALID_INPUT` | `errors.onboardingInvalidInput` | None; added in Phase 4.8c-1 |
 | `ONBOARDING_CREATE_FAILED` | `errors.onboardingCreateFailed` | None; added in Phase 4.8c-1 |
+| `ORGANIZATION_INVALID_ROLE` | `errors.organizationInvalidRole` | None; added in Phase 4.8c-2 |
+| `WORKSPACE_INVALID_ROLE` | `errors.workspaceInvalidRole` | None; added in Phase 4.8c-2 |
+| `MEMBER_NOT_FOUND` | `errors.memberNotFound` | None; added in Phase 4.8c-2 |
+| `ORGANIZATION_LAST_ADMIN` | `errors.organizationLastAdmin` | None; added in Phase 4.8c-2 |
+| `WORKSPACE_LAST_ADMIN` | `errors.workspaceLastAdmin` | None; added in Phase 4.8c-2 |
+| `MEMBER_ROLE_UPDATE_FAILED` | `errors.memberRoleUpdateFailed` | None; added in Phase 4.8c-2 |
 
 Callers will choose codes from structured failure conditions, never by matching
 existing English wording. Example:
 `getErrorMessage({ code: "INPUT_TOO_LONG", params: { maxLength: 200 } }, "ja")`
 returns `200文字以内で入力してください。`. No arbitrary field names, entity names,
-operation text or diagnostic strings are interpolated. All nine keys have English
+operation text or diagnostic strings are interpolated. All fifteen keys have English
 and Japanese entries; no existing Demo wording changes.
 
 The function accepts unknown boundary input and maps only allowlisted codes to
@@ -1286,8 +1371,8 @@ Prisma/DB, Next.js, cookie, auth, request state, server-only or client-only depe
 they can be imported on either side. Scoped Node tests cover both languages,
 temporarily missing Japanese entries, interpolation, malformed/unknown input,
 diagnostic non-disclosure and repeated calls with frozen inputs. Browser/RSC
-integration remains unverified for this helper's Action adoption; Onboarding
-Action/form adoption is now implemented in Phase 4.8c-1 above.
+integration remains unverified for this helper's Action adoption; Onboarding and
+member-role Action/form adoption is implemented in Phases 4.8c-1/4.8c-2 above.
 
 ## Demo language switching and Chat
 
@@ -1354,7 +1439,7 @@ a context-free bilingual global failure fallback.
 | Saved research | `Research.title`, nullable `description` and `conclusion`; `Finding.content`, optional `data`; Workspace description, Tags, Comments | Separate presentation translations, with canonical evidence retained |
 | Source titles and citations | `Source.title`, `url`; `FindingSource` links; source IDs validated in Demo chat | Preserve original title, URL, IDs, and citation links; optional translated title is a clearly labeled display aid |
 | AI output and question suggestions | `lib/demo/chat-generation`, `chat-client`; `chat-questions.ts` selects prompts by canonical English Research title and locale; SaaS AI panel/history | Keep UI locale independent of AI answer language; predefined Demo suggestions, fixed UI and local client notices are translated; SaaS history dates follow the locale, while previews/prose and the ambiguous API preview fallback remain original |
-| Validation and errors | `types/research.ts`; `types/research/{source,finding,comment,tag,conclusion,status}.ts`; onboarding/member-role Actions; `lib/demo/chat-client.ts` and SaaS AI local failure branches | Onboarding uses two structured localized codes with English fallback for unknown data; role/Research Action errors remain English. Demo typed notices and SaaS local AI errors use dictionaries. `types/research/validation.ts` is empty and defines no schemas |
+| Validation and errors | `types/research.ts`; `types/research/{source,finding,comment,tag,conclusion,status}.ts`; onboarding/member-role Actions; `lib/demo/chat-client.ts` and SaaS AI local failure branches | Onboarding/member-role Actions use structured localized codes with English fallback for unknown data; Research Action errors remain English. Demo typed notices and SaaS local AI errors use dictionaries. `types/research/validation.ts` is empty and defines no schemas |
 
 The Demo has its own header with Appearance and repository link; authenticated
 pages use `AppShell`, `AppHeader`, and `AppNavigation`. There is no shared footer

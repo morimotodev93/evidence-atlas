@@ -5,12 +5,13 @@ import { z } from "zod";
 
 import { requireOrganizationAdmin } from "@/auth/requireOrganizationAdmin";
 import { requireUser } from "@/auth/requireUser";
+import type { DisplayError } from "@/lib/i18n/errors";
 import { db } from "@/prisma/db";
 
 const organizationRoleSchema = z.enum(["ADMIN", "MEMBER"]);
 
 export type UpdateOrganizationMemberRoleState = {
-  error: string | null;
+  error: DisplayError | null;
 };
 
 export async function updateOrganizationMemberRole(
@@ -25,7 +26,7 @@ export async function updateOrganizationMemberRole(
 
   if (!result.success) {
     return {
-      error: "Invalid organization role.",
+      error: { code: "ORGANIZATION_INVALID_ROLE" },
     };
   }
 
@@ -40,7 +41,7 @@ export async function updateOrganizationMemberRole(
 
   if (!membership) {
     return {
-      error: "Member not found.",
+      error: { code: "MEMBER_NOT_FOUND" },
     };
   }
 
@@ -63,7 +64,7 @@ export async function updateOrganizationMemberRole(
 
     if (adminCount <= 1) {
       return {
-        error: "An organization must have at least one admin.",
+        error: { code: "ORGANIZATION_LAST_ADMIN" },
       };
     }
   }
@@ -77,7 +78,7 @@ export async function updateOrganizationMemberRole(
     });
   } catch {
     return {
-      error: "Failed to update member role. Please try again.",
+      error: { code: "MEMBER_ROLE_UPDATE_FAILED" },
     };
   }
 

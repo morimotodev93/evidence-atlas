@@ -1,7 +1,8 @@
 "use client";
 
 import { useActionState, useState } from "react";
-import type { Locale } from "@/lib/i18n/locales";
+import { resolveLocale, type Locale } from "@/lib/i18n/locales";
+import { getErrorMessage } from "@/lib/i18n/errors";
 import { translate } from "@/lib/i18n/translate";
 
 import { Button } from "@/components/ui/button";
@@ -35,14 +36,20 @@ export function WorkspaceMemberRoleForm({
   workspaceId,
   userId,
   initialRole,
-  locale = "en",
+  locale: requestedLocale,
 }: WorkspaceMemberRoleFormProps) {
+  const locale = resolveLocale(requestedLocale);
   const [role, setRole] = useState<WorkspaceRole>(initialRole);
 
   const [state, action, isPending] = useActionState(
     updateWorkspaceMemberRole.bind(null, workspaceId, userId),
     initialState,
   );
+  // Follow Onboarding's scoped display boundary: unexpected error data uses English.
+  const errorLocale = state.error?.code === "WORKSPACE_INVALID_ROLE"
+    || state.error?.code === "MEMBER_NOT_FOUND"
+    || state.error?.code === "WORKSPACE_LAST_ADMIN"
+    || state.error?.code === "MEMBER_ROLE_UPDATE_FAILED" ? locale : "en";
 
   return (
     <form action={action} className="flex items-center gap-2">
@@ -75,7 +82,7 @@ export function WorkspaceMemberRoleForm({
         {translate(isPending ? "organization.saving" : "organization.save", locale)}
       </Button>
 
-      {state.error && <p lang="en" className="text-sm text-destructive">{state.error}</p>}
+      {state.error && <p lang={errorLocale} className="text-sm text-destructive">{getErrorMessage(state.error, errorLocale)}</p>}
     </form>
   );
 }

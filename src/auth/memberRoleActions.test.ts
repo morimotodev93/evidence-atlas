@@ -103,7 +103,8 @@ const scopes = [
     oppositeScope: { workspaceId: "workspace-id" },
     action: updateOrganizationMemberRole,
     accessError: "Forbidden",
-    lastAdminError: "An organization must have at least one admin.",
+    invalidRoleCode: "ORGANIZATION_INVALID_ROLE",
+    lastAdminCode: "ORGANIZATION_LAST_ADMIN",
     path: "/settings/organization",
   },
   {
@@ -116,7 +117,8 @@ const scopes = [
     oppositeScope: { organizationId: "organization-id" },
     action: updateWorkspaceMemberRole,
     accessError: "Workspace access denied",
-    lastAdminError: "A workspace must have at least one admin.",
+    invalidRoleCode: "WORKSPACE_INVALID_ROLE",
+    lastAdminCode: "WORKSPACE_LAST_ADMIN",
     path: "/settings/workspace",
   },
 ] as const;
@@ -145,7 +147,7 @@ describe.each(scopes)("$name member-role Action with real guards", (scope) => {
       if (role !== undefined) data.set("role", role);
 
       await expect(scope.action(scope.id, targetId, state, data)).resolves.toEqual({
-        error: `Invalid ${scope.name.toLowerCase()} role.`,
+        error: { code: scope.invalidRoleCode },
       });
 
       expect(mocks.auth).not.toHaveBeenCalled();
@@ -196,6 +198,28 @@ describe.each(scopes)("$name member-role Action with real guards", (scope) => {
     expectNoEffects();
   });
 
+  it.each([["MEMBER", true], ["MEMBER", false], [null, true], [null, false]] as const)(
+    "does not disclose target membership existence to actor role %s when target exists=%s", async (role, targetExists) => {
+      model.rows = [];
+      if (role) model.rows.push(membership(actorId, role));
+      if (targetExists) model.rows.push(membership(targetId, "MEMBER"));
+      await expect(run()).rejects.toThrow(role ? "Forbidden" : scope.accessError);
+      expect(model.where.mock.calls).toEqual([[actorFilter]]);
+      expect(model.first).toHaveBeenCalledExactlyOnceWith(actorFilter);
+      expect(model.all).not.toHaveBeenCalled();
+      expectNoEffects();
+    },
+  );
+
+  it("propagates unexpected authentication failures before any membership query", async () => {
+    const failure = new Error("private auth failure");
+    mocks.auth.mockRejectedValueOnce(failure);
+    await expect(run()).rejects.toBe(failure);
+    expect(model.where).not.toHaveBeenCalled();
+    expect(otherModel.where).not.toHaveBeenCalled();
+    expectNoEffects();
+  });
+
   // Retains the original Workspace missing-member case and adds a target that
   // exists only in another Organization/Workspace.
   it.each(["missing", "other tenant"])("rejects a target membership in %s", async (location) => {
@@ -204,7 +228,7 @@ describe.each(scopes)("$name member-role Action with real guards", (scope) => {
       model.rows.push(membership(targetId, "MEMBER", scope.otherId));
     }
 
-    await expect(run()).resolves.toEqual({ error: "Member not found." });
+    await expect(run()).resolves.toEqual({ error: { code: "MEMBER_NOT_FOUND" } });
 
     expect(model.where.mock.calls).toEqual([[actorFilter], [targetFilter]]);
     expect(model.all).not.toHaveBeenCalled();
@@ -216,10 +240,26 @@ describe.each(scopes)("$name member-role Action with real guards", (scope) => {
   it("prevents demoting the last admin even when another tenant has an admin", async () => {
     model.rows.push(membership("external-admin", "ADMIN", scope.otherId));
 
-    await expect(run(actorId, "MEMBER")).resolves.toEqual({ error: scope.lastAdminError });
+    await expect(run(actorId, "MEMBER")).resolves.toEqual({ error: { code: scope.lastAdminCode } });
 
     expect(model.first.mock.calls).toEqual([[actorFilter], [actorFilter]]);
     expect(model.all).toHaveBeenCalledExactlyOnceWith({ [scope.key]: scope.id });
+    expectNoEffects();
+  });
+
+  it("retains the defensive zero-admin refusal without mutation or revalidation", async () => {
+    model.all.mockResolvedValueOnce([]);
+    await expect(run(actorId, "MEMBER")).resolves.toEqual({ error: { code: scope.lastAdminCode } });
+    expect(model.first.mock.calls).toEqual([[actorFilter], [actorFilter]]);
+    expect(model.all).toHaveBeenCalledExactlyOnceWith({ [scope.key]: scope.id });
+    expectNoEffects();
+  });
+
+  it.each(["ADMIN", "MEMBER"] as const)("preserves authorized %s no-op success without count, update or revalidation", async role => {
+    model.rows = [membership(actorId, "ADMIN"), membership(targetId, role)];
+    await expect(run(targetId, role)).resolves.toEqual({ error: null });
+    expect(model.first.mock.calls).toEqual([[actorFilter], [targetFilter]]);
+    expect(model.all).not.toHaveBeenCalled();
     expectNoEffects();
   });
 
@@ -233,6 +273,9 @@ describe.each(scopes)("$name member-role Action with real guards", (scope) => {
     expect(model.all).toHaveBeenCalledExactlyOnceWith({ [scope.key]: scope.id });
     expect(model.update).toHaveBeenCalledExactlyOnceWith(targetFilter, { role: "MEMBER" });
     expect(mocks.revalidatePath).toHaveBeenCalledExactlyOnceWith(scope.path);
+    const order = [mocks.auth, model.first, model.all, model.update, mocks.revalidatePath]
+      .map(mock => mock.mock.invocationCallOrder[0]);
+    expect(order).toEqual([...order].sort((a, b) => a - b));
   });
 
   it("allows the local ADMIN to promote only the requested membership with an opposite-scope MEMBER role", async () => {
@@ -273,10 +316,12 @@ describe.each(scopes)("$name member-role Action with real guards", (scope) => {
   );
 
   it("retains the save-error state without cache or cookie effects", async () => {
-    model.update.mockRejectedValueOnce(new Error("Synthetic save failure"));
+    model.update.mockRejectedValueOnce(Object.assign(new Error("private database save failure"), {
+      code: "23505", cause: "private row data", stack: "private stack",
+    }));
 
     await expect(run()).resolves.toEqual({
-      error: "Failed to update member role. Please try again.",
+      error: { code: "MEMBER_ROLE_UPDATE_FAILED" },
     });
 
     expect(model.update).toHaveBeenCalledExactlyOnceWith(targetFilter, { role: "ADMIN" });
@@ -284,6 +329,16 @@ describe.each(scopes)("$name member-role Action with real guards", (scope) => {
     expect(mocks.cookies).not.toHaveBeenCalled();
     expect(mocks.revalidatePath).not.toHaveBeenCalled();
     expect(mocks.refresh).not.toHaveBeenCalled();
+    expect(mocks.redirect).not.toHaveBeenCalled();
+  });
+
+  it("keeps revalidation failures outside the update catch without retrying or changing the saved role", async () => {
+    const failure = new Error("private cache failure");
+    mocks.revalidatePath.mockImplementationOnce(() => { throw failure; });
+    await expect(run()).rejects.toBe(failure);
+    expect(model.update).toHaveBeenCalledExactlyOnceWith(targetFilter, { role: "ADMIN" });
+    expect(mocks.revalidatePath).toHaveBeenCalledExactlyOnceWith(scope.path);
+    expect(mocks.cookies).not.toHaveBeenCalled();
     expect(mocks.redirect).not.toHaveBeenCalled();
   });
 });

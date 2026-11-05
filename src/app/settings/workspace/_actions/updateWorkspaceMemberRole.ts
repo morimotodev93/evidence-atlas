@@ -5,12 +5,13 @@ import { z } from "zod";
 
 import { requireUser } from "@/auth/requireUser";
 import { requireWorkspaceAdmin } from "@/auth/requireWorkspaceAdmin";
+import type { DisplayError } from "@/lib/i18n/errors";
 import { db } from "@/prisma/db";
 
 const workspaceRoleSchema = z.enum(["ADMIN", "MEMBER"]);
 
 export type UpdateWorkspaceMemberRoleState = {
-  error: string | null;
+  error: DisplayError | null;
 };
 
 export async function updateWorkspaceMemberRole(
@@ -25,7 +26,7 @@ export async function updateWorkspaceMemberRole(
 
   if (!result.success) {
     return {
-      error: "Invalid workspace role.",
+      error: { code: "WORKSPACE_INVALID_ROLE" },
     };
   }
 
@@ -40,7 +41,7 @@ export async function updateWorkspaceMemberRole(
 
   if (!membership) {
     return {
-      error: "Member not found.",
+      error: { code: "MEMBER_NOT_FOUND" },
     };
   }
 
@@ -62,7 +63,7 @@ export async function updateWorkspaceMemberRole(
 
     if (adminCount <= 1) {
       return {
-        error: "A workspace must have at least one admin.",
+        error: { code: "WORKSPACE_LAST_ADMIN" },
       };
     }
   }
@@ -76,7 +77,7 @@ export async function updateWorkspaceMemberRole(
     });
   } catch {
     return {
-      error: "Failed to update member role. Please try again.",
+      error: { code: "MEMBER_ROLE_UPDATE_FAILED" },
     };
   }
 

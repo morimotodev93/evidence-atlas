@@ -38,6 +38,35 @@ canonical English. This completes the curated content scope only; full SaaS
 localization and deployed/runtime language verification remain open. See
 [i18n architecture](../architecture/i18n-foundation.md#phase-3-research-translation-catalog).
 
+### Organization and Workspace role Action errors (2026-11-05)
+
+Phase 4.8c-2 adopts structured display errors in the two existing member-role
+Actions/forms. Six parameter-free codes preserve invalid Organization/Workspace
+role messages, shared missing-member/save-failure messages and scoped last-ADMIN
+messages. English copy remains exact; Japanese uses equivalent fixed dictionary
+entries. Codes are chosen only at the original failure branches; malformed,
+unknown and legacy raw error data uses safe English fallback in these forms.
+
+Validation/authentication/ADMIN/target lookup order, scope/tenant predicates,
+last-ADMIN comparison, no-op and success results, exact role updates and settings
+revalidation paths are preserved. Unauthorized callers still cannot query target
+membership existence. Existing auth/read/cache exceptions remain outside the
+update catch. No transaction, cookie, redirect, schema, authentication-config,
+Onboarding or Research Action changes are introduced. Form selection, pending
+Save disablement, bound IDs, FormData, Select handlers/portals and Home-only
+switching remain intact.
+
+Focused DB-free Vitest **9 files / 422 tests**, changed-file ESLint, TypeScript
+(`--noEmit --incremental false`) and diff whitespace checks passed, including
+real guard-chain/last-ADMIN/scoped mutation checks, both languages and malformed/
+missing-entry fallback, diagnostic non-disclosure, preserved form state and
+Onboarding/Public Demo/access regressions. Browser/Server Action serialization,
+live persistence, concurrent demotions, screen-reader/focus and native-language
+review remain unverified; the original read/count/update sequence gains no new
+atomicity guarantee. No live DB writes, browser, full suite, full E2E or Production
+Build; no quality/release checklist is advanced. See
+[Phase 4.8c-2 scope and verification](../architecture/i18n-foundation.md#organization-and-workspace-role-action-errors-phase-48c-2).
+
 ### Onboarding structured Action errors (2026-11-05)
 
 Phase 4.8c-1 adopts `DisplayError`/`ErrorCode`/`getErrorMessage()` for Onboarding

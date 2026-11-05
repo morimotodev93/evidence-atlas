@@ -1,13 +1,16 @@
 import { Children, isValidElement, type ReactElement, type ReactNode } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { Locale } from "@/lib/i18n/locales";
+import type { DisplayError } from "@/lib/i18n/errors";
+import type { Dictionary } from "@/lib/i18n/dictionaries/en";
+import { ja } from "@/lib/i18n/dictionaries/ja";
 import { Select, SelectContent, SelectItem, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { WorkspaceMemberRoleForm } from "./workspace-member-role-form";
 
 const state = vi.hoisted(() => ({
   role: undefined as "ADMIN" | "MEMBER" | undefined, pending: false,
-  result: { error: null as string | null }, update: vi.fn(), useActionState: vi.fn(),
+  result: { error: null as DisplayError | null }, update: vi.fn(), useActionState: vi.fn(),
 }));
 vi.mock("../_actions/updateWorkspaceMemberRole", () => ({ updateWorkspaceMemberRole: state.update }));
 // Inspect the production tree/handlers without mounting Base UI. Browser keyboard
@@ -88,12 +91,76 @@ describe("Workspace member role display", () => {
     expect(tree.find(node => node.type === Button)?.props.disabled).toBe(true);
   });
 
-  it.each([undefined, "en", "ja", "invalid"])("preserves existing English Action error text and presentation for %s", (value) => {
-    state.result = { error: "A workspace must have at least one admin." };
-    const error = nodes(view(value as Locale | undefined)).find(node => node.type === "p")!;
-    expect(error.props.children).toBe(state.result.error);
-    expect(error.props.lang).toBe("en");
-    expect(error.props).not.toHaveProperty("role");
-    expect(state.update).not.toHaveBeenCalled();
+  describe.each([undefined, "en", "ja", "invalid"])("structured error presentation for %s", value => {
+    it.each([
+      ["WORKSPACE_INVALID_ROLE", "Invalid workspace role.", "Workspaceのロールが無効です。"],
+      ["MEMBER_NOT_FOUND", "Member not found.", "メンバーが見つかりません。"],
+      ["WORKSPACE_LAST_ADMIN", "A workspace must have at least one admin.", "Workspaceには管理者が1人以上必要です。"],
+      ["MEMBER_ROLE_UPDATE_FAILED", "Failed to update member role. Please try again.", "メンバーのロールを更新できませんでした。もう一度お試しください。"],
+    ] as const)("displays %s with the original English meaning", (code, en, ja) => {
+      state.result = { error: { code } };
+      const error = nodes(view(value as Locale | undefined)).find(node => node.type === "p")!;
+      expect(error.props.children).toBe(value === "ja" ? ja : en);
+      expect(error.props.lang).toBe(value === "ja" ? "ja" : "en");
+      expect(error.props).not.toHaveProperty("role");
+      expect(state.update).not.toHaveBeenCalled();
+    });
+
+    it.each([
+      "Invalid workspace role.", "Member not found.", "A workspace must have at least one admin.",
+      "Failed to update member role. Please try again.", {}, { code: "UNKNOWN" }, { code: "__proto__" },
+      { code: "constructor" }, { code: 42 }, { code: null }, { code: ["MEMBER_NOT_FOUND"] },
+      { code: "MEMBER_NOT_FOUND " }, { message: "private diagnostic", cause: "private cause" },
+    ])("uses safe English feedback for unexpected data %j without message matching", error => {
+      state.result = { error: error as DisplayError };
+      const paragraph = nodes(view(value as Locale | undefined)).find(node => node.type === "p")!;
+      expect(paragraph.props.children).toBe("Something went wrong. Please try again.");
+      expect(paragraph.props.lang).toBe("en");
+      expect(state.update).not.toHaveBeenCalled();
+    });
+  });
+
+  it.each([
+    ["WORKSPACE_INVALID_ROLE", "errors.workspaceInvalidRole", "Invalid workspace role."],
+    ["MEMBER_NOT_FOUND", "errors.memberNotFound", "Member not found."],
+    ["WORKSPACE_LAST_ADMIN", "errors.workspaceLastAdmin", "A workspace must have at least one admin."],
+    ["MEMBER_ROLE_UPDATE_FAILED", "errors.memberRoleUpdateFailed", "Failed to update member role. Please try again."],
+  ] as const)("keeps per-key English fallback for %s", (code, key, english) => {
+    const partial: { -readonly [K in keyof Dictionary]?: string } = ja;
+    const saved = partial[key];
+    try {
+      delete partial[key];
+      state.result = { error: { code } };
+      const paragraph = nodes(view("ja")).find(node => node.type === "p")!;
+      expect(paragraph.props.children).toBe(english);
+      expect(paragraph.props.lang).toBe("ja");
+    } finally { partial[key] = saved; }
+  });
+
+  it("ignores diagnostic getters and preserves selection, pending locks and bound submission after failure", async () => {
+    const failure = { code: "MEMBER_ROLE_UPDATE_FAILED" as const,
+      get message(): never { throw Error("private message was read"); },
+      get cause(): never { throw Error("private cause was read"); },
+      get stack(): never { throw Error("private stack was read"); },
+    };
+    state.result = { error: failure };
+    nodes(view("ja")).find(node => node.type === Select)!.props.onValueChange!("MEMBER");
+    state.pending = true;
+    const pending = nodes(view("ja"));
+    expect(pending.find(node => node.type === Select)?.props.value).toBe("MEMBER");
+    expect(pending.find(node => node.type === Button)?.props.disabled).toBe(true);
+    state.pending = false;
+    const tree = view("en");
+    expect(nodes(tree).find(node => node.type === Select)?.props.value).toBe("MEMBER");
+    expect(nodes(tree).find(node => node.type === Button)?.props.disabled).toBe(false);
+    const data = new FormData(); data.set("role", "MEMBER");
+    await tree.props.action(data);
+    expect(state.update).toHaveBeenCalledTimes(1);
+    expect(state.update.mock.calls[0].slice(0, 2)).toEqual(["original-workspace-id", "original-user-id"]);
+    expect(state.update.mock.calls[0][2]).toBe(state.result);
+    expect(state.update.mock.calls[0][3]).toBe(data);
+    state.result = { error: null };
+    expect(nodes(view("ja")).some(node => node.type === "p")).toBe(false);
+    expect(nodes(view("ja")).find(node => node.type === Select)?.props.value).toBe("MEMBER");
   });
 });

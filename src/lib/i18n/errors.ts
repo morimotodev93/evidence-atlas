@@ -6,7 +6,8 @@ import { translate } from "./translate";
 // never by matching exception messages. This does not replace Action state types.
 export type DisplayError =
   | { readonly code: "INPUT_TOO_LONG"; readonly params: { readonly maxLength: number } }
-  | { readonly code: "INVALID_INPUT" | "UNAUTHENTICATED" | "FORBIDDEN" | "NOT_FOUND" | "CONFLICT" | "INTERNAL_ERROR" | "ONBOARDING_INVALID_INPUT" | "ONBOARDING_CREATE_FAILED" };
+  | { readonly code: "INVALID_INPUT" | "UNAUTHENTICATED" | "FORBIDDEN" | "NOT_FOUND" | "CONFLICT" | "INTERNAL_ERROR" | "ONBOARDING_INVALID_INPUT" | "ONBOARDING_CREATE_FAILED" }
+  | { readonly code: "ORGANIZATION_INVALID_ROLE" | "WORKSPACE_INVALID_ROLE" | "MEMBER_NOT_FOUND" | "ORGANIZATION_LAST_ADMIN" | "WORKSPACE_LAST_ADMIN" | "MEMBER_ROLE_UPDATE_FAILED" };
 
 export type ErrorCode = DisplayError["code"];
 
@@ -20,6 +21,12 @@ const errorKeys = {
   INTERNAL_ERROR: "errors.internal",
   ONBOARDING_INVALID_INPUT: "errors.onboardingInvalidInput",
   ONBOARDING_CREATE_FAILED: "errors.onboardingCreateFailed",
+  ORGANIZATION_INVALID_ROLE: "errors.organizationInvalidRole",
+  WORKSPACE_INVALID_ROLE: "errors.workspaceInvalidRole",
+  MEMBER_NOT_FOUND: "errors.memberNotFound",
+  ORGANIZATION_LAST_ADMIN: "errors.organizationLastAdmin",
+  WORKSPACE_LAST_ADMIN: "errors.workspaceLastAdmin",
+  MEMBER_ROLE_UPDATE_FAILED: "errors.memberRoleUpdateFailed",
 } as const satisfies Record<ErrorCode, TranslationKey>;
 
 // Accept unknown boundary data safely; message, cause, stack and other diagnostic
