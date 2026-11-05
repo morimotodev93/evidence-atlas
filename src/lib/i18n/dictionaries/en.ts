@@ -1,5 +1,7 @@
 // English defines the stable UI key contract.
 export const en = {
+  "errors.onboardingInvalidInput": "Enter an organization name and workspace name.",
+  "errors.onboardingCreateFailed": "Failed to create your workspace. Please try again.",
   "errors.applicationTitle": "Application error",
   "errors.applicationDescription": "Something went wrong. Please try again later.",
   "errors.notFoundTitle": "Page not found",

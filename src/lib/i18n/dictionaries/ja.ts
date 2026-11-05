@@ -1,6 +1,8 @@
 import type { Dictionary } from "./en";
 
 export const ja = {
+  "errors.onboardingInvalidInput": "Organization名とWorkspace名を入力してください。",
+  "errors.onboardingCreateFailed": "Workspaceを作成できませんでした。もう一度お試しください。",
   "errors.applicationTitle": "アプリケーションエラー",
   "errors.applicationDescription": "問題が発生しました。時間をおいてから、もう一度お試しください。",
   "errors.notFoundTitle": "ページが見つかりません",

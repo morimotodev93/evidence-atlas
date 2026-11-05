@@ -1,7 +1,8 @@
 "use client";
 
 import { useActionState } from "react";
-import type { Locale } from "@/lib/i18n/locales";
+import { resolveLocale, type Locale } from "@/lib/i18n/locales";
+import { getErrorMessage } from "@/lib/i18n/errors";
 import { translate } from "@/lib/i18n/translate";
 
 import { Button } from "@/components/ui/button";
@@ -16,11 +17,16 @@ const initialState: CreateInitialWorkspaceState = {
   error: null,
 };
 
-export function OnboardingForm({ locale = "en" }: { locale?: Locale } = {}) {
+export function OnboardingForm({ locale: requestedLocale }: { locale?: Locale } = {}) {
+  const locale = resolveLocale(requestedLocale);
   const [state, action, isPending] = useActionState(
     createInitialWorkspace,
     initialState,
   );
+  // Only this Action's two structured failures adopt the page language.
+  // Unexpected boundary data keeps a safe, explicitly English fallback.
+  const errorLocale = state.error?.code === "ONBOARDING_INVALID_INPUT"
+    || state.error?.code === "ONBOARDING_CREATE_FAILED" ? locale : "en";
 
   return (
     <form action={action} className="space-y-5">
@@ -52,7 +58,7 @@ export function OnboardingForm({ locale = "en" }: { locale?: Locale } = {}) {
         />
       </div>
 
-      {state.error && <p lang="en" className="text-sm text-destructive">{state.error}</p>}
+      {state.error && <p lang={errorLocale} className="text-sm text-destructive">{getErrorMessage(state.error, errorLocale)}</p>}
 
       <Button type="submit" disabled={isPending}>
         {translate(isPending ? "onboarding.creating" : "onboarding.create", locale)}

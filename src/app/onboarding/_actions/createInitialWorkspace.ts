@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { z } from "zod";
 
 import { requireUser } from "@/auth/requireUser";
+import type { DisplayError } from "@/lib/i18n/errors";
 import { db } from "@/prisma/db";
 import { CURRENT_WORKSPACE_COOKIE } from "@/workspace/currentWorkspace";
 import { getAccessibleWorkspaces } from "@/workspace/getAccessibleWorkspaces";
@@ -15,7 +16,7 @@ const onboardingSchema = z.object({
 });
 
 export type CreateInitialWorkspaceState = {
-  error: string | null;
+  error: DisplayError | null;
 };
 
 export async function createInitialWorkspace(
@@ -29,7 +30,7 @@ export async function createInitialWorkspace(
 
   if (!result.success) {
     return {
-      error: "Enter an organization name and workspace name.",
+      error: { code: "ONBOARDING_INVALID_INPUT" },
     };
   }
 
@@ -71,7 +72,7 @@ export async function createInitialWorkspace(
     });
   } catch {
     return {
-      error: "Failed to create your workspace. Please try again.",
+      error: { code: "ONBOARDING_CREATE_FAILED" },
     };
   }
 

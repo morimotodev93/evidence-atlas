@@ -38,6 +38,31 @@ canonical English. This completes the curated content scope only; full SaaS
 localization and deployed/runtime language verification remain open. See
 [i18n architecture](../architecture/i18n-foundation.md#phase-3-research-translation-catalog).
 
+### Onboarding structured Action errors (2026-11-05)
+
+Phase 4.8c-1 adopts `DisplayError`/`ErrorCode`/`getErrorMessage()` for Onboarding
+only. Existing schema failure returns `ONBOARDING_INVALID_INPUT`; the original
+transaction catch returns `ONBOARDING_CREATE_FAILED`. Two new dictionary entries
+preserve the exact English messages and add equivalent Japanese notices.
+Unknown/malformed/legacy error data uses a safe English fallback in Onboarding;
+the shared helper's existing localized generic fallback remains unchanged.
+
+Validation order, real User/access checks, single provisioning transaction,
+ADMIN memberships, identifiers, cookie flags, redirects, form state/inputs,
+pending behavior and Home-only switching are retained. Role/Research Actions,
+Prisma/database logic and all non-transaction exception boundaries are unchanged.
+Focused DB-free Vitest **8 files / 222 tests**, changed-file ESLint, TypeScript
+(`--noEmit --incremental false`) and diff whitespace checks passed. Tests cover
+each creation failure, real guard behavior, successful provisioning order/values,
+cookie failures/flags, both languages/fallbacks, diagnostic non-disclosure and
+unchanged form submission state.
+
+Real rollback/concurrency, Server Action serialization, browser scheduling/
+hydration/focus, native-language review and live initial provisioning remain
+unverified. No live provisioning, DB/fixture writes, browser, full suite, full E2E
+or Production Build; no quality/release checklist is advanced. See
+[Phase 4.8c-1 scope and verification](../architecture/i18n-foundation.md#onboarding-structured-action-errors-phase-48c-1).
+
 ### Generic failure and 404 localization (2026-11-05)
 
 Phase 4.8b-2 replaces default fatal-error copy with a self-contained, explicitly

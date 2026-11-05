@@ -6,7 +6,7 @@ import { translate } from "./translate";
 // never by matching exception messages. This does not replace Action state types.
 export type DisplayError =
   | { readonly code: "INPUT_TOO_LONG"; readonly params: { readonly maxLength: number } }
-  | { readonly code: "INVALID_INPUT" | "UNAUTHENTICATED" | "FORBIDDEN" | "NOT_FOUND" | "CONFLICT" | "INTERNAL_ERROR" };
+  | { readonly code: "INVALID_INPUT" | "UNAUTHENTICATED" | "FORBIDDEN" | "NOT_FOUND" | "CONFLICT" | "INTERNAL_ERROR" | "ONBOARDING_INVALID_INPUT" | "ONBOARDING_CREATE_FAILED" };
 
 export type ErrorCode = DisplayError["code"];
 
@@ -18,6 +18,8 @@ const errorKeys = {
   NOT_FOUND: "errors.notFound",
   CONFLICT: "errors.conflict",
   INTERNAL_ERROR: "errors.internal",
+  ONBOARDING_INVALID_INPUT: "errors.onboardingInvalidInput",
+  ONBOARDING_CREATE_FAILED: "errors.onboardingCreateFailed",
 } as const satisfies Record<ErrorCode, TranslationKey>;
 
 // Accept unknown boundary data safely; message, cause, stack and other diagnostic

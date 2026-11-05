@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { createInitialWorkspace } from "@/app/onboarding/_actions/createInitialWorkspace";
 
@@ -36,6 +36,8 @@ const mocks = vi.hoisted(() => {
     workspaceMembershipCreate,
     tx,
     transaction: vi.fn(),
+    auth: vi.fn(),
+    notFound: vi.fn(),
     requireUser: vi.fn(),
     getAccessibleWorkspaces: vi.fn(),
     cookies: vi.fn(),
@@ -53,6 +55,7 @@ vi.mock("@/prisma/db", () => ({
 vi.mock("@/auth/requireUser", () => ({
   requireUser: mocks.requireUser,
 }));
+vi.mock("@/auth", () => ({ auth: mocks.auth }));
 
 vi.mock("@/workspace/getAccessibleWorkspaces", () => ({
   getAccessibleWorkspaces: mocks.getAccessibleWorkspaces,
@@ -64,6 +67,7 @@ vi.mock("next/headers", () => ({
 
 vi.mock("next/navigation", () => ({
   redirect: mocks.redirect,
+  notFound: mocks.notFound,
 }));
 
 function onboardingForm(
@@ -77,6 +81,7 @@ function onboardingForm(
 }
 
 const state = { error: null };
+afterEach(() => vi.unstubAllEnvs());
 
 describe("createInitialWorkspace", () => {
   const redirectError = new Error("NEXT_REDIRECT");
@@ -169,6 +174,11 @@ describe("createInitialWorkspace", () => {
     );
 
     expect(mocks.redirect).toHaveBeenCalledWith("/");
+    const order = [mocks.requireUser, mocks.getAccessibleWorkspaces, mocks.transaction,
+      mocks.organizationCreate, mocks.membershipCreate, mocks.workspaceCreate,
+      mocks.workspaceMembershipCreate, mocks.cookies, mocks.cookieSet, mocks.redirect]
+      .map(mock => mock.mock.invocationCallOrder[0]);
+    expect(order).toEqual([...order].sort((a, b) => a - b));
   });
 
   it("redirects an already provisioned user without creating another workspace", async () => {
@@ -210,7 +220,7 @@ describe("createInitialWorkspace", () => {
     await expect(
       createInitialWorkspace(state, onboardingForm("", "")),
     ).resolves.toEqual({
-      error: "Enter an organization name and workspace name.",
+      error: { code: "ONBOARDING_INVALID_INPUT" },
     });
 
     expect(mocks.requireUser).not.toHaveBeenCalled();
@@ -225,11 +235,77 @@ describe("createInitialWorkspace", () => {
     await expect(
       createInitialWorkspace(state, onboardingForm()),
     ).resolves.toEqual({
-      error: "Failed to create your workspace. Please try again.",
+      error: { code: "ONBOARDING_CREATE_FAILED" },
     });
 
     expect(mocks.cookieSet).not.toHaveBeenCalled();
     expect(mocks.redirect).not.toHaveBeenCalled();
+  });
+
+  it.each(["organizationCreate", "membershipCreate", "workspaceCreate", "workspaceMembershipCreate"] as const)(
+    "returns only the creation code when %s rejects within the original transaction", async (stage) => {
+      const failure = Object.assign(new Error("private database detail"), { cause: "private row", code: "23505" });
+      mocks[stage].mockRejectedValueOnce(failure);
+      const result = await createInitialWorkspace(state, onboardingForm());
+      expect(result).toEqual({ error: { code: "ONBOARDING_CREATE_FAILED" } });
+      expect(JSON.stringify(result)).not.toMatch(/private|23505|message|cause|stack/);
+      expect(mocks.transaction).toHaveBeenCalledOnce();
+      expect(mocks[stage]).toHaveBeenCalledOnce();
+      const stages = ["organizationCreate", "membershipCreate", "workspaceCreate", "workspaceMembershipCreate"] as const;
+      for (const skipped of stages.slice(stages.indexOf(stage) + 1)) expect(mocks[skipped]).not.toHaveBeenCalled();
+      expect(mocks.cookies).not.toHaveBeenCalled();
+      expect(mocks.cookieSet).not.toHaveBeenCalled();
+      expect(mocks.redirect).not.toHaveBeenCalled();
+    },
+  );
+
+  it.each(["authentication redirect", "unexpected auth failure"])("preserves %s before membership lookup or provisioning", async reason => {
+    const failure = new Error(reason);
+    mocks.requireUser.mockRejectedValueOnce(failure);
+    await expect(createInitialWorkspace(state, onboardingForm())).rejects.toBe(failure);
+    expect(mocks.getAccessibleWorkspaces).not.toHaveBeenCalled();
+    expect(mocks.transaction).not.toHaveBeenCalled();
+    expect(mocks.cookies).not.toHaveBeenCalled();
+    expect(mocks.redirect).not.toHaveBeenCalled();
+  });
+
+  it.each([false, true])("retains the real User guard for authenticated=%s without changing redirect or provisioning", async authenticated => {
+    vi.stubEnv("PUBLIC_DEMO_MODE", "false");
+    const { requireUser } = await vi.importActual<typeof import("@/auth/requireUser")>("@/auth/requireUser");
+    mocks.requireUser.mockImplementationOnce(requireUser);
+    mocks.auth.mockResolvedValue(authenticated ? { user: { id: "user-id" } } : null);
+    await expect(createInitialWorkspace(state, onboardingForm())).rejects.toBe(redirectError);
+    expect(mocks.auth).toHaveBeenCalledOnce();
+    expect(mocks.notFound).not.toHaveBeenCalled();
+    expect(mocks.redirect).toHaveBeenCalledExactlyOnceWith(authenticated ? "/" : "/api/auth/signin");
+    if (authenticated) {
+      expect(mocks.getAccessibleWorkspaces).toHaveBeenCalledExactlyOnceWith("user-id");
+      expect(mocks.transaction).toHaveBeenCalledOnce();
+      expect(mocks.cookieSet).toHaveBeenCalledOnce();
+    } else {
+      expect(mocks.getAccessibleWorkspaces).not.toHaveBeenCalled();
+      expect(mocks.transaction).not.toHaveBeenCalled();
+      expect(mocks.cookies).not.toHaveBeenCalled();
+    }
+  });
+
+  it.each(["cookies", "cookieSet"] as const)("preserves %s failures outside the transaction catch without retrying provisioning", async stage => {
+    const failure = new Error("private cookie failure");
+    if (stage === "cookies") mocks.cookies.mockRejectedValueOnce(failure);
+    else mocks.cookieSet.mockImplementationOnce(() => { throw failure; });
+    await expect(createInitialWorkspace(state, onboardingForm())).rejects.toBe(failure);
+    expect(mocks.transaction).toHaveBeenCalledOnce();
+    expect(mocks.workspaceMembershipCreate).toHaveBeenCalledOnce();
+    expect(mocks.redirect).not.toHaveBeenCalled();
+  });
+
+  it("retains production cookie flags and ignores previous error state on successful provisioning", async () => {
+    vi.stubEnv("NODE_ENV", "production");
+    await expect(createInitialWorkspace({ error: { code: "ONBOARDING_INVALID_INPUT" } }, onboardingForm())).rejects.toBe(redirectError);
+    expect(mocks.cookieSet).toHaveBeenCalledExactlyOnceWith("evidence_atlas_workspace", "workspace-id", {
+      httpOnly: true, sameSite: "lax", secure: true, path: "/",
+    });
+    expect(mocks.redirect).toHaveBeenCalledExactlyOnceWith("/");
   });
 
   describe.each(["organizationName", "workspaceName"])("%s validation", (field) => {
@@ -240,7 +316,7 @@ describe("createInitialWorkspace", () => {
         else data.set(field, value);
 
         await expect(createInitialWorkspace(state, data)).resolves.toEqual({
-          error: "Enter an organization name and workspace name.",
+          error: { code: "ONBOARDING_INVALID_INPUT" },
         });
 
         expect(mocks.requireUser).not.toHaveBeenCalled();

@@ -11,6 +11,8 @@ const messages = [
   ["NOT_FOUND", "The requested item could not be found.", "対象のデータが見つかりません。"],
   ["CONFLICT", "This action cannot be completed in the current state. Check and try again.", "現在の状態ではこの操作を完了できません。確認して、もう一度お試しください。"],
   ["INTERNAL_ERROR", "Something went wrong. Please try again.", "エラーが発生しました。もう一度お試しください。"],
+  ["ONBOARDING_INVALID_INPUT", "Enter an organization name and workspace name.", "Organization名とWorkspace名を入力してください。"],
+  ["ONBOARDING_CREATE_FAILED", "Failed to create your workspace. Please try again.", "Workspaceを作成できませんでした。もう一度お試しください。"],
 ] as const satisfies ReadonlyArray<readonly [ErrorCode, string, string]>;
 
 describe("error display contract", () => {

@@ -2,12 +2,15 @@ import { Children, isValidElement, type ReactElement, type ReactNode } from "rea
 import { renderToStaticMarkup } from "react-dom/server";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { Locale } from "@/lib/i18n/locales";
+import type { DisplayError } from "@/lib/i18n/errors";
+import type { Dictionary } from "@/lib/i18n/dictionaries/en";
+import { ja } from "@/lib/i18n/dictionaries/ja";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { OnboardingForm } from "./onboarding-form";
 
 const state = vi.hoisted(() => ({
-  pending: false, result: { error: null as string | null }, create: vi.fn(), useActionState: vi.fn(),
+  pending: false, result: { error: null as DisplayError | null }, create: vi.fn(), useActionState: vi.fn(),
 }));
 vi.mock("../_actions/createInitialWorkspace", () => ({ createInitialWorkspace: state.create }));
 // Replace only the Action hook/I/O; keep the actual Input and Button markup.
@@ -86,16 +89,71 @@ describe("Onboarding form localization", () => {
 
   describe.each([undefined, "en", "ja", "invalid"])("Action errors for locale %s", (value) => {
     it.each([
-      "Enter an organization name and workspace name.",
-      "Failed to create your workspace. Please try again.",
-    ])("keeps the Action error unchanged: %s", (error) => {
-      state.result = { error };
+      ["ONBOARDING_INVALID_INPUT", "Enter an organization name and workspace name.", "Organization名とWorkspace名を入力してください。"],
+      ["ONBOARDING_CREATE_FAILED", "Failed to create your workspace. Please try again.", "Workspaceを作成できませんでした。もう一度お試しください。"],
+    ] as const)("renders structured %s with equivalent meaning", (code, en, ja) => {
+      state.result = { error: { code } };
       const tree = OnboardingForm({ locale: value as Locale | undefined });
-      expect(nodes(tree).find(node => node.type === "p")?.props.children).toBe(error);
-      expect(nodes(tree).find(node => node.type === "p")?.props.lang).toBe("en");
+      expect(nodes(tree).find(node => node.type === "p")?.props.children).toBe(value === "ja" ? ja : en);
+      expect(nodes(tree).find(node => node.type === "p")?.props.lang).toBe(value === "ja" ? "ja" : "en");
       expect(nodes(tree).find(node => node.type === "p")?.props).not.toHaveProperty("role");
-      expect(renderToStaticMarkup(tree)).toContain(error);
+      expect(renderToStaticMarkup(tree)).toContain(value === "ja" ? ja : en);
       expect(state.create).not.toHaveBeenCalled();
     });
+
+    it.each([
+      "private-legacy-error", "Enter an organization name and workspace name.",
+      "Failed to create your workspace. Please try again.", {}, { code: "UNKNOWN" }, { code: "__proto__" },
+      { code: "constructor" }, { code: 42 }, { code: null }, { code: ["ONBOARDING_CREATE_FAILED"] },
+      { code: "onboarding_create_failed" }, { code: "ONBOARDING_CREATE_FAILED " },
+      { message: "private exception", stack: "private stack", cause: "private cause" },
+    ])("uses safe English fallback for unexpected error data %j", (error) => {
+      state.result = { error: error as DisplayError };
+      const tree = OnboardingForm({ locale: value as Locale | undefined });
+      const paragraph = nodes(tree).find(node => node.type === "p")!;
+      expect(paragraph.props.children).toBe("Something went wrong. Please try again.");
+      expect(paragraph.props.lang).toBe("en");
+      expect(renderToStaticMarkup(tree)).not.toMatch(/private|UNKNOWN|__proto__|constructor|onboarding_create_failed/);
+      expect(state.create).not.toHaveBeenCalled();
+    });
+  });
+
+  it.each(["ONBOARDING_INVALID_INPUT", "ONBOARDING_CREATE_FAILED"] as const)("ignores diagnostics alongside known code %s and preserves pending/submission state", async code => {
+    const diagnostics = { code,
+      get message(): never { throw new Error("private message was read"); },
+      get cause(): never { throw new Error("private cause was read"); },
+      get stack(): never { throw new Error("private stack was read"); },
+    };
+    state.result = { error: diagnostics };
+    state.pending = true;
+    const pending = OnboardingForm({ locale: "ja" });
+    expect(nodes(pending).filter(node => node.type === Input || node.type === Button).every(node => node.props.disabled)).toBe(true);
+    expect(nodes(pending).find(node => node.type === "p")?.props.lang).toBe("ja");
+    state.pending = false;
+    const tree = OnboardingForm({ locale: "ja" });
+    const data = new FormData();
+    data.set("organizationName", "  Original Organization 原文  ");
+    data.set("workspaceName", "Original Workspace / 日本語");
+    await tree.props.action(data);
+    expect(state.create).toHaveBeenCalledTimes(1);
+    expect(state.create.mock.calls[0][0]).toBe(state.result);
+    expect(state.create.mock.calls[0][1]).toBe(data);
+    expect(data.get("organizationName")).toBe("  Original Organization 原文  ");
+    expect(nodes(tree).filter(node => node.type === Input || node.type === Button).every(node => node.props.disabled === false)).toBe(true);
+  });
+
+  it.each([
+    ["ONBOARDING_INVALID_INPUT", "errors.onboardingInvalidInput", "Enter an organization name and workspace name."],
+    ["ONBOARDING_CREATE_FAILED", "errors.onboardingCreateFailed", "Failed to create your workspace. Please try again."],
+  ] as const)("falls back per missing Japanese dictionary entry for %s", (code, key, english) => {
+    const partial: { -readonly [K in keyof Dictionary]?: string } = ja;
+    const saved = partial[key];
+    try {
+      delete partial[key];
+      state.result = { error: { code } };
+      const tree = OnboardingForm({ locale: "ja" });
+      expect(nodes(tree).find(node => node.type === "p")?.props.children).toBe(english);
+      expect(nodes(tree).find(node => node.type === "p")?.props.lang).toBe("ja");
+    } finally { partial[key] = saved; }
   });
 });

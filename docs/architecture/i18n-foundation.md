@@ -2,10 +2,11 @@
 
 Status: SaaS fixed UI localization through Phase 4.7b, Phase 4.8a language
 boundaries, Phase 4.8b-1 authentication presentation and Phase 4.8b-2 generic
-failure/404 presentation implemented, 2026-11-05.
+failure/404 presentation and Phase 4.8c-1 Onboarding structured Action errors
+implemented, 2026-11-05.
 Phase 3 curated Public Demo Research
 presentation localization is also implemented. Canonical content is unchanged;
-Business Action error localization, root layout HTML language and broader SaaS language
+Broader business Action error localization, root layout HTML language and broader SaaS language
 switching remain outside this scope.
 
 Current SaaS coverage includes shared navigation/Appearance, Home, Organization
@@ -14,8 +15,9 @@ dialogs, AI fixed UI/local error notices/history dates and application-owned
 Google sign-in/authentication error pages. Global failures use a context-free
 bilingual fallback; 404s use the SaaS cookie or established Demo URL language.
 User-authored content,
-Source metadata, IDs and AI prose retain their original values. Action errors
-remain English. The phase-by-phase entries below describe each phase's original
+Source metadata, IDs and AI prose retain their original values. Onboarding uses
+structured localized Action errors; Organization/Workspace role and Research
+Action errors remain English. The phase-by-phase entries below describe each phase's original
 scope and verification; their deferred work is historical when a later entry
 records its completion.
 
@@ -57,6 +59,73 @@ AI errors, history date formatting and the API's preview fallback remain deferre
 
 Phase 4.7b completes local AI error feedback and history date/time localization.
 The ambiguous API preview fallback and broader error/state contracts remain deferred.
+
+## Onboarding structured Action errors (Phase 4.8c-1)
+
+Implemented 2026-11-05 against clean `main` at `e98bd9f`. Onboarding is the first
+Action/form adopting the Phase 4.1c `DisplayError`/`ErrorCode`/`getErrorMessage()`
+contract. `CreateInitialWorkspaceState.error` is now `DisplayError | null`.
+Two parameter-free codes extend that existing union/key map; generic
+`INVALID_INPUT`/`INTERNAL_ERROR` would lose the original names/workspace-specific
+guidance, so their messages and shared fallback behavior are unchanged.
+
+| Actual failure branch | Code | Dictionary key | English meaning retained |
+| --- | --- | --- | --- |
+| Existing `onboardingSchema.safeParse` fails, including missing/blank/over-100-character names | `ONBOARDING_INVALID_INPUT` | `errors.onboardingInvalidInput` | Enter an organization name and workspace name. |
+| Existing transaction catch, including any of its four creation steps | `ONBOARDING_CREATE_FAILED` | `errors.onboardingCreateFailed` | Failed to create your workspace. Please try again. |
+
+Japanese messages are `Organization名とWorkspace名を入力してください。` and
+`Workspaceを作成できませんでした。もう一度お試しください。`. Codes are selected at
+those two existing branches, never by matching English/Zod/exception text.
+No raw diagnostic fields or arbitrary interpolation are added to returned state.
+The form calls `getErrorMessage()` for display and marks recognized Onboarding
+errors with its resolved locale. Missing/invalid locale falls back to English;
+missing Japanese entries retain the existing per-key English fallback.
+
+The existing shared helper produces a localized generic notice for unknown codes;
+that established behavior differs from this phase's explicit English-fallback
+requirement. Only Onboarding handles that difference: values outside its two
+expected codes are passed to the helper with English and marked `lang="en"`.
+Unknown/malformed codes and legacy raw strings, including both old English
+messages, therefore display the safe English internal-error notice rather than
+being echoed or matched. This does not globally change the shared helper or
+adopt structured errors in any role/Research Action.
+
+Only error state/display changes. The validation schema/order, input coercion/
+trimming and 1–100 limits, `requireUser()`, accessible-Workspace lookup and early
+already-provisioned redirect remain unchanged. The original single transaction,
+Organization → ADMIN Membership → Workspace → ADMIN WorkspaceMembership creation
+sequence, identifiers, cookie name/value/options and final `/` redirect are
+unchanged. Authentication, Workspace-read, cookie-read/set failures and redirect
+exceptions remain outside the existing transaction catch and propagate as before.
+There is no new catch, write, retry, locale input, transaction, schema or Prisma
+change. Form initial `{ error: null }`, `useActionState`/Action identity,
+uncontrolled values, raw FormData, required fields, pending disablement, CSS and
+plain error-paragraph semantics are retained; no live-region/focus/state-reset
+behavior or language switching is introduced.
+
+Validation: focused DB-free Vitest **8 files / 222 tests**, changed-file ESLint,
+TypeScript (`--noEmit --incremental false`) and diff whitespace checks passed.
+Coverage includes both returned branches, all four transaction-stage rejections,
+exact successful creation order/payloads/ADMIN roles, trimmed length boundaries,
+already-provisioned redirect, real User-guard authenticated/unauthenticated paths,
+unchanged Workspace lookup/cookie failure propagation and production cookie flags.
+Form/helper tests cover English/Japanese/default/invalid locale, missing-entry
+fallback, unknown/malformed/prototype-like codes, legacy strings without matching,
+unread diagnostic getters, original pending/input/submission state and retry
+FormData identity. Existing page/access/Public Demo write restrictions pass.
+The initial sandbox Vitest startup hit `spawn EPERM`; the same focused checks
+passed with subprocess permission and the existing artifact exclusion. Two early
+getter tests needed identity assertions because Vitest's deep matcher inspected
+the deliberately throwing diagnostics; production display did not read them.
+
+All database/auth/cookie I/O is mocked. Real transaction rollback/concurrency,
+Server Action serialization, browser submission scheduling/hydration/focus,
+native-language review and live initial provisioning remain unverified. Existing
+error paragraphs still have no alert/live-region semantics, and missing-entry
+English fallback inherits the selected locale tag. No browser, Review session,
+live provisioning, DB/fixture writes, full suite, full E2E or Production Build was
+performed. Broader role/Research Action adoption remains separate work.
 
 ## Generic failures and 404 presentation (Phase 4.8b-2)
 
@@ -1159,15 +1228,17 @@ full E2E or Production Build occurred. Research bodies and AI Panel remain defer
 
 Implemented 2026-11-03: `src/lib/i18n/errors.ts` provides a display-only
 `DisplayError` union, its `ErrorCode` type and `getErrorMessage(error, locale?)`.
-Existing Actions, forms and their error return types are unchanged; adoption is
-deferred to later phases. Home-only language switching remains in force.
+The original phase left Actions, forms and their error return types unchanged.
+Phase 4.8c-1 above now adopts it for Onboarding only and adds two specific codes;
+other Action adoption remains deferred. Home-only language switching remains in force.
 
 Repository investigation found five failure categories:
 
 - Input validation: Research create/edit throws the first Zod issue; Source and
   Finding Actions usually return it as `{ error: string | null }`. Schemas contain
-  English required/length/URL messages; role and onboarding validation use fixed
-  English notices. There is no shared structured field-error contract.
+  English required/length/URL messages; role validation uses fixed English
+  notices. Onboarding now uses the two structured notices described in Phase
+  4.8c-1. There is still no shared structured field-error contract.
 - Authentication/authorization: `requireUser()` redirects to sign-in; admin
   guards throw `Forbidden`. Research access combines missing/inaccessible records
   into `ResearchAccessError`, which many Actions expose as `Research not found.`.
@@ -1180,8 +1251,9 @@ Repository investigation found five failure categories:
   notices, while unexpected access/read/indexing failures can propagate.
 
 Client dialogs use `useActionState` and render `state.error` directly, often in
-an alert; onboarding and member-role forms also render that string. The new helper
-does not parse these strings, Zod messages, exceptions or DB error codes.
+an alert; member-role forms also render that string. Onboarding now displays its
+structured state through this helper. The helper does not parse legacy strings,
+Zod messages, exceptions or DB error codes.
 
 | Stable code | Dictionary key | Parameters |
 | --- | --- | --- |
@@ -1192,12 +1264,14 @@ does not parse these strings, Zod messages, exceptions or DB error codes.
 | `NOT_FOUND` | `errors.notFound` | None |
 | `CONFLICT` | `errors.conflict` | None |
 | `INTERNAL_ERROR` | `errors.internal` | None |
+| `ONBOARDING_INVALID_INPUT` | `errors.onboardingInvalidInput` | None; added in Phase 4.8c-1 |
+| `ONBOARDING_CREATE_FAILED` | `errors.onboardingCreateFailed` | None; added in Phase 4.8c-1 |
 
 Callers will choose codes from structured failure conditions, never by matching
 existing English wording. Example:
 `getErrorMessage({ code: "INPUT_TOO_LONG", params: { maxLength: 200 } }, "ja")`
 returns `200文字以内で入力してください。`. No arbitrary field names, entity names,
-operation text or diagnostic strings are interpolated. All seven keys have English
+operation text or diagnostic strings are interpolated. All nine keys have English
 and Japanese entries; no existing Demo wording changes.
 
 The function accepts unknown boundary input and maps only allowlisted codes to
@@ -1212,7 +1286,8 @@ Prisma/DB, Next.js, cookie, auth, request state, server-only or client-only depe
 they can be imported on either side. Scoped Node tests cover both languages,
 temporarily missing Japanese entries, interpolation, malformed/unknown input,
 diagnostic non-disclosure and repeated calls with frozen inputs. Browser/RSC
-integration and all existing Action/form adoption remain unimplemented.
+integration remains unverified for this helper's Action adoption; Onboarding
+Action/form adoption is now implemented in Phase 4.8c-1 above.
 
 ## Demo language switching and Chat
 
@@ -1279,7 +1354,7 @@ a context-free bilingual global failure fallback.
 | Saved research | `Research.title`, nullable `description` and `conclusion`; `Finding.content`, optional `data`; Workspace description, Tags, Comments | Separate presentation translations, with canonical evidence retained |
 | Source titles and citations | `Source.title`, `url`; `FindingSource` links; source IDs validated in Demo chat | Preserve original title, URL, IDs, and citation links; optional translated title is a clearly labeled display aid |
 | AI output and question suggestions | `lib/demo/chat-generation`, `chat-client`; `chat-questions.ts` selects prompts by canonical English Research title and locale; SaaS AI panel/history | Keep UI locale independent of AI answer language; predefined Demo suggestions, fixed UI and local client notices are translated; SaaS history dates follow the locale, while previews/prose and the ambiguous API preview fallback remain original |
-| Validation and errors | `types/research.ts`; `types/research/{source,finding,comment,tag,conclusion,status}.ts`; onboarding/member-role Actions; `lib/demo/chat-client.ts` and SaaS AI local failure branches | Schema/Action validation remains English with unchanged contracts; Action error paragraphs use English boundaries; Demo typed notices and SaaS local AI errors use dictionaries. `types/research/validation.ts` is empty and defines no schemas |
+| Validation and errors | `types/research.ts`; `types/research/{source,finding,comment,tag,conclusion,status}.ts`; onboarding/member-role Actions; `lib/demo/chat-client.ts` and SaaS AI local failure branches | Onboarding uses two structured localized codes with English fallback for unknown data; role/Research Action errors remain English. Demo typed notices and SaaS local AI errors use dictionaries. `types/research/validation.ts` is empty and defines no schemas |
 
 The Demo has its own header with Appearance and repository link; authenticated
 pages use `AppShell`, `AppHeader`, and `AppNavigation`. There is no shared footer
