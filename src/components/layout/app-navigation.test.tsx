@@ -5,6 +5,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { AppNavigationMenu, AppSidebar } from "./app-navigation";
 import type { Dictionary } from "@/lib/i18n/dictionaries/en";
 import { ja } from "@/lib/i18n/dictionaries/ja";
+import type { Locale } from "@/lib/i18n/locales";
 
 const state = vi.hoisted(() => ({ pathname: "/", open: false, effect: undefined as (() => (() => void)) | undefined }));
 vi.mock("next/navigation", () => ({ usePathname: () => state.pathname }));
@@ -33,6 +34,16 @@ beforeEach(() => { state.pathname = "/"; state.open = false; state.effect = unde
 afterEach(() => vi.unstubAllGlobals());
 
 describe("Application navigation", () => {
+  it.each([undefined, "en", "ja", "invalid"])("marks sidebar, mobile trigger and popup with resolved language for %s", (value) => {
+    const locale = value as Locale | undefined;
+    const expected = value === "ja" ? "ja" : "en";
+    expect(AppSidebar({ locale }).props.lang).toBe(expected);
+    const nodes = elements(AppNavigationMenu({ locale }));
+    expect(nodes.find(node => node.type === "button")?.props.lang).toBe(expected);
+    expect(nodes.find(node => node.type === "dialog-popup")?.props.lang).toBe(expected);
+    expect(renderToStaticMarkup(<AppSidebar locale={locale} />)).toContain(`<aside lang="${expected}"`);
+  });
+
   describe.each(["en", "ja"] as const)("%s navigation", (locale) => {
     it.each([
       ["/", "/"], ["/research", "/research"], ["/research/new", "/research"],

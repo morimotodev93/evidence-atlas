@@ -3,6 +3,8 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { AppShell } from "./app-shell";
 import { DemoShell } from "@/components/demo/demo-shell";
+import { AppHeader } from "./app-header";
+import type { Locale } from "@/lib/i18n/locales";
 
 const mocks = vi.hoisted(() => ({ cookies: vi.fn(), get: vi.fn(), pathname: "/" }));
 vi.mock("next/headers", () => ({ cookies: mocks.cookies }));
@@ -27,6 +29,16 @@ beforeEach(() => {
 });
 
 describe("Authenticated application shell", () => {
+  it.each([undefined, "en", "ja", "invalid"])("marks the Header with resolved language for %s and preserves its slot", (value) => {
+    const locale = value as Locale | undefined;
+    const expected = value === "ja" ? "ja" : "en";
+    const html = renderToStaticMarkup(<AppHeader locale={locale}><button>Original Workspace</button></AppHeader>);
+    expect(html).toContain(`<header lang="${expected}"`);
+    expect(html.match(/Original Workspace/g)).toHaveLength(2);
+    expect(html).toContain(expected === "ja" ? "ログアウト" : "Sign out");
+    expect(html).toContain('href="/"');
+  });
+
   it.each([
     [undefined, "en"], ["invalid", "en"], ["en", "en"], ["ja", "ja"],
   ])("resolves cookie %s once for the server body slot and navigation", async (value, expected) => {
@@ -36,6 +48,9 @@ describe("Authenticated application shell", () => {
     expect(body).toHaveBeenCalledExactlyOnceWith(expected);
     expect(mocks.get).toHaveBeenCalledExactlyOnceWith("evidence_atlas_locale");
     expect(html).toContain(`<main lang="${expected}">Original Organization</main>`);
+    expect(html).toContain(`<header lang="${expected}"`);
+    expect(html).toContain(`<aside lang="${expected}"`);
+    expect(html).toContain(`<dialog-popup lang="${expected}"`);
     expect(html).toContain(expected === "ja" ? "ログアウト" : "Sign out");
   });
 

@@ -38,6 +38,25 @@ canonical English. This completes the curated content scope only; full SaaS
 localization and deployed/runtime language verification remain open. See
 [i18n architecture](../architecture/i18n-foundation.md#phase-3-research-translation-catalog).
 
+### SaaS language boundary consistency (2026-11-05)
+
+Phase 4.8a completes resolved language boundaries on Header, Sidebar, mobile
+navigation and Appearance portals, marks existing onboarding/member-role Action
+errors as English and reuses the dictionary Research ID prefix. Current coverage
+and validation-module references are corrected in the i18n specification.
+Locale selection/cookies, Home-only switching, navigation/theme handlers, Dialog
+lifecycle, form state, Action contracts and IDs are preserved.
+
+Focused Vitest **8 files / 160 tests**, changed-file ESLint, TypeScript and diff
+whitespace checks passed. Isolated Edge checks passed for actual portals in
+English/Japanese/omitted/invalid locale, including nested Escape/focus, Close,
+resize and theme persistence; baseline interactions also passed. This is synthetic
+browser evidence, not live Review/Next.js hydration or screen-reader validation.
+Root HTML language, existing role-control labels/error announcements and broader
+error contracts remain separate accessibility work. No DB writes, full suite,
+full E2E or Production Build; no release/quality checkbox is advanced. See
+[Phase 4.8a verification and limits](../architecture/i18n-foundation.md#language-boundaries-and-consistency-phase-48a).
+
 ### SaaS AI conversation error and history date localization (2026-11-05)
 
 Phase 4.7b completes the remaining local AI error notices and history date/time

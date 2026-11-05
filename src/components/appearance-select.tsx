@@ -1,6 +1,6 @@
 "use client";
 
-import { defaultLocale, type Locale } from "@/lib/i18n/locales";
+import { resolveLocale, type Locale } from "@/lib/i18n/locales";
 import { translate } from "@/lib/i18n/translate";
 
 import { useTheme } from "next-themes";
@@ -15,14 +15,15 @@ const clientSnapshot = () => true;
 const serverSnapshot = () => false;
 const controlSize = "h-9 min-h-9 w-28 shrink-0";
 
-export function AppearanceSelect({ className, locale = defaultLocale }: { className?: string; locale?: Locale }) {
+export function AppearanceSelect({ className, locale: requestedLocale }: { className?: string; locale?: Locale }) {
+  const locale = resolveLocale(requestedLocale);
   const options = (["light", "dark", "system"] as const).map((value) => ({ value, label: translate(`appearance.${value}`, locale) }));
   const labelId = useId();
   const { theme, setTheme } = useTheme();
   const mounted = useSyncExternalStore(subscribe, clientSnapshot, serverSnapshot);
 
   return (
-    <div className={cn("flex flex-wrap items-center gap-2 text-sm", className)}>
+    <div lang={locale} className={cn("flex flex-wrap items-center gap-2 text-sm", className)}>
       <span id={labelId} className="text-xs text-muted-foreground">{translate("appearance.label", locale)}</span>
       {!mounted ? (
         // No form control exists for Firefox to restore before hydration.
@@ -42,7 +43,7 @@ export function AppearanceSelect({ className, locale = defaultLocale }: { classN
         <SelectTrigger aria-labelledby={labelId} className={controlSize}>
           <SelectValue placeholder={translate("appearance.theme", locale)} />
         </SelectTrigger>
-        <SelectContent align="start">
+        <SelectContent lang={locale} align="start">
           {options.map(({ value, label }) => <SelectItem key={value} value={value}>{label}</SelectItem>)}
         </SelectContent>
       </Select>}

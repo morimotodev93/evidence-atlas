@@ -3,7 +3,7 @@ import type { ReactNode } from "react";
 
 import { signOut } from "@/auth";
 import { requireApplicationEnabled } from "@/lib/deployment-mode";
-import { defaultLocale, type Locale } from "@/lib/i18n/locales";
+import { resolveLocale, type Locale } from "@/lib/i18n/locales";
 import { translate } from "@/lib/i18n/translate";
 import { AppNavigationMenu } from "./app-navigation";
 import { SaasLanguageSelect } from "./saas-language-select";
@@ -13,9 +13,10 @@ type AppHeaderProps = {
   locale?: Locale;
 };
 
-export function AppHeader({ children, locale = defaultLocale }: AppHeaderProps) {
+export function AppHeader({ children, locale: requestedLocale }: AppHeaderProps) {
+  const locale = resolveLocale(requestedLocale);
   return (
-    <header className="sticky top-0 z-10 border-b bg-background/95 backdrop-blur">
+    <header lang={locale} className="sticky top-0 z-10 border-b bg-background/95 backdrop-blur">
       <div className="w-full px-3 py-2 sm:px-6 sm:py-0">
         <div className="flex flex-wrap items-center justify-between gap-3 sm:min-h-14">
           <div className="flex min-w-0 items-center gap-2 sm:gap-3">

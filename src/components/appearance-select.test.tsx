@@ -4,6 +4,10 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { AppearanceSelect } from "./appearance-select";
 import { AppSidebar, AppNavigationMenu } from "./layout/app-navigation";
 import DemoLayout from "@/app/demo/layout";
+import type { Locale } from "@/lib/i18n/locales";
+import { SelectContent } from "@/components/ui/select";
+import { ja } from "@/lib/i18n/dictionaries/ja";
+import type { Dictionary } from "@/lib/i18n/dictionaries/en";
 
 vi.mock("next/navigation", () => ({ usePathname: () => "/" }));
 vi.mock("next/link", () => ({ default: "a" }));
@@ -24,6 +28,34 @@ vi.mock("react", async (original) => ({
 beforeEach(() => { state.mounted = false; state.theme = undefined; state.setTheme.mockReset(); });
 
 describe("Appearance selector", () => {
+  it("keeps Japanese boundaries when an Appearance entry falls back to English", () => {
+    const partial: { -readonly [K in keyof Dictionary]?: string } = ja;
+    const saved = partial["appearance.dark"];
+    try {
+      delete partial["appearance.dark"];
+      state.mounted = true;
+      state.theme = "dark";
+      const tree = AppearanceSelect({ locale: "ja" });
+      expect(tree.props.lang).toBe("ja");
+      expect(tree.props.children[1].props.items[1]).toEqual({ value: "dark", label: "Dark" });
+      expect(tree.props.children[1].props.children[1].props.lang).toBe("ja");
+      expect(renderToStaticMarkup(tree)).toContain(">Dark<");
+    } finally { partial["appearance.dark"] = saved; }
+  });
+
+  it.each([undefined, "en", "ja", "invalid"])("marks the control and portaled content with resolved language for %s", (value) => {
+    const locale = value as Locale | undefined;
+    const expected = value === "ja" ? "ja" : "en";
+    expect(AppearanceSelect({ locale }).props.lang).toBe(expected);
+    state.mounted = true;
+    const tree = AppearanceSelect({ locale });
+    expect(tree.props.lang).toBe(expected);
+    const content = tree.props.children[1].props.children[1];
+    expect(content.type).toBe(SelectContent);
+    expect(content.props.lang).toBe(expected);
+    expect(content.props.align).toBe("start");
+  });
+
   it.each(["en", "ja"] as const)("uses existing %s labels and preserves theme values and changes", (locale) => {
     const initial = renderToStaticMarkup(<AppearanceSelect locale={locale} />);
     expect(initial).toContain(locale === "ja" ? "外観" : "Appearance");

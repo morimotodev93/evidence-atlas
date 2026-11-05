@@ -17,7 +17,7 @@ vi.mock("react", async (original) => ({
 }));
 type Node = ReactElement<{
   children?: ReactNode; id?: string; name?: string; htmlFor?: string;
-  placeholder?: string; required?: boolean; disabled?: boolean;
+  placeholder?: string; required?: boolean; disabled?: boolean; lang?: string;
   value?: string; defaultValue?: string; minLength?: number; maxLength?: number;
 }>;
 function nodes(node: ReactNode): Node[] {
@@ -84,14 +84,18 @@ describe("Onboarding form localization", () => {
     ]);
   });
 
-  it.each([
-    "Enter an organization name and workspace name.",
-    "Failed to create your workspace. Please try again.",
-  ])("keeps the Action error unchanged: %s", (error) => {
-    state.result = { error };
-    const tree = OnboardingForm({ locale: "ja" });
-    expect(nodes(tree).find(node => node.type === "p")?.props.children).toBe(error);
-    expect(renderToStaticMarkup(tree)).toContain(error);
-    expect(state.create).not.toHaveBeenCalled();
+  describe.each([undefined, "en", "ja", "invalid"])("Action errors for locale %s", (value) => {
+    it.each([
+      "Enter an organization name and workspace name.",
+      "Failed to create your workspace. Please try again.",
+    ])("keeps the Action error unchanged: %s", (error) => {
+      state.result = { error };
+      const tree = OnboardingForm({ locale: value as Locale | undefined });
+      expect(nodes(tree).find(node => node.type === "p")?.props.children).toBe(error);
+      expect(nodes(tree).find(node => node.type === "p")?.props.lang).toBe("en");
+      expect(nodes(tree).find(node => node.type === "p")?.props).not.toHaveProperty("role");
+      expect(renderToStaticMarkup(tree)).toContain(error);
+      expect(state.create).not.toHaveBeenCalled();
+    });
   });
 });

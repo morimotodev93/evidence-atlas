@@ -148,7 +148,7 @@ export default async function ResearchDetailPage({
         </ResearchAiDesktopLayout>
         {/* Development note */}
         <p className="mt-4 text-xs text-muted-foreground">
-          Research ID: {research.id}
+          {translate("saasAi.researchId", locale)} {research.id}
         </p>
         {/* Mobile AI */}
         <div className="fixed inset-x-0 bottom-0 z-40 border-t bg-background/95 p-3 backdrop-blur lg:hidden">

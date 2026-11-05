@@ -1,8 +1,18 @@
 # English/Japanese localization foundation
 
-Status: Phase 3 curated Public Demo Research presentation localization implemented,
-2026-11-02. Canonical evidence remains English; full-site/database localization
-remains outside this scope.
+Status: SaaS fixed UI localization through Phase 4.7b and Phase 4.8a language
+boundary consistency implemented, 2026-11-05. Phase 3 curated Public Demo Research
+presentation localization is also implemented. Canonical content is unchanged;
+Action/global error localization, root HTML language and broader SaaS language
+switching remain outside this scope.
+
+Current SaaS coverage includes shared navigation/Appearance, Home, Organization
+and Workspace settings, onboarding, Research list/detail/create/edit, business
+dialogs, AI fixed UI/local error notices and history dates. User-authored content,
+Source metadata, IDs and AI prose retain their original values. Action errors
+remain English. The phase-by-phase entries below describe each phase's original
+scope and verification; their deferred work is historical when a later entry
+records its completion.
 
 Phases 4.1a and 4.1b-1 add the SaaS locale-cookie reader and saving Server Action.
 Phase 4.1b-2 connects them to the shared SaaS Header, with switching limited to
@@ -42,6 +52,55 @@ AI errors, history date formatting and the API's preview fallback remain deferre
 
 Phase 4.7b completes local AI error feedback and history date/time localization.
 The ambiguous API preview fallback and broader error/state contracts remain deferred.
+
+## Language boundaries and consistency (Phase 4.8a)
+
+Implemented 2026-11-05 against `main` at `aa388af`. Header, Sidebar, mobile Menu
+trigger/portaled Popup and Appearance wrapper/portaled SelectContent use the
+existing `resolveLocale` helper for explicit English/Japanese boundaries, including
+missing/unsupported locale fallback to English. No shared primitive refactoring,
+cookie/selection changes, root HTML language or Public Demo routing changes.
+Onboarding and Organization/Workspace member-role Action error paragraphs now
+explicitly use `lang="en"`, retaining their original text, styling, conditional
+rendering and Action contracts. The detail page's visible Research ID prefix
+reuses `saasAi.researchId`; the ID itself is unchanged. Both dictionaries currently
+retain the original `Research ID:` wording.
+
+Navigation destinations, active state, theme values/handlers, Dialog lifecycle,
+focus settings, form state and Home-only language switching are preserved.
+No Action errors are translated and no English-message matching is introduced.
+The current-coverage table below now reflects the completed SaaS phases and
+points to the actual validation modules rather than the empty `validation.ts`.
+
+Validation: focused DB-free Vitest **8 files / 160 tests**, changed-file ESLint,
+TypeScript (`--noEmit --incremental false`) and diff whitespace checks passed.
+Tests cover English/Japanese, omitted/invalid locale, per-entry English fallback,
+unchanged navigation/theme handlers, accessible names, original IDs/FormData and
+English Action error text/presentation. Initial sandbox Vitest startup failed
+with `spawn EPERM`; the same selected checks passed with subprocess permission
+and the existing command-line `test-results/**` exclusion.
+
+An isolated Edge fixture rendered actual Base UI navigation and Appearance
+portals with project CSS for English/Japanese/omitted/invalid locale. Portal DOM
+language, standalone/nested Appearance, theme persistence, navigation destinations,
+active state, accessible names, nested Escape/focus return, Close and desktop-resize
+dismissal passed. The same interactions passed against components read from
+baseline `aa388af`. Early fixture failures were corrected by enabling automatic
+JSX, loading project CSS, awaiting focus transfer and targeting open portals
+rather than closed animation DOM. This is synthetic component/browser evidence,
+not Next.js hydration or live Review verification. The script/results remain
+ignored under `test-results/phase48a/`; every HTTP request was fulfilled locally
+or denied, WebSockets blocked, with no unexpected requests or page errors.
+
+Remaining accessibility limits: root HTML remains English; these plain error
+paragraphs retain their existing lack of alert/live-region semantics, and role
+Select triggers retain their existing lack of an explicit accessible label.
+Per-entry English fallback inherits the resolved subtree language. Original
+user-authored content has no language detection. Screen-reader pronunciation,
+live Review layout, hydration and native-language copy review remain unverified.
+No Review server/session creation, database/fixture writes, live AI, full suite,
+full E2E or Production Build was performed. Existing AI architecture conflicts
+recorded below remain unresolved and outside this consistency scope.
 
 ## SaaS AI conversation errors and history dates (Phase 4.7b)
 
@@ -1043,11 +1102,11 @@ this phase localizes Demo empty states and Chat errors, not global error handlin
 
 | Text category | Current location / behavior | Localization approach |
 | --- | --- | --- |
-| Static interface | Demo shell/pages, shared `components/research`, Appearance and Chat; SaaS Header/Sidebar/mobile navigation | Typed UI dictionaries and accessible labels; shared SaaS navigation follows the cookie locale, while SaaS page bodies remain English |
+| Static interface | Demo shell/pages, shared `components/research`, Appearance and Chat; SaaS navigation, Home, settings, onboarding, Research pages/business dialogs and AI controls | Typed UI dictionaries and accessible labels; SaaS fixed UI follows the resolved cookie locale, with explicit subtree/portal language boundaries; switching stays Home-only |
 | Saved research | `Research.title`, nullable `description` and `conclusion`; `Finding.content`, optional `data`; Workspace description, Tags, Comments | Separate presentation translations, with canonical evidence retained |
 | Source titles and citations | `Source.title`, `url`; `FindingSource` links; source IDs validated in Demo chat | Preserve original title, URL, IDs, and citation links; optional translated title is a clearly labeled display aid |
-| AI output and question suggestions | `lib/demo/chat-generation`, `chat-client`; `chat-questions.ts` selects prompts by canonical English Research title and locale | Keep UI locale independent of AI answer language; only predefined suggestions and client-facing notices are translated |
-| Validation and errors | `types/research/validation.ts`, `lib/demo/chat-client.ts` HTTP/status notices and transport validation | Demo client notices use typed keys; retain protocol validation, limits, and internal diagnostics; authenticated validation remains English |
+| AI output and question suggestions | `lib/demo/chat-generation`, `chat-client`; `chat-questions.ts` selects prompts by canonical English Research title and locale; SaaS AI panel/history | Keep UI locale independent of AI answer language; predefined Demo suggestions, fixed UI and local client notices are translated; SaaS history dates follow the locale, while previews/prose and the ambiguous API preview fallback remain original |
+| Validation and errors | `types/research.ts`; `types/research/{source,finding,comment,tag,conclusion,status}.ts`; onboarding/member-role Actions; `lib/demo/chat-client.ts` and SaaS AI local failure branches | Schema/Action validation remains English with unchanged contracts; Action error paragraphs use English boundaries; Demo typed notices and SaaS local AI errors use dictionaries. `types/research/validation.ts` is empty and defines no schemas |
 
 The Demo has its own header with Appearance and repository link; authenticated
 pages use `AppShell`, `AppHeader`, and `AppNavigation`. There is no shared footer

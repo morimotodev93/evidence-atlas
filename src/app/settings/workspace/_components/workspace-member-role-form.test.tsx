@@ -88,9 +88,12 @@ describe("Workspace member role display", () => {
     expect(tree.find(node => node.type === Button)?.props.disabled).toBe(true);
   });
 
-  it("preserves existing Action error text without translating or suppressing it", () => {
+  it.each([undefined, "en", "ja", "invalid"])("preserves existing English Action error text and presentation for %s", (value) => {
     state.result = { error: "A workspace must have at least one admin." };
-    expect(nodes(view("ja")).find(node => node.type === "p")?.props.children).toBe(state.result.error);
+    const error = nodes(view(value as Locale | undefined)).find(node => node.type === "p")!;
+    expect(error.props.children).toBe(state.result.error);
+    expect(error.props.lang).toBe("en");
+    expect(error.props).not.toHaveProperty("role");
     expect(state.update).not.toHaveBeenCalled();
   });
 });

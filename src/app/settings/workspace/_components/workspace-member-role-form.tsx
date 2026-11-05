@@ -75,7 +75,7 @@ export function WorkspaceMemberRoleForm({
         {translate(isPending ? "organization.saving" : "organization.save", locale)}
       </Button>
 
-      {state.error && <p className="text-sm text-destructive">{state.error}</p>}
+      {state.error && <p lang="en" className="text-sm text-destructive">{state.error}</p>}
     </form>
   );
 }

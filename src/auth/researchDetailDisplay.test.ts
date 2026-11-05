@@ -4,6 +4,8 @@ import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { research, source, finding, comment, researchTag } from "@/lib/demo/test-fixtures";
 import { resolveLocale, type Locale } from "@/lib/i18n/locales";
 import { ResearchDetailContent } from "@/components/research/research-detail-content";
+import { ja } from "@/lib/i18n/dictionaries/ja";
+import type { Dictionary } from "@/lib/i18n/dictionaries/en";
 
 const mocks = vi.hoisted(() => {
   const models = Object.fromEntries(["Research", "WorkspaceMembership", "Source", "Finding", "Comment", "ResearchTag"].map((name) => {
@@ -95,6 +97,24 @@ beforeEach(() => {
 });
 
 describe("Authenticated Research detail after display extraction", () => {
+  it.each([undefined, "invalid", "en", "ja"])("uses the dictionary ID prefix for %s while preserving the Research ID", async (value) => {
+    mocks.cookie.mockReturnValue(value === undefined ? undefined : { value });
+    // Both dictionaries currently use the same prefix. A sentinel proves the
+    // page reads the entry rather than duplicating its current English text.
+    const partial: { -readonly [K in keyof Dictionary]?: string } = ja;
+    const saved = partial["saasAi.researchId"];
+    try {
+      partial["saasAi.researchId"] = "ID prefix sentinel:";
+      const html = renderToStaticMarkup(await DetailPage({ params: Promise.resolve({ id: research.id }) }));
+      expect(html).toContain(`${value === "ja" ? "ID prefix sentinel:" : "Research ID:"} ${research.id}</p>`);
+      if (value === "ja") {
+        delete partial["saasAi.researchId"];
+        expect(renderToStaticMarkup(await DetailPage({ params: Promise.resolve({ id: research.id }) })))
+          .toContain(`Research ID: ${research.id}</p>`);
+      }
+    } finally { partial["saasAi.researchId"] = saved; }
+  });
+
   it.each([undefined, "invalid", "en", "ja"])("delivers locale %s and original Source data to desktop and mobile AI", async (value) => {
     mocks.cookie.mockReturnValue(value === undefined ? undefined : { value });
     const stored = { ...source, title: "Original Source / 原文", url: "HTTPS://Example.COM/Original?ref=en#Citation" };

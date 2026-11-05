@@ -52,7 +52,7 @@ export function OnboardingForm({ locale = "en" }: { locale?: Locale } = {}) {
         />
       </div>
 
-      {state.error && <p className="text-sm text-destructive">{state.error}</p>}
+      {state.error && <p lang="en" className="text-sm text-destructive">{state.error}</p>}
 
       <Button type="submit" disabled={isPending}>
         {translate(isPending ? "onboarding.creating" : "onboarding.create", locale)}
