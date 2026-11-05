@@ -1,16 +1,19 @@
 # English/Japanese localization foundation
 
 Status: SaaS fixed UI localization through Phase 4.7b, Phase 4.8a language
-boundaries and Phase 4.8b-1 authentication presentation implemented, 2026-11-05.
+boundaries, Phase 4.8b-1 authentication presentation and Phase 4.8b-2 generic
+failure/404 presentation implemented, 2026-11-05.
 Phase 3 curated Public Demo Research
 presentation localization is also implemented. Canonical content is unchanged;
-Action/global error localization, root HTML language and broader SaaS language
+Business Action error localization, root layout HTML language and broader SaaS language
 switching remain outside this scope.
 
 Current SaaS coverage includes shared navigation/Appearance, Home, Organization
 and Workspace settings, onboarding, Research list/detail/create/edit, business
 dialogs, AI fixed UI/local error notices/history dates and application-owned
-Google sign-in/authentication error pages. User-authored content,
+Google sign-in/authentication error pages. Global failures use a context-free
+bilingual fallback; 404s use the SaaS cookie or established Demo URL language.
+User-authored content,
 Source metadata, IDs and AI prose retain their original values. Action errors
 remain English. The phase-by-phase entries below describe each phase's original
 scope and verification; their deferred work is historical when a later entry
@@ -54,6 +57,83 @@ AI errors, history date formatting and the API's preview fallback remain deferre
 
 Phase 4.7b completes local AI error feedback and history date/time localization.
 The ambiguous API preview fallback and broader error/state contracts remain deferred.
+
+## Generic failures and 404 presentation (Phase 4.8b-2)
+
+Implemented 2026-11-05 against `main` at `03fdfbe`, with Next.js `16.3.8`.
+The existing `app/global-error.tsx` now renders application-owned generic copy
+instead of `next/error`. It retains its own `html`/`body`, neutral Evidence Atlas
+title and the same `useEffect(() => Sentry.captureException(error), [error])`.
+English and Japanese sections have explicit `lang` attributes and use four new
+`errors.*` dictionary entries shared with 404 presentation. Inline system-font,
+spacing and contrast styles work without root CSS/fonts, ThemeProvider, AppShell,
+server context, cookies, pathname or locale effects. No exception message, stack,
+digest, identifier or request text is displayed. There is no recovery control.
+No extra `error.tsx` is needed: unhandled failures retain the existing global
+boundary, including root-layout failures; this phase does not change error routing.
+
+The new root `app/not-found.tsx` is an async Server Component reading the existing
+SaaS locale cookie with its established default/invalid English fallback. It
+passes that resolved locale to `components/errors/not-found-content.tsx`, a small
+Client Component using `usePathname` only to recognize existing Demo language
+boundaries: `/ja/demo` and descendants use Japanese; `/en/demo` and legacy `/demo`
+use English. Other/unknown paths and unavailable pathname use the supplied SaaS
+locale. No pathname, query, resource identity, access reason or diagnostic is
+rendered; all cases use the same fixed 404 heading/description. No new Provider,
+root-layout cookie read, request header, redirect, cookie write, language selector,
+route rewrite, catch-all route or experimental global-not-found flag is added.
+Cookie-reader failures propagate to the existing global boundary rather than
+swallowing Next.js control-flow errors. The 404 component relies on the normal
+root layout; the fatal global component does not.
+
+Existing `notFound()` calls and access guards are unchanged. Missing and
+inaccessible Research still produce the same Next.js 404 signal before reading
+detail children or returning an edit form. Presentation does not substitute a
+redirect, successful page or JSON response for that signal. Next.js retains
+ownership of status/noindex handling. Its documented behavior is HTTP 404 for
+non-streamed responses and HTTP 200 if a response was already streamed; this
+phase adds no loading/Suspense boundary and does not claim to change that runtime
+limitation. Authentication, authorization, redirect targets, API contracts,
+database/persistence and Research identity remain unchanged.
+
+Validation: focused DB-free Vitest **6 files / 97 tests**, changed-file ESLint,
+TypeScript (`--noEmit --incremental false`) and diff whitespace checks passed.
+Coverage includes both fatal languages without a browser/layout, English entry
+fallback, exact original Sentry capture/effect dependency, no diagnostic/control
+rendering, cookie/URL/default/invalid/null-pathname 404 language, stable safe
+resource-independent output and cookie failure propagation. Existing detail/edit
+access tests now invoke real Next.js `notFound()` and assert its identical
+`NEXT_HTTP_ERROR_FALLBACK;404` digest for missing/inaccessible Research. Demo
+not-found/unexpected-failure and dictionary regressions also pass. Initial
+sandbox Vitest startup hit `spawn EPERM`; the same focused selection passed with
+subprocess permission and the existing command-line artifact exclusion.
+
+An isolated Next.js dev/webpack fixture on loopback copied the production 404,
+global fallback, locale helpers and Research access guards, with a minimal root
+layout, local Sentry stub and a mocked DB module. Edge verified nine actual
+HTTP 404 responses: unknown/query-bearing URLs, missing/invalid cookie, conflicting
+Demo/cookie language, legacy Demo, matched localized Demo and missing/inaccessible
+Research. The two Research cases display identical text. There were no redirects,
+controls, hydration errors or unexpected network requests during these checks;
+client navigation and Back also passed. A deliberately failed fixture root
+returned HTTP 500 while the actual global component rendered both tagged languages
+and invoked the Sentry stub. Application fallback markup omitted the private
+error; Next's development overlay still reports the intentional exception, as
+expected, and its diagnostic POST requests were blocked. The fixture loads no
+auth/session, production root/font configuration, real database or Sentry transport.
+Artifacts/script remain ignored under `test-results/phase48b2/`; its subprocess
+was stopped after verification.
+
+References reviewed 2026-11-05: Next.js
+[global error convention](https://nextjs.org/docs/app/api-reference/file-conventions/error)
+and [not-found/status convention](https://nextjs.org/docs/app/api-reference/file-conventions/not-found),
+checked against the installed runtime and isolated HTTP evidence above.
+Production bundling/global CSS/font failures, live Review/deployed routing,
+already-streamed failures, rewrites, provider transport, physical devices and
+screen-reader/native-language review remain unverified. Per-entry English fallback
+retains the enclosing language tag. The normal root HTML language remains English.
+No full suite, full E2E, Production Build, live authentication, DB/fixture writes
+or real Sentry delivery was performed.
 
 ## Authentication presentation (Phase 4.8b-1)
 
@@ -1187,8 +1267,9 @@ all Demo UI in `lang="en"` or `lang="ja"`, giving Japanese content a correct
 subtree language without mutating the document in an effect. Accurate per-locale
 HTML language requires a future root-layout/route-group design. Do not claim the
 document-wide language or Next.js hydration was verified by the browser harness.
-The generic Next.js not-found/fatal error surfaces remain framework defaults;
-this phase localizes Demo empty states and Chat errors, not global error handling.
+The original Demo phase left generic not-found/fatal surfaces as framework
+defaults; Phase 4.8b-2 above now supplies application-owned 404 presentation and
+a context-free bilingual global failure fallback.
 
 ## Text boundaries observed in the repository
 
@@ -1261,7 +1342,7 @@ or AI service is contacted. Full suites and production builds are outside scope.
 
 Remaining candidates: accurate root HTML language, Next.js/runtime and deployed SEO
 verification in an authorized isolated environment, native-language copy review,
-global error localization, richer plural/message formatting if needed, and
+broader structured error localization, richer plural/message formatting if needed, and
 localization beyond the curated Demo catalog. Editable
 multilingual content storage remains a future design decision. Never duplicate
 canonical Research, Source or Finding records for language variants.
@@ -1360,5 +1441,5 @@ Chat question passthrough and language navigation at three viewport widths.
 These checks remain synthetic browser/component plus route unit tests, not live
 Next.js RSC/hydration, deployed SEO, Production data or live model verification.
 Independent native-language editorial review remains desirable. Full SaaS data
-localization, translated Sources, root HTML language and global errors remain
+localization, translated Sources and root HTML language remain
 outside scope.

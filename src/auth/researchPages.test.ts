@@ -131,13 +131,15 @@ describe("Research edit page authorization", () => {
   it.each(["missing", "inaccessible"])(
     "uses the same not-found boundary for %s Research without returning a form",
     async (reason) => {
+      const { notFound } = await vi.importActual<typeof import("next/navigation")>("next/navigation");
+      mocks.notFound.mockImplementation(notFound);
       if (reason === "missing") {
         mocks.researchQuery.first.mockResolvedValue(null);
       } else {
         mocks.membershipQuery.first.mockResolvedValue(null);
       }
 
-      await expect(editPage()).rejects.toBe(notFoundError);
+      await expect(editPage()).rejects.toMatchObject({ digest: "NEXT_HTTP_ERROR_FALLBACK;404" });
 
       expect(mocks.notFound).toHaveBeenCalledTimes(1);
       expect(mocks.researchWhere).toHaveBeenCalledTimes(1);

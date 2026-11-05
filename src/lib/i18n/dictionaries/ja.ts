@@ -1,6 +1,10 @@
 import type { Dictionary } from "./en";
 
 export const ja = {
+  "errors.applicationTitle": "アプリケーションエラー",
+  "errors.applicationDescription": "問題が発生しました。時間をおいてから、もう一度お試しください。",
+  "errors.notFoundTitle": "ページが見つかりません",
+  "errors.notFoundDescription": "お探しのページは見つかりませんでした。",
   "auth.signInTitle": "ログイン",
   "auth.googleSignIn": "Googleでログイン",
   "auth.errorTitle": "ログインできませんでした",

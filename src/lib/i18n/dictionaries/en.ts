@@ -1,5 +1,9 @@
 // English defines the stable UI key contract.
 export const en = {
+  "errors.applicationTitle": "Application error",
+  "errors.applicationDescription": "Something went wrong. Please try again later.",
+  "errors.notFoundTitle": "Page not found",
+  "errors.notFoundDescription": "This page could not be found.",
   "auth.signInTitle": "Sign in",
   "auth.googleSignIn": "Sign in with Google",
   "auth.errorTitle": "Unable to sign in",

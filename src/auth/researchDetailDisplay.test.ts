@@ -293,11 +293,12 @@ describe("Authenticated Research detail after display extraction", () => {
 
   it.each(["missing", "inaccessible"])(
     "returns notFound for %s Research before reading any detail children", async (reason) => {
-      const error = new Error("NEXT_NOT_FOUND");
-      mocks.notFound.mockImplementation(() => { throw error; });
+      const { notFound } = await vi.importActual<typeof import("next/navigation")>("next/navigation");
+      mocks.notFound.mockImplementation(notFound);
       mocks.models[reason === "missing" ? "Research" : "WorkspaceMembership"].query.first.mockResolvedValue(null);
 
-      await expect(DetailPage({ params: Promise.resolve({ id: research.id }) })).rejects.toBe(error);
+      await expect(DetailPage({ params: Promise.resolve({ id: research.id }) }))
+        .rejects.toMatchObject({ digest: "NEXT_HTTP_ERROR_FALLBACK;404" });
 
       expect(mocks.notFound).toHaveBeenCalledTimes(1);
       expect(mocks.models.Research.where).toHaveBeenCalledExactlyOnceWith({ id: research.id });

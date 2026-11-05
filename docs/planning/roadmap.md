@@ -38,6 +38,34 @@ canonical English. This completes the curated content scope only; full SaaS
 localization and deployed/runtime language verification remain open. See
 [i18n architecture](../architecture/i18n-foundation.md#phase-3-research-translation-catalog).
 
+### Generic failure and 404 localization (2026-11-05)
+
+Phase 4.8b-2 replaces default fatal-error copy with a self-contained, explicitly
+tagged English/Japanese document, retaining the original Sentry capture effect
+and no diagnostic rendering. A root not-found boundary uses the SaaS locale
+cookie, with established Demo URL languages taking precedence. No AppShell,
+root-layout locale dependency, recovery control, authentication/authorization,
+redirect, API or database behavior changes are introduced.
+
+Focused offline Vitest **6 files / 97 tests**, changed-file ESLint, TypeScript
+(`--noEmit --incremental false`) and diff whitespace checks passed. Existing
+Research detail/edit access tests now assert real, identical Next.js 404 signals
+for missing/inaccessible Research. An isolated Next.js/Edge fixture using copied
+production presentation/guards and mocked DB/Sentry verified nine HTTP 404s,
+cookie/URL language handling, identical Research failure text, client navigation/
+Back and no hydration errors. Its intentionally failed root returned HTTP 500,
+rendered the bilingual global fallback and invoked the Sentry stub. Development
+overlay diagnostics remain developer-only framework behavior, separate from safe
+application markup. The fixture was stopped; no live auth, real DB/fixture writes
+or Sentry delivery occurred.
+
+Already-streamed responses retain Next.js's documented HTTP 200 limitation;
+non-streamed cases above returned 404. Production layout/fonts/bundling, live
+Review/deployed behavior, real transport and screen-reader/native-language review
+remain unverified. No full suite, full E2E or Production Build, and no security or
+release checklist advancement. See
+[Phase 4.8b-2 scope and verification](../architecture/i18n-foundation.md#generic-failures-and-404-presentation-phase-48b-2).
+
 ### Authentication presentation localization (2026-11-05)
 
 Phase 4.8b-1 adds application-owned English/Japanese Google sign-in and safe

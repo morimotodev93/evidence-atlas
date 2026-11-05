@@ -152,6 +152,15 @@ Research detail also hosts the AI Assistant: at `lg` and above, Ask AI opens an 
 
 The root layout defines document metadata and typography. Global styles, semantic tokens, and light/dark palettes live in `src/app/globals.css`.
 
+`app/global-error.tsx` is a self-contained bilingual document for unhandled
+failures, including failed root layouts, retaining Sentry capture without exposing
+exception details. Root `app/not-found.tsx` reads the SaaS locale and delegates
+fixed 404 presentation to `components/errors/`; recognized Demo paths retain
+their existing URL language. Existing `notFound()` signals, HTTP semantics,
+authorization and redirects are unchanged. See
+[generic failure and 404 localization](i18n-foundation.md#generic-failures-and-404-presentation-phase-48b-2)
+for isolated HTTP/browser evidence and streaming/production verification limits.
+
 ### `src/components/`
 
 `ui/` contains reusable shadcn/ui primitives. Route-specific components remain next to their routes.
