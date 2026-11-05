@@ -38,6 +38,37 @@ canonical English. This completes the curated content scope only; full SaaS
 localization and deployed/runtime language verification remain open. See
 [i18n architecture](../architecture/i18n-foundation.md#phase-3-research-translation-catalog).
 
+### Research dialog Action errors (2026-11-05)
+
+Phase 4.8c-3 adopts structured errors for the existing Research status dialog and
+`updateResearchStatus` Action. Validation returns `RESEARCH_INVALID_STATUS`, expected
+missing/inaccessible access failure returns `RESEARCH_NOT_FOUND`, and the existing
+update catch returns `RESEARCH_STATUS_UPDATE_FAILED`. English copy remains exact;
+equivalent Japanese uses three new dictionary entries and `getErrorMessage()`.
+Unknown/malformed/legacy error data uses safe English feedback without matching
+or displaying diagnostics. Alert styling, selected enum, pending Save/Select
+behavior, bound identity, uncontrolled Dialog lifecycle and portal language remain
+unchanged.
+
+Creation/editing are page forms directly bound to exception-based Actions.
+Their schema issues, edit access/missing-result errors and propagated failures
+are explicitly deferred to Phase 4.8c-4; their Actions/pages are unchanged.
+Validation order, authentication/membership checks, same missing/inaccessible
+boundary, exact status update and detail redirect are preserved. No schema,
+transaction, cookie, indexing, revalidation, auth or unrelated child/role Action
+changes are made.
+
+Focused DB-free Vitest **10 files / 354 tests**, changed-file ESLint, TypeScript
+(`--noEmit --incremental false`) and diff whitespace checks passed. Tests cover
+every changed branch, real guard chains, all status enums and MEMBER/ADMIN access,
+safe error display/fallback and retained dialog state, plus unchanged creation/
+edit exception/success/page and Public Demo regressions. Real persistence,
+concurrency, Server Action serialization, browser portal/focus/scheduling and
+native-language review remain unverified. No live DB writes, authentication,
+browser, full suite, full E2E or Production Build; no quality/release checklist is
+advanced. See
+[Phase 4.8c-3 scope, deferrals and verification](../architecture/i18n-foundation.md#research-dialog-action-errors-phase-48c-3).
+
 ### Organization and Workspace role Action errors (2026-11-05)
 
 Phase 4.8c-2 adopts structured display errors in the two existing member-role

@@ -6,6 +6,7 @@ import { Dialog, DialogContent, DialogTitle, DialogDescription, DialogTrigger } 
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectValue } from "@/components/ui/select";
 import type { Locale } from "@/lib/i18n/locales";
+import type { DisplayError } from "@/lib/i18n/errors";
 import type { Dictionary } from "@/lib/i18n/dictionaries/en";
 import { ja } from "@/lib/i18n/dictionaries/ja";
 import { EditResearchStatusDialog } from "./edit-research-status-dialog";
@@ -13,7 +14,7 @@ import { EditResearchStatusDialog } from "./edit-research-status-dialog";
 type Status = "IN_PROGRESS" | "COMPLETED" | "ARCHIVED";
 const state = vi.hoisted(() => ({
   selection: undefined as Status | undefined, pending: false,
-  result: { error: null as string | null },
+  result: { error: null as DisplayError | null },
   update: vi.fn(), dispatch: vi.fn(), useActionState: vi.fn(),
 }));
 vi.mock("../_actions/updateResearchStatus", () => ({ updateResearchStatus: state.update }));
@@ -120,16 +121,82 @@ describe("Research status dialog localization", () => {
       expect(find(view(locale), Button).props.disabled).toBe(false);
     });
 
+  });
+
+  describe.each([undefined, "en", "ja", "invalid"])("structured Action errors for locale %s", value => {
     it.each([
-      "Invalid research status.", "Research not found.",
-      "Failed to update research status. Please try again.",
-    ])("keeps the existing Action error verbatim: %s", (error) => {
-      state.result = { error };
-      const alert = nodes(view(locale)).find((node) => node.props.role === "alert")!;
-      expect(alert.props.children).toBe(error);
+      ["RESEARCH_INVALID_STATUS", "Invalid research status.", "Researchのステータスが無効です。"],
+      ["RESEARCH_NOT_FOUND", "Research not found.", "Researchが見つかりません。"],
+      ["RESEARCH_STATUS_UPDATE_FAILED", "Failed to update research status. Please try again.", "Researchのステータスを更新できませんでした。もう一度お試しください。"],
+    ] as const)("renders %s with the same alert semantics and equivalent meaning", (code, en, ja) => {
+      state.result = { error: { code } };
+      const alert = nodes(view(value as Locale | undefined)).find(node => node.props.role === "alert")!;
+      expect(alert.props.children).toBe(value === "ja" ? ja : en);
+      expect(alert.props.lang).toBe(value === "ja" ? "ja" : "en");
+      expect(alert.props.className).toBe("rounded-md border border-destructive/30 bg-destructive/5 px-3 py-2 text-sm text-destructive-text");
+      expect(state.update).not.toHaveBeenCalled();
+    });
+
+    it.each([
+      "Invalid research status.", "Research not found.", "Failed to update research status. Please try again.",
+      {}, { code: "UNKNOWN" }, { code: "__proto__" }, { code: "constructor" }, { code: 42 },
+      { code: null }, { code: ["RESEARCH_NOT_FOUND"] }, { code: "RESEARCH_NOT_FOUND " },
+      { message: "private diagnostic", stack: "private stack", cause: "private cause" },
+    ])("uses safe English feedback for malformed/unrecognized data %j without matching old messages", error => {
+      state.result = { error: error as DisplayError };
+      const alert = nodes(view(value as Locale | undefined)).find(node => node.props.role === "alert")!;
+      expect(alert.props.children).toBe("Something went wrong. Please try again.");
       expect(alert.props.lang).toBe("en");
       expect(state.update).not.toHaveBeenCalled();
     });
+  });
+
+  it.each([
+    ["RESEARCH_INVALID_STATUS", "errors.researchInvalidStatus", "Invalid research status."],
+    ["RESEARCH_NOT_FOUND", "errors.researchNotFound", "Research not found."],
+    ["RESEARCH_STATUS_UPDATE_FAILED", "errors.researchStatusUpdateFailed", "Failed to update research status. Please try again."],
+  ] as const)("keeps per-key English fallback for %s", (code, key, english) => {
+    const partial: { -readonly [K in keyof Dictionary]?: string } = ja;
+    const saved = partial[key];
+    try {
+      delete partial[key];
+      state.result = { error: { code } };
+      const alert = nodes(view("ja")).find(node => node.props.role === "alert")!;
+      expect(alert.props.children).toBe(english);
+      expect(alert.props.lang).toBe("ja");
+    } finally { partial[key] = saved; }
+  });
+
+  it("does not read diagnostics or reset selection/pending/submission state after an error", async () => {
+    const failure = { code: "RESEARCH_STATUS_UPDATE_FAILED" as const,
+      get message(): never { throw Error("private message was read"); },
+      get stack(): never { throw Error("private stack was read"); },
+      get cause(): never { throw Error("private cause was read"); },
+    };
+    state.result = { error: failure };
+    select("ARCHIVED", "ja");
+    state.pending = true;
+    const pending = view("ja");
+    expect(find(pending, Select).props.value).toBe("ARCHIVED");
+    expect(find(pending, Select).props.disabled).toBeUndefined();
+    expect(find(pending, Button).props.disabled).toBe(true);
+    expect(nodes(pending).find(node => node.props.role === "alert")?.props.lang).toBe("ja");
+    state.pending = false;
+    const tree = view("en", "COMPLETED");
+    expect(find(tree, Select).props.value).toBe("ARCHIVED");
+    expect(find(tree, Button).props.disabled).toBe(false);
+    const data = new FormData(); data.set("status", "ARCHIVED");
+    const bound = state.useActionState.mock.calls.at(-1)![0];
+    await bound(state.result, data);
+    expect(state.update).toHaveBeenCalledTimes(1);
+    expect(state.update.mock.calls[0][0]).toBe("original-research-id");
+    expect(state.update.mock.calls[0][1]).toBe(state.result);
+    expect(state.update.mock.calls[0][2]).toBe(data);
+    expect(find(tree, "form").props.action).toBe(state.dispatch);
+    state.result = { error: null };
+    expect(nodes(view("ja")).some(node => node.props.role === "alert")).toBe(false);
+    expect(find(view("ja"), Select).props.value).toBe("ARCHIVED");
+    expect(Object.keys(view("ja").props)).toEqual(["children"]);
   });
 
   it("preserves a changed selection across rerenders and ignores empty/null selection", () => {

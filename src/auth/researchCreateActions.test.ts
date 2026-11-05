@@ -266,7 +266,7 @@ describe.each(actions)("$name research authorization", (action) => {
     );
 
     await expect(action.run()).resolves.toEqual({
-      error: "Research not found.",
+      error: action.name === "updateResearchStatus" ? { code: "RESEARCH_NOT_FOUND" } : "Research not found.",
     });
 
     expect(mocks.requireResearchAccess).toHaveBeenCalledWith(

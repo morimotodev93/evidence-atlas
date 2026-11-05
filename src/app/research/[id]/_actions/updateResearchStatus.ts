@@ -7,12 +7,13 @@ import {
   ResearchAccessError,
 } from "@/auth/requireResearchAccess";
 import { requireUser } from "@/auth/requireUser";
+import type { DisplayError } from "@/lib/i18n/errors";
 
 import { db } from "@/prisma/db";
 import { researchStatusSchema } from "@/types/research/status";
 
 export type UpdateResearchStatusState = {
-  error: string | null;
+  error: DisplayError | null;
 };
 
 export async function updateResearchStatus(
@@ -26,7 +27,7 @@ export async function updateResearchStatus(
 
   if (!result.success) {
     return {
-      error: "Invalid research status.",
+      error: { code: "RESEARCH_INVALID_STATUS" },
     };
   }
 
@@ -39,7 +40,7 @@ export async function updateResearchStatus(
   } catch (error) {
     if (error instanceof ResearchAccessError) {
       return {
-        error: "Research not found.",
+        error: { code: "RESEARCH_NOT_FOUND" },
       };
     }
 
@@ -54,7 +55,7 @@ export async function updateResearchStatus(
     });
   } catch {
     return {
-      error: "Failed to update research status. Please try again.",
+      error: { code: "RESEARCH_STATUS_UPDATE_FAILED" },
     };
   }
 

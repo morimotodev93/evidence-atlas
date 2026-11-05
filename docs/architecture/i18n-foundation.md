@@ -3,7 +3,8 @@
 Status: SaaS fixed UI localization through Phase 4.7b, Phase 4.8a language
 boundaries, Phase 4.8b-1 authentication presentation and Phase 4.8b-2 generic
 failure/404 presentation, Phase 4.8c-1 Onboarding structured Action errors and
-Phase 4.8c-2 Organization/Workspace role Action errors
+Phase 4.8c-2 Organization/Workspace role Action errors and Phase 4.8c-3 Research
+status dialog Action errors
 implemented, 2026-11-05.
 Phase 3 curated Public Demo Research
 presentation localization is also implemented. Canonical content is unchanged;
@@ -17,8 +18,9 @@ Google sign-in/authentication error pages. Global failures use a context-free
 bilingual fallback; 404s use the SaaS cookie or established Demo URL language.
 User-authored content,
 Source metadata, IDs and AI prose retain their original values. Onboarding and
-Organization/Workspace role Actions use structured localized errors; Research
-Action errors remain English. The phase-by-phase entries below describe each phase's original
+Organization/Workspace role and Research status Actions use structured localized
+errors. Research creation/editing exceptions and other Research Action errors
+remain English. The phase-by-phase entries below describe each phase's original
 scope and verification; their deferred work is historical when a later entry
 records its completion.
 
@@ -60,6 +62,97 @@ AI errors, history date formatting and the API's preview fallback remain deferre
 
 Phase 4.7b completes local AI error feedback and history date/time localization.
 The ambiguous API preview fallback and broader error/state contracts remain deferred.
+
+## Research dialog Action errors (Phase 4.8c-3)
+
+Implemented 2026-11-05 against clean `main` at `69abf40`. Inspection found that
+Research creation/editing are server-rendered page forms directly bound to
+exception-based `createResearch(formData)` and `updateResearch(id, formData)`
+Actions. Status editing uses `EditResearchStatusDialog` with `useActionState`
+and `UpdateResearchStatusState`. This phase adopts structured errors only in
+that existing state-returning Action/dialog. Creation/editing contracts remain
+unchanged and are explicitly deferred below.
+
+| `updateResearchStatus` existing branch | Code | Dictionary key | Exact English copy |
+| --- | --- | --- | --- |
+| Status schema validation fails | `RESEARCH_INVALID_STATUS` | `errors.researchInvalidStatus` | Invalid research status. |
+| Research access guard throws `ResearchAccessError` for missing/inaccessible Research | `RESEARCH_NOT_FOUND` | `errors.researchNotFound` | Research not found. |
+| Existing status-update catch | `RESEARCH_STATUS_UPDATE_FAILED` | `errors.researchStatusUpdateFailed` | Failed to update research status. Please try again. |
+
+These three parameter-free codes extend `DisplayError`/`ErrorCode` and reuse
+`getErrorMessage()`. Existing generic input/not-found/internal codes do not retain
+the original status/Research/update-specific wording, so they are not substituted.
+Japanese is `Researchのステータスが無効です。`, `Researchが見つかりません。` and
+`Researchのステータスを更新できませんでした。もう一度お試しください。`.
+Codes are assigned at the existing structured conditions, never selected from
+English messages, Zod wording, exception messages or DB error identifiers.
+
+`UpdateResearchStatusState.error` is now `DisplayError | null`. The dialog passes
+its three expected codes to the helper with the existing resolved locale; default/
+invalid locale is English. Unexpected/malformed/legacy error data uses English
+through the established scoped fallback and an explicit `lang="en"`. Known errors
+use the resolved language; missing Japanese entries retain per-key English copy.
+The same `role="alert"`, classes, placement, initial null error, selected enum,
+pending Save behavior, still-enabled Select, bound Research ID, FormData/dispatch,
+Dialog/Select portal locale and uncontrolled lifecycle are preserved. No new
+effects, locale-based keys, resets, focus changes, Close/retry controls or language
+switching are introduced. No diagnostic fields or arbitrary parameters are rendered.
+
+Execution/security contracts are unchanged: schema validation and String coercion
+precede `requireUser()`, then the real Research/Workspace access guards, then one
+update using the guard-returned Research ID, followed by the same detail redirect.
+Missing and inaccessible Research share the same code without exposing identity
+or access reason. Both Workspace MEMBER and ADMIN permissions remain valid.
+Unexpected authentication/Research/membership read failures still propagate outside
+the catches. Save exceptions return only the code; redirect exceptions still
+propagate. An update resolving null retains its original redirect behavior; same-
+status submissions still update once. No new revalidation, index enqueue, cookie,
+transaction, persistence check, schema or authentication change is added. Source,
+Finding, Comment, Tag, Conclusion and Organization/Workspace Actions are untouched.
+
+### Deferred exception-based cases for Phase 4.8c-4
+
+- `createResearch`: first schema issue (or `Invalid research data.` fallback) is
+  thrown; auth/current-Workspace and persistence exceptions propagate. Its page
+  uses the Action directly, without returned error state.
+- `updateResearch`: the same schema exception behavior; expected access denial
+  becomes a thrown `Research not found.`, and an absent update result throws the
+  same notice. Unexpected auth/access/persistence exceptions propagate.
+  Its page binds the Research ID directly, without returned error state.
+
+Both retain the existing best-effort `requestResearchIndex()` helper; its enqueue
+failure capture/logging policy is unchanged. Any rejection escaping that helper
+remains uncaught at the Action boundary.
+
+Converting those paths would require separately scoping the Action signature,
+form submission/error state and redirect/indexing behavior. Neither Actions nor
+their pages are changed here; no catch/translation wrapper is added around them.
+Their existing exception, normalized-write, authorization and redirect regressions
+are included in this phase's checks. Broader child-dialog Action adoption also
+remains outside this creation/edit/status scope.
+
+Validation: focused DB-free Vitest **10 files / 354 tests**, changed-file ESLint,
+TypeScript (`--noEmit --incremental false`) and diff whitespace checks passed.
+A new status Action suite keeps real User/Research/Workspace guards and mocks
+all external I/O. It covers validation before auth, malformed/File status values,
+missing/inaccessible indistinguishability, unauthenticated redirect, unexpected
+read/auth failures, sanitized save failures, all three enums for MEMBER/ADMIN,
+exact call ordering/payload/redirect, guard-returned identity, unchanged null-update
+behavior and Public Demo refusal/validation order. Dialog/helper tests cover both
+languages, default/invalid locale, every new English meaning, missing-key fallback,
+unknown/malformed/prototype-like codes, old strings without matching, unread
+diagnostics and unchanged alert/pending/selection/dispatch/portal/lifecycle props.
+Existing mixed Action suites update only status-specific expectations; creation/
+edit/page and Public Demo regressions also pass. Initial sandbox Vitest startup
+hit `spawn EPERM`; the same selection passed with subprocess permission and the
+existing command-line artifact exclusion. No package/test configuration changes.
+
+These are mocked-I/O/React-hook checks, without live DB writes, authentication,
+Review session, browser, full suite, full E2E or Production Build. Real persistence/
+concurrency, Server Action serialization, browser scheduling/portal/focus and
+native-language review remain unverified. The existing Select label association
+and runtime handling of deferred exceptions are not redesigned. Missing Japanese
+entry fallback retains the enclosing resolved language tag.
 
 ## Organization and Workspace role Action errors (Phase 4.8c-2)
 
@@ -1308,8 +1401,9 @@ Implemented 2026-11-03: `src/lib/i18n/errors.ts` provides a display-only
 `DisplayError` union, its `ErrorCode` type and `getErrorMessage(error, locale?)`.
 The original phase left Actions, forms and their error return types unchanged.
 Phase 4.8c-1 adopts it for Onboarding and adds two specific codes; Phase 4.8c-2
-adds the two member-role Actions and six codes. Research Action adoption remains
-deferred. Home-only language switching remains in force.
+adds the two member-role Actions and six codes. Phase 4.8c-3 adds the Research
+status Action and three codes; other Research Action adoption remains deferred.
+Home-only language switching remains in force.
 
 Repository investigation found five failure categories:
 
@@ -1329,9 +1423,9 @@ Repository investigation found five failure categories:
 - Unexpected failures: many write catches return operation-specific generic
   notices, while unexpected access/read/indexing failures can propagate.
 
-Research dialogs use `useActionState` and render `state.error` directly, often in
-an alert. Onboarding and member-role forms now display their structured state
-through this helper. The helper does not parse legacy strings,
+Other Research dialogs use `useActionState` and render `state.error` directly,
+often in an alert. Onboarding, member-role forms and the Research status dialog
+display their structured state through this helper. The helper does not parse legacy strings,
 Zod messages, exceptions or DB error codes.
 
 | Stable code | Dictionary key | Parameters |
@@ -1351,12 +1445,15 @@ Zod messages, exceptions or DB error codes.
 | `ORGANIZATION_LAST_ADMIN` | `errors.organizationLastAdmin` | None; added in Phase 4.8c-2 |
 | `WORKSPACE_LAST_ADMIN` | `errors.workspaceLastAdmin` | None; added in Phase 4.8c-2 |
 | `MEMBER_ROLE_UPDATE_FAILED` | `errors.memberRoleUpdateFailed` | None; added in Phase 4.8c-2 |
+| `RESEARCH_INVALID_STATUS` | `errors.researchInvalidStatus` | None; added in Phase 4.8c-3 |
+| `RESEARCH_NOT_FOUND` | `errors.researchNotFound` | None; added in Phase 4.8c-3 |
+| `RESEARCH_STATUS_UPDATE_FAILED` | `errors.researchStatusUpdateFailed` | None; added in Phase 4.8c-3 |
 
 Callers will choose codes from structured failure conditions, never by matching
 existing English wording. Example:
 `getErrorMessage({ code: "INPUT_TOO_LONG", params: { maxLength: 200 } }, "ja")`
 returns `200文字以内で入力してください。`. No arbitrary field names, entity names,
-operation text or diagnostic strings are interpolated. All fifteen keys have English
+operation text or diagnostic strings are interpolated. All eighteen keys have English
 and Japanese entries; no existing Demo wording changes.
 
 The function accepts unknown boundary input and maps only allowlisted codes to
@@ -1371,8 +1468,9 @@ Prisma/DB, Next.js, cookie, auth, request state, server-only or client-only depe
 they can be imported on either side. Scoped Node tests cover both languages,
 temporarily missing Japanese entries, interpolation, malformed/unknown input,
 diagnostic non-disclosure and repeated calls with frozen inputs. Browser/RSC
-integration remains unverified for this helper's Action adoption; Onboarding and
-member-role Action/form adoption is implemented in Phases 4.8c-1/4.8c-2 above.
+integration remains unverified for this helper's Action adoption; Onboarding,
+member-role and Research status Action/form adoption is implemented in Phases
+4.8c-1/4.8c-2/4.8c-3 above.
 
 ## Demo language switching and Chat
 
@@ -1439,7 +1537,7 @@ a context-free bilingual global failure fallback.
 | Saved research | `Research.title`, nullable `description` and `conclusion`; `Finding.content`, optional `data`; Workspace description, Tags, Comments | Separate presentation translations, with canonical evidence retained |
 | Source titles and citations | `Source.title`, `url`; `FindingSource` links; source IDs validated in Demo chat | Preserve original title, URL, IDs, and citation links; optional translated title is a clearly labeled display aid |
 | AI output and question suggestions | `lib/demo/chat-generation`, `chat-client`; `chat-questions.ts` selects prompts by canonical English Research title and locale; SaaS AI panel/history | Keep UI locale independent of AI answer language; predefined Demo suggestions, fixed UI and local client notices are translated; SaaS history dates follow the locale, while previews/prose and the ambiguous API preview fallback remain original |
-| Validation and errors | `types/research.ts`; `types/research/{source,finding,comment,tag,conclusion,status}.ts`; onboarding/member-role Actions; `lib/demo/chat-client.ts` and SaaS AI local failure branches | Onboarding/member-role Actions use structured localized codes with English fallback for unknown data; Research Action errors remain English. Demo typed notices and SaaS local AI errors use dictionaries. `types/research/validation.ts` is empty and defines no schemas |
+| Validation and errors | `types/research.ts`; `types/research/{source,finding,comment,tag,conclusion,status}.ts`; onboarding/member-role/status Actions; `lib/demo/chat-client.ts` and SaaS AI local failure branches | Onboarding/member-role/Research status Actions use structured localized codes with English fallback for unknown data; creation/editing exceptions and other Research Action errors remain English. Demo typed notices and SaaS local AI errors use dictionaries. `types/research/validation.ts` is empty and defines no schemas |
 
 The Demo has its own header with Appearance and repository link; authenticated
 pages use `AppShell`, `AppHeader`, and `AppNavigation`. There is no shared footer

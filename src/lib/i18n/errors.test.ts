@@ -19,6 +19,9 @@ const messages = [
   ["ORGANIZATION_LAST_ADMIN", "An organization must have at least one admin.", "Organizationには管理者が1人以上必要です。"],
   ["WORKSPACE_LAST_ADMIN", "A workspace must have at least one admin.", "Workspaceには管理者が1人以上必要です。"],
   ["MEMBER_ROLE_UPDATE_FAILED", "Failed to update member role. Please try again.", "メンバーのロールを更新できませんでした。もう一度お試しください。"],
+  ["RESEARCH_INVALID_STATUS", "Invalid research status.", "Researchのステータスが無効です。"],
+  ["RESEARCH_NOT_FOUND", "Research not found.", "Researchが見つかりません。"],
+  ["RESEARCH_STATUS_UPDATE_FAILED", "Failed to update research status. Please try again.", "Researchのステータスを更新できませんでした。もう一度お試しください。"],
 ] as const satisfies ReadonlyArray<readonly [ErrorCode, string, string]>;
 
 describe("error display contract", () => {

@@ -153,9 +153,9 @@ const actions = [
   {
     name: "updateResearchStatus", run: (data: FormData) => updateResearchStatus(researchId, state, data),
     values: { status: "ARCHIVED" }, invalid: { status: " COMPLETED " },
-    error: "Invalid research status.", throws: false,
+    error: { code: "RESEARCH_INVALID_STATUS" }, throws: false,
     model: "Research", operation: "update", indexed: false,
-    payload: { status: "ARCHIVED" }, saveError: "Failed to update research status. Please try again.",
+    payload: { status: "ARCHIVED" }, saveError: { code: "RESEARCH_STATUS_UPDATE_FAILED" },
   },
 ] as const;
 

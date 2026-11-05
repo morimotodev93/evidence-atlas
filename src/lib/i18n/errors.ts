@@ -7,7 +7,8 @@ import { translate } from "./translate";
 export type DisplayError =
   | { readonly code: "INPUT_TOO_LONG"; readonly params: { readonly maxLength: number } }
   | { readonly code: "INVALID_INPUT" | "UNAUTHENTICATED" | "FORBIDDEN" | "NOT_FOUND" | "CONFLICT" | "INTERNAL_ERROR" | "ONBOARDING_INVALID_INPUT" | "ONBOARDING_CREATE_FAILED" }
-  | { readonly code: "ORGANIZATION_INVALID_ROLE" | "WORKSPACE_INVALID_ROLE" | "MEMBER_NOT_FOUND" | "ORGANIZATION_LAST_ADMIN" | "WORKSPACE_LAST_ADMIN" | "MEMBER_ROLE_UPDATE_FAILED" };
+  | { readonly code: "ORGANIZATION_INVALID_ROLE" | "WORKSPACE_INVALID_ROLE" | "MEMBER_NOT_FOUND" | "ORGANIZATION_LAST_ADMIN" | "WORKSPACE_LAST_ADMIN" | "MEMBER_ROLE_UPDATE_FAILED" }
+  | { readonly code: "RESEARCH_INVALID_STATUS" | "RESEARCH_NOT_FOUND" | "RESEARCH_STATUS_UPDATE_FAILED" };
 
 export type ErrorCode = DisplayError["code"];
 
@@ -27,6 +28,9 @@ const errorKeys = {
   ORGANIZATION_LAST_ADMIN: "errors.organizationLastAdmin",
   WORKSPACE_LAST_ADMIN: "errors.workspaceLastAdmin",
   MEMBER_ROLE_UPDATE_FAILED: "errors.memberRoleUpdateFailed",
+  RESEARCH_INVALID_STATUS: "errors.researchInvalidStatus",
+  RESEARCH_NOT_FOUND: "errors.researchNotFound",
+  RESEARCH_STATUS_UPDATE_FAILED: "errors.researchStatusUpdateFailed",
 } as const satisfies Record<ErrorCode, TranslationKey>;
 
 // Accept unknown boundary data safely; message, cause, stack and other diagnostic

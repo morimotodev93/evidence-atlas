@@ -1,5 +1,8 @@
 // English defines the stable UI key contract.
 export const en = {
+  "errors.researchInvalidStatus": "Invalid research status.",
+  "errors.researchNotFound": "Research not found.",
+  "errors.researchStatusUpdateFailed": "Failed to update research status. Please try again.",
   "errors.organizationInvalidRole": "Invalid organization role.",
   "errors.workspaceInvalidRole": "Invalid workspace role.",
   "errors.memberNotFound": "Member not found.",

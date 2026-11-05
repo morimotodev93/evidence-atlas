@@ -1,6 +1,9 @@
 import type { Dictionary } from "./en";
 
 export const ja = {
+  "errors.researchInvalidStatus": "Researchのステータスが無効です。",
+  "errors.researchNotFound": "Researchが見つかりません。",
+  "errors.researchStatusUpdateFailed": "Researchのステータスを更新できませんでした。もう一度お試しください。",
   "errors.organizationInvalidRole": "Organizationのロールが無効です。",
   "errors.workspaceInvalidRole": "Workspaceのロールが無効です。",
   "errors.memberNotFound": "メンバーが見つかりません。",

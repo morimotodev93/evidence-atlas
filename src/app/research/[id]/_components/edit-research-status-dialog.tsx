@@ -14,6 +14,7 @@ import {
 } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { resolveLocale, type Locale } from "@/lib/i18n/locales";
+import { getErrorMessage } from "@/lib/i18n/errors";
 import { translate } from "@/lib/i18n/translate";
 import {
   Select,
@@ -58,6 +59,10 @@ export function EditResearchStatusDialog({
     updateResearchStatus.bind(null, researchId),
     initialState,
   );
+  // Keep unexpected error data on the established, explicitly English fallback.
+  const errorLocale = state.error?.code === "RESEARCH_INVALID_STATUS"
+    || state.error?.code === "RESEARCH_NOT_FOUND"
+    || state.error?.code === "RESEARCH_STATUS_UPDATE_FAILED" ? locale : "en";
 
   return (
     <Dialog>
@@ -81,10 +86,10 @@ export function EditResearchStatusDialog({
           {state.error && (
             <p
               role="alert"
-              lang="en"
+              lang={errorLocale}
               className="rounded-md border border-destructive/30 bg-destructive/5 px-3 py-2 text-sm text-destructive-text"
             >
-              {state.error}
+              {getErrorMessage(state.error, errorLocale)}
             </p>
           )}
 
