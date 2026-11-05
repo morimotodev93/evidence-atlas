@@ -4,6 +4,10 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { ResearchAiPanel } from "./research-ai-panel";
 import { ResearchAiMarkdown } from "./research-ai-markdown";
 import { ResearchAiMobileDialog } from "./research-ai-mobile-dialog";
+import type { Locale } from "@/lib/i18n/locales";
+import { translate } from "@/lib/i18n/translate";
+import type { Dictionary } from "@/lib/i18n/dictionaries/en";
+import { ja } from "@/lib/i18n/dictionaries/ja";
 
 const hooks = vi.hoisted(() => ({
   slots: [] as unknown[], cursor: 0,
@@ -44,11 +48,12 @@ function elements(node: ReactNode): Element[] {
   return [node, ...elements(node.props.children)];
 }
 let panelActive = true;
+let panelLocale: Locale | undefined;
 function view(variant: "desktop" | "mobile" = "desktop", active = panelActive) {
   panelActive = active;
   hooks.cursor = 0;
   hooks.effects = [];
-  return elements(ResearchAiPanel({ researchId: "research-id", sources: [], variant, active }));
+  return elements(ResearchAiPanel({ researchId: "research-id", sources: [], variant, active, locale: panelLocale }));
 }
 function button(label: string) {
   const element = view().find((node) => node.type === "button" && node.props.children === label);
@@ -90,7 +95,7 @@ function click(label: string) {
 const fetchMock = vi.fn<typeof fetch>();
 async function startConversation() {
   fetchMock.mockResolvedValueOnce(Response.json({ id: "conversation-id", researchId: "research-id" }));
-  await click("New");
+  await click(translate("saasAi.new", panelLocale));
 }
 function streamResponse() {
   let controller: ReadableStreamDefaultController<Uint8Array>;
@@ -124,6 +129,7 @@ const earlierTurns = [
 
 beforeEach(() => {
   panelActive = true;
+  panelLocale = undefined;
   hooks.slots = [];
   hooks.cursor = 0;
   fetchMock.mockReset();
@@ -132,6 +138,201 @@ beforeEach(() => {
   vi.spyOn(console, "error").mockImplementation(() => {});
 });
 afterEach(() => { vi.unstubAllGlobals(); vi.restoreAllMocks(); });
+
+describe("fixed AI panel localization", () => {
+  it.each([undefined, "en", "ja", "invalid"])("renders fixed copy and forwards resolved locale %s without requests", (value) => {
+    panelLocale = value as Locale | undefined;
+    const nodes = view();
+    const japanese = value === "ja";
+    expect(nodes[0].props.lang).toBe(japanese ? "ja" : "en");
+    for (const text of japanese
+      ? ["AIアシスタント", "このResearchについて質問できます。", "会話はまだありません", "このResearchの根拠に基づく会話を始めましょう。", "新規", "送信"]
+      : ["AI Assistant", "Ask questions about this research.", "No conversation yet", "Start a conversation grounded in this research.", "New", "Send"])
+      expect(nodes.some((node) => node.props.children === text)).toBe(true);
+    expect(textarea().props).toMatchObject({
+      placeholder: japanese ? "このResearchについて質問してください..." : "Ask about this research...",
+      "aria-label": japanese ? "AIへのメッセージ" : "Message to AI", disabled: true,
+      value: "", autoComplete: "off", rows: 3,
+    });
+    expect(nodes.find((node) => node.props.role === "region")?.props["aria-label"])
+      .toBe(japanese ? "会話のメッセージ" : "Conversation messages");
+    expect(nodes.find((node) => node.type === "history-dialog")?.props.locale).toBe(japanese ? "ja" : "en");
+    const region = nodes.find((node) => node.props.role === "region")!;
+    (region.props.onScroll as (event: unknown) => void)({ currentTarget: { scrollHeight: 1000, scrollTop: 0, clientHeight: 200 } });
+    expect(button(japanese ? "最新のメッセージ" : "Latest messages")).toBeDefined();
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it("falls back per missing Japanese panel entry", () => {
+    const partial: { -readonly [K in keyof Dictionary]?: string } = ja;
+    const saved = partial["saasAi.placeholder"];
+    try {
+      delete partial["saasAi.placeholder"];
+      panelLocale = "ja";
+      expect(textarea().props.placeholder).toBe("Ask about this research...");
+      expect(view()[0].props.lang).toBe("ja");
+    } finally { partial["saasAi.placeholder"] = saved; }
+  });
+
+  it.each(["en", "ja"] as const)("preserves creation state and the explicit Close callback in %s", async (locale) => {
+    panelLocale = locale;
+    const creating = deferred<Response>();
+    fetchMock.mockReturnValueOnce(creating.promise);
+    const request = click(translate("saasAi.new", locale));
+    expect(button(locale === "ja" ? "作成中..." : "Creating...").props.disabled).toBe(true);
+    expect(textarea().props.disabled).toBe(true);
+    creating.resolve(Response.json({ id: "conversation-id", researchId: "research-id" }));
+    await request;
+    expect(view().some((node) => node.props.children === (locale === "ja" ? "会話を開始しました" : "Conversation started"))).toBe(true);
+    expect(view().some((node) => node.props.children === (locale === "ja" ? "このResearchについて質問してください。" : "Ask a question about this research."))).toBe(true);
+    expect(fetchMock).toHaveBeenCalledExactlyOnceWith("/research/research-id/chat/conversations", { method: "POST" });
+    const close = vi.fn();
+    hooks.cursor = 0;
+    const nodes = elements(ResearchAiPanel({ researchId: "research-id", sources: [], locale, onClose: close }));
+    const control = nodes.find((node) => node.props["aria-label"] === (locale === "ja" ? "AIアシスタントを閉じる" : "Close AI Assistant"))!;
+    expect(control.props.children).toBe(locale === "ja" ? "閉じる" : "Close");
+    (control.props.onClick as () => void)();
+    expect(close).toHaveBeenCalledOnce();
+    expect(fetchMock).toHaveBeenCalledOnce();
+  });
+});
+
+describe.each(["en", "ja"] as const)("%s localized conversation contracts (synthetic hooks/streams)", (locale) => {
+  const copy = locale === "ja" ? {
+    streaming: "一時的な回答を生成しています。保存は確認されていません。",
+    checking: "保存済みの履歴を確認しています...",
+    refreshed: "サーバーの保存済み履歴を表示しています。今回の送信結果を個別に確認できたわけではありません。",
+    unconfirmed: "今回の送信結果は未確認です。履歴を開いて保存済みメッセージを確認してください。",
+    saved: "サーバーの保存済み履歴を表示しています。",
+  } : {
+    streaming: "Generating a temporary response. Saving is not confirmed.",
+    checking: checkingStatus, refreshed: refreshedStatus, unconfirmed: unconfirmedStatus,
+    saved: "Showing saved history from the server.",
+  };
+
+  beforeEach(() => { panelLocale = locale; });
+
+  it("renders saved → streaming → checking → refreshed while retaining content, IDs and payloads", async () => {
+    const source = { id: "original-source", title: "Original Paper / 原文", url: "HTTPS://Example.COM/Paper#Citation" };
+    const user = "New conversation **原文** [source:user-marker]";
+    const answer = "Original **AI response** / 原文";
+    const saved = [
+      { id: "original-user", authorType: "USER", content: user },
+      { id: "original-ai", authorType: "AI", content: `${answer} [source:original-source]` },
+    ];
+    const before = structuredClone({ saved, source });
+    fetchMock.mockResolvedValueOnce(detail(saved, [source]));
+    expect(await selectConversation()).toBe(true);
+    expect(statuses()).toEqual([copy.saved]);
+    expect(messageTexts()).toEqual([user, answer]);
+    expect(view().some((node) => node.key === "original-ai")).toBe(true);
+    expect(view().find((node) => node.type === "supporting-sources")?.props).toMatchObject({ sources: [source], locale });
+    const question = "  日本語 **question** [source:user-literal]\n ";
+    typeMessage(question);
+    const stream = streamResponse();
+    const refresh = deferred<Response>();
+    fetchMock.mockResolvedValueOnce(stream.response).mockReturnValueOnce(refresh.promise);
+    const sending = click(translate("saasAi.send", locale));
+    expect(statuses()).toEqual([copy.streaming]);
+    expect(messageTexts().at(-1)).toBe(locale === "ja" ? "考え中..." : "Thinking...");
+    expect(view().some((node) => node.props.children === (locale === "ja" ? "AI（一時表示）" : "AI (temporary)"))).toBe(true);
+    expect(view().some((node) => node.props.children === (locale === "ja" ? "あなた" : "You"))).toBe(true);
+    expect(textarea().props).toMatchObject({ disabled: true, value: "" });
+    stream.chunk("Streamed **answer** [source:original-source]");
+    await expectPartial("Streamed **answer**");
+    stream.close();
+    for (let i = 0; i < 30 && !statuses().includes(copy.checking); i++) await Promise.resolve();
+    expect(statuses()).toEqual([copy.checking]);
+    expect(messageTexts()).toEqual([user, answer]);
+    expect(textarea().props.disabled).toBe(true);
+    refresh.resolve(detail([...saved,
+      { id: "server-user", authorType: "USER", content: question.trim() },
+      { id: "server-ai", authorType: "AI", content: "Saved **answer** [source:original-source]" },
+    ], [source]));
+    await sending;
+    expect(statuses()).toEqual([copy.refreshed]);
+    expect(copy.refreshed).not.toBe(copy.saved);
+    expect(messageTexts()).toEqual([user, answer, question.trim(), "Saved **answer**"]);
+    expect(view().some((node) => node.key === "server-ai")).toBe(true);
+    expect(textarea().props.disabled).toBe(false);
+    expect(fetchMock.mock.calls).toEqual([
+      ["/research/research-id/chat/conversations/conversation-id"],
+      ["/research/research-id/chat", { method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ conversationId: "conversation-id", message: question.trim() }) }],
+      ["/research/research-id/chat/conversations/conversation-id"],
+    ]);
+    expect({ saved, source }).toEqual(before);
+    expect(stream.cancel).not.toHaveBeenCalled();
+  });
+
+  it("preserves drafts and pending locks through locale/visibility rerenders and late chunks", async () => {
+    await startConversation();
+    const draft = "  Original draft / 原文 [source:literal]\n";
+    typeMessage(draft);
+    const originalPickerKey = view().find((node) => node.type === "history-dialog")!.key;
+    panelLocale = locale === "ja" ? "en" : "ja";
+    expect(textarea().props.value).toBe(draft);
+    expect(view().find((node) => node.type === "history-dialog")!.key).toBe(originalPickerKey);
+    panelLocale = locale;
+    const stream = streamResponse();
+    fetchMock.mockResolvedValueOnce(stream.response);
+    const sending = click(translate("saasAi.send", locale));
+    stream.chunk("Temporary answer");
+    await expectPartial("Temporary answer");
+    view("desktop", false);
+    panelLocale = locale === "ja" ? "en" : "ja";
+    expect(messageTexts()).toEqual([draft.trim(), "Temporary answer"]);
+    expect(statuses()).toEqual([translate("saasAi.statusStreaming", panelLocale)]);
+    expect(textarea().props.disabled).toBe(true);
+    panelLocale = locale;
+    view("desktop", true);
+    fetchMock.mockResolvedValueOnce(detail(earlierTurns));
+    expect(await selectConversation()).toBe(true);
+    typeMessage("Next draft / 次の質問"); // Force input/handler to exercise the pending lock.
+    await click(translate("saasAi.sending", locale));
+    expect(fetchMock.mock.calls.filter(([url]) => url === "/research/research-id/chat")).toHaveLength(1);
+    stream.chunk(" Late ignored chunk");
+    stream.close();
+    await sending;
+    expect(messageTexts()).toEqual(["Earlier question", "Earlier answer"]);
+    expect(statuses()).toEqual([copy.saved]);
+    expect(textarea().props).toMatchObject({ disabled: false, value: "Next draft / 次の質問" });
+    expect(fetchMock).toHaveBeenCalledTimes(3); // No old refresh or automatic retry.
+    expect(stream.cancel).not.toHaveBeenCalled();
+  });
+
+  it.each(["Error", "AbortError"])("retains English errors and unconfirmed history after %s and a denied refresh", async (name) => {
+    await startConversation();
+    fetchMock.mockResolvedValueOnce(detail(earlierTurns));
+    await selectConversation();
+    typeMessage("Original question");
+    const stream = streamResponse();
+    fetchMock.mockResolvedValueOnce(stream.response).mockResolvedValueOnce(new Response(null, { status: 401 }));
+    const sending = click(translate("saasAi.send", locale));
+    stream.chunk("Partial");
+    await expectPartial("Partial");
+    stream.error(new DOMException("Private synthetic failure", name));
+    await sending;
+    expect(statuses()).toEqual([copy.unconfirmed]);
+    expect(messageTexts()).toEqual(["Earlier question", "Earlier answer"]);
+    expect(alerts()).toEqual(["Failed to send message."]);
+    expect(view().find((node) => node.props.role === "alert")?.props.lang).toBe("en");
+    expect(textarea().props).toMatchObject({ disabled: false, value: "" });
+    expect(fetchMock).toHaveBeenCalledTimes(4);
+    expect(stream.cancel).not.toHaveBeenCalled();
+  });
+
+  it("keeps the existing 503 notice and skips recovery/retry", async () => {
+    await startConversation();
+    typeMessage("Original question");
+    fetchMock.mockResolvedValueOnce(Response.json({ error: "Private diagnostic" }, { status: 503 }));
+    await click(translate("saasAi.send", locale));
+    expect(alerts()).toEqual(["Chat is temporarily unavailable. Please contact the administrator or try again later."]);
+    expect(statuses()).toEqual([copy.unconfirmed]);
+    expect(textarea().props.disabled).toBe(false);
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+  });
+});
 
 describe("Chat panel synthetic stream handlers (not mounted browser recovery)", () => {
   it("keeps selected history, draft and supporting Sources across active changes", async () => {

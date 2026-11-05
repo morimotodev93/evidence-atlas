@@ -10,8 +10,11 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { useState } from "react";
+import { resolveLocale, type Locale } from "@/lib/i18n/locales";
+import { translate } from "@/lib/i18n/translate";
 
 type ResearchAiConversationsDialogProps = {
+  locale?: Locale;
   researchId: string;
   desktop?: boolean;
   onSelectConversation: (conversationId: string) => Promise<boolean>;
@@ -21,7 +24,9 @@ export function ResearchAiConversationsDialog({
   researchId,
   desktop = false,
   onSelectConversation,
+  locale: localeProp,
 }: ResearchAiConversationsDialogProps) {
+  const locale = resolveLocale(localeProp);
   type ConversationSummary = {
     id: string;
     researchId: string;
@@ -77,33 +82,33 @@ export function ResearchAiConversationsDialog({
     >
       <DialogTrigger
         render={
-          <Button variant="outline" size="sm">
-            History
+          <Button lang={locale} variant="outline" size="sm">
+            {translate("saasAi.history", locale)}
           </Button>
         }
       />
 
-      <DialogContent data-desktop-ai-history={desktop ? "" : undefined} className="flex max-h-[90dvh] min-w-0 flex-col overflow-hidden">
+      <DialogContent locale={locale} data-desktop-ai-history={desktop ? "" : undefined} className="flex max-h-[90dvh] min-w-0 flex-col overflow-hidden">
         <DialogHeader className="shrink-0 pr-8">
-          <DialogTitle>Select Conversation</DialogTitle>
+          <DialogTitle>{translate("saasAi.selectConversation", locale)}</DialogTitle>
 
           <DialogDescription>
-            Select a previous conversation to continue.
+            {translate("saasAi.selectDescription", locale)}
           </DialogDescription>
         </DialogHeader>
         <div className="min-h-0 overflow-y-auto overscroll-contain [overflow-wrap:anywhere]">
           <p className="mb-3 text-sm text-muted-foreground">
-            Conversations will appear here.
+            {translate("saasAi.historyDescription", locale)}
           </p>
           {isLoading ? (
             <p className="text-sm text-muted-foreground">
-              Loading conversations...
+              {translate("saasAi.loadingConversations", locale)}
             </p>
           ) : loadError ? (
-            <p className="text-sm text-destructive">{loadError}</p>
+            <p lang="en" className="text-sm text-destructive">{loadError}</p>
           ) : conversations.length === 0 ? (
             <p className="text-sm text-muted-foreground">
-              No conversations yet.
+              {translate("saasAi.noConversations", locale)}
             </p>
           ) : (
             <div className="space-y-2">
@@ -139,7 +144,7 @@ export function ResearchAiConversationsDialog({
 
                     <p className="mt-1 text-xs text-muted-foreground">
                       {selectedConversationId === conversation.id
-                        ? "Restoring..."
+                        ? translate("saasAi.restoring", locale)
                         : new Date(conversation.updatedAt).toLocaleString()}
                     </p>
                   </div>

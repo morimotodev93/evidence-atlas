@@ -1,12 +1,15 @@
 import { safeSourceHref } from "@/lib/source-url";
+import { resolveLocale, type Locale } from "@/lib/i18n/locales";
+import { translate } from "@/lib/i18n/translate";
 import type { ResearchAiSource } from "./research-ai-panel";
 
 // Shared by live answers and restored history after citation resolution.
-export function ResearchAiSupportingSources({ sources }: { sources: ResearchAiSource[] }) {
+export function ResearchAiSupportingSources({ sources, locale: localeProp }: { sources: ResearchAiSource[]; locale?: Locale }) {
+  const locale = resolveLocale(localeProp);
   return (
-    <div className="mt-3">
+    <div lang={locale} className="mt-3">
       <p className="text-xs font-medium text-muted-foreground">
-        Supporting sources
+        {translate("saasAi.supportingSources", locale)}
       </p>
       <div className="mt-2 space-y-1">
         {sources.map((source) => {

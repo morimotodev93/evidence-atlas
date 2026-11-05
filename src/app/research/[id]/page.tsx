@@ -106,6 +106,7 @@ export default async function ResearchDetailPage({
         />
         {/* The body remains server-rendered; only desktop AI visibility is client state. */}
         <ResearchAiDesktopLayout
+          locale={locale}
           researchId={research.id}
           sources={sources.map((source) => ({ id: source.id, title: source.title, url: source.url }))}
         >
@@ -153,6 +154,7 @@ export default async function ResearchDetailPage({
         <div className="fixed inset-x-0 bottom-0 z-40 border-t bg-background/95 p-3 backdrop-blur lg:hidden">
           <div className="mx-auto max-w-5xl px-1 sm:px-3">
             <ResearchAiMobileDialog
+              locale={locale}
               researchId={research.id}
               sources={sources.map((source) => ({
                 id: source.id,

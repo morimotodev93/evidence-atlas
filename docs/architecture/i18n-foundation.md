@@ -37,6 +37,92 @@ deferred.
 Phase 4.6c adds comment creation/editing/deletion, tag addition/detachment and
 conclusion editing UI. AI controls and Action error localization remain deferred.
 
+Phase 4.7a adds fixed SaaS AI conversation UI through the existing AppShell locale.
+AI errors, history date formatting and the API's preview fallback remain deferred.
+
+## SaaS AI conversation fixed UI (Phase 4.7a)
+
+Implemented 2026-11-05. The Research detail page passes its existing resolved
+AppShell locale to ResearchAiDesktopLayout and ResearchAiMobileDialog, then to
+ResearchAiPanel, ResearchAiConversationsDialog and ResearchAiSupportingSources.
+Optional locale props use `resolveLocale` for missing/invalid English fallback.
+New `saasAi.*` dictionary entries cover fixed headings, descriptions, buttons,
+placeholder, empty/loading/restoring states, role labels, message/input accessible
+names, the panel's hidden Research ID prefix and Supporting sources heading.
+English copy and existing rendering conditions are preserved. Both mobile and
+History portaled Popups reuse `DialogContent locale={locale}` for language and
+the shared Close control. No shared Dialog or Markdown renderer change is needed.
+
+The five existing status keys and transitions are retained. `streaming` describes
+temporary output with saving unconfirmed; `checking` describes the saved-history
+read; `refreshed` displays server history while explicitly saying this individual
+send's result could not be confirmed; `unconfirmed` directs the user to History;
+`saved` describes displayed server history. Neither locale treats stream EOF or
+the refresh GET as an acknowledgement that a particular send was saved.
+
+Locale is a display prop only. No new effects, locale-based keys, remounts,
+state resets, Provider, cookie read or locale request field are introduced.
+Drafts, selected Conversation, saved/provisional messages, message IDs, pending
+locks, generation ownership, stream consumption and late-result suppression keep
+their existing behavior. The existing active/inactive History-picker key remains
+unchanged. Desktop hiding retains its panel; mobile remains an independent
+instance with its existing Dialog lifecycle. Existing input trimming/clearing,
+New/History navigation, history replacement and manual resend behavior are retained.
+No Stop/cancellation, retry, draft recovery or persistence acknowledgement is added.
+
+Prompts, AI prose, history previews, Source metadata/IDs/URLs and citations remain
+original. Existing citation parsing/validation, Markdown safety and render-only
+Source URL safety rules are unchanged. The three Research-scoped chat Route
+Handlers, request payloads, API errors, authentication, authorization, rate limits,
+persistence, schema, indexing and Public Demo behavior are unchanged. SaaS Language
+Select remains enabled only at exact Home `/`.
+
+Existing client errors remain verbatim English with `lang="en"`; error state,
+assignment/clearing and 503 handling are unchanged. History still calls
+`toLocaleString()` without locale/options. Those display changes remain Phase
+4.7b. The list API's `New conversation` preview fallback is also retained: its
+string cannot safely be distinguished from an identical user-authored prompt.
+Localizing that fallback needs a separately scoped structured API distinction,
+not English-string matching. Typed error state, shared desktop/mobile state,
+streaming/abort/retry changes and broader language switching remain deferred.
+
+### Recorded AI architecture conflicts
+
+Two pre-existing conflicts were confirmed against baseline `86128f4`; this phase
+does not silently rewrite [AI architecture](ai-architecture.md):
+
+- Section 8 says the post-stream detail GET refreshes Sources without replacing
+  live messages. Current `refreshHistory()` replaces messages with server history
+  and saved IDs, as the panel's synthetic tests demonstrate.
+- Section 5 describes only the non-empty raw-text/`stop` save condition. Current
+  `onFinish` additionally rejects empty validated text and empty parsed display
+  text before creating an AI Message, covered by mocked Route Handler tests.
+
+These documentation corrections need their own explicit architecture alignment;
+neither discrepancy is authorization to change streaming or persistence here.
+
+### Verification and limits
+
+Focused DB-free Vitest **11 files / 298 tests**, changed-file ESLint, TypeScript
+(`--noEmit --incremental false`) and diff whitespace checks passed. Tests cover English,
+Japanese, missing/invalid locale and missing-entry fallback; page-to-layout/panel
+locale delivery and original Source projection; real shared Popup language/Close;
+all five status meanings and transitions; original drafts/messages/IDs/citations;
+exact request payloads and existing pending/history/stream behavior. Existing
+Markdown, citation, API authorization/persistence, Home-only switching and Demo
+client regressions are included. Baseline comparison also confirms the panel,
+desktop layout and History picker's state/effect/handler blocks are unchanged.
+Initial sandbox Vitest startup hit `spawn EPERM`; subprocess permission allowed
+the tests to run. That run also collected an existing archived Review package in
+`test-results/`, which failed on a missing archived import while all 298 source
+tests passed. The final run excluded `test-results/**` at the command line and
+passed all 11 intended files; no artifact, Vitest config or dependency was changed.
+Hook doubles/stream fixtures do not verify real
+React scheduling, focus, browser Portal placement, live RSC merging or provider
+completion. Real Review layout at 1280/768/375px, keyboard/focus, hydration and
+Production font widths remain unverified. No browser, server startup, session
+creation, database/fixture operation, live AI, full suite, E2E or Production Build.
+
 ## SaaS comments, tags and conclusions UI (Phase 4.6c)
 
 Implemented 2026-11-03. The Research detail page passes its resolved AppShell

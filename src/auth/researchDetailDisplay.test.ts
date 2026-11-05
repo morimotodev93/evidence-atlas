@@ -44,7 +44,7 @@ beforeAll(async () => {
   // Keep real guards and shared rendering; replace interactive client dialogs only.
   for (const [file, name] of Object.entries(components)) {
     vi.doMock(`@/app/research/[id]/_components/${file}`, () => ({
-      [name]: (props: { locale?: Locale; researchId?: string; initialStatus?: string; sourceId?: string; title?: string; url?: string; findingId?: string; content?: string; sources?: { id: string; title: string }[]; commentId?: string; tagId?: string; initialConclusion?: string | null }) =>
+      [name]: (props: { locale?: Locale; researchId?: string; initialStatus?: string; sourceId?: string; title?: string; url?: string; findingId?: string; content?: string; sources?: { id: string; title: string; url?: string }[]; commentId?: string; tagId?: string; initialConclusion?: string | null }) =>
         createElement("span", name === "EditResearchStatusDialog" ? {
           "data-status-locale": props.locale,
           "data-status-research": props.researchId,
@@ -71,6 +71,11 @@ beforeAll(async () => {
           "data-comment-content": props.content,
           "data-tag-id": props.tagId,
           "data-conclusion": props.initialConclusion,
+        } : ["ResearchAiPanel", "ResearchAiMobileDialog"].includes(name) ? {
+          "data-ai-control": name,
+          "data-ai-locale": props.locale,
+          "data-ai-research": props.researchId,
+          "data-ai-sources": JSON.stringify(props.sources),
         } : null, name),
     }));
   }
@@ -90,6 +95,21 @@ beforeEach(() => {
 });
 
 describe("Authenticated Research detail after display extraction", () => {
+  it.each([undefined, "invalid", "en", "ja"])("delivers locale %s and original Source data to desktop and mobile AI", async (value) => {
+    mocks.cookie.mockReturnValue(value === undefined ? undefined : { value });
+    const stored = { ...source, title: "Original Source / 原文", url: "HTTPS://Example.COM/Original?ref=en#Citation" };
+    mocks.models.Source.query.all.mockResolvedValue([stored]);
+    const html = renderToStaticMarkup(await DetailPage({ params: Promise.resolve({ id: research.id }) }));
+    const locale = value === "ja" ? "ja" : "en";
+    for (const name of ["ResearchAiPanel", "ResearchAiMobileDialog"]) {
+      expect(html).toContain(`data-ai-control="${name}" data-ai-locale="${locale}" data-ai-research="${research.id}"`);
+    }
+    const projection = JSON.stringify([{ id: stored.id, title: stored.title, url: stored.url }]).replaceAll('"', "&quot;");
+    expect(html.split(`data-ai-sources="${projection}"`)).toHaveLength(3);
+    expect(html).toContain(`aria-label="${locale === "ja" ? "AIアシスタント" : "AI Assistant"}"`);
+    expect(mocks.models.WorkspaceMembership.where).toHaveBeenCalledWith({ userId: "user-id", workspaceId: research.workspaceId });
+  });
+
   it.each([undefined, "invalid", "en", "ja"])("passes locale %s and original comment/tag/conclusion data to controls", async (value) => {
     mocks.cookie.mockReturnValue(value === undefined ? undefined : { value });
     const originalComment = "原文 comment [source:original]";

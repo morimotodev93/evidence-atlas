@@ -1,6 +1,6 @@
 # evidence-atlas Roadmap
 
-> **Last Updated:** 2026-11-03
+> **Last Updated:** 2026-11-05
 
 Current stage: The portfolio MVP and curated Public Demo with read-only Research and limited anonymous Chat are implemented, with scoped deployment checks recorded. Phases 4–7 are complete for their defined baselines; Phase 8 is complete for the defined application infrastructure baseline. Phase 10 has four completed checklist items (Unit, bounded E2E, Validation, Authorization); other quality work remains open. Phase 11 operational reviews and Phase 12 documentation are not complete. Checked items describe specific implementation or reported verification, not blanket production, OAuth, provider, or security validation.
 
@@ -37,6 +37,33 @@ baseline/attribution guards and safe fallback. Original evidence and Chat remain
 canonical English. This completes the curated content scope only; full SaaS
 localization and deployed/runtime language verification remain open. See
 [i18n architecture](../architecture/i18n-foundation.md#phase-3-research-translation-catalog).
+
+### SaaS AI conversation fixed UI localization (2026-11-05)
+
+Phase 4.7a completes fixed English/Japanese desktop/mobile AI conversation UI,
+History picker and Supporting sources heading through the existing AppShell locale
+and new `saasAi.*` dictionary entries. Optional locale props retain English fallback;
+both portaled Dialogs reuse shared language/Close support. All five status messages
+retain their existing transitions and uncertainty: refreshed server history does
+not confirm the individual send's saving. No effects, locale-based keys, remounts,
+state resets, chat API/payload/auth/persistence changes, content translation or
+Public Demo behavior changes. Home-only language switching remains in force.
+
+Focused DB-free Vitest **11 files / 298 tests**, changed-file ESLint, TypeScript
+(`--noEmit --incremental false`) and diff whitespace checks passed. They cover
+locale/fallback/portal controls, original content and IDs, exact requests, pending
+locks, ownership and synthetic streaming/history behavior. State/effect/handler
+blocks match the baseline. Initial Vitest subprocess and archived-package
+collection issues are recorded in the linked verification notes; the final
+focused run passed without repository configuration changes.
+Browser/Review layout, focus, hydration and real scheduling remain
+unverified. Errors and history date formatting remain Phase 4.7b; the ambiguous
+server preview fallback and broader state/streaming changes are deferred.
+Two pre-existing AI architecture conflicts (history replacement and post-validation
+blank rejection) are recorded explicitly without modifying that document. See
+[Phase 4.7a scope and verification](../architecture/i18n-foundation.md#saas-ai-conversation-fixed-ui-phase-47a).
+No database writes, live AI, full suite, E2E or Production Build; no quality or
+release checklist is advanced by this UI phase.
 
 ### SaaS comment, tag and conclusion UI localization (2026-11-03)
 

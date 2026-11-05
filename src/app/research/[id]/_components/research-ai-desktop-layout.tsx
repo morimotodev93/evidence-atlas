@@ -2,15 +2,19 @@
 
 import { useEffect, useId, useRef, useState, type ReactNode } from "react";
 import { Button } from "@/components/ui/button";
+import { resolveLocale, type Locale } from "@/lib/i18n/locales";
+import { translate } from "@/lib/i18n/translate";
 import { ResearchAiPanel, type ResearchAiSource } from "./research-ai-panel";
 
 type ResearchAiDesktopLayoutProps = {
+  locale?: Locale;
   researchId: string;
   sources: ResearchAiSource[];
   children: ReactNode;
 };
 
-export function ResearchAiDesktopLayout({ researchId, sources, children }: ResearchAiDesktopLayoutProps) {
+export function ResearchAiDesktopLayout({ researchId, sources, children, locale: localeProp }: ResearchAiDesktopLayoutProps) {
+  const locale = resolveLocale(localeProp);
   const [open, setOpen] = useState(false);
   const panelId = useId();
   const trigger = useRef<HTMLButtonElement>(null);
@@ -53,10 +57,10 @@ export function ResearchAiDesktopLayout({ researchId, sources, children }: Resea
 
   return (
     <>
-      <div className="mb-4 hidden justify-end lg:flex">
+      <div lang={locale} className="mb-4 hidden justify-end lg:flex">
         <Button ref={trigger} type="button" variant="outline" aria-expanded={open}
           aria-controls={panelId} onClick={() => open ? closePanel() : setOpen(true)}>
-          Ask AI
+          {translate("saasAi.ask", locale)}
         </Button>
       </div>
       <div className={open
@@ -65,12 +69,12 @@ export function ResearchAiDesktopLayout({ researchId, sources, children }: Resea
         <div ref={content} tabIndex={-1} className="min-w-0 outline-none">
           {children}
         </div>
-        <aside ref={panel} id={panelId} aria-label="AI Assistant" tabIndex={-1}
+        <aside ref={panel} id={panelId} lang={locale} aria-label={translate("saasAi.heading", locale)} tabIndex={-1}
           hidden={!open} inert={!open}
           className={open ? "hidden min-w-0 py-6 outline-none lg:block" : "hidden"}>
           <div className="sticky top-20">
             {/* Keep this instance mounted: hiding must not cancel a send or lose chat state. */}
-            <ResearchAiPanel researchId={researchId} sources={sources} active={open} onClose={closePanel} />
+            <ResearchAiPanel locale={locale} researchId={researchId} sources={sources} active={open} onClose={closePanel} />
           </div>
         </aside>
       </div>

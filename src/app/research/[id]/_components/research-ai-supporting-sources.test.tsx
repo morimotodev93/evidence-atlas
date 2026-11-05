@@ -1,10 +1,33 @@
 import { renderToStaticMarkup } from "react-dom/server";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { ResearchAiSupportingSources } from "./research-ai-supporting-sources";
+import type { Locale } from "@/lib/i18n/locales";
+import type { Dictionary } from "@/lib/i18n/dictionaries/en";
+import { ja } from "@/lib/i18n/dictionaries/ja";
 
 afterEach(() => vi.unstubAllGlobals());
 
 describe("AI supporting Source render boundary (live and restored sources)", () => {
+  it.each([undefined, "en", "ja", "invalid"])("translates only the heading for locale %s", (value) => {
+    const sources = [{ id: "original-id", title: "Original Paper / 原文 [source:original-id]", url: "HTTPS://Example.COM/Paper#Citation" }];
+    const before = structuredClone(sources);
+    const html = renderToStaticMarkup(<ResearchAiSupportingSources locale={value as Locale} sources={sources} />);
+    expect(html).toContain(`lang="${value === "ja" ? "ja" : "en"}"`);
+    expect(html).toContain(value === "ja" ? "根拠となるSource" : "Supporting sources");
+    expect(html).toContain(sources[0].title);
+    expect(html).toContain('href="https://example.com/Paper#Citation"');
+    expect(sources).toEqual(before);
+  });
+
+  it("uses English when the Japanese heading is missing", () => {
+    const partial: { -readonly [K in keyof Dictionary]?: string } = ja;
+    const saved = partial["saasAi.supportingSources"];
+    try {
+      delete partial["saasAi.supportingSources"];
+      expect(renderToStaticMarkup(<ResearchAiSupportingSources locale="ja" sources={[]} />)).toContain("Supporting sources");
+    } finally { partial["saasAi.supportingSources"] = saved; }
+  });
+
   it.each([
     ["https://example.com/path", "https://example.com/path"],
     ["HTTP://EXAMPLE.COM", "http://example.com/"],

@@ -2,6 +2,8 @@
 
 import { Button } from "@/components/ui/button";
 import { parseSourceCitations } from "@/lib/ai/source-citations";
+import { resolveLocale, type Locale } from "@/lib/i18n/locales";
+import { translate } from "@/lib/i18n/translate";
 import { useEffect, useRef, useState } from "react";
 import { ResearchAiConversationsDialog } from "./research-ai-conversations-dialog";
 import { ResearchAiMarkdown } from "./research-ai-markdown";
@@ -14,6 +16,7 @@ export type ResearchAiSource = {
 };
 
 type ResearchAiPanelProps = {
+  locale?: Locale;
   researchId: string;
   sources: ResearchAiSource[];
   variant?: "desktop" | "mobile";
@@ -29,14 +32,12 @@ type ChatMessage = {
 };
 
 const CHAT_STATUS_TEXT = {
-  streaming: "Generating a temporary response. Saving is not confirmed.",
-  checking: "Checking saved history...",
-  refreshed:
-    "Showing saved history from the server. The result of this send could not be confirmed individually.",
-  unconfirmed:
-    "The result of this send is unconfirmed. Open History to check saved messages.",
-  saved: "Showing saved history from the server.",
-};
+  streaming: "saasAi.statusStreaming",
+  checking: "saasAi.statusChecking",
+  refreshed: "saasAi.statusRefreshed",
+  unconfirmed: "saasAi.statusUnconfirmed",
+  saved: "saasAi.statusSaved",
+} as const;
 
 type ConversationMessage = {
   id: string;
@@ -69,7 +70,8 @@ function scrollToLatest(viewport: HTMLDivElement) {
   viewport.scrollTop = viewport.scrollHeight;
 }
 
-export function ResearchAiPanel({ researchId, sources, variant = "desktop", active = true, onClose }: ResearchAiPanelProps) {
+export function ResearchAiPanel({ researchId, sources, variant = "desktop", active = true, onClose, locale: localeProp }: ResearchAiPanelProps) {
+  const locale = resolveLocale(localeProp);
   const [conversationId, setConversationId] = useState<string | null>(null);
   const [input, setInput] = useState("");
 
@@ -411,6 +413,7 @@ export function ResearchAiPanel({ researchId, sources, variant = "desktop", acti
   return (
     <div
       ref={panelElement}
+      lang={locale}
       className={`flex min-h-0 min-w-0 flex-col overflow-hidden rounded-lg border bg-card ${
         variant === "mobile" ? "h-full flex-1" : "h-[calc(100dvh-6rem)]"
       }`}
@@ -418,10 +421,10 @@ export function ResearchAiPanel({ researchId, sources, variant = "desktop", acti
       <div className="shrink-0 border-b p-3">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div className="min-w-0 flex-1 basis-20">
-            <h2 className="text-sm font-semibold">AI Assistant</h2>
+            <h2 className="text-sm font-semibold">{translate("saasAi.heading", locale)}</h2>
 
             <p className={variant === "mobile" ? "sr-only" : "mt-1 text-xs leading-5 text-muted-foreground"}>
-              Ask questions about this research.
+              {translate("saasAi.description", locale)}
             </p>
           </div>
 
@@ -430,6 +433,7 @@ export function ResearchAiPanel({ researchId, sources, variant = "desktop", acti
               // Only the picker resets on hide, dismissing its portaled modal.
               // Conversation, draft, messages and requests stay in this panel.
               key={active ? "active" : "inactive"}
+              locale={locale}
               researchId={researchId}
               desktop={variant === "desktop"}
               onSelectConversation={handleSelectConversation}
@@ -442,22 +446,22 @@ export function ResearchAiPanel({ researchId, sources, variant = "desktop", acti
               onClick={handleNewConversation}
               disabled={isCreating}
             >
-              {isCreating ? "Creating..." : "New"}
+              {isCreating ? translate("saasAi.creating", locale) : translate("saasAi.new", locale)}
             </Button>
             {onClose ? (
-              <Button type="button" variant="ghost" size="sm" aria-label="Close AI Assistant" onClick={onClose}>
-                Close
+              <Button type="button" variant="ghost" size="sm" aria-label={translate("saasAi.closeAssistant", locale)} onClick={onClose}>
+                {translate("saasAi.close", locale)}
               </Button>
             ) : null}
           </div>
         </div>
         {restoreError ? (
-          <p role="alert" className="mt-2 text-sm text-destructive">
+          <p role="alert" lang="en" className="mt-2 text-sm text-destructive">
             {restoreError}
           </p>
         ) : null}
         {createError ? (
-          <p role="alert" className="text-sm text-destructive">
+          <p role="alert" lang="en" className="text-sm text-destructive">
             {createError}
           </p>
         ) : null}
@@ -466,7 +470,7 @@ export function ResearchAiPanel({ researchId, sources, variant = "desktop", acti
       <div
         ref={messagesViewport}
         role="region"
-        aria-label="Conversation messages"
+        aria-label={translate("saasAi.messages", locale)}
         tabIndex={0}
         onScroll={(event) => {
           const viewport = event.currentTarget;
@@ -482,14 +486,14 @@ export function ResearchAiPanel({ researchId, sources, variant = "desktop", acti
               <div>
                 <p className="text-sm font-medium">
                   {conversationId
-                    ? "Conversation started"
-                    : "No conversation yet"}
+                    ? translate("saasAi.started", locale)
+                    : translate("saasAi.noConversation", locale)}
                 </p>
 
                 <p className="mt-1 text-xs leading-5 text-muted-foreground">
                   {conversationId
-                    ? "Ask a question about this research."
-                    : "Start a conversation grounded in this research."}
+                    ? translate("saasAi.askQuestion", locale)
+                    : translate("saasAi.startConversation", locale)}
                 </p>
               </div>
             </div>
@@ -510,15 +514,15 @@ export function ResearchAiPanel({ researchId, sources, variant = "desktop", acti
                   >
                     <p className="mb-2 text-xs font-medium text-muted-foreground">
                       {message.role === "user"
-                        ? "You"
+                        ? translate("saasAi.you", locale)
                         : message.provisional
-                          ? "AI (temporary)"
-                          : "AI"}
+                          ? translate("saasAi.temporaryAi", locale)
+                          : translate("saasAi.ai", locale)}
                     </p>
 
                     {message.role === "assistant" ? (
                       <ResearchAiMarkdown>
-                        {parsedMessage?.text ?? (isSending ? "Thinking..." : "")}
+                        {parsedMessage?.text ?? (isSending ? translate("saasAi.thinking", locale) : "")}
                       </ResearchAiMarkdown>
                     ) : (
                       <p className="whitespace-pre-wrap text-sm leading-6 [overflow-wrap:anywhere]">
@@ -527,7 +531,7 @@ export function ResearchAiPanel({ researchId, sources, variant = "desktop", acti
                     )}
 
                     {parsedMessage && parsedMessage.sources.length > 0 ? (
-                      <ResearchAiSupportingSources sources={parsedMessage.sources} />
+                      <ResearchAiSupportingSources locale={locale} sources={parsedMessage.sources} />
                     ) : null}
                   </div>
                 );
@@ -540,12 +544,12 @@ export function ResearchAiPanel({ researchId, sources, variant = "desktop", acti
       <div className="shrink-0 border-t p-3 [overflow-wrap:anywhere]">
         {!isAtBottom ? (
           <Button type="button" variant="ghost" size="sm" className="mb-2" onClick={showLatestMessages}>
-            Latest messages
+            {translate("saasAi.latestMessages", locale)}
           </Button>
         ) : null}
         {chatStatus ? (
           <p role="status" className="mb-2 text-xs leading-5 text-muted-foreground">
-            {CHAT_STATUS_TEXT[chatStatus]}
+            {translate(CHAT_STATUS_TEXT[chatStatus], locale)}
           </p>
         ) : null}
         <textarea
@@ -553,8 +557,8 @@ export function ResearchAiPanel({ researchId, sources, variant = "desktop", acti
           autoComplete="off"
           value={input}
           onChange={(event) => setInput(event.target.value)}
-          placeholder="Ask about this research..."
-          aria-label="Message to AI"
+          placeholder={translate("saasAi.placeholder", locale)}
+          aria-label={translate("saasAi.messageLabel", locale)}
           rows={variant === "mobile" ? 2 : 3}
           disabled={
             !conversationId || isSending || isConversationPending || isCreating || isRestoring
@@ -572,17 +576,17 @@ export function ResearchAiPanel({ researchId, sources, variant = "desktop", acti
               isCreating || isRestoring
             }
           >
-            {isSending || isConversationPending ? "Sending..." : "Send"}
+            {isSending || isConversationPending ? translate("saasAi.sending", locale) : translate("saasAi.send", locale)}
           </Button>
         </div>
         {sendError ? (
-          <p role="alert" className="text-sm text-destructive">
+          <p role="alert" lang="en" className="text-sm text-destructive">
             {sendError}
           </p>
         ) : null}
       </div>
 
-      <span className="sr-only">Research ID: {researchId}</span>
+      <span className="sr-only">{translate("saasAi.researchId", locale)} {researchId}</span>
     </div>
   );
 }
