@@ -1,14 +1,12 @@
 # English/Japanese localization foundation
 
-Status: SaaS fixed UI localization through Phase 4.7b, Phase 4.8a language
-boundaries, Phase 4.8b-1 authentication presentation and Phase 4.8b-2 generic
-failure/404 presentation, Phase 4.8c-1 Onboarding structured Action errors and
-Phase 4.8c-2 Organization/Workspace role Action errors and Phase 4.8c-3 Research
-status dialog Action errors
-implemented, 2026-11-05.
-Phase 3 curated Public Demo Research
-presentation localization is also implemented. Canonical content is unchanged;
-Broader business Action error localization, root layout HTML language and broader SaaS language
+Status: SaaS fixed UI localization through Phase 4.8c-3 and Phase 3 curated
+Public Demo Research presentation localization are implemented. Phase 4.9a
+static audit, Phase 4.9b targeted browser verification and Phase 4.9c release
+assessment are complete as of 2026-11-05. No release-blocking i18n defect was
+confirmed within the audited scope; this is not exhaustive error-path, E2E or
+Production verification. Canonical content is unchanged. Broader business
+Action error localization, root layout HTML language and broader SaaS language
 switching remain outside this scope.
 
 Current SaaS coverage includes shared navigation/Appearance, Home, Organization
@@ -62,6 +60,46 @@ AI errors, history date formatting and the API's preview fallback remain deferre
 
 Phase 4.7b completes local AI error feedback and history date/time localization.
 The ambiguous API preview fallback and broader error/state contracts remain deferred.
+
+## i18n final audit (Phases 4.9a–4.9c)
+
+Completed 2026-11-05. Phase 4.9a read-only static inspection found 319 English
+and 319 Japanese dictionary entries with identical key sets, no duplicate or
+empty values, and matching interpolation placeholders. All 255 checked direct
+literal translation references resolved; selected dynamic paths and error
+mappings were inspected separately. No release-blocking i18n defect or required
+translation-only patch was confirmed. These are inspection findings, not an
+exhaustive proof that every runtime string is localized.
+
+Phase 4.9b browser checks performed by the project owner covered deployed and
+local Public Demo English/Japanese routes, Research identity across language
+switching, independence from the SaaS locale cookie, mobile wrapping, AI chat,
+Evidence and dialog fixed UI. Deployed Demo Turnstile verification and an AI
+response succeeded in the owner's browser. An additional automated-browser
+review observed Turnstile verification failures and a reportedly persistent
+language-switch lock; the cause and lock persistence were not reproduced or
+established. Code inspection found possible indefinite pending states without
+an application-controlled cancel/deadline, but no confirmed failure-callback
+regression. No Turnstile security or recovery behavior was changed.
+
+Authenticated local SaaS checks covered Home language switching and persistence,
+Dashboard, Organization/Workspace, Research create/edit/status, Source/Finding,
+AI conversation, authentication presentation, localized 404 and translated
+feedback for a simulated offline network failure. These are targeted manual
+checks, not exhaustive failure-branch, accessibility, Production Build or E2E
+verification. The existing Next.js/React client-inserted inline-script warning
+was investigated separately; no theme malfunction was confirmed, and the
+existing initialization order was retained. The design-system document already
+records the upstream compatibility risk.
+
+Phase 4.9c release assessment: i18n passes the targeted v1.0.0 audit without
+additional code changes. Accepted limitations remain: English child-dialog
+business Action errors, Research create/edit exception handling (Phase 4.8c-4),
+the ambiguous `New conversation` API preview fallback, fixed root HTML language
+and English default root metadata, and nonuniform English date formatting.
+Broader Action-state conversion, root-layout language redesign and Turnstile
+recovery hardening are separate future work; no authorization, persistence,
+translation dictionary, routing or security contract was changed by this audit.
 
 ## Research dialog Action errors (Phase 4.8c-3)
 
@@ -130,6 +168,13 @@ their pages are changed here; no catch/translation wrapper is added around them.
 Their existing exception, normalized-write, authorization and redirect regressions
 are included in this phase's checks. Broader child-dialog Action adoption also
 remains outside this creation/edit/status scope.
+
+Phase 4.8c-4 read-only investigation completed 2026-11-05. English exceptions
+were confirmed in both Actions, but neither form renders them inline; production
+exception presentation remains unverified. Converting to `DisplayError` would
+change the throw-or-redirect Action contract and require form-state changes,
+with authentication, authorization, indexing and redirect risks. Implementation
+is explicitly deferred until after v1.0.0; no code or tests were changed.
 
 Validation: focused DB-free Vitest **10 files / 354 tests**, changed-file ESLint,
 TypeScript (`--noEmit --incremental false`) and diff whitespace checks passed.
