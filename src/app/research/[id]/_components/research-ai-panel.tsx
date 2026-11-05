@@ -226,7 +226,7 @@ export function ResearchAiPanel({ researchId, sources, variant = "desktop", acti
     } catch (error) {
       if (!ownsRequest(generation)) return;
       console.error(error);
-      setCreateError("Failed to create conversation.");
+      setCreateError(translate("saasAi.errorCreate", locale));
     } finally {
       if (ownsRequest(generation)) setIsCreating(false);
     }
@@ -256,7 +256,7 @@ export function ResearchAiPanel({ researchId, sources, variant = "desktop", acti
 
     const previousMessages = savedMessages.current;
     let canRestoreHistory = false;
-    let sendErrorMessage = "Failed to send message.";
+    let sendErrorKey: "saasAi.errorSend" | "saasAi.errorUnavailable" = "saasAi.errorSend";
 
     setMessages([
       ...previousMessages,
@@ -310,10 +310,10 @@ export function ResearchAiPanel({ researchId, sources, variant = "desktop", acti
 
       canRestoreHistory = response.ok;
       if (response.status === 503) {
-        sendErrorMessage = "Chat is temporarily unavailable. Please contact the administrator or try again later.";
+        sendErrorKey = "saasAi.errorUnavailable";
       }
       if (!response.ok || !response.body) {
-        throw new Error(sendErrorMessage);
+        throw new Error(translate(sendErrorKey, "en"));
       }
 
       const reader = response.body.getReader();
@@ -352,7 +352,7 @@ export function ResearchAiPanel({ researchId, sources, variant = "desktop", acti
       console.error(error);
 
       setMessages(previousMessages);
-      setSendError(sendErrorMessage);
+      setSendError(translate(sendErrorKey, locale));
       setChatStatus("unconfirmed");
       if (canRestoreHistory) await refreshHistory();
     } finally {
@@ -403,7 +403,7 @@ export function ResearchAiPanel({ researchId, sources, variant = "desktop", acti
     } catch (error) {
       if (!ownsRequest(generation)) return false;
       console.error(error);
-      setRestoreError("Failed to restore conversation.");
+      setRestoreError(translate("saasAi.errorRestore", locale));
       return false;
     } finally {
       if (ownsRequest(generation)) setIsRestoring(false);
@@ -456,12 +456,12 @@ export function ResearchAiPanel({ researchId, sources, variant = "desktop", acti
           </div>
         </div>
         {restoreError ? (
-          <p role="alert" lang="en" className="mt-2 text-sm text-destructive">
+          <p role="alert" lang={locale} className="mt-2 text-sm text-destructive">
             {restoreError}
           </p>
         ) : null}
         {createError ? (
-          <p role="alert" lang="en" className="text-sm text-destructive">
+          <p role="alert" lang={locale} className="text-sm text-destructive">
             {createError}
           </p>
         ) : null}
@@ -580,7 +580,7 @@ export function ResearchAiPanel({ researchId, sources, variant = "desktop", acti
           </Button>
         </div>
         {sendError ? (
-          <p role="alert" lang="en" className="text-sm text-destructive">
+          <p role="alert" lang={locale} className="text-sm text-destructive">
             {sendError}
           </p>
         ) : null}

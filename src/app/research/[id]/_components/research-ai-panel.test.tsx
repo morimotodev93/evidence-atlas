@@ -199,12 +199,16 @@ describe("fixed AI panel localization", () => {
 
 describe.each(["en", "ja"] as const)("%s localized conversation contracts (synthetic hooks/streams)", (locale) => {
   const copy = locale === "ja" ? {
+    errorSend: "メッセージを送信できませんでした。",
+    errorUnavailable: "現在チャットを利用できません。管理者にお問い合わせいただくか、時間をおいてもう一度お試しください。",
     streaming: "一時的な回答を生成しています。保存は確認されていません。",
     checking: "保存済みの履歴を確認しています...",
     refreshed: "サーバーの保存済み履歴を表示しています。今回の送信結果を個別に確認できたわけではありません。",
     unconfirmed: "今回の送信結果は未確認です。履歴を開いて保存済みメッセージを確認してください。",
     saved: "サーバーの保存済み履歴を表示しています。",
   } : {
+    errorSend: "Failed to send message.",
+    errorUnavailable: "Chat is temporarily unavailable. Please contact the administrator or try again later.",
     streaming: "Generating a temporary response. Saving is not confirmed.",
     checking: checkingStatus, refreshed: refreshedStatus, unconfirmed: unconfirmedStatus,
     saved: "Showing saved history from the server.",
@@ -301,7 +305,7 @@ describe.each(["en", "ja"] as const)("%s localized conversation contracts (synth
     expect(stream.cancel).not.toHaveBeenCalled();
   });
 
-  it.each(["Error", "AbortError"])("retains English errors and unconfirmed history after %s and a denied refresh", async (name) => {
+  it.each(["Error", "AbortError"])("localizes errors and retains unconfirmed history after %s and a denied refresh", async (name) => {
     await startConversation();
     fetchMock.mockResolvedValueOnce(detail(earlierTurns));
     await selectConversation();
@@ -315,22 +319,176 @@ describe.each(["en", "ja"] as const)("%s localized conversation contracts (synth
     await sending;
     expect(statuses()).toEqual([copy.unconfirmed]);
     expect(messageTexts()).toEqual(["Earlier question", "Earlier answer"]);
-    expect(alerts()).toEqual(["Failed to send message."]);
-    expect(view().find((node) => node.props.role === "alert")?.props.lang).toBe("en");
+    expect(alerts()).toEqual([copy.errorSend]);
+    expect(view().find((node) => node.props.role === "alert")?.props.lang).toBe(locale);
     expect(textarea().props).toMatchObject({ disabled: false, value: "" });
     expect(fetchMock).toHaveBeenCalledTimes(4);
     expect(stream.cancel).not.toHaveBeenCalled();
   });
 
-  it("keeps the existing 503 notice and skips recovery/retry", async () => {
+  it("localizes the distinct 503 notice and skips recovery/retry", async () => {
     await startConversation();
     typeMessage("Original question");
     fetchMock.mockResolvedValueOnce(Response.json({ error: "Private diagnostic" }, { status: 503 }));
     await click(translate("saasAi.send", locale));
-    expect(alerts()).toEqual(["Chat is temporarily unavailable. Please contact the administrator or try again later."]);
+    expect(alerts()).toEqual([copy.errorUnavailable]);
     expect(statuses()).toEqual([copy.unconfirmed]);
     expect(textarea().props.disabled).toBe(false);
     expect(fetchMock).toHaveBeenCalledTimes(2);
+  });
+});
+
+describe.each([undefined, "en", "ja", "invalid"])("local panel error contracts for locale %s", (value) => {
+  const language = value === "ja" ? "ja" : "en";
+  const createError = value === "ja" ? "会話を作成できませんでした。" : "Failed to create conversation.";
+  const restoreError = value === "ja" ? "会話を復元できませんでした。" : "Failed to restore conversation.";
+  const sendError = value === "ja" ? "メッセージを送信できませんでした。" : "Failed to send message.";
+  const unavailableError = value === "ja"
+    ? "現在チャットを利用できません。管理者にお問い合わせいただくか、時間をおいてもう一度お試しください。"
+    : "Chat is temporarily unavailable. Please contact the administrator or try again later.";
+  beforeEach(() => { panelLocale = value as Locale | undefined; });
+
+  it("retains history/draft, pending guards and diagnostic exceptions on failed New/History, then clears errors on New success", async () => {
+    fetchMock.mockResolvedValueOnce(detail(earlierTurns));
+    await selectConversation();
+    const draft = "  Original draft / 原文 [source:literal]\n";
+    typeMessage(draft);
+    const creating = deferred<Response>();
+    fetchMock.mockReturnValueOnce(creating.promise);
+    const creation = click(translate("saasAi.new", panelLocale));
+    expect(alerts()).toEqual([]);
+    expect(textarea().props).toMatchObject({ value: draft, disabled: true });
+    await click(translate("saasAi.creating", panelLocale)); // Forced duplicate handler call.
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+    const rejectedCreate = Response.json({ error: "Private creation response" }, { status: 500 });
+    const createBody = vi.spyOn(rejectedCreate, "json");
+    creating.resolve(rejectedCreate);
+    await creation;
+    expect(createBody).not.toHaveBeenCalled();
+    expect(alerts()).toEqual([createError]);
+    expect(textarea().props).toMatchObject({ value: draft, disabled: false });
+    expect(messageTexts()).toEqual(["Earlier question", "Earlier answer"]);
+    const restoring = deferred<Response>();
+    fetchMock.mockReturnValueOnce(restoring.promise);
+    const restoration = selectConversation("other-conversation");
+    expect(alerts()).toEqual([createError]); // New error is not cleared by a failed restoration.
+    expect(textarea().props.disabled).toBe(true);
+    expect(await selectConversation("duplicate-conversation")).toBe(false);
+    expect(fetchMock).toHaveBeenCalledTimes(3);
+    const rejectedRestore = Response.json({ error: "Private restoration response" }, { status: 404 });
+    const restoreBody = vi.spyOn(rejectedRestore, "json");
+    restoring.resolve(rejectedRestore);
+    expect(await restoration).toBe(false);
+    expect(restoreBody).not.toHaveBeenCalled();
+    expect(alerts()).toEqual([restoreError, createError]);
+    expect(view().filter((node) => node.props.role === "alert").every((node) => node.props.lang === language)).toBe(true);
+    expect(textarea().props).toMatchObject({ value: draft, disabled: false });
+    expect(messageTexts()).toEqual(["Earlier question", "Earlier answer"]);
+    expect(view().some((node) => node.key === "earlier-ai")).toBe(true);
+    expect(vi.mocked(console.error).mock.calls.map(([error]) => (error as Error).message))
+      .toEqual(["Failed to create conversation.", "Failed to load conversation."]);
+    const next = deferred<Response>();
+    fetchMock.mockReturnValueOnce(next.promise);
+    const newConversation = click(translate("saasAi.new", panelLocale));
+    expect(alerts()).toEqual([restoreError]);
+    next.resolve(Response.json({ id: "new-conversation", researchId: "research-id" }));
+    await newConversation;
+    expect(alerts()).toEqual([]);
+    expect(messageTexts()).toEqual([]);
+    expect(textarea().props).toMatchObject({ value: "", disabled: false });
+    expect(fetchMock.mock.calls).toEqual([
+      ["/research/research-id/chat/conversations/conversation-id"],
+      ["/research/research-id/chat/conversations", { method: "POST" }],
+      ["/research/research-id/chat/conversations/other-conversation"],
+      ["/research/research-id/chat/conversations", { method: "POST" }],
+    ]);
+  });
+
+  it.each([401, 403, 404, 429, 500, 503])("selects local feedback for HTTP %i without reading server bodies, retrying or losing earlier turns", async (status) => {
+    fetchMock.mockResolvedValueOnce(detail(earlierTurns));
+    await selectConversation();
+    const question = "  Original prompt / 原文 [source:literal]\n";
+    typeMessage(question);
+    const response = Response.json({ error: "Private server response", message: "Do not display", code: "PRIVATE_CODE" }, { status, headers: { "Retry-After": "99" } });
+    const json = vi.spyOn(response, "json");
+    const text = vi.spyOn(response, "text");
+    const reader = vi.spyOn(response.body!, "getReader");
+    fetchMock.mockResolvedValueOnce(response);
+    await click(translate("saasAi.send", panelLocale));
+    expect(alerts()).toEqual([status === 503 ? unavailableError : sendError]);
+    expect(view().find((node) => node.props.role === "alert")?.props.lang).toBe(language);
+    expect(json).not.toHaveBeenCalled();
+    expect(text).not.toHaveBeenCalled();
+    expect(reader).not.toHaveBeenCalled();
+    expect(vi.mocked(console.error).mock.calls.at(-1)?.[0]).toMatchObject({
+      message: status === 503 ? "Chat is temporarily unavailable. Please contact the administrator or try again later." : "Failed to send message.",
+    });
+    expect(messageTexts()).toEqual(["Earlier question", "Earlier answer"]);
+    expect(textarea().props).toMatchObject({ disabled: false, value: "" });
+    expect(fetchMock.mock.calls).toEqual([
+      ["/research/research-id/chat/conversations/conversation-id"],
+      ["/research/research-id/chat", { method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ conversationId: "conversation-id", message: question.trim() }) }],
+    ]);
+  });
+
+  it.each(["success", "failure"])("keeps errors through edits/blank guards and clears only when a valid manual resend starts: %s", async (outcome) => {
+    fetchMock.mockResolvedValueOnce(detail(earlierTurns));
+    await selectConversation();
+    typeMessage("Original question");
+    const diagnostic = new Error("Private transport failure");
+    fetchMock.mockRejectedValueOnce(diagnostic);
+    await click(translate("saasAi.send", panelLocale));
+    expect(alerts()).toEqual([sendError]);
+    expect(vi.mocked(console.error)).toHaveBeenLastCalledWith(diagnostic);
+    typeMessage(" \n ");
+    await click(translate("saasAi.send", panelLocale));
+    expect(alerts()).toEqual([sendError]);
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+    typeMessage("Original question");
+    expect(alerts()).toEqual([sendError]);
+    const retry = streamResponse();
+    fetchMock.mockResolvedValueOnce(retry.response).mockResolvedValueOnce(detail([
+      ...earlierTurns, { authorType: "USER", content: "Original question" },
+      ...(outcome === "success" ? [{ authorType: "AI", content: "Saved original answer [source:original-id]" }] : []),
+    ]));
+    const resending = click(translate("saasAi.send", panelLocale));
+    expect(alerts()).toEqual([]);
+    expect(textarea().props.disabled).toBe(true);
+    if (outcome === "success") { retry.chunk("Temporary original answer"); retry.close(); }
+    else retry.error(new Error("Private stream failure"));
+    await resending;
+    expect(alerts()).toEqual(outcome === "success" ? [] : [sendError]);
+    expect(textarea().props).toMatchObject({ value: "", disabled: false });
+    expect(messageTexts()).toEqual(["Earlier question", "Earlier answer", "Original question", ...(outcome === "success" ? ["Saved original answer"] : [])]);
+    const sends = fetchMock.mock.calls.filter(([url]) => url === "/research/research-id/chat");
+    expect(sends).toHaveLength(2);
+    expect(sends[0][1]?.body).toBe(sends[1][1]?.body);
+    expect(fetchMock).toHaveBeenCalledTimes(4); // Initial GET + two manual POSTs + one recovery GET.
+    expect(retry.cancel).not.toHaveBeenCalled();
+  });
+});
+
+describe("missing Japanese local panel error entries", () => {
+  it.each([
+    ["saasAi.errorCreate", "create", "Failed to create conversation."],
+    ["saasAi.errorRestore", "restore", "Failed to restore conversation."],
+    ["saasAi.errorSend", "send", "Failed to send message."],
+    ["saasAi.errorUnavailable", "503", "Chat is temporarily unavailable. Please contact the administrator or try again later."],
+  ] as const)("falls back to English for %s without exposing the response", async (key, operation, expected) => {
+    const partial: { -readonly [K in keyof Dictionary]?: string } = ja;
+    const saved = partial[key];
+    try {
+      delete partial[key];
+      panelLocale = "ja";
+      if (operation === "send" || operation === "503") await startConversation();
+      fetchMock.mockResolvedValueOnce(Response.json({ error: "Private response" }, { status: operation === "503" ? 503 : 500 }));
+      if (operation === "create") await click("新規");
+      else if (operation === "restore") await selectConversation();
+      else { typeMessage("Original question"); await click("送信"); }
+      expect(alerts()).toEqual([expected]);
+      expect(fetchMock).toHaveBeenCalledTimes(operation === "send" || operation === "503" ? 2 : 1);
+    } finally { partial[key] = saved; }
   });
 });
 

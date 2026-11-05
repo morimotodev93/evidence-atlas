@@ -61,7 +61,7 @@ export function ResearchAiConversationsDialog({
       setConversations(data);
     } catch (error) {
       console.error(error);
-      setLoadError("Failed to load conversations.");
+      setLoadError(translate("saasAi.errorLoad", locale));
     } finally {
       setIsLoading(false);
     }
@@ -105,7 +105,7 @@ export function ResearchAiConversationsDialog({
               {translate("saasAi.loadingConversations", locale)}
             </p>
           ) : loadError ? (
-            <p lang="en" className="text-sm text-destructive">{loadError}</p>
+            <p lang={locale} className="text-sm text-destructive">{loadError}</p>
           ) : conversations.length === 0 ? (
             <p className="text-sm text-muted-foreground">
               {translate("saasAi.noConversations", locale)}
@@ -145,7 +145,9 @@ export function ResearchAiConversationsDialog({
                     <p className="mt-1 text-xs text-muted-foreground">
                       {selectedConversationId === conversation.id
                         ? translate("saasAi.restoring", locale)
-                        : new Date(conversation.updatedAt).toLocaleString()}
+                        : locale === "ja"
+                          ? new Date(conversation.updatedAt).toLocaleString("ja-JP")
+                          : new Date(conversation.updatedAt).toLocaleString()}
                     </p>
                   </div>
                 </Button>

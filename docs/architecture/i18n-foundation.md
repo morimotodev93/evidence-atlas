@@ -40,6 +40,69 @@ conclusion editing UI. AI controls and Action error localization remain deferred
 Phase 4.7a adds fixed SaaS AI conversation UI through the existing AppShell locale.
 AI errors, history date formatting and the API's preview fallback remain deferred.
 
+Phase 4.7b completes local AI error feedback and history date/time localization.
+The ambiguous API preview fallback and broader error/state contracts remain deferred.
+
+## SaaS AI conversation errors and history dates (Phase 4.7b)
+
+Implemented 2026-11-05 against `main` at `65ea3b1`. ResearchAiPanel and
+ResearchAiConversationsDialog reuse Phase 4.7a's resolved locale props and five new
+`saasAi.*` entries: `errorCreate`, `errorSend`, `errorRestore`, `errorLoad` and
+`errorUnavailable`. English retains the original wording; Japanese uses fixed
+client-selected messages, with existing missing/invalid locale and per-entry
+English fallback. Error paragraphs use the resolved locale for `lang`.
+
+The existing `string | null` error state, assignment/clearing branches, pending
+locks, request ownership, history retention and request counts are preserved.
+Send selects a local translation key at the same generic/HTTP 503 branches;
+the thrown diagnostic still uses the original English wording. Other diagnostic
+exceptions are unchanged and logged as before. Display text is selected from
+known client failure branches, never by matching English strings, reading server
+error bodies or translating exceptions. All non-503 send rejections retain generic
+feedback; the special 503 notice still suggests contacting the administrator or
+trying later. Creation/restoration/list failures retain their own generic notices.
+Recovery GETs, error-clearing boundaries and manual-only resend behavior remain
+unchanged; no retry, cancellation or structured server-error adoption is added.
+
+History timestamps now use `new Date(updatedAt).toLocaleString("ja-JP")` for
+Japanese. English, omitted locale and unsupported locale retain the original
+zero-argument `toLocaleString()` call. Both paths retain date and time and the
+runtime's local timezone, with no timezone override or date-only helper. Original
+timestamp strings/instants, server ordering, previews and Conversation IDs are
+unchanged. The existing Restoring label still temporarily replaces the timestamp
+for a selected row.
+
+No effects, locale-based keys, remounts, resets or new locale state are introduced.
+Errors remain strings translated when assigned; already displayed/in-flight
+errors are not automatically retranslated if props change. Broader live language
+switching still needs separate state/browser verification and remains disabled
+outside Home. Draft/input behavior, all five status meanings/transitions, message
+content/IDs, citations and Source metadata are unchanged. Chat routes, status
+codes, Retry-After, payloads, authentication/authorization, persistence, schema and
+Public Demo AI remain unchanged. The `New conversation` API preview fallback still
+needs a structured distinction from identical user-authored text before it can be
+localized. The two AI architecture conflicts recorded below remain unresolved;
+this phase does not rewrite that architecture document.
+
+Validation: focused DB-free Vitest **11 files / 352 tests**, changed-file ESLint,
+TypeScript (`--noEmit --incremental false`) and diff whitespace checks passed.
+New coverage exercises all five error notices in English/Japanese/default/invalid
+locale and missing-entry fallback, original English diagnostics, 503 versus other
+HTTP failures, unread rejected-response bodies, pending/duplicate guards,
+error-clearing behavior, exact request bodies/counts, manual resend, earlier
+history/IDs and stream error/abort recovery. Timestamp checks inspect formatter
+arguments, invoke the actual runtime formatter, retain year/month/day/hour/minute/
+second output, and preserve original instants and list ordering. Existing fixed
+UI/Portal, Markdown/citation, page locale, API mock, Home-only switching and Demo
+client regressions pass. Initial sandbox Vitest startup hit `spawn EPERM`; the
+same selected tests passed with subprocess permission and the existing command-line
+`test-results/**` artifact exclusion. No dependencies or test config were changed.
+
+Hook/stream doubles do not establish real React scheduling, browser Portal/focus,
+hydration, RSC merging or provider behavior. Review layout and native-language copy
+review remain unverified. No browser/E2E, full suite, Production Build, server
+startup, authentication-session creation, database/fixture writes or live AI calls.
+
 ## SaaS AI conversation fixed UI (Phase 4.7a)
 
 Implemented 2026-11-05. The Research detail page passes its existing resolved

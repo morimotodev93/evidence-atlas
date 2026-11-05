@@ -38,6 +38,31 @@ canonical English. This completes the curated content scope only; full SaaS
 localization and deployed/runtime language verification remain open. See
 [i18n architecture](../architecture/i18n-foundation.md#phase-3-research-translation-catalog).
 
+### SaaS AI conversation error and history date localization (2026-11-05)
+
+Phase 4.7b completes the remaining local AI error notices and history date/time
+presentation through the existing locale props and five new `saasAi.*` entries.
+English copy is retained; Japanese feedback is selected only at existing local
+failure branches. String/null error state, clearing/pending/ownership behavior,
+the 503-versus-generic distinction, English diagnostics, unread server-error
+bodies, payloads, request/retry counts and earlier-history behavior are preserved.
+Japanese history uses `ja-JP`; English retains the zero-argument runtime formatter.
+Both date and time, original timestamp instants, local timezone, ordering, previews
+and IDs are retained. No chat API/auth/persistence/Public Demo changes or broader
+language switching are introduced.
+
+Focused DB-free Vitest **11 files / 352 tests**, changed-file ESLint, TypeScript
+(`--noEmit --incremental false`) and diff whitespace checks passed, including
+locale/fallback/error/date tests and existing state/streaming regressions.
+Initial Vitest subprocess restrictions and verification limits are recorded in
+[Phase 4.7b scope](../architecture/i18n-foundation.md#saas-ai-conversation-errors-and-history-dates-phase-47b).
+Browser/Review layout, hydration/focus/live scheduling remain unverified. Existing
+error strings are assignment-time snapshots; wider language switching, structured
+error state and the ambiguous API preview fallback remain deferred. The two
+previously recorded AI architecture conflicts remain explicit and unchanged.
+No live AI, database writes, full suite, E2E or Production Build; no quality or
+release checklist is advanced by this UI phase.
+
 ### SaaS AI conversation fixed UI localization (2026-11-05)
 
 Phase 4.7a completes fixed English/Japanese desktop/mobile AI conversation UI,

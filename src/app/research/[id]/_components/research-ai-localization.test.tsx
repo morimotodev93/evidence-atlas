@@ -172,7 +172,7 @@ describe("History picker localization", () => {
       expect(rows().some((row) => row.key === summary.id)).toBe(true);
     }
     expect(text(view(), "Original runtime date")).toBe(true);
-    expect(date.mock.calls.every((args) => args.length === 0)).toBe(true);
+    for (const args of date.mock.calls) expect(args).toEqual(value === "ja" ? ["ja-JP"] : []);
     const restoring = deferred<boolean>();
     select.mockReturnValueOnce(restoring.promise).mockResolvedValueOnce(true);
     const selecting = (rows()[0].props.onClick as () => Promise<void>)();
@@ -194,15 +194,85 @@ describe("History picker localization", () => {
     expect(summaries).toEqual(before);
   });
 
-  it.each(["http", "json", "network"])("keeps existing English list errors and no automatic retry for %s", async (failure) => {
-    locale = "ja";
-    if (failure === "network") fetchMock.mockRejectedValueOnce(new Error("Private diagnostic"));
-    else fetchMock.mockResolvedValueOnce(failure === "json" ? new Response("invalid json") : new Response(null, { status: 500 }));
+  it.each([undefined, "en", "ja", "invalid"])("formats both date and time for %s without changing timestamps, timezone options or list ordering", async (value) => {
+    locale = value as Locale;
+    const summaries = [
+      { id: "first", preview: "Original preview", updatedAt: "2041-12-25T17:38:49+09:00" },
+      { id: "second", preview: "New conversation", updatedAt: "2040-06-15T03:42:51Z" },
+    ];
+    const before = structuredClone(summaries);
+    const date = vi.spyOn(Date.prototype, "toLocaleString"); // Call the real runtime formatter.
+    fetchMock.mockResolvedValueOnce(Response.json(summaries));
     open();
     await flush();
-    expect(nodes(view()).find((node) => node.props.children === "Failed to load conversations.")?.props.lang).toBe("en");
-    expect(text(view(), "Private diagnostic")).toBe(false);
-    expect(view().props.open).toBe(true);
-    expect(fetchMock).toHaveBeenCalledOnce();
+    const renderedRows = rows();
+    expect(renderedRows.map((row) => row.key)).toEqual(["first", "second"]);
+    expect(date).toHaveBeenCalledTimes(2);
+    expect(date.mock.calls).toEqual(value === "ja" ? [["ja-JP"], ["ja-JP"]] : [[], []]);
+    expect(date.mock.contexts.map((date) => (date as Date).getTime()))
+      .toEqual(summaries.map((summary) => new Date(summary.updatedAt).getTime()));
+    const formatter = new Intl.DateTimeFormat(value === "ja" ? "ja-JP" : undefined, {
+      year: "numeric", month: "numeric", day: "numeric", hour: "numeric", minute: "numeric", second: "numeric",
+    });
+    for (const [index, row] of renderedRows.entries()) {
+      const displayed = nodes(row).find((node) => node.type === "p" && String(node.props.className).includes("mt-1"))!.props.children as string;
+      const parts = formatter.formatToParts(new Date(summaries[index].updatedAt));
+      for (const part of parts.filter((part) => ["year", "month", "day", "hour", "minute", "second"].includes(part.type)))
+        expect(displayed).toContain(part.value);
+    }
+    expect(summaries).toEqual(before);
+    expect(fetchMock).toHaveBeenCalledExactlyOnceWith("/research/research-original/chat/conversations");
+  });
+
+  describe.each([undefined, "en", "ja", "invalid"])("local list errors for locale %s", (value) => {
+    it.each(["http", "json", "network"])("localizes %s failures, hides diagnostics and clears errors only on an explicit new load", async (failure) => {
+      locale = value as Locale;
+      const expected = value === "ja" ? "会話の履歴を読み込めませんでした。" : "Failed to load conversations.";
+      const response = Response.json({ error: "Private server diagnostic" }, { status: 503 });
+      const body = vi.spyOn(response, "json");
+      const diagnostic = new Error("Private transport diagnostic");
+      if (failure === "network") fetchMock.mockRejectedValueOnce(diagnostic);
+      else fetchMock.mockResolvedValueOnce(failure === "json" ? new Response("invalid json") : response);
+      open();
+      await flush();
+      expect(nodes(view()).find((node) => node.props.children === expected)?.props.lang).toBe(value === "ja" ? "ja" : "en");
+      expect(text(view(), "Private server diagnostic")).toBe(false);
+      expect(text(view(), "Private transport diagnostic")).toBe(false);
+      if (failure === "http") {
+        expect(body).not.toHaveBeenCalled();
+        expect(vi.mocked(console.error).mock.calls[0][0]).toMatchObject({ message: "Failed to load conversations." });
+      }
+      if (failure === "network") expect(console.error).toHaveBeenCalledExactlyOnceWith(diagnostic);
+      expect(view().props.open).toBe(true);
+      expect(fetchMock).toHaveBeenCalledOnce();
+      const loading = deferred<Response>();
+      fetchMock.mockReturnValueOnce(loading.promise);
+      (view().props.onOpenChange as (open: boolean) => void)(false);
+      expect(fetchMock).toHaveBeenCalledOnce();
+      open();
+      expect(text(view(), expected)).toBe(false);
+      expect(text(view(), value === "ja" ? "会話を読み込み中..." : "Loading conversations...")).toBe(true);
+      loading.resolve(Response.json([]));
+      await flush();
+      expect(text(view(), expected)).toBe(false);
+      expect(text(view(), value === "ja" ? "会話はまだありません。" : "No conversations yet.")).toBe(true);
+      expect(fetchMock.mock.calls).toEqual([
+        ["/research/research-original/chat/conversations"], ["/research/research-original/chat/conversations"],
+      ]);
+    });
+  });
+
+  it("falls back for a missing Japanese list-error entry", async () => {
+    const partial: { -readonly [K in keyof Dictionary]?: string } = ja;
+    const saved = partial["saasAi.errorLoad"];
+    try {
+      delete partial["saasAi.errorLoad"];
+      locale = "ja";
+      fetchMock.mockRejectedValueOnce(new Error("Private diagnostic"));
+      open();
+      await flush();
+      expect(text(view(), "Failed to load conversations.")).toBe(true);
+      expect(fetchMock).toHaveBeenCalledOnce();
+    } finally { partial["saasAi.errorLoad"] = saved; }
   });
 });
