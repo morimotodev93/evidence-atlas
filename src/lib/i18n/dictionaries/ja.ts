@@ -1,6 +1,15 @@
 import type { Dictionary } from "./en";
 
 export const ja = {
+  "auth.signInTitle": "ログイン",
+  "auth.googleSignIn": "Googleでログイン",
+  "auth.errorTitle": "ログインできませんでした",
+  "auth.errorDefault": "ログインできませんでした。もう一度お試しください。",
+  "auth.errorConfiguration": "サーバーの設定に問題があります。時間をおいてから、もう一度お試しください。",
+  "auth.errorAccessDenied": "ログインする権限がありません。",
+  "auth.errorDifferentAccount": "別のアカウントでログインをお試しください。",
+  "auth.errorAccountNotLinked": "本人確認のため、最初にログインしたときと同じアカウントでログインしてください。",
+  "auth.errorSessionRequired": "このページを表示するには、ログインしてください。",
   "saasAi.ask": "AIに質問",
   "saasAi.heading": "AIアシスタント",
   "saasAi.description": "このResearchについて質問できます。",

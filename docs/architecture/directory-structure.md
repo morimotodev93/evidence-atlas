@@ -1,7 +1,7 @@
 # Directory Structure
 
 > **Status:** Current implementation; future areas remain provisional
-> **Last Updated:** 2026-10-27
+> **Last Updated:** 2026-11-05
 
 This document describes the implemented architecture of **Evidence Atlas**.
 The tree below highlights the application-relevant structure.
@@ -27,6 +27,7 @@ evidence-atlas/
 │   ├── app/
 │   │   ├── api/auth/[...nextauth]/ # Auth.js GET/POST Route Handler
 │   │   ├── api/inngest/           # Inngest GET/POST/PUT serving endpoint
+│   │   ├── auth/               # Localized sign-in and safe authentication error pages
 │   │   ├── demo/               # Public read-only shell and fixed-Workspace Research routes
 │   │   │   └── research/[researchId]/
 │   │   ├── onboarding/         # Initial Organization/Workspace setup
@@ -134,6 +135,7 @@ Authenticated-route responsibilities below describe normal SaaS mode. In `PUBLIC
 | `/demo`                                              | Public read-only Research list for the configured Demo Workspace                                                                   |
 | `/demo/research/[researchId]`                        | Public read-only Research detail constrained to that Workspace                                                                     |
 | `/api/auth/[...nextauth]`                            | Auth.js GET/POST handlers for Google sign-in, callbacks, sessions, and sign-out                                                    |
+| `/auth/signin`, `/auth/error`                        | Application-owned English/Japanese Google sign-in and safe error presentation; unavailable in Public Demo deployment mode          |
 | `/api/inngest`                                       | GET/POST/PUT: serve the Inngest Research indexing function                                                                         |
 | `/onboarding`                                        | Create an initial Organization, Workspace, and ADMIN memberships for a User without an accessible Workspace                        |
 | `/settings/organization`                             | Display the current Workspace's Organization and members; Organization ADMIN users can change member roles                         |
@@ -162,6 +164,17 @@ Additional shared areas such as `common/` or `features/` may be introduced later
 ### `src/auth.ts`, `src/auth/`, and `src/workspace/`
 
 `auth.ts` configures Auth.js with Google OAuth, database-backed sessions, and the authenticated User ID on the session. `auth/` contains the Kysely adapter database connection and table-name mapping for the existing PostgreSQL auth tables, plus server-side User, Organization, Workspace, and Research access guards. Authentication storage uses Kysely against the same database as the Prisma application runtime.
+
+Auth.js's `pages.signIn`/`pages.error` point to the standalone `/auth/signin` and
+`/auth/error` Server Component pages. They read the existing SaaS locale cookie
+without requiring a session. The Google form uses the exported Auth.js Server
+Action helper; callback validation and all OAuth/session endpoints remain owned
+by Auth.js. Missing callback parameters re-enter `/api/auth/signin` to recover its
+validated callback cookie. `auth/public-errors.ts` maps only public allowlisted
+identifiers to safe dictionary messages. Both pages and the sign-in Action reject
+Public Demo mode before locale/auth work. See
+[authentication localization](i18n-foundation.md#authentication-presentation-phase-48b-1)
+for the CSRF integration, redirect contract and remaining live-auth verification.
 
 Authenticated application pages require an authenticated User; `/demo` routes use a separate public read boundary without sessions. Organization and Workspace memberships are independent authorization scopes. ADMIN guards protect member role changes; both role-update actions reject demotion of the final ADMIN. Authenticated Research reads and mutations require membership in the Research's Workspace. Missing and inaccessible Research share an access-error boundary. Chat handlers return `401` for unauthenticated requests and `404` for missing or inaccessible Research/Conversation resources.
 

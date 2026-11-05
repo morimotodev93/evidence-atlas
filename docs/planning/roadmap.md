@@ -38,6 +38,35 @@ canonical English. This completes the curated content scope only; full SaaS
 localization and deployed/runtime language verification remain open. See
 [i18n architecture](../architecture/i18n-foundation.md#phase-3-research-translation-catalog).
 
+### Authentication presentation localization (2026-11-05)
+
+Phase 4.8b-1 adds application-owned English/Japanese Google sign-in and safe
+authentication error pages via Auth.js `pages.signIn`/`pages.error`. They reuse
+the SaaS locale cookie/dictionaries without enabling language switching. The
+Google button uses the supported exported Server Action helper. Existing
+`/api/auth/signin` guard/sign-out entrypoints, callback-cookie validation, Google
+provider identity, database sessions, authorization and Public Demo GET/POST
+restrictions remain intact. Missing callback parameters re-enter the existing
+Auth.js GET; error pages require no session and make no automatic retry. Only
+allowlisted public error identifiers select fixed copy; diagnostics never become
+display text.
+
+Focused offline Vitest **10 files / 219 tests**, changed-file ESLint, TypeScript
+(`--noEmit --incremental false`) and diff whitespace checks passed. New checks
+exercise actual installed Auth.js handlers/helpers with mocked adapter/discovery
+I/O, callback recovery/rejection, API CSRF, PKCE initiation, callback failures,
+safe presentation and session identity. Existing authorization, Public Demo
+GET/POST/Action restrictions and Home-only selector checks pass. Vitest narrowly
+transforms `next-auth` for its extensionless Next imports; production config
+changes are limited to the two page paths.
+
+Live Google consent/cancellation/callbacks, token exchange, actual session
+lifecycle, deployed Origin/cookie/proxy behavior, Next.js Server Action CSRF
+rejection/progressive enhancement and browser/accessibility/layout verification
+remain outstanding. No live OAuth, DB writes, full suite, full E2E or Production
+Build; this does not complete a security or release checklist. See
+[Phase 4.8b-1 scope and verification](../architecture/i18n-foundation.md#authentication-presentation-phase-48b-1).
+
 ### SaaS language boundary consistency (2026-11-05)
 
 Phase 4.8a completes resolved language boundaries on Header, Sidebar, mobile

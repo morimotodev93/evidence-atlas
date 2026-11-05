@@ -1,5 +1,14 @@
 // English defines the stable UI key contract.
 export const en = {
+  "auth.signInTitle": "Sign in",
+  "auth.googleSignIn": "Sign in with Google",
+  "auth.errorTitle": "Unable to sign in",
+  "auth.errorDefault": "Unable to sign in. Please try again.",
+  "auth.errorConfiguration": "There is a problem with the server configuration. Please try again later.",
+  "auth.errorAccessDenied": "You do not have permission to sign in.",
+  "auth.errorDifferentAccount": "Try signing in with a different account.",
+  "auth.errorAccountNotLinked": "To confirm your identity, sign in with the same account you used originally.",
+  "auth.errorSessionRequired": "Please sign in to access this page.",
   "saasAi.ask": "Ask AI",
   "saasAi.heading": "AI Assistant",
   "saasAi.description": "Ask questions about this research.",

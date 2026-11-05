@@ -1,14 +1,16 @@
 # English/Japanese localization foundation
 
-Status: SaaS fixed UI localization through Phase 4.7b and Phase 4.8a language
-boundary consistency implemented, 2026-11-05. Phase 3 curated Public Demo Research
+Status: SaaS fixed UI localization through Phase 4.7b, Phase 4.8a language
+boundaries and Phase 4.8b-1 authentication presentation implemented, 2026-11-05.
+Phase 3 curated Public Demo Research
 presentation localization is also implemented. Canonical content is unchanged;
 Action/global error localization, root HTML language and broader SaaS language
 switching remain outside this scope.
 
 Current SaaS coverage includes shared navigation/Appearance, Home, Organization
 and Workspace settings, onboarding, Research list/detail/create/edit, business
-dialogs, AI fixed UI/local error notices and history dates. User-authored content,
+dialogs, AI fixed UI/local error notices/history dates and application-owned
+Google sign-in/authentication error pages. User-authored content,
 Source metadata, IDs and AI prose retain their original values. Action errors
 remain English. The phase-by-phase entries below describe each phase's original
 scope and verification; their deferred work is historical when a later entry
@@ -52,6 +54,96 @@ AI errors, history date formatting and the API's preview fallback remain deferre
 
 Phase 4.7b completes local AI error feedback and history date/time localization.
 The ambiguous API preview fallback and broader error/state contracts remain deferred.
+
+## Authentication presentation (Phase 4.8b-1)
+
+Implemented 2026-11-05 against `main` at `45fa3e9`, with installed
+`next-auth@5.0.0-beta.32` / `@auth/core@0.41.3`. `auth.ts` adds only
+`pages.signIn: "/auth/signin"` and `pages.error: "/auth/error"`. Both are
+standalone Server Component pages with `getSaasLocale()`, existing dictionaries,
+resolved `main lang`, localized titles and no-index metadata. They do not call
+`auth()`/`requireUser()` or add a language selector; Home-only switching is intact.
+They and the sign-in Action call `requireApplicationEnabled()` so Public Demo
+deployment still rejects authentication before locale or auth work.
+
+The Google button calls the existing exported `signIn("google", { redirectTo })`
+through a Next.js Server Action. This is the supported Auth.js custom-page
+integration, not a hand-written OAuth request. The framework protects the Server
+Action submission; the library's helper uses its internal trusted-action CSRF
+path and writes its normal OAuth cookies. No application `skipCSRFCheck` setting
+is added. The existing `/api/auth` POST endpoints retain token-based CSRF checks.
+Google's provider ID/issuer/credentials, PKCE defaults, callback endpoint,
+Kysely adapter, database sessions, session User ID callback, authorization guards,
+sign-out Action and deployment dispatch are unchanged. There is no new redirect
+callback, cookie format, provider, account-linking policy or dependency.
+
+`requireUser()` and sign-out still target `/api/auth/signin`; Auth.js forwards
+that GET to the configured presentation with its validated `callbackUrl`.
+Direct custom-page visits and failure redirects without one return through that
+existing GET, which resolves and validates the saved callback cookie before
+rendering the page. This prevents the custom page's Referer from replacing the
+original destination. Ambiguous/empty callback parameters take the same recovery
+path. A supplied callback is passed to Auth.js unchanged for its existing
+validation; the application never redirects directly to it. Valid relative and
+same-origin absolute destinations remain valid; external destinations retain
+Auth.js's origin fallback and malformed schemes retain its configuration-error
+path. Neither page automatically redirects an authenticated User. The error page
+requires no session, makes no automatic retry and links to `/api/auth/signin`,
+avoiding auth-guard/error-page loops.
+
+`auth/public-errors.ts` maps exact allowlisted public identifiers to `auth.*`
+dictionary keys: `Default`, `Configuration`, `AccessDenied`, `Verification`,
+`Signin`, `OAuthSignin`, `OAuthCallbackError`, `OAuthCreateAccount`, `Callback`,
+`OAuthAccountNotLinked`, `AccountNotLinked`, `SessionRequired` and `MissingCSRF`.
+The last uses the existing sign-in-required notice. Verification uses generic
+feedback; no email/password/WebAuthn login is introduced. Unknown, non-string,
+repeated, internal or prototype-like values use generic feedback. No raw query
+values, diagnostic fields, error messages/causes/codes, tokens or secrets are
+rendered. A thrown `AuthError` uses only that allowlisted identifier in a fixed
+local error-page redirect. Next.js redirect exceptions and unexpected failures
+propagate to the existing framework error boundary, without message rendering.
+English retains the Google button and existing account/access guidance; generic
+and configuration feedback use safe application copy. Japanese uses natural
+fixed messages. Business Action errors and global error localization remain
+outside this phase.
+
+Integration references reviewed 2026-11-05:
+[Auth.js custom sign-in](https://authjs.dev/guides/pages/signin),
+[custom error pages](https://authjs.dev/guides/pages/error) and
+[sign-in/sign-out helpers](https://authjs.dev/getting-started/session-management/login).
+Version-specific behavior was checked in the installed `next-auth/lib/actions`,
+core page renderer, callback URL resolver, default callbacks and CSRF/OAuth code;
+the installed implementation takes precedence over unversioned examples.
+
+Validation: focused DB-free Vitest **10 files / 219 tests**, changed-file ESLint,
+TypeScript (`--noEmit --incremental false`) and diff whitespace checks passed.
+New tests cover English/Japanese/default/invalid cookie presentation, metadata,
+missing-entry fallback, known/unknown/repeated/prototype-like error identifiers,
+diagnostic suppression, exact Google initiation and redirect exception identity.
+Real installed Auth.js handler/helper checks use a mocked Kysely adapter and a
+fail-closed local discovery response: provider configuration, same-origin/external/
+malformed callbacks, saved callback-cookie recovery, missing/mismatched CSRF,
+valid-CSRF/PKCE initiation, denied/missing-PKCE callbacks without token exchange
+and existing session User identity pass. Existing access/child authorization,
+Public Demo GET/POST/Action restrictions and Home-only selector regressions pass.
+The initial sandbox Vitest startup hit `spawn EPERM`; subprocess permission was
+used for the same offline checks, with the existing command-line artifact
+exclusion. Vitest now narrowly transforms `next-auth` to resolve its extensionless
+Next imports outside the application bundler. Early test-harness issues (module
+resolution, installed-library expectations and incomplete discovery metadata)
+were corrected before the final run; no runtime auth setting was changed to make
+tests pass. No external fetch or real database connection was used.
+
+Remaining verification: live Google consent/cancellation, real callback/state/
+PKCE validation and token exchange, session creation/rotation/expiry/sign-out,
+configured origins/proxies/cookies, real Next.js Server Action Origin rejection,
+RSC/hydration/progressive enhancement, focus/screen-reader behavior and responsive
+Japanese layout must be verified in an authorized isolated environment. Public
+Demo deployment 404 behavior also needs browser/deployed confirmation for the new
+pages. Offline checks do not establish those runtime contracts. No live OAuth,
+database write, fixture/session creation, server startup, full suite, full E2E or
+Production Build is part of this task. Root HTML remains English; no broader
+language switching, deployment configuration or AI architecture change is made.
 
 ## Language boundaries and consistency (Phase 4.8a)
 
@@ -1102,7 +1194,7 @@ this phase localizes Demo empty states and Chat errors, not global error handlin
 
 | Text category | Current location / behavior | Localization approach |
 | --- | --- | --- |
-| Static interface | Demo shell/pages, shared `components/research`, Appearance and Chat; SaaS navigation, Home, settings, onboarding, Research pages/business dialogs and AI controls | Typed UI dictionaries and accessible labels; SaaS fixed UI follows the resolved cookie locale, with explicit subtree/portal language boundaries; switching stays Home-only |
+| Static interface | Demo shell/pages, shared `components/research`, Appearance and Chat; SaaS navigation, Home, settings, onboarding, Research pages/business dialogs, AI controls and authentication pages | Typed UI dictionaries and accessible labels; SaaS fixed UI follows the resolved cookie locale, with explicit subtree/portal language boundaries; switching stays Home-only |
 | Saved research | `Research.title`, nullable `description` and `conclusion`; `Finding.content`, optional `data`; Workspace description, Tags, Comments | Separate presentation translations, with canonical evidence retained |
 | Source titles and citations | `Source.title`, `url`; `FindingSource` links; source IDs validated in Demo chat | Preserve original title, URL, IDs, and citation links; optional translated title is a clearly labeled display aid |
 | AI output and question suggestions | `lib/demo/chat-generation`, `chat-client`; `chat-questions.ts` selects prompts by canonical English Research title and locale; SaaS AI panel/history | Keep UI locale independent of AI answer language; predefined Demo suggestions, fixed UI and local client notices are translated; SaaS history dates follow the locale, while previews/prose and the ambiguous API preview fallback remain original |
