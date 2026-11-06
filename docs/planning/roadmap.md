@@ -1,13 +1,25 @@
 # evidence-atlas Roadmap
 
-> **Last Updated:** 2026-11-05
+> **Last Updated:** 2026-11-06
 
 Current stage: The portfolio MVP and curated Public Demo with read-only Research and limited anonymous Chat are implemented, with scoped deployment checks recorded. Phases 4–7 are complete for their defined baselines; Phase 8 is complete for the defined application infrastructure baseline. Phase 10 has four completed checklist items (Unit, bounded E2E, Validation, Authorization); other quality work remains open. Phase 11 operational reviews and Phase 12 documentation are not complete. Checked items describe specific implementation or reported verification, not blanket production, OAuth, provider, or security validation.
 
 ### Ver 1.00 preparation and current Production report (2026-10-31 JST)
 
-Ver 1.00 is **in preparation, not formally released**; final acceptance conditions
-remain partly undecided. Existing phase checkboxes are unchanged.
+Ver 1.00 is **in preparation, not formally released**. Its release scope was
+selected on 2026-11-06; applicable safety and operational acceptance gates remain
+open. Existing phase checkboxes are unchanged.
+
+**v1.0.0 acceptance scope (2026-11-06 JST):** Publicly release the curated
+English/Japanese read-only Public Demo with limited anonymous AI Chat enabled.
+The authenticated SaaS remains implemented in the repository but is outside
+this release's public operating commitment. Acceptance requires the applicable
+[Phase 10 verification policy](#phase-10--testing--quality),
+[Phase 11 deployment policy](#phase-11--deployment), and
+[Public Demo operational Must-have gates](#5-public-demo-strategy).
+The targeted [Phase 4.9 i18n audit](../architecture/i18n-foundation.md) is
+complete. This scope decision neither passes outstanding gates nor authorizes
+Chat activation, and it does not complete broader roadmap phases.
 
 | State | Scope |
 | --- | --- |
@@ -15,7 +27,7 @@ remain partly undecided. Existing phase checkboxes are unchanged.
 | Production confirmed by maintainer | Public Research browsing, Turnstile, Chat session creation, Japanese questions, Groq answers including METR/GitHub Copilot comparison, Source references, 2,000-token output setting; Evidence improvements reported applied |
 | Implemented, Production verification incomplete | Comprehensive normal-SaaS workflows and live Inngest integration; Demo failure/recovery guarantees are not established by happy-path checks |
 | Planned / remaining | Existing unchecked quality and operational work; no phase is completed by this documentation review |
-| Ver 1.00 candidates | Current portfolio MVP and limited Demo experience; final release scope is not yet fixed |
+| v1.0.0 selected scope | Bilingual read-only Public Demo with limited anonymous Chat; normal SaaS public operations excluded; acceptance gates remain open |
 
 Demo Chat uses Groq Free Plan / `openai/gpt-oss-120b`, a 30-second generation
 deadline and zero automatic retries. Normal SaaS Chat/embeddings remain Gemini.
