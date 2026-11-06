@@ -25,6 +25,8 @@ The Research detail page also offers limited anonymous AI questions after Turnst
 
 Research data is read-only for visitors: asking questions does not grant editing access to Research, Findings, or Sources. Chat uses anonymous Redis sessions and shared usage limits; it does not persist conversation history. Availability depends on provider capacity, quotas, and generation leases. A local timeout does not guarantee remote generation has stopped.
 
+The safe defaults in [.env.example](.env.example) leave Chat disabled (`DEMO_CHAT_ENABLED=false`); its empty `PUBLIC_DEMO_MODE` selects normal SaaS mode. A Public Demo deployment requires exact `PUBLIC_DEMO_MODE=true` at build and runtime and a valid published `DEMO_WORKSPACE_ID`. Chat additionally requires exact `DEMO_CHAT_ENABLED=true`, no non-empty `C2_RUNTIME_MODE`, a dedicated `DEMO_GROQ_API_KEY`, both Turnstile keys (the public site key at build time), HTTPS Redis REST credentials, and exact HTTPS `DEMO_CHAT_ALLOWED_ORIGINS`. See the [configuration contract](docs/architecture/ai-architecture.md#41-public-demo-chat-configuration-contract) for names and requirements. Configuration eligibility does not prove service readiness or pass the [operational Must-have gates](docs/planning/roadmap.md#5-public-demo-strategy); keep Chat disabled unless the applicable gates are met.
+
 Production browsing, Turnstile, session creation, Japanese questions, Groq answers (including a METR/GitHub Copilot comparison), Source references, and the 2,000-token setting were confirmed in the maintainer's October 31, 2026 report. Production Evidence improvements were also reported applied. This documentation task did not access Production.
 
 ## AI and technical design
@@ -88,7 +90,7 @@ The default Playwright smoke suite targets the deployed read-only Demo. It restr
 
 ## Status and limitations
 
-**Portfolio MVP; Public Demo with limited AI is live. Ver 1.00 is in preparation, not formally released.** Its final acceptance scope remains partly undecided; roadmap checkboxes retain their existing scope.
+**Portfolio MVP; Public Demo with limited AI is live. Ver 1.00 is in preparation, not formally released.** The selected v1.0.0 scope is the curated English/Japanese read-only Public Demo with limited anonymous AI Chat enabled. Authenticated SaaS remains implemented but is outside this release's public operating commitment. Applicable safety and operational acceptance gates remain open; this scope decision does not authorize Chat activation or advance roadmap checkboxes. See the [release scope and acceptance policies](docs/planning/roadmap.md#ver-100-preparation-and-current-production-report-2026-10-31-jst).
 
 Core research workflows, authentication/Workspace authorization, SaaS Chat/retrieval, and background indexing are implemented. The public portfolio deployment exposes the separate Demo experience; it is not an unrestricted SaaS instance.
 
