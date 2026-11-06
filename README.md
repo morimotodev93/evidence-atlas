@@ -65,16 +65,12 @@ Dated planning reports and `docs/archive/` preserve historical verification resu
 
 ## Local development
 
-Use **Node.js 24** for the documented development setup and **pnpm 12.9.1** (the package manager declared in `package.json`). Configure your own database, authentication, and provider services using [.env.example](.env.example); installing dependencies alone does not provision them. Never commit credentials.
+For ordinary installation with **Node.js 24**, **pnpm 12.9.1**, and PostgreSQL/pgvector, follow the [installation guide](docs/development/installation.md). It covers environment files, existing Prisma migrations, seed selection, and resolving `DEMO_WORKSPACE_ID`. Installing dependencies alone does not provision a database, authentication, or AI services. Never commit credentials.
 
-```bash
-pnpm install
-pnpm dev
-```
-
-For repeatable local Demo and SaaS UI review against a dedicated database, see
+For repeatable local Demo and SaaS UI review against a dedicated database on **Windows with Docker Desktop**, see
 the [local review guide](docs/development/local-review.md): `pnpm review:setup`,
 `pnpm review:check`, then `pnpm dev:review` (plus `pnpm review:login` for SaaS).
+These helpers require the Docker Desktop Linux-engine named pipe and are not general Linux installation commands.
 
 | Command | Purpose |
 | --- | --- |

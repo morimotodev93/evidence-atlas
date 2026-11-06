@@ -4,6 +4,12 @@ The review workflow runs the real Next.js Demo and authenticated SaaS against
 `evidence_atlas_review`, independently of `evidence_atlas` and C2. It is local UI
 tooling, not a production authentication feature or a migration-history upgrade.
 
+These helper scripts require **Windows with Docker Desktop**, the `desktop-linux`
+context and its Linux-engine named pipe. They do not support ordinary Linux Docker
+Engine or a standalone PostgreSQL installation. For ordinary installation on a
+separately provisioned database, see [Installation](installation.md). Do not adapt
+Review by pointing it at an existing development or production database.
+
 ## Setup and daily use
 
 Use Node 24, pnpm **12.9.1**, installed dependencies (`pnpm install` if needed),
