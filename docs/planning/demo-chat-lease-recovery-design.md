@@ -1,11 +1,17 @@
 # Public Demo Chat — Redis Lease Recovery Design Research
 
-> Current use (2026-10-31 JST): retain the unresolved lease/recovery design and
+> Current use (aligned 2026-11-06 JST): retain the unresolved lease/recovery design and
 > safety invariants below for future work. Dated activation No-Go statements are
 > historical checkpoints; see the [current roadmap](roadmap.md) and
 > [Demo operations](../architecture/ai-architecture.md#demo-chat-operations-and-outstanding-evidence)
 > for the reported live Demo and ongoing limits. Production happy-path results
 > do not establish safe recovery, remote termination or Redis failover guarantees.
+
+**現行方針（2026-11-06 JST）:** v1.0.0は英日read-only Public Demoと制限付き匿名AI Chatを対象とし、一般公開SaaS運用は対象外。
+[roadmapの条件付き方針](roadmap.md#current-conditional-demo-chat-release-policy-aligned-2026-11-06-jst)と第12節の現行基準を公開判断に用いる。
+不明Leaseの安全な有限時間復旧が未確立という調査結果は維持するが、自動復旧toolingや全Leaseの復旧保証はv1.0.0の必須条件ではない。
+第1〜11節の調査・提案・No-Goは当時の記録として保持し、一般的復旧の提案を全てrelease必須とは扱わない。
+本変更はGo判断、実環境の有効化、gate合格、復旧操作の承認を与えない。Chat clientは有効設定用の接続経路を実装済みであり、実browser検証の代替にはならない。
 
 調査日: **2026-10-29 (Asia/Tokyo)**。基準: **`main` / `cfb5319` / clean**。
 開始時、プロセス環境の`DEMO_CHAT_ENABLED`は未設定、`.env.local`と`.env.example`は`false`。配備先の環境変数は閲覧していない。
@@ -350,6 +356,22 @@ stateDiagram-v2
 7. **PR G — 公開方式の決定**: 一般的復旧保証が得られれば別レビューでactivation準備。得られなければライブ生成を無効のまま維持し、事前生成/固定デモ、または強制終了・hard concurrencyを持つ基盤への変更を製品仕様として審査する。今回UI/フラグは変えない。
 
 ## 12. Public Activation Go / No-Go Criteria
+
+### 現行の条件付き公開基準（2026-11-06 JST）
+
+**本整合によるGo判断なし。** roadmapのMust-haveは全て必須のまま。不足する安全証拠を可用性の制約として免除しない。
+
+- 全sender/deploymentで共有する予算と未終了生成上限、対象Redisのadmission順序・ack保持・障害時整合性・no evictionを確認する。不明状態を空台帳として再開しない。
+- Provider/accountの資格・モデル・利用条件、未終了workを含む最大消費リスクと実効的な不正利用/費用制御、関連インフラ費用を確認し、許容可能な上限または最大exposureの根拠を記録する。local timeoutやoutput制限を課金停止保証としない。
+- Demo/SaaS/C2分離、公開Research範囲、secret保護、Origin/Turnstile/session所有権、入出力制限、fail-closed、no retry/fallback/refundを維持する。
+- 別途承認された隔離対象・回数/費用上限・停止条件で実Groq/Redis/Turnstileと配備browserを検証し、正常/拒否・renew/quarantine・disconnect/timeout・枠枯渇・受付停止を記録する。専用Redis検証runnerのholdは維持し、Production Demo Redisで代替しない。
+- 旧deployment/runnerを含む全公開入口の実行可能な受付停止手順を検証する。flag変更・key失効は既存生成の終了証明ではない。
+- **既知の可用性制約:** 不明Leaseが2件残ると、全visitorが新しいChat回答を無期限に利用できなくなる。安全な未終了work管理を優先してこの影響を受容する理由をrelease reviewで記録する。運用は全対象の新規受付停止・Lease/予算保持・復旧日を約束しない案内とし、read-only Research閲覧はChatから独立させる。枠枯渇の反復、Demo体験の許容不能な損失、より強い終了証拠の入手時に再評価する。
+- 不明Leaseを保持し復旧しない運用では、自動復旧tooling・全Leaseの復旧保証は不要。復旧を実装/使用する場合は、exact attemptの未送信または終了の証明、対象workerの今後の送信防止、owner/version照合付きexact-member操作のreviewと監査が必須。証拠不足なら保持・停止を継続する。期限経過による削除、台帳reset、namespace切替や容量増加による未解決workの忘却、予算返金は禁止する。
+
+### 歴史的な公開基準（2026-10-29 checkpoint、記録を保持）
+
+以下の包括的な復旧/終了保証の公開前提は上記の現行条件付き方針に置き換える。安全な復旧自体に必要な証拠・fencing・監査要件と、当時のNo-Go判断/未検証結果は維持する。
 
 **現在: No-Go。** 単に「監査ツールを作った」「60秒待った」「Abortした」「2件削除できた」ではGoにしない。
 

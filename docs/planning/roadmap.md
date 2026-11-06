@@ -1952,7 +1952,12 @@ The public portfolio deployment is not intended to function as an unrestricted p
 
 The Demo uses curated data with separate public read-only routes implemented in Phase 9.2 and a visitor-facing SaaS write lock in Phase 9.3. Public deployments must set `PUBLIC_DEMO_MODE=true`. The selected deployed Demo pages and visitor-facing route boundaries have been verified as recorded in Phase 9; separate limited Public Demo Chat is now reported working in Production. Further normal-SaaS security, telemetry, and infrastructure hardening remain pending.
 
-### Historical conditional Demo Chat release policy (2026-10-29 JST)
+### Current conditional Demo Chat release policy (aligned 2026-11-06 JST)
+
+The conditional policy below governs the selected v1.0.0 scope: bilingual
+read-only Public Demo with limited anonymous AI Chat enabled. General hosted
+SaaS operation is excluded. This alignment grants no release Go decision,
+changes no enablement flags and marks no acceptance gate as passed.
 
 **Decision at the 2026-10-29 checkpoint: public activation remained No-Go.** The following policy and proposed verification scope are retained as recorded; see the current status above. At that checkpoint, the instruction was to keep
 `DEMO_CHAT_ENABLED=false` and the unavailable UI. This is a policy revision only,
@@ -1968,6 +1973,16 @@ indefinite Chat unavailability, its user impact, handling and acceptance reason
 as a Known limitation. Reassess after repeated exhaustion, unacceptable loss of
 the intended demo experience, or availability of stronger termination evidence.
 Read-only Research browsing should remain independent of Chat availability.
+
+**Known availability limitation:** Two uncertain leases can prevent all visitors
+from receiving new Chat answers indefinitely, even after timers or UTC-day
+rollover. The conditional policy permits accepting this loss of Chat availability
+to preserve outstanding-work safety; it does not promise recovery. Operators
+must stop admission across relevant endpoints and old deployments, retain leases
+and budgets, communicate unavailability without a recovery date, and preserve
+read-only Research access independently. Release review must record acceptance
+of this impact and reason. Reassess on repeated exhaustion, unacceptable loss of
+the intended demo experience, or stronger termination evidence.
 
 The following remain **Must-have before any limited live release**:
 
@@ -2002,10 +2017,11 @@ The following remain **Must-have before any limited live release**:
   public endpoints and old deployments. A flag change or key revocation does
   not prove that previously submitted Groq work has ended or stopped charging.
   Retain uncertain work and stop accepting new work when safety is unresolved.
-- Separately integrate and verify the public UI in real browsers, including
+- Verify the implemented public Chat client in real browsers, including
   opt-in, loading, failure/limit/unavailable states, duplicate-send handling,
-  keyboard operation and relevant narrow layouts. The existing UI stays disabled;
-  the feature flag alone does not connect it.
+  keyboard operation and relevant narrow layouts. The connected client is selected
+  only with eligible configuration; otherwise the disabled Coming soon UI remains.
+  Configuration eligibility and reported happy-path operation do not pass this gate.
 
 PR #47's Operation ID / Lease reservation correlation foundation is not proof
 of Groq submission or termination, a Provider lifecycle ledger, submission fencing,
@@ -2021,16 +2037,17 @@ owner/version-bound exact-member operation without refunds. If proof, fencing or
 audit is unavailable, retain the Lease and shutdown. No general force-release or
 expiry-only recovery is authorized.
 
-**Policy precedence and outstanding document alignment:** The dated records below
+**Policy precedence (aligned 2026-11-06 JST):** The dated records below
 preserve the earlier stricter pre-publication decision, including the blanket
 termination-guarantee/recovery prerequisites. For future release planning, this
 section replaces only those universal recovery/availability obligations with the
 conditional policy above; their underlying safety requirements remain. The
 [AI Architecture contract](../architecture/ai-architecture.md#41-public-demo-chat-configuration-contract)
 and [Lease recovery design §12](demo-chat-lease-recovery-design.md#12-public-activation-go--no-go-criteria)
-still contain the earlier blanket activation gates and require a separately scoped
-alignment before any Go decision. They are unchanged in this task. Missing Redis,
-cost-control or other safety evidence remains blocking under this policy too.
+now distinguish this current conditional policy from earlier blanket activation
+gates. Historical No-Go decisions and verification results remain unchanged.
+Missing Redis, shared-admission, provider/cost-control, deployed verification or
+shutdown evidence remains blocking. This documentation alignment passes no gate.
 
 ### Historical implementation and verification records
 

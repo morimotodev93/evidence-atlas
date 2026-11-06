@@ -2,7 +2,7 @@
 
 > **Status:** Implemented Phase 6 baseline with Phase 7 route authorization and Phase 8.3 background indexing
 > **Scope:** Phase 5 AI Integration + Phase 6 Retrieval / RAG + Phase 7 AI route access control + Phase 8.3 Background Jobs
-> **Last Updated:** 2026-10-31
+> **Last Updated:** 2026-11-06
 
 ## Current deployment status (2026-10-31 JST)
 
@@ -28,6 +28,38 @@ limitations; the Production happy path does not resolve them. Other sections
 primarily describe authenticated SaaS unless explicitly labelled Demo.
 
 ## Demo Chat operations and outstanding evidence
+
+**Current release policy (aligned 2026-11-06 JST):** v1.0.0 targets the bilingual
+read-only Public Demo with limited anonymous AI Chat enabled; general hosted
+SaaS operation is excluded. The [roadmap conditional policy](../planning/roadmap.md#current-conditional-demo-chat-release-policy-aligned-2026-11-06-jst)
+governs release acceptance. Indefinite Chat unavailability may be accepted as a
+documented availability limitation. Automatic recovery tooling and guaranteed
+recovery of every uncertain lease are not v1.0.0 requirements. This supersedes
+only the blanket recovery/availability prerequisites in historical Section 4.1
+checkpoints, including PR #46 and the incident procedure's activation prerequisites.
+It grants no Go decision, changes no flags and passes no acceptance gate.
+
+All Redis consistency, acknowledged-reservation retention/no-eviction, shared
+admission across relevant senders/deployments, provider/account and maximum cost
+exposure, bounded real-service/browser verification, and executable shutdown
+Must-have gates remain mandatory. Any recovery still requires exact-attempt
+non-submission or terminal proof, prevention of future submission, and a reviewed,
+audited owner/version-bound exact-member operation without refunds. Without that
+evidence, retain uncertain leases; timeout, abort, expiry and key revocation are
+not termination proof.
+
+The Demo Chat client is connected for eligible configuration; ineligible
+configuration retains the disabled Coming soon UI. Historical unconnected-UI
+statements describe their checkpoints, not the current implementation. Neither
+client integration nor reported Production happy paths establish release readiness.
+
+**Known availability limitation:** Two uncertain leases can block new answers for
+all visitors indefinitely. Operators must stop admission across relevant endpoints
+and old deployments, retain leases/budgets and communicate unavailability without
+promising recovery. Read-only Research browsing remains independent of Chat
+availability. Release review must record acceptance of this impact to preserve
+outstanding-work safety. Reassess after repeated exhaustion, unacceptable loss of
+the intended demo experience, or stronger termination evidence.
 
 Use Section 4.1 for current rate limits, lease transitions, admission shutdown and
 recovery constraints, together with the [lease design](../planning/demo-chat-lease-recovery-design.md).
@@ -503,7 +535,7 @@ termination before removing a specific lease; automatic timeout deletion and saf
 automatic recovery are deliberately absent. The 30-second deadline bounds local
 waiting, not remote execution or provider charges.
 
-**PR #46 pre-publication gate (still open):** Define and review a recovery policy
+**Historical PR #46 pre-publication gate (current policy above takes precedence):** Define and review a recovery policy
 for uncertain/quarantined leases, including the case where both slots remain
 occupied and remote termination cannot be confirmed. Verify actual Groq termination,
 timeout/disconnect behavior and Redis reservation/renewal/quarantine/recovery behavior
