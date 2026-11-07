@@ -19,7 +19,7 @@ describe("locale selection", () => {
     "falls back to English for unsupported input %j", (value) => {
       expect(isLocale(value)).toBe(false);
       expect(resolveLocale(value)).toBe("en");
-      expect(translate("demo.readOnly", value)).toBe("Read-only demo");
+      expect(translate("demo.mode", value)).toBe("Browse research ・ AI chat");
     },
   );
 });
@@ -27,7 +27,7 @@ describe("locale selection", () => {
 describe("UI translations", () => {
   it("preserves the stable keys and existing English copy", () => {
     expect(en).toMatchObject({
-      "demo.readOnly": "Read-only demo",
+      "demo.mode": "Browse research ・ AI chat",
       "demo.sourceCode": "Source code",
       "demo.researchList": "Research list",
       "demo.noResearch": "No research available.",
@@ -45,7 +45,7 @@ describe("UI translations", () => {
       expect(translate(key, "ja")).toBe(ja[key]);
       expect(translate(key, "en")).toBe(en[key]);
     }
-    expect(translate("demo.readOnly", "ja")).toBe("閲覧専用デモ");
+    expect(translate("demo.mode", "ja")).toBe("リサーチ閲覧・AIチャット");
   });
 
   it("falls back per key when a Japanese translation is absent", () => {

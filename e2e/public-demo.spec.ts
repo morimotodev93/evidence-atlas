@@ -263,7 +263,7 @@ test.beforeAll(async ({ request, baseURL }) => {
   expect(response.status(), "Public Demo preflight must return 200").toBe(200);
   expect(new URL(response.url()).pathname, "Expected root redirect to Public Demo").toBe("/demo");
   const html = await response.text();
-  expect(html).toContain("Read-only demo");
+  expect(html).toContain("Browse research ・ AI chat");
   expect(html).toContain(workspaceName);
 });
 
@@ -281,7 +281,7 @@ test("root redirects to the Demo Workspace", async ({ page }) => {
   await expect(page).toHaveURL(/\/demo$/);
   await expect(page.getByRole("heading", { name: workspaceName, exact: true, level: 1 }))
     .toBeVisible();
-  await expect(page.getByText("Read-only demo", { exact: true })).toBeVisible();
+  await expect(page.getByText("Browse research ・ AI chat", { exact: true })).toBeVisible();
 });
 
 test("Research list shows the four curated seed entries with Demo links", async ({ page }) => {
@@ -455,7 +455,7 @@ test("list and detail expose read-only UI with only an unavailable Chat preview"
   const operationName = /^(?:new research|create research|edit(?:\s.*)?|delete(?:\s.*)?|add(?:\s.*)?|remove(?:\s.*)?|detach tag|change status|ask ai|new conversation|conversations|send)$/i;
   for (const view of ["list", "detail"]) {
     if (view === "detail") await openProductivityResearch(page);
-    await expect(page.getByText("Read-only demo", { exact: true })).toBeVisible();
+    await expect(page.getByText("Browse research ・ AI chat", { exact: true })).toBeVisible();
     await expect(page.getByRole("button", { name: operationName, includeHidden: true })).toHaveCount(0);
     await expect(page.getByRole("link", { name: operationName, includeHidden: true })).toHaveCount(0);
     await expect(page.getByRole("combobox", { includeHidden: true })).toHaveCount(2);
@@ -548,7 +548,7 @@ for (const viewport of [{ width: 375, height: 812 }, { width: 768, height: 1024 
       await expect(page).toHaveURL(/\/demo$/);
       await expectResponsiveElement(page,
         page.getByRole("heading", { name: workspaceName, exact: true, level: 1 }));
-      await expectResponsiveElement(page, page.getByText("Read-only demo", { exact: true }));
+      await expectResponsiveElement(page, page.getByText("Browse research ・ AI chat", { exact: true }));
       await expectResponsiveElement(page, page.getByRole("main"), false);
       const list = page.getByRole("region", { name: "Research list", exact: true });
       await expectResponsiveElement(page, list, false);

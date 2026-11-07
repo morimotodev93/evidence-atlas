@@ -13,7 +13,7 @@ for (const width of [375, 768, 1280]) {
     test.use({ viewport: { width, height: 900 } });
     test("legacy/en/ja lists, keyboard switch, query/hash and Back/Forward", async ({ page, chatFixture }) => {
       await page.goto(`${FIXTURE_ORIGIN}/demo?query=AI%20tools&tag=one&tag=two#research`);
-      await expect(page.getByText("Read-only demo", { exact: true })).toBeVisible();
+      await expect(page.getByText("Browse research ・ AI chat", { exact: true })).toBeVisible();
       await expect(page.getByRole("link", { name: /Developer Productivity/ })).toHaveAttribute("href", "/demo/research/demo-research");
       const language = page.getByRole("combobox", { name: "Language", exact: true });
       await language.focus();
@@ -27,7 +27,7 @@ for (const width of [375, 768, 1280]) {
       await page.goBack();
       await expect(page).toHaveURL(/\/demo\?query=/);
       await page.goForward();
-      await expect(page.getByText("閲覧専用デモ", { exact: true })).toBeVisible();
+      await expect(page.getByText("リサーチ閲覧・AIチャット", { exact: true })).toBeVisible();
       await page.getByRole("combobox", { name: "表示言語" }).selectOption("en");
       await expect(page).toHaveURL(`${FIXTURE_ORIGIN}/en/demo?query=AI%20tools&tag=one&tag=two#research`);
       await expect(page.getByRole("link", { name: /Developer Productivity/ })).toHaveAttribute("href", "/en/demo/research/demo-research");

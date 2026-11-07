@@ -1024,7 +1024,7 @@ Japanese entries currently cover the extracted UI keys; dictionaries may remain
 partial. A scoped test temporarily omits an entry to verify English fallback.
 `translate(key, locale, values)` also replaces named `{count}` placeholders with
 plain text; React escapes the output. This is not an ICU/plural-message engine.
-Example: `translate("demo.readOnly", "ja")` returns `閲覧専用デモ`.
+Example: `translate("demo.mode", "ja")` returns `リサーチ閲覧・AIチャット`.
 Do not pass arbitrary external strings as translation keys. Dates use `ja-JP`
 for Japanese and the existing `en-US` formatting for English.
 
