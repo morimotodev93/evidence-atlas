@@ -30,7 +30,7 @@ function renderWithLayout(page: ReactNode) {
   return renderToStaticMarkup(createElement(DemoLayout, null, page));
 }
 function expectReadOnly(html: string) {
-  expect(html).toContain("Read-only demo");
+  expect(html).toContain("Browse research ・ AI chat");
   expect(html).toContain(">Demo<");
   expect(html).toContain(">Source code</a>");
   // Appearance remains static until mounted; public research stays read-only.

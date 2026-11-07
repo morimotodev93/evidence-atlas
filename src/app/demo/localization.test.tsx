@@ -52,7 +52,7 @@ describe("localized route entrypoints with offline reads", () => {
     expect(html).toContain(`lang="${locale}"`);
     expect(html).toContain(locale === "ja" ? "調査結果" : "Findings");
     expect(html).toContain(locale === "ja" ? "表示言語" : "Language");
-    expect(html).toContain(locale === "ja" ? "閲覧専用デモ" : "Read-only demo");
+    expect(html).toContain(locale === "ja" ? "リサーチ閲覧・AIチャット" : "Browse research ・ AI chat");
     for (const text of [research.title, research.description, research.conclusion, source.title, finding.content]) expect(html).toContain(text);
     expect(html).toContain(`href="${source.url}"`);
     expect(mocks.readResearch).toHaveBeenCalledExactlyOnceWith(research.id);
