@@ -6,6 +6,19 @@
 
 ## Current deployment status (2026-11-07 JST)
 
+**B-R3a current lifecycle:** The owner approved practical safety with risk-accepted
+automatic recovery: reservation Lua reclaims leases after their existing 60-second
+deadline plus 5 minutes; Operation HASH fields expire 24 hours after creation.
+Generation revalidates its lease immediately before SDK submission within the
+30-second local deadline. Normal limits, authorization, no refund/retry and C2
+disablement remain. See [B-R3a implementation and migration preparation](../planning/demo-chat-br3a-lifecycle.md).
+This supersedes the indefinite lease/history retention, acknowledged-reservation
+non-loss and strict failure-time concurrency prerequisites in earlier dated
+checkpoints below. Neither expiry nor
+Abort proves Groq termination. Chat remains disabled; Upstash command compatibility,
+legacy migration and public approval remain outstanding. Historical findings and
+the existing real-Redis runner hold are retained.
+
 For v1.0.0, publish only the bilingual read-only Public Demo. Live anonymous
 Chat is excluded and remains disabled with "Coming soon". The owner reports
 Muse completed Vercel deployment cleanup and Production was redeployed with

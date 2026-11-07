@@ -5,6 +5,7 @@ import {
   DemoChatStore, RESERVE_QUESTION,
 } from "./chat-store";
 import { OfflineRedis } from "./chat-test-redis";
+import { DEMO_CHAT_OPERATION_TTL_MS } from "./chat-config";
 
 const prefix = "evidence-atlas:demo-chat:v1";
 const research = "public-research";
@@ -56,6 +57,7 @@ it("records operation, lease, scoped binding and Redis time in the same reservat
     reservedAt: redis.now, reservationState: "reserved",
   });
   expect(redis.entries.get(`${prefix}:operations`)!.expires).toBeUndefined();
+  expect(redis.entries.get(`${prefix}:operations`)!.fieldExpires?.get(operation)).toBe(redis.now + DEMO_CHAT_OPERATION_TTL_MS);
   expect(records()!.get(operation)).not.toMatch(new RegExp(`${session.sessionId}|${session.threadId}|${research}|synthetic`));
   // A bounded format, not a guarantee about Redis allocator/replication overhead.
   expect(Buffer.byteLength(operation + records()!.get(operation)!)).toBeLessThan(300);
@@ -158,12 +160,13 @@ it.each(["before budgets", "during budgets", "after lease"])("fences a partial L
   redis.beforeCommand = (command, args) => {
     if ((stage === "before budgets" && command === "INCR")
       || (stage === "during budgets" && command === "HINCRBY")
-      || (stage === "after lease" && command === "HSET" && args[0] === `${prefix}:operations`
-        && args[2].includes('"reservationState":"reserved"'))) throw new Error("Injected command failure");
+      || (stage === "after lease" && command === "HSETEX" && args[0] === `${prefix}:operations`
+        && args[6].includes('"reservationState":"reserved"'))) throw new Error("Injected command failure");
   };
   await expect(store.reserve(session.sessionId, session.threadId, research, operation))
     .rejects.toMatchObject({ outcome: "unknown" });
   expect(record(operation).reservationState).toBe("attempted");
+  expect(redis.entries.get(`${prefix}:operations`)!.fieldExpires?.get(operation)).toBe(redis.now + DEMO_CHAT_OPERATION_TTL_MS);
   expect(leases()?.size ?? 0).toBe(stage === "after lease" ? 1 : 0);
   redis.beforeCommand = undefined;
   const before = structuredClone(redis.entries);
@@ -172,7 +175,7 @@ it.each(["before budgets", "during budgets", "after lease"])("fences a partial L
   expect(redis.entries).toEqual(before); // Partial charges are never refunded.
 });
 
-it("bounds record count without TTL, eviction or releasing an active owner's lease", async () => {
+it("bounds retained record count without releasing an active owner's lease", async () => {
   const session = await store.start("token", research), operation = createDemoChatOperationId();
   const active = await store.reserve(session.sessionId, session.threadId, research, operation);
   for (let i = 1; i < DEMO_CHAT_OPERATION_MAX_RECORDS; i++) records()!.set(`retained-${i}`, "synthetic history");
@@ -184,6 +187,56 @@ it("bounds record count without TTL, eviction or releasing an active owner's lea
   expect(leases()!.has(active)).toBe(true);
   expect(records()!.size).toBe(DEMO_CHAT_OPERATION_MAX_RECORDS);
   expect(redis.entries.get(`${prefix}:operations`)!.expires).toBeUndefined();
+});
+
+it("expires each record at creation + 24h without extending it on update, duplicate, renew or release", async () => {
+  const session = await store.start("token", research), first = createDemoChatOperationId();
+  const createdAt = redis.now;
+  const lease = await store.reserve(session.sessionId, session.threadId, research, first);
+  redis.now += 1000;
+  await store.renew(lease);
+  await store.release(lease);
+  await expect(store.reserve(session.sessionId, session.threadId, research, first)).rejects.toMatchObject({ outcome: "duplicate" });
+  const second = createDemoChatOperationId();
+  await store.reserve(session.sessionId, session.threadId, research, second);
+  const length = () => redis.eval("return redis.call('HLEN', KEYS[1])", [`${prefix}:operations`], []);
+  redis.now = createdAt + DEMO_CHAT_OPERATION_TTL_MS - 1;
+  expect(await length()).toBe(2);
+  redis.now++;
+  expect(await length()).toBe(1);
+  expect(records()!.has(first)).toBe(false);
+  expect(records()!.has(second)).toBe(true);
+  // History expiry must not run lease recovery. Even an unresolved lease stays.
+  expect(leases()!.size).toBe(1);
+  redis.now += 1000;
+  expect(await length()).toBe(0);
+  expect(leases()!.size).toBe(1);
+});
+
+it.each(["unsupported", "bad acknowledgement"])("fails closed without TTL-less fallback on HSETEX %s", async (mode) => {
+  const session = await store.start("token", research);
+  if (mode === "unsupported") redis.beforeCommand = (command) => { if (command === "HSETEX") throw new Error("Unknown command"); };
+  const evaluate = vi.fn((script: string, keys: string[], args: (string | number)[]) => redis.eval(
+    mode === "bad acknowledgement" ? script.replace("redis.call('HSETEX'", "(function(...) return 0 end)('HSETEX'") : script,
+    keys, args,
+  ));
+  await expect(new DemoChatStore(evaluate).reserve(session.sessionId, session.threadId, research)).rejects.toMatchObject({ outcome: "unknown" });
+  expect(evaluate).toHaveBeenCalledOnce();
+  expect(records()).toBeUndefined();
+  expect(leases()).toBeUndefined();
+  expect(redis.entries.get(`${prefix}:session:${sha(session.sessionId)}`)!.value).toBe("0");
+});
+
+it("limits replay protection to 24h and treats a later same-ID admission as a newly charged question", async () => {
+  const session = await store.start("first", research), operation = createDemoChatOperationId();
+  const lease = await store.reserve(session.sessionId, session.threadId, research, operation);
+  await store.release(lease);
+  redis.now += DEMO_CHAT_OPERATION_TTL_MS;
+  const next = await store.start("next", research);
+  const replacement = await store.reserve(next.sessionId, next.threadId, research, operation);
+  expect(replacement).not.toBe(lease);
+  expect(redis.entries.get(`${prefix}:session:${sha(next.sessionId)}`)!.value).toBe("1");
+  expect(record(operation).reservedAt).toBe(redis.now);
 });
 
 it.each([null, "1", 2])("treats malformed reservation acknowledgement %s as unknown", async (reply) => {

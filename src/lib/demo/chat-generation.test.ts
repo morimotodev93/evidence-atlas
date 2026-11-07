@@ -63,7 +63,7 @@ it.each([
   if (mode === "reserve") vi.spyOn(store, "reserve").mockRejectedValue(new Error(secret));
   if (mode === "check") vi.spyOn(store, "check").mockRejectedValue(new Error(secret));
   if (mode === "release") vi.spyOn(store, "release").mockRejectedValue(new Error(secret));
-  if (mode === "renew") vi.spyOn(store, "renew").mockRejectedValue(new Error(secret));
+  if (mode === "renew") vi.spyOn(store, "renew").mockResolvedValueOnce(undefined).mockRejectedValue(new Error(secret));
   const client = new AbortController();
   const disconnect = () => client.abort(secret);
   if (mode === "timeout" || mode === "renew" || mode === "abort") {
@@ -224,7 +224,7 @@ it("releases a completed generation, including invalid output and token truncati
   expect(leases()).toBe(0);
   expect([...redis.entries.values()].some((entry) => entry.value instanceof Map && entry.value.get("count") === "3")).toBe(true);
 });
-it.each(["reject", "unknown"])("quarantines uncertain provider %s without retry or expiry cleanup", async (mode) => {
+it.each(["reject", "unknown"])("retains uncertain provider %s until reservation-driven recovery without retry", async (mode) => {
   const { lease } = await reserve();
   const generate = vi.fn(async () => { if (mode === "reject") throw new Error("secret"); return terminal(raw(), "other"); });
   await expect(runDemoGeneration(store, lease, context, "question", new AbortController().signal, generate)).rejects.toThrow();
@@ -241,6 +241,7 @@ it.each(["timeout", "disconnect", "renew reject", "renew expired"])("aborts and 
   const release = vi.spyOn(store, "release"), renew = vi.spyOn(store, "renew");
   const result = runDemoGeneration(store, lease, context, "question", client.signal, generate);
   const rejected = expect(result).rejects.toThrow();
+  await vi.advanceTimersByTimeAsync(0); // Complete the pre-submission lease check.
   if (mode === "disconnect") client.abort();
   else {
     if (mode === "renew reject") redis.fail = true;
@@ -261,9 +262,11 @@ it("renews serially during generation and stops heartbeat after completion", asy
   const result = runDemoGeneration(store, lease, context, "question", new AbortController().signal,
     () => new Promise((resolve) => { finish = resolve; }));
   await vi.advanceTimersByTimeAsync(DEMO_RENEW_MS);
-  expect(renew).toHaveBeenCalledExactlyOnceWith(lease);
+  expect(renew).toHaveBeenCalledTimes(2);
+  expect(renew).toHaveBeenNthCalledWith(1, lease);
+  expect(renew).toHaveBeenNthCalledWith(2, lease);
   finish(terminal()); await result;
-  await vi.advanceTimersByTimeAsync(60000); expect(renew).toHaveBeenCalledOnce(); expect(leases()).toBe(0);
+  await vi.advanceTimersByTimeAsync(60000); expect(renew).toHaveBeenCalledTimes(2); expect(leases()).toBe(0);
 });
 it("releases without submitting if context build fails or client has already disconnected", async () => {
   const { sessionId, threadId, lease } = await reserve();
@@ -272,6 +275,54 @@ it("releases without submitting if context build fails or client has already dis
   const next = await store.reserve(sessionId, threadId, research.id), client = new AbortController(); client.abort();
   await expect(runDemoGeneration(store, next, context, "q", client.signal, generate)).rejects.toThrow();
   expect(generate).not.toHaveBeenCalled(); expect(leases()).toBe(0);
+});
+
+it("refuses a stale worker before SDK submission and only releases its own lease", async () => {
+  const { sessionId, threadId, lease } = await reserve();
+  redis.now += 360_000;
+  const replacement = await store.reserve(sessionId, threadId, research.id);
+  const generate = vi.fn(async () => terminal());
+  await expect(runDemoGeneration(store, lease, context, "q", new AbortController().signal, generate))
+    .rejects.toMatchObject({ category: "lease_error", phase: "renew" });
+  expect(generate).not.toHaveBeenCalled();
+  expect(leases()).toBe(1);
+  await store.renew(replacement);
+});
+
+it.each(["disconnect", "timeout", "suspension"])("never submits after %s during the pre-submission lease check", async (mode) => {
+  vi.useFakeTimers();
+  const { lease } = await reserve();
+  let confirm!: () => void;
+  vi.spyOn(store, "renew").mockImplementationOnce(() => new Promise<void>((resolve) => { confirm = resolve; }));
+  const generate = vi.fn(async () => terminal());
+  const client = new AbortController();
+  const result = runDemoGeneration(store, lease, context, "q", client.signal, generate);
+  const rejected = expect(result).rejects.toMatchObject({
+    category: mode === "disconnect" ? "request_aborted" : "generation_timeout",
+  });
+  if (mode === "disconnect") client.abort();
+  else if (mode === "timeout") await vi.advanceTimersByTimeAsync(DEMO_GENERATION_MS);
+  else {
+    // Resume with overdue timers still pending, as can happen to a paused worker.
+    vi.setSystemTime(Date.now() + DEMO_GENERATION_MS);
+    confirm();
+  }
+  await rejected;
+  confirm();
+  await vi.advanceTimersByTimeAsync(0);
+  expect(generate).not.toHaveBeenCalled();
+  expect(leases()).toBe(0);
+});
+
+it("does not submit or retry when the pre-submission renewal response is lost", async () => {
+  const { lease } = await reserve();
+  const generate = vi.fn(async () => terminal());
+  const renew = vi.spyOn(store, "renew").mockRejectedValue(new Error("Unknown acknowledgement"));
+  await expect(runDemoGeneration(store, lease, context, "q", new AbortController().signal, generate))
+    .rejects.toMatchObject({ category: "lease_error", phase: "renew" });
+  expect(renew).toHaveBeenCalledOnce();
+  expect(generate).not.toHaveBeenCalled();
+  expect(leases()).toBe(0); // This invocation never crossed the submission boundary.
 });
 it("denies the response on uncertain release failure without retries", async () => {
   const { lease } = await reserve();
@@ -309,7 +360,7 @@ it("renew/release scripts do not refund consumed counters and concurrency never 
   const { sessionId, threadId } = await reserve();
   const results = await Promise.allSettled(Array.from({ length: 4 }, () => store.reserve(sessionId, threadId, research.id)));
   expect(results.filter((r) => r.status === "fulfilled")).toHaveLength(1); expect(leases()).toBe(2);
-  expect(RENEW_LEASE + RELEASE_LEASE).not.toContain("DECR"); expect(RESERVE_QUESTION).not.toContain("ZREMRANGEBYSCORE', KEYS[5]");
+  expect(RENEW_LEASE + RELEASE_LEASE).not.toContain("DECR"); expect(RESERVE_QUESTION).toContain("ZREMRANGEBYSCORE', KEYS[5]");
 });
 it("does not retry an uncertain reservation that committed in Redis, and never submits AI", async () => {
   const session = await store.start("reservation", research.id);
@@ -336,7 +387,7 @@ it("does not retry an uncertain reservation that committed in Redis, and never s
   expect((redis.entries.get("evidence-atlas:demo-chat:v1:concurrency")!.value as Map<string, number>).has(recorded.leaseId)).toBe(true);
 });
 
-it("two quarantined generations deny new work across workers even after lease expiry", async () => {
+it("two quarantined generations deny work during grace and recover on a later reservation", async () => {
   const session = await store.start("quarantine", research.id);
   const generate = vi.fn(async () => { throw new Error("unknown upstream state"); });
   for (let n = 0; n < 2; n++) {
@@ -347,6 +398,10 @@ it("two quarantined generations deny new work across workers even after lease ex
   await expect(new DemoChatStore(redis.eval).reserve(session.sessionId, session.threadId, research.id))
     .rejects.toMatchObject({ status: 429 });
   expect(leases()).toBe(2);
+  expect(generate).toHaveBeenCalledTimes(2);
+  redis.now += 240_000;
+  await new DemoChatStore(redis.eval).reserve(session.sessionId, session.threadId, research.id);
+  expect(leases()).toBe(1); // Recovery never retries either old generation.
   expect(generate).toHaveBeenCalledTimes(2);
 });
 
@@ -371,9 +426,11 @@ it("treats a synchronous opaque generator failure as uncertain submission", asyn
 it.each(["renew", "release"])("fails closed when %s commits but its Redis response is lost", async (operation) => {
   vi.useFakeTimers();
   const { lease } = await reserve();
+  let renewalCalls = 0;
   const uncertain = new DemoChatStore(async (script, keys, args) => {
     const result = await redis.eval(script, keys, args);
-    if (script === (operation === "renew" ? RENEW_LEASE : RELEASE_LEASE)) throw new Error("response lost after commit");
+    if ((operation === "renew" && script === RENEW_LEASE && ++renewalCalls === 2)
+      || (operation === "release" && script === RELEASE_LEASE)) throw new Error("response lost after commit");
     return result;
   });
   const release = vi.spyOn(uncertain, "release"), renew = vi.spyOn(uncertain, "renew");
@@ -384,5 +441,5 @@ it.each(["renew", "release"])("fails closed when %s commits but its Redis respon
   await rejected;
   expect(leases()).toBe(operation === "renew" ? 1 : 0);
   expect(release).toHaveBeenCalledTimes(operation === "release" ? 1 : 0);
-  expect(renew).toHaveBeenCalledTimes(operation === "renew" ? 1 : 0);
+  expect(renew).toHaveBeenCalledTimes(operation === "renew" ? 2 : 1);
 });

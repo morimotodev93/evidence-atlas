@@ -2,7 +2,8 @@ import "server-only";
 
 import { createHash, randomBytes } from "node:crypto";
 import { Redis } from "@upstash/redis";
-import { DEMO_CHAT_LIMITS as limits, DEMO_CHAT_REDIS, requireDemoChatEnabled } from "./chat-config";
+import { DEMO_CHAT_LIMITS as limits, DEMO_CHAT_REDIS, DEMO_CHAT_LEASE_GRACE_MS,
+  DEMO_CHAT_OPERATION_TTL_MS, requireDemoChatEnabled } from "./chat-config";
 import { DEMO_CHAT_LEASE_MS, DEMO_CHAT_SESSION_SECONDS, DemoChatError, demoChatId } from "./chat-security";
 
 export type DemoChatEval = (script: string, keys: string[], args: (string | number)[]) => Promise<unknown>;
@@ -11,8 +12,7 @@ const newId = () => randomBytes(32).toString("base64url");
 
 // Server-only identity for one admission attempt; never accept this from ingress.
 export const createDemoChatOperationId = newId;
-// No TTL/GC: retained entries also prevent replay after normal lease release.
-// Exhaustion denies admission; deleting history is not a recovery mechanism.
+// Bound retained records, including partial attempts. Replay protection lasts 24h.
 export const DEMO_CHAT_OPERATION_MAX_RECORDS = 10_000;
 
 export class DemoChatReservationError extends DemoChatError {
@@ -65,6 +65,8 @@ local globalDay = tonumber(redis.call('HGET', KEYS[4], 'day') or '-1')
 local globalCount = 0
 if globalDay == day then globalCount = tonumber(redis.call('HGET', KEYS[4], 'count') or '0') end
 redis.call('ZREMRANGEBYSCORE', KEYS[3], '-inf', now - tonumber(ARGV[6]))
+-- Owner-approved capacity recovery, NOT evidence of remote termination.
+redis.call('ZREMRANGEBYSCORE', KEYS[5], '-inf', now - tonumber(ARGV[14]))
 if tonumber(redis.call('HGET', KEYS[2], 'count')) >= tonumber(ARGV[3]) or
    tonumber(redis.call('GET', KEYS[1])) >= tonumber(ARGV[4]) or
    redis.call('ZCARD', KEYS[3]) >= tonumber(ARGV[5]) or
@@ -76,7 +78,10 @@ if redis.call('ZSCORE', KEYS[5], ARGV[9]) then return 503 end
 -- IDs/hash are server-validated ASCII; no request text is serialized here.
 local record = '{"schema":1,"leaseId":"' .. ARGV[9] .. '","scopeHash":"' .. ARGV[12] ..
   '","reservedAt":' .. string.format('%.0f', now) .. ',"reservationState":"'
-redis.call('HSET', KEYS[6], ARGV[11], record .. 'attempted"}')
+local expiresAt = now + tonumber(ARGV[15])
+if redis.call('HSETEX', KEYS[6], 'PXAT', expiresAt, 'FIELDS', 1, ARGV[11], record .. 'attempted"}') ~= 1 then
+  error('Operation retention unavailable')
+end
 redis.call('INCR', KEYS[1])
 redis.call('HINCRBY', KEYS[2], 'count', 1)
 redis.call('ZADD', KEYS[3], now, ARGV[9])
@@ -84,11 +89,12 @@ redis.call('PEXPIRE', KEYS[3], ARGV[6])
 redis.call('HSET', KEYS[4], 'day', day, 'count', globalCount + 1)
 redis.call('PEXPIREAT', KEYS[4], (day + 1) * 86400000.0)
 redis.call('ZADD', KEYS[5], now + tonumber(ARGV[10]), ARGV[9])
-redis.call('HSET', KEYS[6], ARGV[11], record .. 'reserved"}')
+if redis.call('HSETEX', KEYS[6], 'PXAT', expiresAt, 'FIELDS', 1, ARGV[11], record .. 'reserved"}') ~= 1 then
+  error('Operation retention unavailable')
+end
 return 1`;
 
-// Expired leases remain counted (quarantine). A crashed or partitioned worker
-// must never free capacity while its upstream generation could still be running.
+// Expired leases cannot renew, even during the additional recovery grace period.
 export const RENEW_LEASE = clock + `
 local deadline = tonumber(redis.call('ZSCORE', KEYS[1], ARGV[1]) or '0')
 if deadline <= now then return 0 end
@@ -163,7 +169,7 @@ export class DemoChatStore {
       ], [hash(session), research, limits.maxUserQuestionsPerThread, limits.anonymousSessionQuestions,
         limits.sourceQuestions, limits.sourceWindowSeconds * 1000, limits.globalQuestionsPerDay,
         limits.maxConcurrentGenerations, lease, DEMO_CHAT_LEASE_MS, operationId, scopeHash,
-        DEMO_CHAT_OPERATION_MAX_RECORDS]);
+        DEMO_CHAT_OPERATION_MAX_RECORDS, DEMO_CHAT_LEASE_GRACE_MS, DEMO_CHAT_OPERATION_TTL_MS]);
     } catch {
       throw new DemoChatReservationError(503, operationId, "unknown");
     }

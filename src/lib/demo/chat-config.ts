@@ -3,6 +3,9 @@ import "server-only";
 export const DEMO_CHAT_MODEL_PROVIDER = "groq";
 export const DEMO_CHAT_MODEL_ID = "openai/gpt-oss-120b";
 
+export const DEMO_CHAT_LEASE_GRACE_MS = 5 * 60 * 1000;
+export const DEMO_CHAT_OPERATION_TTL_MS = 24 * 60 * 60 * 1000;
+
 // Separate public ingress, bounded generation and Redis enforcement.
 export const DEMO_CHAT_LIMITS = Object.freeze({
   maxUserQuestionsPerThread: 10,

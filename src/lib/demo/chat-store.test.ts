@@ -1,6 +1,8 @@
 import { beforeEach, afterEach, describe, expect, it, vi } from "vitest";
 import { DemoChatStore } from "./chat-store";
 import { OfflineRedis } from "./chat-test-redis";
+import { DEMO_CHAT_LEASE_GRACE_MS } from "./chat-config";
+import { DEMO_CHAT_LEASE_MS } from "./chat-security";
 
 let redis: OfflineRedis, store: DemoChatStore;
 const research = "public-research";
@@ -151,5 +153,41 @@ describe("Atomic production Lua with mocked Redis commands", () => {
   it("session start is bounded separately and replay reservations are atomic", async () => {
     const results = await Promise.allSettled(Array.from({ length: 12 }, (_, n) => store.start(`token-${n}`, research)));
     expect(results.filter((r) => r.status === "fulfilled")).toHaveLength(3);
+  });
+
+  it("reclaims only deadline + grace at the exact boundary, without refunding budgets", async () => {
+    const session = await store.start("token", research);
+    const a = await store.reserve(session.sessionId, session.threadId, research);
+    const b = await store.reserve(session.sessionId, session.threadId, research);
+    redis.now += DEMO_CHAT_LEASE_MS + DEMO_CHAT_LEASE_GRACE_MS - 1;
+    await expect(store.reserve(session.sessionId, session.threadId, research)).rejects.toMatchObject({ status: 429 });
+    redis.now++;
+    const c = await store.reserve(session.sessionId, session.threadId, research);
+    for (const stale of [a, b]) {
+      await expect(store.renew(stale)).rejects.toMatchObject({ status: 503 });
+      await store.release(stale); // A late release cannot remove c.
+    }
+    const members = redis.entries.get("evidence-atlas:demo-chat:v1:concurrency")!.value as Map<string, number>;
+    expect([...members.keys()]).toEqual([c]);
+    // Two old questions plus eight new ones exhaust this same thread.
+    await store.release(c);
+    for (let n = 0; n < 7; n++) { redis.now += 60_001; await one(session.sessionId, session.threadId); }
+    redis.now += 60_001;
+    await expect(store.reserve(session.sessionId, session.threadId, research)).rejects.toMatchObject({ status: 429 });
+  });
+
+  it("honors a renewal before recovery and rejects renewal throughout the expired grace period", async () => {
+    const session = await store.start("token", research);
+    const a = await store.reserve(session.sessionId, session.threadId, research);
+    const b = await store.reserve(session.sessionId, session.threadId, research);
+    redis.now += DEMO_CHAT_LEASE_MS - 1;
+    await store.renew(a);
+    redis.now++;
+    await expect(store.renew(b)).rejects.toMatchObject({ status: 503 });
+    redis.now += DEMO_CHAT_LEASE_GRACE_MS;
+    const c = await store.reserve(session.sessionId, session.threadId, research);
+    const members = redis.entries.get("evidence-atlas:demo-chat:v1:concurrency")!.value as Map<string, number>;
+    expect([...members.keys()].sort()).toEqual([a, c].sort());
+    await expect(store.reserve(session.sessionId, session.threadId, research)).rejects.toMatchObject({ status: 429 });
   });
 });

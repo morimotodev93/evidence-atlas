@@ -111,7 +111,19 @@ export async function runDemoGeneration(
       : () => generate(context, question, controller.signal);
     if (clientSignal.aborted) throw new DemoChatFailure("request_aborted", "preparation");
     clientSignal.addEventListener("abort", disconnect, { once: true });
+    const expiresAt = Date.now() + DEMO_GENERATION_MS;
     deadline = setTimeout(() => stop(new DemoChatFailure("generation_timeout", "generation")), DEMO_GENERATION_MS);
+    // Revalidate a delayed worker before SDK invocation. The Redis/Groq handoff is
+    // still not atomic: a pause after this check can outlive capacity recovery.
+    const confirmLease = async () => {
+      try { await store.renew(lease); }
+      catch { throw new DemoChatFailure("lease_error", "renew"); }
+    };
+    await Promise.race([confirmLease(), cancelled]);
+    if (stopped) throw cancellation!;
+    if (clientSignal.aborted) throw new DemoChatFailure("request_aborted", "preparation");
+    // Timers may not have run yet when a suspended worker resumes.
+    if (Date.now() >= expiresAt) throw new DemoChatFailure("generation_timeout", "generation");
     heartbeat = setTimeout(() => { void renew(); }, DEMO_RENEW_MS);
     submitted = true;
     let result: Awaited<ReturnType<Generation>>;
@@ -131,7 +143,7 @@ export async function runDemoGeneration(
       try { await store.release(lease); }
       catch { throw new DemoChatFailure("lease_error", "release"); }
     }
-    // Otherwise retain the lease forever, even after expiry/process death.
+    // Otherwise retain until a subsequent reservation reclaims deadline + grace.
     // Redis release failure also denies the answer; never retry an uncertain call.
   }
 }

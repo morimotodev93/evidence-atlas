@@ -6,6 +6,18 @@ Current stage: The portfolio MVP and curated Public Demo are implemented, with s
 
 ### Ver 1.00 preparation and current Production report (2026-10-31 JST)
 
+**B-R3a update (2026-11-07 JST):** Implemented bounded Demo Chat lifecycle in the
+working tree: existing lease deadline + 5-minute grace recovery in reservation
+Lua, per-record 24-hour HASH TTL, and pre-submission lease revalidation. The owner
+accepts Redis loss/overlap risk after recovery; normal limits, security, no refund
+and no automatic retry remain. Legacy retention migration is prepared, not run.
+`DEMO_CHAT_ENABLED=false` remains required. No deployment, live compatibility or
+public acceptance gate is completed. See [implementation, verification limits and
+stopped-writer migration procedure](demo-chat-br3a-lifecycle.md). This policy
+supersedes earlier indefinite-retention/strict failure-time recovery requirements;
+other security/cost/deployed checks and the Redis runner hold remain. PostgreSQL
+admission migration is deferred. No broader roadmap phase is marked complete.
+
 Ver 1.00 is **in preparation, not formally released**. Its release scope was
 revised on 2026-11-07 to exclude live Chat; applicable read-only safety and
 operational acceptance gates remain open. Existing phase checkboxes are unchanged.

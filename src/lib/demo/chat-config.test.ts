@@ -4,6 +4,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import {
   DEMO_CHAT_LIMITS, DEMO_CHAT_REDIS, DEMO_CHAT_TURNSTILE,
+  DEMO_CHAT_LEASE_GRACE_MS, DEMO_CHAT_OPERATION_TTL_MS,
   DemoChatConfigurationError, isDemoChatEnabled, requireDemoChatEnabled,
 } from "./chat-config";
 
@@ -104,6 +105,8 @@ describe("Demo Chat configuration eligibility (no public execution)", () => {
       globalQuestionsPerDay: 50, maxConcurrentGenerations: 2, maxOutputTokens: 2000,
     });
     expect(Object.isFrozen(DEMO_CHAT_LIMITS)).toBe(true);
+    expect(DEMO_CHAT_LEASE_GRACE_MS).toBe(300_000);
+    expect(DEMO_CHAT_OPERATION_TTL_MS).toBe(86_400_000);
     expect(DEMO_CHAT_REDIS).toMatchObject({ backend: "upstash", failurePolicy: "deny", allowMemoryFallback: false });
     for (const prefix of [DEMO_CHAT_REDIS.sessionPrefix, DEMO_CHAT_REDIS.sourcePrefix,
       DEMO_CHAT_REDIS.globalPrefix, DEMO_CHAT_REDIS.concurrencyPrefix]) {

@@ -5,7 +5,7 @@ import { createRequire } from "node:module";
 import type { DemoChatEval } from "./chat-store";
 
 const { lua, lauxlib, lualib, to_luastring, to_jsstring } = createRequire(import.meta.url)("fengari");
-type Entry = { value: string | Map<string, string | number>; expires?: number };
+type Entry = { value: string | Map<string, string | number>; expires?: number; fieldExpires?: Map<string, number> };
 
 export class OfflineRedis {
   now = Date.UTC(2026, 9, 27, 12);
@@ -19,6 +19,12 @@ export class OfflineRedis {
     this.beforeCommand?.(command, args);
     for (const [key, entry] of this.entries) {
       if (entry.expires !== undefined && entry.expires <= this.now) this.entries.delete(key);
+      if (entry.value instanceof Map && entry.fieldExpires) {
+        for (const [field, expiresAt] of entry.fieldExpires) {
+          if (expiresAt <= this.now) { entry.value.delete(field); entry.fieldExpires.delete(field); }
+        }
+        if (entry.value.size === 0) this.entries.delete(key);
+      }
     }
     const [key, field, value] = args;
     const entry = this.entries.get(key);
@@ -46,8 +52,37 @@ export class OfflineRedis {
       case "HGET": case "ZSCORE": return entry ? map().get(field) ?? false : false;
       case "HSET": {
         const result = map();
-        for (let i = 1; i < args.length; i += 2) result.set(args[i], args[i + 1]);
+        for (let i = 1; i < args.length; i += 2) {
+          result.set(args[i], args[i + 1]);
+          entry?.fieldExpires?.delete(args[i]);
+        }
         return 1;
+      }
+      case "HSETEX": {
+        if (args[1] !== "PXAT" || args[3] !== "FIELDS" || args[4] !== "1" || args.length !== 7) {
+          throw new Error("Unsupported mock HSETEX arguments");
+        }
+        const result = map(), expiresAt = Number(args[2]);
+        if (!Number.isSafeInteger(expiresAt) || expiresAt <= 0) throw new Error("Invalid expiry");
+        result.set(args[5], args[6]);
+        const hashEntry = this.entries.get(key)!;
+        hashEntry.fieldExpires ??= new Map();
+        hashEntry.fieldExpires.set(args[5], expiresAt);
+        return 1;
+      }
+      case "HPEXPIREAT": {
+        if (args[2] !== "FIELDS" || args[3] !== "1" || args.length !== 5) throw new Error("Unsupported mock HPEXPIREAT arguments");
+        if (!entry || !map().has(args[4])) return [-2];
+        const expiresAt = Number(args[1]);
+        if (!Number.isSafeInteger(expiresAt) || expiresAt <= 0) throw new Error("Invalid expiry");
+        if (expiresAt <= this.now) {
+          map().delete(args[4]); entry.fieldExpires?.delete(args[4]);
+          if (map().size === 0) this.entries.delete(key);
+          return [2];
+        }
+        entry.fieldExpires ??= new Map();
+        entry.fieldExpires.set(args[4], expiresAt);
+        return [1];
       }
       case "HLEN": return entry ? map().size : 0;
       case "HINCRBY": {
@@ -61,8 +96,10 @@ export class OfflineRedis {
       case "ZREMRANGEBYSCORE": {
         if (!entry) return 0;
         let removed = 0;
+        const minimum = field === "-inf" ? -Infinity : Number(field);
+        const maximum = value === "+inf" ? Infinity : Number(value);
         for (const [member, score] of map()) {
-          if (Number(score) >= Number(field) && Number(score) <= Number(value)) {
+          if (Number(score) >= minimum && Number(score) <= maximum) {
             map().delete(member); removed++;
           }
         }

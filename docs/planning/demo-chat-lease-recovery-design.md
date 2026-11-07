@@ -1,5 +1,16 @@
 # Public Demo Chat — Redis Lease Recovery Design Research
 
+> **B-R3a superseding policy (2026-11-07 JST):** The owner approved practical
+> safety with automatic lease recovery after deadline + 5 minutes and Operation
+> deletion 24 hours after creation. The implementation and prepared-but-unrun
+> legacy migration are described in [the current B-R3a lifecycle](demo-chat-br3a-lifecycle.md).
+> Normal limits/security/no-refund/no-retry remain; strict failure-time concurrency
+> and indefinite history retention are relaxed. The dated research below remains
+> historical evidence, including remote-termination limitations. Its blanket
+> no-expiry/no-deletion prerequisites are superseded, not proven satisfied.
+> Chat stays disabled; real Upstash compatibility, migration, deployed checks
+> and separate publication approval remain pending. The Redis runner hold remains.
+
 > Current use (Phase 5.0h, 2026-11-07 JST): retain the unresolved lease/recovery
 > design and safety invariants below for future work. v1.0.0 is the bilingual
 > read-only Public Demo with Chat disabled and "Coming soon". See the
