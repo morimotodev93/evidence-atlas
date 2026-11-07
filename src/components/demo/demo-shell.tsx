@@ -19,7 +19,8 @@ export function DemoShell({ children, locale = defaultLocale, localized = false 
 
           <Badge variant="secondary">{translate("demo.badge", locale)}</Badge>
 
-          <span className="text-sm text-muted-foreground">{translate("demo.readOnly", locale)}</span>
+          <span className="text-sm text-muted-foreground">{translate("demo.mode", locale)}</span>
+
 
           <a
             href="https://github.com/morimotodev93/evidence-atlas"
