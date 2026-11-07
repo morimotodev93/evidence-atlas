@@ -1,19 +1,25 @@
 # Demo Chat B-R3a — bounded lease and operation retention
 
 Date: 2026-11-07 JST. Implementation baseline: `main` at `878029f`;
-B-R3a locally committed as `a1b58b1`, not yet pushed at this update.
-v1.0.0 was formally released on 2026-11-07 with Production Chat disabled.
+B-R3a implementation `a1b58b1` and rollout docs `ead381a` are committed and pushed.
+Local HEAD and GitHub `main` were `ead381a` at the start of this update.
+v1.0.0 initially shipped on 2026-11-07 with Chat disabled; B-R3a Chat was
+subsequently published on the same date with owner approval.
+Official URL: [Public Demo](https://evidence-atlas-mu.vercel.app/demo).
 
 ## Current policy and scope
 
 The owner approved practical Public Demo safety: retain all existing question,
 session, input/output and normal concurrency limits, but accept Redis reservation
 loss and possible overlapping remote generations after automatic recovery.
-`DEMO_CHAT_ENABLED=false` remains required until separate public approval.
+The owner approved continued publication after successful basic verification on
+a new Vercel Production deployment. Production Chat is now public; the safe
+`.env.example` default remains `DEMO_CHAT_ENABLED=false`.
 This supersedes the indefinite-quarantine/no-history-deletion requirements in
 the dated lease design and AI architecture checkpoints. It does not establish
-Groq termination, exact failure-time concurrency, a monetary cap, or live-service
-compatibility. PostgreSQL, Cron, a recovery CLI and an admin UI are not added.
+Groq termination, exact failure-time concurrency or a monetary cap. The actual
+Upstash command and basic Production checks below have their recorded scope.
+PostgreSQL, Cron, a recovery CLI and an admin UI are not added.
 
 ## Runtime behavior
 
@@ -70,8 +76,8 @@ The owner reports deleting 37 existing Operation records and observing 1 new
 record after Local testing. This is the completed history cleanup for the
 reported target; it is not evidence that the prepared TTL-migration Lua ran.
 Do not repeat cleanup or reset budgets as a routine rollout step. This report
-does not establish that all old writers have been fenced; check old-deployment
-exposure before enabling Chat.
+does not establish that all old writers have been fenced; old-deployment
+blocking remains unverified by the reported basic Production checks.
 
 `chat-operation-retention.ts` supplies a pure preparation function and bounded
 compare-before-expiry Lua. It creates no client, opens no connection, performs no
@@ -111,7 +117,7 @@ already-old unresolved leases. This is risk-accepted reclamation, not proof that
 those requests ended. Old code may add TTL-less records, so mixed writers and
 rollback to old enabled code are unsupported. Rollback must keep Chat disabled.
 
-## Verification record and remaining rollout
+## Verification record and completed publication
 
 Targeted offline Vitest covers quota/security regressions, exact grace/24h
 boundaries, stale workers, response loss, native-command failure, independent
@@ -132,31 +138,35 @@ Subsequent owner-reported verification (not repeated by this documentation task)
 | Check | Reported result |
 | --- | --- |
 | Actual Upstash Free | Lua `HSETEX PXAT`, `HPEXPIREAT`, field TTL and individual expiration verified |
-| Existing Operation history | 37 records deleted; 1 new record observed after Local testing |
+| Existing Operation history | 37 records deleted; 1 new record observed after Local testing; count increased to 2 after Production testing |
 | Local HTTPS Demo Chat | Question, answer and Source display succeeded |
 | Temporary Local configuration | Turnstile `localhost` allowance removed; temporary Local environment settings restored |
 | Dedicated Groq project | `openai/gpt-oss-120b`; 3 RPM / 50 RPD / 8,000 TPM / 100,000 TPD |
-| Vercel Groq key | Updated; reflection on a new deployment is NOT verified |
+| Vercel Production | New deployment: Turnstile authentication, Groq answer generation and Supporting sources succeeded |
+| Publication decision | Owner approved continued public Demo Chat operation on 2026-11-07 JST |
 
-Local success is not deployed verification. These checks do not prove Groq
+The later Production report establishes basic deployed success beyond the Local
+check. The Operation count increase is not proof of Production expiry or recovery.
+These checks do not prove Groq
 termination, strict failure-time concurrency, Redis durability or every failure
 path. Provider quotas reduce exposure; they are not a simultaneous-generation
 guarantee or exact monetary ceiling. The existing Redis verification runner
 remains on hold. No completed release or Local checks need routine repetition.
 
-Next work, subject to separate authorization:
+**Limited B-R3a publication plan complete (2026-11-07 JST):** Implementation,
+Local verification, Commit/Push, the new Vercel Production deployment, basic
+Turnstile/Groq/Supporting sources checks and continued-publication approval are
+complete. No Push/deployment/approval step remains pending in this plan.
 
-1. Push the reviewed changes, then create a new Vercel deployment from the intended
-   revision; keep Production `DEMO_CHAT_ENABLED=false` until publication approval.
-2. On an owner-authorized test target, confirm the deployed dedicated Groq
-   key/project and limits, then check bounded question/answer/Source behavior,
-   relevant refusal and shutdown behavior. Confirm old deployments cannot admit
-   incompatible Chat writes; old enabled code is not a supported rollback.
-3. Record the deployed results and make a separate Chat publication decision.
-   Preserve authentication/authorization, all normal quotas, fail-closed behavior,
-   no automatic retry and no question refunds. Redis loss and post-recovery
-   overlap remain the accepted residual risks, not guarantees established by
-   these checks.
+**Unverified scope, not completed tests:** Production failure recovery, lease
+reclamation/expiry boundaries, 24-hour Operation expiry, quota exhaustion,
+shutdown and old-deployment blocking have not been established by the basic
+checks. Groq project limits remain the owner's reported configuration; successful
+generation is not an exhaustion test or independent inspection of those limits.
+Redis loss and post-recovery overlap remain accepted risks. Authentication,
+authorization, normal limits, fail-closed behavior, no retries and no refunds
+remain unchanged. Broader roadmap work is not completed by this publication.
 
-This documentation update made no service calls, configuration changes, tests,
+This documentation update used read-only GitHub/Git and document inspection; it
+made no Production/Redis/Groq/Vercel operations, configuration changes, tests,
 Build, commit or Push.

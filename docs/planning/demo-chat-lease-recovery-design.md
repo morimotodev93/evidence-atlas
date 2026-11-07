@@ -11,9 +11,15 @@
 > B-R3a implementation and Local verification are complete. The owner reports
 > Upstash Free field-expiry checks, deletion of 37 legacy records and 1 new record
 > after Local testing, plus successful Local HTTPS Chat/Source display. This is
-> not execution of the prepared migration helper. Production Chat stays disabled;
-> Push, a new deployment, bounded Vercel checks and separate publication approval
-> remain pending. The Redis runner hold remains.
+> not execution of the prepared migration helper. Commit/Push and a new Vercel
+> Production deployment are complete. The owner confirmed Turnstile, Groq answers
+> and Supporting sources, with Operation history increasing from 1 to 2, and
+> approved continued publication on 2026-11-07 JST. Chat is now live at
+> [the official Demo URL](https://evidence-atlas-mu.vercel.app/demo); the limited
+> B-R3a publication plan is complete. Production failure recovery, expiry, quota
+> exhaustion and old-deployment blocking remain unverified. The Redis runner hold
+> remains. The historical No-Go below applies to the earlier strict guarantees,
+> not the owner-approved current publication under accepted residual risks.
 
 > Historical Phase 5.0h context (superseded by B-R3a above): retain the unresolved lease/recovery
 > design and safety invariants below for future work. v1.0.0 is the bilingual

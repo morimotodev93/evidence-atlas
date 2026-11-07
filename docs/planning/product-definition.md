@@ -624,7 +624,7 @@ This distinction is important for traceability and AI retrieval.
 
 The public Demo has a curated, read-only implementation at `/demo` and `/demo/research/[researchId]`. Phase 9.2 provides an unauthenticated public read path separate from the authenticated SaaS application. Scoped deployed checks are recorded in [roadmap Phase 9](roadmap.md#phase-9--public-demo); PR #39 additionally records user-run Preview E2E 20/20, within the [reported scope](phase10-quality-acceptance.md#pr37-39-status-alignment).
 
-For v1.0.0, visitors can browse a prepared Demo Workspace and its accumulated research knowledge in English and Japanese, with Research data remaining read-only. Anonymous AI Chat is implemented but disabled for this release; visitors see "Coming soon". Future Chat activation requires a separate safety review.
+v1.0.0 formally released the English/Japanese read-only Public Demo on 2026-11-07. Limited anonymous Demo Chat was subsequently published under B-R3a on the same date at [the official Demo URL](https://evidence-atlas-mu.vercel.app/demo), after Commit/Push, a new Vercel Production deployment, basic verification and owner approval for continued publication. Research data remains read-only; this does not expose unrestricted SaaS operation.
 
 Visitors must not be able to create, edit, or delete persistent research data. Demo pages contain no mutation controls or Server Actions. Phase 9.3 additionally closes visitor-facing authenticated SaaS entry points in Public Demo deployment mode while preserving membership-based permissions in normal mode.
 
@@ -636,14 +636,14 @@ The public Demo is intended to demonstrate the product concept and user experien
 
 ### 6.2 Demo Model
 
-The planned public deployment is:
+The public deployment is:
 
 ```text
 Public Vercel Deployment
         ↓
 Curated Demo Workspace
         ↓
-Read-only Exploration
+Read-only Exploration + Bounded Anonymous Chat
 ```
 
 Visitors should be able to inspect representative research data and understand how Evidence Atlas organizes research knowledge.
@@ -682,7 +682,11 @@ The initial direction is therefore:
 - No requirement for visitors to provide personal API credentials
 - No production SaaS administration through the public Demo
 
-Curated content, public read-only access, Demo labels, and the visitor-facing SaaS write lock are implemented, with local and selected deployed route-boundary checks recorded in [roadmap Phase 9](roadmap.md#phase-9--public-demo). Its scoped credential exposure review found no confirmed private credentials in reviewed repository files, reachable Git history, or deployed Demo HTML. Public Demo Chat now uses Groq Free Plan / `openai/gpt-oss-120b` with stored Research Evidence, Source references, anonymous quotas, a 2,000-token output limit, a 30-second generation deadline, and no automatic retry. The maintainer reports Production browsing, Turnstile/session creation, Japanese answers and Source references working on 2026-10-31 JST, including the 2,000-token setting and applied Evidence improvements. This documentation task did not rerun those checks; broader failure-path and recovery guarantees remain unverified. Database-role hardening and live normal-SaaS Inngest Cloud integration verification remain incomplete; Public Demo disables Inngest serving and requires no runtime indexing. Background writes are outside the visitor-facing lock.
+Curated content, public read-only access, Demo labels, and the visitor-facing SaaS write lock are implemented, with local and selected deployed route-boundary checks recorded in [roadmap Phase 9](roadmap.md#phase-9--public-demo). Its scoped credential exposure review found no confirmed private credentials in reviewed repository files, reachable Git history, or deployed Demo HTML. Public Demo Chat now uses Groq Free Plan / `openai/gpt-oss-120b` with stored Research Evidence, Source references, anonymous quotas, a 2,000-token output limit, a 30-second generation deadline, and no automatic retry. The maintainer reports Production browsing, Turnstile/session creation, Japanese answers and Source references working on 2026-10-31 JST, including the 2,000-token setting and applied Evidence improvements.
+
+On 2026-11-07 JST, after the initial read-only v1.0.0 release, the owner confirmed Turnstile authentication, Groq answer generation and Supporting sources on a new Production deployment and approved continued B-R3a publication. Operation history increased from 1 after Local testing to 2 after Production testing. The dedicated Groq project is configured for 3 RPM / 50 RPD / 8,000 TPM / 100,000 TPD (owner report). The limited publication plan is complete. Lease reclamation after the existing 60-second deadline plus 5 minutes and Operation expiry 24 hours after creation remain unchanged; Redis reservation loss and post-reclamation Groq overlap are accepted risks. Production recovery, expiry, quota exhaustion and old-deployment blocking were not verified by the basic checks. See the [B-R3a lifecycle and evidence](demo-chat-br3a-lifecycle.md). This documentation task did not rerun those checks; broader failure-path and recovery guarantees remain unverified.
+
+Database-role hardening and live normal-SaaS Inngest Cloud integration verification remain incomplete; Public Demo disables Inngest serving and requires no runtime indexing. Background writes are outside the visitor-facing lock.
 
 ---
 
@@ -940,7 +944,7 @@ The document should be revised when:
 
 ### Current Implementation Gaps
 
-The intended workflows above remain the product baseline. The list below retains the PR #39 workflow baseline. Under Phase 5.0h (2026-11-07), v1.0.0 is the bilingual read-only Public Demo with anonymous AI Chat disabled and "Coming soon"; live Chat and general hosted SaaS operation are excluded. Authoritative admission/lease management is deferred for redesign after v1.0.0, with existing Chat safety gates and the Redis verification-runner hold preserved. Ver 1.00 remains in preparation pending applicable read-only acceptance; see the [roadmap](roadmap.md).
+The intended workflows above remain the product baseline. The list below retains the PR #39 workflow baseline. v1.0.0 formally released the bilingual read-only Public Demo on 2026-11-07, initially without Chat. B-R3a subsequently completed implementation, Local verification, Commit/Push, new Production deployment, basic Chat verification and owner approval on the same date. Demo Chat is public; its limited publication plan is complete. General hosted SaaS operation remains outside scope. PostgreSQL admission remains deferred, and the existing Redis verification-runner hold and accepted Redis-loss/Groq-overlap risks remain. Unverified Production failure paths and broader roadmap items are not marked complete; see the [roadmap](roadmap.md).
 
 - Research creation and title/description editing, plus Source, Finding, and Comment CRUD, are implemented.
 - Workspace Tags can be created or reused by name, attached to Research, displayed on list/detail pages, and detached without deleting the Tag. Tag renaming, Workspace-level Tag deletion, and Tag filtering are not implemented.

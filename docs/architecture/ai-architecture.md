@@ -15,24 +15,27 @@ disablement remain. See [B-R3a lifecycle and verification record](../planning/de
 This supersedes the indefinite lease/history retention, acknowledged-reservation
 non-loss and strict failure-time concurrency prerequisites in earlier dated
 checkpoints below. Neither expiry nor
-Abort proves Groq termination. B-R3a is locally committed as `a1b58b1`. The owner
+Abort proves Groq termination. B-R3a implementation `a1b58b1` and rollout docs
+`ead381a` are committed and pushed. The owner
 reports actual Upstash Free field-expiry verification, cleanup of 37 legacy
 Operation records, 1 new record after Local testing, and successful Local HTTPS
-question/answer/Source display. Production Chat remains disabled; Push, a new
-deployment, bounded Vercel checks and separate publication approval remain.
+question/answer/Source display. A new Vercel Production deployment subsequently
+passed basic Turnstile authentication, Groq answer generation and Supporting
+sources display; the owner approved continued publication on 2026-11-07 JST.
+Demo Chat is live at [the official URL](https://evidence-atlas-mu.vercel.app/demo).
+Operation history increased from 1 after Local testing to 2 after Production
+testing (owner report). The limited B-R3a publication plan is complete.
 Historical findings and the existing real-Redis runner hold are retained.
 
 v1.0.0 was formally released on 2026-11-07 as the bilingual read-only Public Demo
-(owner confirmation). Live anonymous Chat is excluded and remains disabled with
-"Coming soon". The owner reports
-Muse completed Vercel deployment cleanup and Production was redeployed with
-`DEMO_CHAT_ENABLED=false`, then confirmed Ready and "Coming soon". These are
-owner-supplied results, not independently repeated checks. The current Chat
-rollout follows the B-R3a practical-safety policy; PostgreSQL admission remains
-deferred. Do not repeat the completed read-only release acceptance.
+(owner confirmation). Live anonymous Chat was excluded from that initial release,
+then published under B-R3a on the same date. The earlier Phase 5.0h deployment
+cleanup and disabled/Coming soon report remain historical checkpoints. The
+current publication uses the B-R3a practical-safety policy; PostgreSQL admission
+remains deferred. Do not repeat the completed read-only release or Chat rollout.
 
 Normal SaaS Chat and embeddings use Gemini; the separate Public Demo Chat uses
-Groq Free Plan / `openai/gpt-oss-120b`. The implemented, disabled Demo generation
+Groq Free Plan / `openai/gpt-oss-120b`. The published Demo generation
 is bounded to
 **2,000 output tokens**, a **30-second deadline**, and **zero automatic retries**.
 It uses only bounded stored Evidence from the selected public Research, with
@@ -49,7 +52,7 @@ failure-path, Redis failover, remote cancellation, or recovery guarantees.
 
 Section 4.1 retains dated PR implementation and verification checkpoints. Its
 Coming soon / No-Go / unperformed-live-check statements describe those earlier
-checkpoints. The current deployment also uses Coming soon under Phase 5.0h.
+checkpoints, superseded by the current B-R3a publication report above.
 The code default remains disabled unless
 explicitly configured. Uncertain leases and stop-tolerant unavailability remain
 limitations; the Production happy path does not resolve them. Other sections
@@ -57,8 +60,9 @@ primarily describe authenticated SaaS unless explicitly labelled Demo.
 
 ## Demo Chat operations and outstanding evidence
 
-**Current B-R3a policy (2026-11-07 JST):** Implementation and Local verification
-are complete; Production `DEMO_CHAT_ENABLED=false` remains in force. Normal limits,
+**Current B-R3a policy (2026-11-07 JST):** Implementation, Local verification,
+Commit/Push, new Production deployment, basic deployed verification and owner
+approval are complete. Production Demo Chat is publicly available. Normal limits,
 shared Redis admission, authorization, fail-closed errors, no memory fallback,
 no refunds and no automatic retry remain. The owner accepts reservation loss
 on Redis failure and possible Groq overlap after automatic lease recovery.
@@ -77,20 +81,24 @@ prior Codex offline checks (9 Vitest files / 260 tests, targeted ESLint,
 TypeScript and diff checks) from owner-reported Upstash Free command/field-expiry
 checks, history cleanup and Local HTTPS Chat success. Temporary Local settings
 were restored and the Turnstile `localhost` allowance removed (owner report).
-These results do not establish failover durability or new-deployment behavior.
+The owner additionally reports successful basic Chat on the new Production
+deployment; these results do not establish failover durability or all failure paths.
 The prepared TTL-migration helper is not reported executed; the owner instead
-reports deleting 37 old records and observing 1 new record after Local testing.
+reports deleting 37 old records and observing 1 new record after Local testing,
+then 2 after Production testing. The count increase does not prove TTL expiry.
 
 The dedicated Groq project is reported configured for 3 RPM / 50 RPD / 8,000 TPM /
 100,000 TPD with `openai/gpt-oss-120b`; the Vercel API key is reported updated.
-Reflection on a new deployment is unverified. These quotas reduce exposure but
+The owner reports successful Groq generation on the new Production deployment;
+limit-exhaustion behavior and independent deployed limit inspection are not
+established by that report. These quotas reduce exposure but
 are neither a remote-concurrency guarantee nor a precise spending ceiling.
 
-Next work is reviewed Push, a new deployment, bounded verification of deployed
-key/project/limits and Demo behavior on an authorized target, then a separate
-publication decision. Check relevant old deployments cannot admit incompatible
-writes. Keep Production Chat disabled until approval; Local success grants no
-activation. See the [current publication policy](../planning/roadmap.md#current-demo-chat-publication-policy-after-b-r3a-2026-11-07-jst).
+The limited publication plan is closed, with Turnstile authentication, Groq
+answers and Supporting sources confirmed by the owner. Production recovery,
+expiry boundaries, quota exhaustion, shutdown and blocking of old deployments
+remain unverified; basic success does not prove those behaviors. The example
+configuration stays disabled by default. See the [completed publication record](../planning/roadmap.md#current-demo-chat-publication-policy-after-b-r3a-2026-11-07-jst).
 
 The existing real-Redis verification runner remains on hold; do not substitute
 Production Redis. Historical preflight/recovery audits remain evidence of their

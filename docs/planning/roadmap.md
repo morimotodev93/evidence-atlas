@@ -2,7 +2,7 @@
 
 > **Last Updated:** 2026-11-07
 
-Current stage: v1.0.0 was formally released on 2026-11-07 as the bilingual read-only Public Demo (owner confirmation). B-R3a implementation and Local verification are complete; Production anonymous AI Chat remains disabled with "Coming soon". The next work is Push, a new Vercel deployment, bounded deployed verification, and a separate Chat publication decision. Phases 4–7 are complete for their defined baselines; Phase 8 is complete for the defined application infrastructure baseline. Phase 10 has four completed checklist items (Unit, bounded E2E, Validation, Authorization); other quality work remains open. Phase 11 operational reviews and Phase 12 documentation are not complete. These broader open items do not reopen the completed v1.0.0 release. Checked items describe specific implementation or reported verification, not blanket production, OAuth, provider, or security validation.
+Current stage: v1.0.0 was formally released on 2026-11-07 as the bilingual read-only Public Demo (owner confirmation). B-R3a implementation, Local verification, Commit/Push, new Production deployment, basic deployed Chat verification and owner publication approval are complete. Demo Chat is now publicly available at https://evidence-atlas-mu.vercel.app/demo (owner report, 2026-11-07 JST); this followed the initial read-only release. The limited B-R3a publication plan is complete. Phases 4–7 are complete for their defined baselines; Phase 8 is complete for the defined application infrastructure baseline. Phase 10 has four completed checklist items (Unit, bounded E2E, Validation, Authorization); other quality work remains open. Phase 11 operational reviews and Phase 12 documentation are not complete. These broader open items do not reopen the completed v1.0.0 release. Checked items describe specific implementation or reported verification, not blanket production, OAuth, provider, or security validation.
 
 <a id="ver-100-preparation-and-current-production-report-2026-10-31-jst"></a>
 
@@ -10,12 +10,16 @@ Current stage: v1.0.0 was formally released on 2026-11-07 as the bilingual read-
 
 **v1.0.0 formally released:** The owner confirms the 2026-11-07 release of the
 English/Japanese read-only Public Demo. Live anonymous Chat and general SaaS
-public operations are outside that release. Do not repeat release acceptance or
+public operations were outside that initial release. Demo Chat was subsequently
+published under B-R3a on the same date; unrestricted SaaS remains outside scope. Do not repeat release acceptance or
 previous checks merely because Chat work continues.
 
-**B-R3a implementation and Local verification complete.** Implementation is
-locally committed as `a1b58b1` (`feat(demo): add bounded lease recovery and 24h
-operation retention`); it has not been pushed at this documentation update.
+**B-R3a publication complete (2026-11-07 JST).** Implementation commit `a1b58b1`
+and rollout documentation commit `ead381a` are pushed; local HEAD and GitHub
+`main` were both `ead381a` at the start of this update. The owner reports a new
+Vercel Production deployment, successful Turnstile authentication, Groq answer
+generation and Supporting sources display, and approves continued publication.
+Official URL: [Public Demo](https://evidence-atlas-mu.vercel.app/demo).
 The owner accepts Redis reservation loss and Groq overlap after automatic
 recovery. Normal question/session/input/output limits and concurrency 2 remain;
 leases are reclaimed at the next eligible reservation after their existing
@@ -33,40 +37,46 @@ a manual recovery CLI are not introduced.
 | Local HTTPS | Demo question, answer and Source display succeeded (owner report) |
 | Temporary Local setup | Turnstile `localhost` allowance removed; temporary Local environment settings restored (owner report) |
 | Groq configuration | Dedicated project: 3 RPM / 50 RPD / 8,000 TPM / 100,000 TPD; Vercel API key updated (owner report) |
-| Production | Chat remains disabled; new-deployment key/configuration reflection and bounded Vercel verification are NOT DONE |
+| Production | New deployment: Turnstile authentication, Groq generation and Supporting sources succeeded; continued publication approved (owner report, 2026-11-07 JST) |
+| Production Operation history | Count increased from 1 after Local testing to 2 after Production testing (owner report); not proof of production expiry or recovery |
 
 See [current lifecycle, evidence and rollout status](demo-chat-br3a-lifecycle.md).
 These scoped checks do not prove remote termination, Redis failure durability or
 exact concurrency after recovery. The existing real-Redis runner hold remains.
 
-**Next work only (not executed by this documentation task):**
+**Completed limited publication plan (owner report, 2026-11-07 JST):**
 
-- [ ] Push the reviewed changes; no Push is authorized in this task.
-- [ ] Create a new Vercel deployment from the intended revision.
-- [ ] Confirm deployed Groq key/project/limits and bounded Demo behavior on an
-  owner-authorized test target; Local success does not establish Vercel behavior.
-- [ ] Make a separate Chat publication decision. Keep Production
-  `DEMO_CHAT_ENABLED=false` until approval.
+- [x] Commit and Push B-R3a and the rollout documentation.
+- [x] Create the new Vercel Production deployment.
+- [x] Verify basic deployed Chat: Turnstile authentication, Groq answer and
+  Supporting sources; Operation history increased from 1 to 2.
+- [x] Approve continued public Demo Chat operation.
+
+Production failure recovery, expiry boundaries, quota exhaustion and old-deployment
+blocking were not verified by these basic checks. Dedicated Groq project limits
+remain owner-reported settings, not a production limit-exhaustion test. These
+verification gaps and accepted Redis-loss/Groq-overlap risks remain recorded;
+they do not leave this limited publication plan open.
 
 | State | Scope |
 | --- | --- |
 | Implemented | Core research workflows, SaaS authorization, Gemini Chat/pgvector retrieval, background indexing, separate bounded anonymous Groq Demo Chat |
 | Historical Production report (2026-10-31) | Public Research browsing, Turnstile, Chat session creation, Japanese questions, Groq answers including METR/GitHub Copilot comparison, Source references, 2,000-token output setting; Evidence improvements reported applied |
-| Current Production report (owner, 2026-11-07) | Muse completed Vercel deployment cleanup; Production redeployed with `DEMO_CHAT_ENABLED=false`; owner confirmed Ready and "Coming soon". Not independently rechecked in this task |
+| Current Production report (owner, 2026-11-07) | Demo Chat live on the new Production deployment; Turnstile, Groq answer and Supporting sources confirmed; continued publication approved. Earlier disabled/Coming soon deployment is historical |
 | Implemented, Production verification incomplete | Comprehensive normal-SaaS workflows and live Inngest integration; Demo failure/recovery guarantees are not established by happy-path checks |
-| Planned / remaining | Push, new deployment, bounded Vercel verification and Chat publication decision; broader unchecked quality/operational work retains its original scope |
-| v1.0.0 released scope | Bilingual read-only Public Demo, formally released 2026-11-07 (owner confirmation); live anonymous Chat and normal SaaS public operations excluded |
+| Planned / remaining | Limited B-R3a publication plan complete; broader unchecked quality/operational work and unverified failure paths retain their original scope |
+| Initial v1.0.0 released scope | Bilingual read-only Public Demo, formally released 2026-11-07 (owner confirmation); Chat was initially excluded and subsequently published under B-R3a. Normal SaaS public operations remain excluded |
 
-The implemented, disabled Demo Chat uses Groq Free Plan / `openai/gpt-oss-120b`, a 30-second generation
+The published Demo Chat uses Groq Free Plan / `openai/gpt-oss-120b`, a 30-second generation
 deadline and zero automatic retries. Normal SaaS Chat/embeddings remain Gemini.
-Research data is read-only for visitors. This task verified local code and
-supplied operational reports only, without Production API/DB access.
+Research data is read-only for visitors. This update uses GitHub/local Git and supplied operational reports only, without
+Production API/DB access or independent repetition of the owner checks.
 
 Dated PR reports below and linked preflight/recovery reports retain their original
 No-Go decisions and settings (including older output limits). They are historical
 checkpoints, not current deployment instructions. The historical maintainer report
-superseded the earlier unavailable-UI status at that time; the Phase 5.0h decision
-now restores disabled Chat. Neither report establishes Redis
+superseded the earlier unavailable-UI status at that time; Phase 5.0h later disabled
+Chat for the initial release, before B-R3a publication. Neither report establishes Redis
 failover, uncertain remote termination, safe lease recovery, or completion of
 all earlier proposed checks. Those evidence gaps remain explicit.
 
@@ -1937,7 +1947,7 @@ this policy does not complete the remaining reviews or authorize a deployment.
 - [x] Apply production migrations
 - [x] Seed curated Demo data
 - [x] Configure dedicated Demo Groq project/key (owner report; B-R3a)
-- [ ] Verify Demo Groq key/project/limits on the new Vercel deployment
+- [x] Verify basic Demo Chat on the new Production deployment (owner report; Turnstile, Groq answer, Supporting sources)
 - [x] Configure environment variables
 - [x] Deploy to Vercel
 - [x] Verify production build
@@ -1945,6 +1955,9 @@ this policy does not complete the remaining reviews or authorize a deployment.
 - [x] Verify read-only behavior
 - [ ] Review logs and errors
 - [ ] Perform security review
+
+Dedicated project limits are owner-reported: 3 RPM / 50 RPD / 8,000 TPM /
+100,000 TPD. Basic generation success is not a production test of these limits.
 
 **Operations record (2026-10-27 JST; user manual report, not independently verified):**
 Vercel Functions was changed from `iad1` (US East) to `hnd1` (Tokyo).
@@ -2023,15 +2036,17 @@ Authentication, advanced RAG, background processing, and other infrastructure sh
 
 The public portfolio deployment is not intended to function as an unrestricted public SaaS service.
 
-The Demo uses curated data with separate public read-only routes implemented in Phase 9.2 and a visitor-facing SaaS write lock in Phase 9.3. Public deployments must set `PUBLIC_DEMO_MODE=true`. The selected deployed Demo pages and visitor-facing route boundaries have been verified as recorded in Phase 9; separate limited Public Demo Chat was reported working on 2026-10-31, but is now disabled with "Coming soon" and excluded from v1.0.0. Further normal-SaaS security, telemetry, and infrastructure hardening remain pending.
+The Demo uses curated data with separate public read-only routes implemented in Phase 9.2 and a visitor-facing SaaS write lock in Phase 9.3. Public deployments must set `PUBLIC_DEMO_MODE=true`. The selected deployed Demo pages and visitor-facing route boundaries have been verified as recorded in Phase 9; separate limited Public Demo Chat was reported working on 2026-10-31, was then disabled for the initial read-only v1.0.0 release, and is now published following B-R3a basic Production verification and owner approval on 2026-11-07. Further normal-SaaS security, telemetry, and infrastructure hardening remain pending.
 
 ### Current Demo Chat publication policy after B-R3a (2026-11-07 JST)
 
 Implementation, offline checks, actual Upstash command/expiry checks and Local
-HTTPS question/answer/Source verification are complete as scoped above. Keep
-Production Chat disabled. Remaining work is the reviewed Push, a new deployment,
-bounded Vercel verification and the owner's publication decision; the read-only
-v1.0.0 release and completed checks are not reopened.
+HTTPS question/answer/Source verification are complete as scoped above. Commit,
+Push, a new Production deployment, basic Turnstile/Groq/Supporting sources checks
+and owner approval for continued publication are also complete. Production Chat
+is live at [the official Demo URL](https://evidence-atlas-mu.vercel.app/demo). The
+limited publication plan is closed; neither it nor the initial read-only release
+is pending next work.
 
 The current contract is [B-R3a](demo-chat-br3a-lifecycle.md): preserve normal
 limits/security, fail closed on observed errors, never refund question budgets or
@@ -2043,11 +2058,12 @@ longer activation prerequisites. Provider limits are layered protection, not
 concurrency or monetary guarantees. PostgreSQL, Cron and a recovery CLI are not
 part of this design.
 
-Verify the new deployment's key/project/limits, bounded behavior and ability to
-disable admission within the owner's approved scope. Keep authentication,
-authorization, public Research and C2 boundaries intact. Preserve the existing
-Redis verification-runner hold; reported Upstash/Local checks do not mean that
-runner was run. Do not enable Production Chat before separate approval.
+Maintain authentication, authorization, public Research and C2 boundaries.
+Production failure recovery, expiry, quota exhaustion, shutdown and old-deployment
+blocking have not been established by the reported basic checks. Record these
+limits without treating them as completed tests or reopening the approved
+publication plan. Preserve the Redis verification-runner hold; the Upstash,
+Local and Production basic checks do not mean that runner was run.
 
 <a id="current-conditional-demo-chat-release-policy-aligned-2026-11-06-jst"></a>
 
