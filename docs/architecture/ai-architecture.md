@@ -2,18 +2,27 @@
 
 > **Status:** Implemented Phase 6 baseline with Phase 7 route authorization and Phase 8.3 background indexing
 > **Scope:** Phase 5 AI Integration + Phase 6 Retrieval / RAG + Phase 7 AI route access control + Phase 8.3 Background Jobs
-> **Last Updated:** 2026-11-06
+> **Last Updated:** 2026-11-07
 
-## Current deployment status (2026-10-31 JST)
+## Current deployment status (2026-11-07 JST)
+
+For v1.0.0, publish only the bilingual read-only Public Demo. Live anonymous
+Chat is excluded and remains disabled with "Coming soon". The owner reports
+Muse completed Vercel deployment cleanup and Production was redeployed with
+`DEMO_CHAT_ENABLED=false`, then confirmed Ready and "Coming soon". These are
+owner-supplied results, not independently repeated checks. Redesign authoritative
+admission/lease management after v1.0.0 before reconsidering Chat activation.
 
 Normal SaaS Chat and embeddings use Gemini; the separate Public Demo Chat uses
-Groq Free Plan / `openai/gpt-oss-120b`. Current Demo generation is bounded to
+Groq Free Plan / `openai/gpt-oss-120b`. The implemented, disabled Demo generation
+is bounded to
 **2,000 output tokens**, a **30-second deadline**, and **zero automatic retries**.
 It uses only bounded stored Evidence from the selected public Research, with
 Source references; no external page fetching, vector retrieval, or persisted
 conversation history is used. Research data remains read-only for visitors.
 
-The maintainer reports Production verification of Research browsing, Turnstile,
+The maintainer's historical 2026-10-31 report records Production verification of
+Research browsing, Turnstile,
 anonymous session creation, Japanese questions, Groq generation, METR/GitHub
 Copilot comparison answers, Source references, and the 2,000-token setting, plus
 applied Production Evidence improvements. These are supplied operational results,
@@ -22,27 +31,31 @@ failure-path, Redis failover, remote cancellation, or recovery guarantees.
 
 Section 4.1 retains dated PR implementation and verification checkpoints. Its
 Coming soon / No-Go / unperformed-live-check statements describe those earlier
-checkpoints, not today's deployment. The code default remains disabled unless
+checkpoints. The current deployment also uses Coming soon under Phase 5.0h.
+The code default remains disabled unless
 explicitly configured. Uncertain leases and stop-tolerant unavailability remain
 limitations; the Production happy path does not resolve them. Other sections
 primarily describe authenticated SaaS unless explicitly labelled Demo.
 
 ## Demo Chat operations and outstanding evidence
 
-**Current release policy (aligned 2026-11-06 JST):** v1.0.0 targets the bilingual
-read-only Public Demo with limited anonymous AI Chat enabled; general hosted
-SaaS operation is excluded. The [roadmap conditional policy](../planning/roadmap.md#current-conditional-demo-chat-release-policy-aligned-2026-11-06-jst)
-governs release acceptance. Indefinite Chat unavailability may be accepted as a
-documented availability limitation. Automatic recovery tooling and guaranteed
-recovery of every uncertain lease are not v1.0.0 requirements. This supersedes
-only the blanket recovery/availability prerequisites in historical Section 4.1
+**Current release policy (Phase 5.0h, 2026-11-07 JST):** v1.0.0 targets the bilingual
+read-only Public Demo with Chat disabled; live anonymous Chat and general hosted
+SaaS operation are excluded. The [roadmap conditional policy](../planning/roadmap.md#current-conditional-demo-chat-release-policy-aligned-2026-11-06-jst)
+is retained for future enabled-Chat acceptance and must be reassessed after the
+authoritative admission/lease redesign. Under that conditional policy, indefinite
+Chat unavailability may be accepted as a documented availability limitation. Automatic recovery tooling and guaranteed
+recovery of every uncertain lease are not universal activation requirements.
+Chat-only gates do not block the disabled-Chat read-only v1.0.0 release.
+The retained conditional policy supersedes only the blanket recovery/availability prerequisites in historical Section 4.1
 checkpoints, including PR #46 and the incident procedure's activation prerequisites.
 It grants no Go decision, changes no flags and passes no acceptance gate.
 
 All Redis consistency, acknowledged-reservation retention/no-eviction, shared
 admission across relevant senders/deployments, provider/account and maximum cost
 exposure, bounded real-service/browser verification, and executable shutdown
-Must-have gates remain mandatory. Any recovery still requires exact-attempt
+Must-have gates remain mandatory before any future Chat activation. Any recovery
+still requires exact-attempt
 non-submission or terminal proof, prevention of future submission, and a reviewed,
 audited owner/version-bound exact-member operation without refunds. Without that
 evidence, retain uncertain leases; timeout, abort, expiry and key revocation are

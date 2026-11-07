@@ -1,17 +1,26 @@
 # Public Demo Chat — Redis Lease Recovery Design Research
 
-> Current use (aligned 2026-11-06 JST): retain the unresolved lease/recovery design and
-> safety invariants below for future work. Dated activation No-Go statements are
-> historical checkpoints; see the [current roadmap](roadmap.md) and
-> [Demo operations](../architecture/ai-architecture.md#demo-chat-operations-and-outstanding-evidence)
-> for the reported live Demo and ongoing limits. Production happy-path results
-> do not establish safe recovery, remote termination or Redis failover guarantees.
+> Current use (Phase 5.0h, 2026-11-07 JST): retain the unresolved lease/recovery
+> design and safety invariants below for future work. v1.0.0 is the bilingual
+> read-only Public Demo with Chat disabled and "Coming soon". See the
+> [current roadmap](roadmap.md) and
+> [Demo operations](../architecture/ai-architecture.md#demo-chat-operations-and-outstanding-evidence).
+> Historical Production happy paths do not establish safe recovery, remote
+> termination or Redis failover guarantees.
 
-**現行方針（2026-11-06 JST）:** v1.0.0は英日read-only Public Demoと制限付き匿名AI Chatを対象とし、一般公開SaaS運用は対象外。
-[roadmapの条件付き方針](roadmap.md#current-conditional-demo-chat-release-policy-aligned-2026-11-06-jst)と第12節の現行基準を公開判断に用いる。
-不明Leaseの安全な有限時間復旧が未確立という調査結果は維持するが、自動復旧toolingや全Leaseの復旧保証はv1.0.0の必須条件ではない。
-第1〜11節の調査・提案・No-Goは当時の記録として保持し、一般的復旧の提案を全てrelease必須とは扱わない。
-本変更はGo判断、実環境の有効化、gate合格、復旧操作の承認を与えない。Chat clientは有効設定用の接続経路を実装済みであり、実browser検証の代替にはならない。
+**Current policy (Phase 5.0h, 2026-11-07 JST):** v1.0.0 includes only the bilingual
+read-only Public Demo; live anonymous Chat and general hosted SaaS operation are
+excluded. Keep `DEMO_CHAT_ENABLED=false` and "Coming soon". Redesign authoritative
+admission/lease management after v1.0.0 before reconsidering activation. The
+[roadmap conditional policy](roadmap.md#current-conditional-demo-chat-release-policy-aligned-2026-11-06-jst)
+and Section 12 are retained for future Chat acceptance and must be reassessed
+after redesign; Chat-only gates do not block the disabled-Chat read-only release.
+Existing safety requirements, historical audits/No-Go findings and the dedicated
+Redis verification-runner hold remain unchanged. Automatic recovery tooling and
+recovery guarantees are not universal activation requirements; any actual
+recovery still requires the existing proof, fencing and audit safeguards.
+This decision grants no Chat Go, gate completion, activation or recovery approval.
+The implemented eligible client path is not a substitute for browser verification.
 
 調査日: **2026-10-29 (Asia/Tokyo)**。基準: **`main` / `cfb5319` / clean**。
 開始時、プロセス環境の`DEMO_CHAT_ENABLED`は未設定、`.env.local`と`.env.example`は`false`。配備先の環境変数は閲覧していない。
@@ -356,6 +365,10 @@ stateDiagram-v2
 7. **PR G — 公開方式の決定**: 一般的復旧保証が得られれば別レビューでactivation準備。得られなければライブ生成を無効のまま維持し、事前生成/固定デモ、または強制終了・hard concurrencyを持つ基盤への変更を製品仕様として審査する。今回UI/フラグは変えない。
 
 ## 12. Public Activation Go / No-Go Criteria
+
+Phase 5.0h: retain this section for future enabled-Chat release review after the
+authoritative admission/lease redesign. It does not gate the disabled-Chat
+read-only v1.0.0 release or lift the dedicated Redis verification-runner hold.
 
 ### 現行の条件付き公開基準（2026-11-06 JST）
 

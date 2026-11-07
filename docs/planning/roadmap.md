@@ -1,45 +1,93 @@
 # evidence-atlas Roadmap
 
-> **Last Updated:** 2026-11-06
+> **Last Updated:** 2026-11-07
 
-Current stage: The portfolio MVP and curated Public Demo with read-only Research and limited anonymous Chat are implemented, with scoped deployment checks recorded. Phases 4–7 are complete for their defined baselines; Phase 8 is complete for the defined application infrastructure baseline. Phase 10 has four completed checklist items (Unit, bounded E2E, Validation, Authorization); other quality work remains open. Phase 11 operational reviews and Phase 12 documentation are not complete. Checked items describe specific implementation or reported verification, not blanket production, OAuth, provider, or security validation.
+Current stage: The portfolio MVP and curated Public Demo are implemented, with scoped deployment checks recorded. v1.0.0 targets the bilingual read-only Public Demo; anonymous AI Chat remains disabled with "Coming soon". Phases 4–7 are complete for their defined baselines; Phase 8 is complete for the defined application infrastructure baseline. Phase 10 has four completed checklist items (Unit, bounded E2E, Validation, Authorization); other quality work remains open. Phase 11 operational reviews and Phase 12 documentation are not complete. Checked items describe specific implementation or reported verification, not blanket production, OAuth, provider, or security validation.
 
 ### Ver 1.00 preparation and current Production report (2026-10-31 JST)
 
 Ver 1.00 is **in preparation, not formally released**. Its release scope was
-selected on 2026-11-06; applicable safety and operational acceptance gates remain
-open. Existing phase checkboxes are unchanged.
+revised on 2026-11-07 to exclude live Chat; applicable read-only safety and
+operational acceptance gates remain open. Existing phase checkboxes are unchanged.
 
-**v1.0.0 acceptance scope (2026-11-06 JST):** Publicly release the curated
-English/Japanese read-only Public Demo with limited anonymous AI Chat enabled.
+**v1.0.0 acceptance scope (Phase 5.0h, 2026-11-07 JST):** Publicly release the curated
+English/Japanese read-only Public Demo. Live anonymous AI Chat is excluded; keep
+`DEMO_CHAT_ENABLED=false` and display "Coming soon".
 The authenticated SaaS remains implemented in the repository but is outside
 this release's public operating commitment. Acceptance requires the applicable
 [Phase 10 verification policy](#phase-10--testing--quality),
 [Phase 11 deployment policy](#phase-11--deployment), and
 [Public Demo operational Must-have gates](#5-public-demo-strategy).
 The targeted [Phase 4.9 i18n audit](../architecture/i18n-foundation.md) is
-complete. This scope decision neither passes outstanding gates nor authorizes
-Chat activation, and it does not complete broader roadmap phases.
+complete. Chat-only activation gates are deferred with Chat, not waived or passed.
+This scope decision does not complete broader roadmap phases.
 
 | State | Scope |
 | --- | --- |
 | Implemented | Core research workflows, SaaS authorization, Gemini Chat/pgvector retrieval, background indexing, separate bounded anonymous Groq Demo Chat |
-| Production confirmed by maintainer | Public Research browsing, Turnstile, Chat session creation, Japanese questions, Groq answers including METR/GitHub Copilot comparison, Source references, 2,000-token output setting; Evidence improvements reported applied |
+| Historical Production report (2026-10-31) | Public Research browsing, Turnstile, Chat session creation, Japanese questions, Groq answers including METR/GitHub Copilot comparison, Source references, 2,000-token output setting; Evidence improvements reported applied |
+| Current Production report (owner, 2026-11-07) | Muse completed Vercel deployment cleanup; Production redeployed with `DEMO_CHAT_ENABLED=false`; owner confirmed Ready and "Coming soon". Not independently rechecked in this task |
 | Implemented, Production verification incomplete | Comprehensive normal-SaaS workflows and live Inngest integration; Demo failure/recovery guarantees are not established by happy-path checks |
 | Planned / remaining | Existing unchecked quality and operational work; no phase is completed by this documentation review |
-| v1.0.0 selected scope | Bilingual read-only Public Demo with limited anonymous Chat; normal SaaS public operations excluded; acceptance gates remain open |
+| v1.0.0 selected scope | Bilingual read-only Public Demo; live anonymous Chat and normal SaaS public operations excluded; applicable read-only acceptance gates remain open |
 
-Demo Chat uses Groq Free Plan / `openai/gpt-oss-120b`, a 30-second generation
+The implemented, disabled Demo Chat uses Groq Free Plan / `openai/gpt-oss-120b`, a 30-second generation
 deadline and zero automatic retries. Normal SaaS Chat/embeddings remain Gemini.
 Research data is read-only for visitors. This task verified local code and
 supplied operational reports only, without Production API/DB access.
 
 Dated PR reports below and linked preflight/recovery reports retain their original
 No-Go decisions and settings (including older output limits). They are historical
-checkpoints, not current deployment instructions. The maintainer's Production
-report supersedes the earlier unavailable-UI status; it does not establish Redis
+checkpoints, not current deployment instructions. The historical maintainer report
+superseded the earlier unavailable-UI status at that time; the Phase 5.0h decision
+now restores disabled Chat. Neither report establishes Redis
 failover, uncertain remote termination, safe lease recovery, or completion of
 all earlier proposed checks. Those evidence gaps remain explicit.
+
+### Phase 5.0h - read-only release decision and remaining acceptance (2026-11-07 JST)
+
+**Decision recorded; formal release pending owner acceptance.** Defer live Chat
+because authoritative admission and lease safety remain unresolved: Redis
+failure-time consistency/acknowledged-reservation retention and shared admission
+across senders/deployments are not established; local timeout/abort is not proof
+of remote termination, and uncertain leases can exhaust capacity indefinitely.
+The reported happy path does not close these safety gaps. Redesign authoritative
+admission/lease management after v1.0.0 before reconsidering activation, using the
+existing findings and future Chat gates. No redesign or recovery is authorized here.
+
+Preserve all dated audits, Redis findings, uncertain leases/budgets and future
+Chat activation/recovery requirements. The dedicated Redis verification-runner
+hold remains in force; do not substitute Production Demo Redis. Deployment cleanup
+and Ready/Coming soon are owner-reported completed work, not pending tasks.
+Neither disabling Chat nor cleanup proves previously submitted work terminated.
+
+**Remaining read-only release acceptance:** No new concrete read-only defect is
+established by this documentation review. Before declaring v1.0.0, the owner
+should record the final deployed artifact/URL and acceptance of:
+
+- English/Japanese curated list/detail browsing and language switching on the
+  final deployment, reusing the Phase 4.9 owner checks where still applicable;
+  no repeat broad UI/accessibility/i18n audit is required.
+- The fixed published Workspace, no visitor editing or authenticated SaaS access,
+  secret protection and disabled Chat entrypoints, using applicable existing
+  boundary evidence. Ready and visible "Coming soon" alone do not establish all
+  server-side boundaries. Confirm relevant older public deployments cannot admit
+  Chat; reuse Muse's cleanup evidence rather than repeat service operations here.
+- Scoped logs/errors and security review for exposed read-only routes, or explicit
+  disposition of remaining risks under Phases 10/11. Those checklist items remain
+  open; a material data exposure, unauthorized write or unusable core browsing
+  path would block this release. No such failure was newly confirmed here.
+
+README licensing remains unspecified; the owner should settle the intended public
+source/license statement before formal release. This is an open presentation
+choice, not evidence of an application safety failure. Final owner release sign-off
+remains pending; this task does not declare the release complete.
+
+Enabled-Chat Redis/provider/cost/recovery verification, Turnstile/Chat browser
+checks, normal-SaaS Production verification and live Inngest integration are not
+blockers for the disabled-Chat read-only scope. Preserve their open records and
+require the applicable gates before exposing those features. No builds, tests,
+live-service operations, deployment, commit or push were performed for Phase 5.0h.
 
 ### Public Demo localization (2026-11-02)
 
@@ -1950,14 +1998,15 @@ Authentication, advanced RAG, background processing, and other infrastructure sh
 
 The public portfolio deployment is not intended to function as an unrestricted public SaaS service.
 
-The Demo uses curated data with separate public read-only routes implemented in Phase 9.2 and a visitor-facing SaaS write lock in Phase 9.3. Public deployments must set `PUBLIC_DEMO_MODE=true`. The selected deployed Demo pages and visitor-facing route boundaries have been verified as recorded in Phase 9; separate limited Public Demo Chat is now reported working in Production. Further normal-SaaS security, telemetry, and infrastructure hardening remain pending.
+The Demo uses curated data with separate public read-only routes implemented in Phase 9.2 and a visitor-facing SaaS write lock in Phase 9.3. Public deployments must set `PUBLIC_DEMO_MODE=true`. The selected deployed Demo pages and visitor-facing route boundaries have been verified as recorded in Phase 9; separate limited Public Demo Chat was reported working on 2026-10-31, but is now disabled with "Coming soon" and excluded from v1.0.0. Further normal-SaaS security, telemetry, and infrastructure hardening remain pending.
 
 ### Current conditional Demo Chat release policy (aligned 2026-11-06 JST)
 
-The conditional policy below governs the selected v1.0.0 scope: bilingual
-read-only Public Demo with limited anonymous AI Chat enabled. General hosted
-SaaS operation is excluded. This alignment grants no release Go decision,
-changes no enablement flags and marks no acceptance gate as passed.
+The conditional policy below is retained for a future enabled-Chat release,
+following the Phase 5.0h decision. v1.0.0 includes only the bilingual read-only
+Public Demo with Chat disabled and "Coming soon"; general hosted SaaS operation
+is excluded. Reassess this policy after the post-v1.0.0 authoritative admission/lease
+redesign. No Chat Go decision or acceptance-gate completion is granted.
 
 **Decision at the 2026-10-29 checkpoint: public activation remained No-Go.** The following policy and proposed verification scope are retained as recorded; see the current status above. At that checkpoint, the instruction was to keep
 `DEMO_CHAT_ENABLED=false` and the unavailable UI. This is a policy revision only,
@@ -1984,7 +2033,7 @@ read-only Research access independently. Release review must record acceptance
 of this impact and reason. Reassess on repeated exhaustion, unacceptable loss of
 the intended demo experience, or stronger termination evidence.
 
-The following remain **Must-have before any limited live release**:
+The following remain **Must-have before any limited live Chat release**:
 
 - Preserve Demo/SaaS/C2 separation, public Research scope, authorization, secret
   protection, Origin/Turnstile/session ownership checks and bounded input/output.

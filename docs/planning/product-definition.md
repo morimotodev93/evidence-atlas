@@ -624,7 +624,7 @@ This distinction is important for traceability and AI retrieval.
 
 The public Demo has a curated, read-only implementation at `/demo` and `/demo/research/[researchId]`. Phase 9.2 provides an unauthenticated public read path separate from the authenticated SaaS application. Scoped deployed checks are recorded in [roadmap Phase 9](roadmap.md#phase-9--public-demo); PR #39 additionally records user-run Preview E2E 20/20, within the [reported scope](phase10-quality-acceptance.md#pr37-39-status-alignment).
 
-Visitors can explore a prepared Demo Workspace and review its accumulated research knowledge. Limited anonymous AI questions are available through a separate Demo Chat panel and API after Turnstile verification; Research data remains read-only.
+For v1.0.0, visitors can browse a prepared Demo Workspace and its accumulated research knowledge in English and Japanese, with Research data remaining read-only. Anonymous AI Chat is implemented but disabled for this release; visitors see "Coming soon". Future Chat activation requires a separate safety review.
 
 Visitors must not be able to create, edit, or delete persistent research data. Demo pages contain no mutation controls or Server Actions. Phase 9.3 additionally closes visitor-facing authenticated SaaS entry points in Public Demo deployment mode while preserving membership-based permissions in normal mode.
 
@@ -940,7 +940,7 @@ The document should be revised when:
 
 ### Current Implementation Gaps
 
-The intended workflows above remain the product baseline. The list below retains the PR #39 workflow baseline, with Public Demo Chat status updated from the maintainer's 2026-10-31 report. Ver 1.00 is in preparation; final acceptance conditions remain partly undecided.
+The intended workflows above remain the product baseline. The list below retains the PR #39 workflow baseline. Under Phase 5.0h (2026-11-07), v1.0.0 is the bilingual read-only Public Demo with anonymous AI Chat disabled and "Coming soon"; live Chat and general hosted SaaS operation are excluded. Authoritative admission/lease management is deferred for redesign after v1.0.0, with existing Chat safety gates and the Redis verification-runner hold preserved. Ver 1.00 remains in preparation pending applicable read-only acceptance; see the [roadmap](roadmap.md).
 
 - Research creation and title/description editing, plus Source, Finding, and Comment CRUD, are implemented.
 - Workspace Tags can be created or reused by name, attached to Research, displayed on list/detail pages, and detached without deleting the Tag. Tag renaming, Workspace-level Tag deletion, and Tag filtering are not implemented.
