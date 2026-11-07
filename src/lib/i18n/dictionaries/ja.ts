@@ -116,7 +116,7 @@ export const ja = {
   "errors.conflict": "現在の状態ではこの操作を完了できません。確認して、もう一度お試しください。",
   "errors.internal": "エラーが発生しました。もう一度お試しください。",
   "chat.evidenceNotice": "参照先は、リサーチに保存された情報源のメタデータです。内容の正確性を保証するものでも、外部ページを読み込んだことを示すものでもありません。",
-  "demo.readOnly": "リサーチ閲覧・AIチャット",
+  "demo.mode": "リサーチ閲覧・AIチャット",
   "demo.sourceCode": "ソースコード",
   "demo.researchList": "リサーチ一覧",
   "demo.backToWorkspace": "← デモワークスペースに戻る",

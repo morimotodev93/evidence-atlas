@@ -115,7 +115,7 @@ export const en = {
   "errors.conflict": "This action cannot be completed in the current state. Check and try again.",
   "errors.internal": "Something went wrong. Please try again.",
   "chat.evidenceNotice": "Source references identify stored Research metadata; they do not verify factual accuracy or indicate external pages were read.",
-  "demo.readOnly": "Browse research ・ AI chat",
+  "demo.mode": "Browse research ・ AI chat",
   "demo.sourceCode": "Source code",
   "demo.researchList": "Research list",
   "demo.backToWorkspace": "← Back to Demo Workspace",
