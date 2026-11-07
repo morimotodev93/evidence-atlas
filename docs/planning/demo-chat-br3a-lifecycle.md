@@ -1,6 +1,8 @@
 # Demo Chat B-R3a — bounded lease and operation retention
 
-Date: 2026-11-07 JST. Implementation baseline: `main` at `878029f`.
+Date: 2026-11-07 JST. Implementation baseline: `main` at `878029f`;
+B-R3a locally committed as `a1b58b1`, not yet pushed at this update.
+v1.0.0 was formally released on 2026-11-07 with Production Chat disabled.
 
 ## Current policy and scope
 
@@ -52,21 +54,31 @@ only while the record exists, normally 24 hours, and remains subject to Redis
 loss. IDs remain server-issued, not client inputs; no automatic retry is added.
 
 `HSETEX` errors or unexpected acknowledgements fail closed without a TTL-less
-fallback. Supported server behavior must still be verified before publication.
-The installed Upstash SDK is 1.39.0; its command serializer exists, but that is not
-proof of the target service's EVAL/field-expiry behavior.
+fallback. The owner reports actual Upstash Free verification of Lua `HSETEX PXAT`,
+`HPEXPIREAT`, field TTL and independent expiration. This confirms the exercised
+command behavior, not failover durability or the new Vercel deployment. The
+installed Upstash SDK is 1.39.0; its serializer alone is not service evidence.
 
 References checked 2026-11-07 JST:
 [Upstash HSETEX](https://upstash.com/docs/redis/sdks/ts/commands/hash/hsetex),
 [Upstash HPEXPIREAT](https://upstash.com/docs/redis/sdks/ts/commands/hash/hpexpireat),
 [Redis HSETEX, available since 8.0](https://redis.io/docs/latest/commands/hsetex/).
 
-## Existing records: preparation only, migration NOT run
+## Existing records: cleanup complete; migration helper remains preparation only
+
+The owner reports deleting 37 existing Operation records and observing 1 new
+record after Local testing. This is the completed history cleanup for the
+reported target; it is not evidence that the prepared TTL-migration Lua ran.
+Do not repeat cleanup or reset budgets as a routine rollout step. This report
+does not establish that all old writers have been fenced; check old-deployment
+exposure before enabling Chat.
 
 `chat-operation-retention.ts` supplies a pure preparation function and bounded
 compare-before-expiry Lua. It creates no client, opens no connection, performs no
 import-time work and is not called by requests. There is no migration/recovery
-CLI. The following is a future, separately authorized operational procedure:
+CLI. Execution of this helper has not been reported. The following is retained
+only for separately authorized handling if another legacy population is found,
+not as an outstanding migration of the already-cleaned reported target:
 
 1. Keep Chat disabled. Identify the intended Demo Redis and stop every old/new
    writer, including old deployment URLs, Local and runners. Groq key revocation
@@ -99,23 +111,52 @@ already-old unresolved leases. This is risk-accepted reclamation, not proof that
 those requests ended. Old code may add TTL-less records, so mixed writers and
 rollback to old enabled code are unsupported. Rollback must keep Chat disabled.
 
-## Verification and remaining gates
+## Verification record and remaining rollout
 
 Targeted offline Vitest covers quota/security regressions, exact grace/24h
 boundaries, stale workers, response loss, native-command failure, independent
 record expiry and partial migration. Fengari executes the Lua with mocked Redis
 commands; it cannot prove real Redis/Upstash compatibility or failure durability.
-Final scoped verification: 9 Vitest files / 260 tests passed; changed-code ESLint,
+Prior Codex report: 9 Vitest files / 260 tests passed; changed-code ESLint,
 TypeScript (`--noEmit --incremental false`) and diff whitespace checks passed.
 The first sandboxed Vitest could not start esbuild (`spawn EPERM`); the authorized
 offline run succeeded outside that subprocess restriction. The first executable
 run exposed the mock adapter's incorrect `-inf` handling (3 failures); fixing its
 score-range semantics made the recovery tests pass. No service was used.
-No real Redis/Groq/Turnstile request, Production/Review/C2/Vercel operation,
-migration execution, existing Redis runner, full suite or Build is included.
+That offline implementation run included no real Redis/Groq/Turnstile request,
+Production/Review/C2/Vercel operation, migration execution, existing Redis runner,
+full suite or Build. These limits describe that run, not the later owner checks.
 
-Before public approval: verify target command support, complete the stopped-writer
-migration, verify the deployed dedicated Groq project/key and reported
-3 RPM / 50 RPD / 8000 TPM / 100000 TPD, and perform separately bounded normal,
-refusal and shutdown checks. Provider quotas are layered protection, not a
-guarantee of two simultaneous remote generations or an exact cost ceiling.
+Subsequent owner-reported verification (not repeated by this documentation task):
+
+| Check | Reported result |
+| --- | --- |
+| Actual Upstash Free | Lua `HSETEX PXAT`, `HPEXPIREAT`, field TTL and individual expiration verified |
+| Existing Operation history | 37 records deleted; 1 new record observed after Local testing |
+| Local HTTPS Demo Chat | Question, answer and Source display succeeded |
+| Temporary Local configuration | Turnstile `localhost` allowance removed; temporary Local environment settings restored |
+| Dedicated Groq project | `openai/gpt-oss-120b`; 3 RPM / 50 RPD / 8,000 TPM / 100,000 TPD |
+| Vercel Groq key | Updated; reflection on a new deployment is NOT verified |
+
+Local success is not deployed verification. These checks do not prove Groq
+termination, strict failure-time concurrency, Redis durability or every failure
+path. Provider quotas reduce exposure; they are not a simultaneous-generation
+guarantee or exact monetary ceiling. The existing Redis verification runner
+remains on hold. No completed release or Local checks need routine repetition.
+
+Next work, subject to separate authorization:
+
+1. Push the reviewed changes, then create a new Vercel deployment from the intended
+   revision; keep Production `DEMO_CHAT_ENABLED=false` until publication approval.
+2. On an owner-authorized test target, confirm the deployed dedicated Groq
+   key/project and limits, then check bounded question/answer/Source behavior,
+   relevant refusal and shutdown behavior. Confirm old deployments cannot admit
+   incompatible Chat writes; old enabled code is not a supported rollback.
+3. Record the deployed results and make a separate Chat publication decision.
+   Preserve authentication/authorization, all normal quotas, fail-closed behavior,
+   no automatic retry and no question refunds. Redis loss and post-recovery
+   overlap remain the accepted residual risks, not guarantees established by
+   these checks.
+
+This documentation update made no service calls, configuration changes, tests,
+Build, commit or Push.

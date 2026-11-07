@@ -2,37 +2,51 @@
 
 > **Last Updated:** 2026-11-07
 
-Current stage: The portfolio MVP and curated Public Demo are implemented, with scoped deployment checks recorded. v1.0.0 targets the bilingual read-only Public Demo; anonymous AI Chat remains disabled with "Coming soon". Phases 4–7 are complete for their defined baselines; Phase 8 is complete for the defined application infrastructure baseline. Phase 10 has four completed checklist items (Unit, bounded E2E, Validation, Authorization); other quality work remains open. Phase 11 operational reviews and Phase 12 documentation are not complete. Checked items describe specific implementation or reported verification, not blanket production, OAuth, provider, or security validation.
+Current stage: v1.0.0 was formally released on 2026-11-07 as the bilingual read-only Public Demo (owner confirmation). B-R3a implementation and Local verification are complete; Production anonymous AI Chat remains disabled with "Coming soon". The next work is Push, a new Vercel deployment, bounded deployed verification, and a separate Chat publication decision. Phases 4–7 are complete for their defined baselines; Phase 8 is complete for the defined application infrastructure baseline. Phase 10 has four completed checklist items (Unit, bounded E2E, Validation, Authorization); other quality work remains open. Phase 11 operational reviews and Phase 12 documentation are not complete. These broader open items do not reopen the completed v1.0.0 release. Checked items describe specific implementation or reported verification, not blanket production, OAuth, provider, or security validation.
 
-### Ver 1.00 preparation and current Production report (2026-10-31 JST)
+<a id="ver-100-preparation-and-current-production-report-2026-10-31-jst"></a>
 
-**B-R3a update (2026-11-07 JST):** Implemented bounded Demo Chat lifecycle in the
-working tree: existing lease deadline + 5-minute grace recovery in reservation
-Lua, per-record 24-hour HASH TTL, and pre-submission lease revalidation. The owner
-accepts Redis loss/overlap risk after recovery; normal limits, security, no refund
-and no automatic retry remain. Legacy retention migration is prepared, not run.
-`DEMO_CHAT_ENABLED=false` remains required. No deployment, live compatibility or
-public acceptance gate is completed. See [implementation, verification limits and
-stopped-writer migration procedure](demo-chat-br3a-lifecycle.md). This policy
-supersedes earlier indefinite-retention/strict failure-time recovery requirements;
-other security/cost/deployed checks and the Redis runner hold remain. PostgreSQL
-admission migration is deferred. No broader roadmap phase is marked complete.
+### v1.0.0 release and B-R3a status (2026-11-07 JST)
 
-Ver 1.00 is **in preparation, not formally released**. Its release scope was
-revised on 2026-11-07 to exclude live Chat; applicable read-only safety and
-operational acceptance gates remain open. Existing phase checkboxes are unchanged.
+**v1.0.0 formally released:** The owner confirms the 2026-11-07 release of the
+English/Japanese read-only Public Demo. Live anonymous Chat and general SaaS
+public operations are outside that release. Do not repeat release acceptance or
+previous checks merely because Chat work continues.
 
-**v1.0.0 acceptance scope (Phase 5.0h, 2026-11-07 JST):** Publicly release the curated
-English/Japanese read-only Public Demo. Live anonymous AI Chat is excluded; keep
-`DEMO_CHAT_ENABLED=false` and display "Coming soon".
-The authenticated SaaS remains implemented in the repository but is outside
-this release's public operating commitment. Acceptance requires the applicable
-[Phase 10 verification policy](#phase-10--testing--quality),
-[Phase 11 deployment policy](#phase-11--deployment), and
-[Public Demo operational Must-have gates](#5-public-demo-strategy).
-The targeted [Phase 4.9 i18n audit](../architecture/i18n-foundation.md) is
-complete. Chat-only activation gates are deferred with Chat, not waived or passed.
-This scope decision does not complete broader roadmap phases.
+**B-R3a implementation and Local verification complete.** Implementation is
+locally committed as `a1b58b1` (`feat(demo): add bounded lease recovery and 24h
+operation retention`); it has not been pushed at this documentation update.
+The owner accepts Redis reservation loss and Groq overlap after automatic
+recovery. Normal question/session/input/output limits and concurrency 2 remain;
+leases are reclaimed at the next eligible reservation after their existing
+60-second deadline plus 5 minutes, and each Operation record expires 24 hours
+after creation. Pre-submission lease revalidation, no refunds, no automatic
+retry, authorization and C2 disablement remain. PostgreSQL admission, Cron and
+a manual recovery CLI are not introduced.
+
+| B-R3a evidence | Result and source |
+| --- | --- |
+| Implementation | Commit `a1b58b1`, confirmed by local Git/code inspection |
+| Offline verification | 9 Vitest files / 260 tests, targeted ESLint, TypeScript and diff checks passed (prior Codex report; not rerun here) |
+| Actual Upstash Free | Lua `HSETEX PXAT`, `HPEXPIREAT`, field TTL and individual expiry confirmed (owner report) |
+| Existing history cleanup | 37 existing Operation records deleted; 1 new record observed after Local testing (owner report). Do not describe this as execution of the prepared TTL-migration Lua |
+| Local HTTPS | Demo question, answer and Source display succeeded (owner report) |
+| Temporary Local setup | Turnstile `localhost` allowance removed; temporary Local environment settings restored (owner report) |
+| Groq configuration | Dedicated project: 3 RPM / 50 RPD / 8,000 TPM / 100,000 TPD; Vercel API key updated (owner report) |
+| Production | Chat remains disabled; new-deployment key/configuration reflection and bounded Vercel verification are NOT DONE |
+
+See [current lifecycle, evidence and rollout status](demo-chat-br3a-lifecycle.md).
+These scoped checks do not prove remote termination, Redis failure durability or
+exact concurrency after recovery. The existing real-Redis runner hold remains.
+
+**Next work only (not executed by this documentation task):**
+
+- [ ] Push the reviewed changes; no Push is authorized in this task.
+- [ ] Create a new Vercel deployment from the intended revision.
+- [ ] Confirm deployed Groq key/project/limits and bounded Demo behavior on an
+  owner-authorized test target; Local success does not establish Vercel behavior.
+- [ ] Make a separate Chat publication decision. Keep Production
+  `DEMO_CHAT_ENABLED=false` until approval.
 
 | State | Scope |
 | --- | --- |
@@ -40,8 +54,8 @@ This scope decision does not complete broader roadmap phases.
 | Historical Production report (2026-10-31) | Public Research browsing, Turnstile, Chat session creation, Japanese questions, Groq answers including METR/GitHub Copilot comparison, Source references, 2,000-token output setting; Evidence improvements reported applied |
 | Current Production report (owner, 2026-11-07) | Muse completed Vercel deployment cleanup; Production redeployed with `DEMO_CHAT_ENABLED=false`; owner confirmed Ready and "Coming soon". Not independently rechecked in this task |
 | Implemented, Production verification incomplete | Comprehensive normal-SaaS workflows and live Inngest integration; Demo failure/recovery guarantees are not established by happy-path checks |
-| Planned / remaining | Existing unchecked quality and operational work; no phase is completed by this documentation review |
-| v1.0.0 selected scope | Bilingual read-only Public Demo; live anonymous Chat and normal SaaS public operations excluded; applicable read-only acceptance gates remain open |
+| Planned / remaining | Push, new deployment, bounded Vercel verification and Chat publication decision; broader unchecked quality/operational work retains its original scope |
+| v1.0.0 released scope | Bilingual read-only Public Demo, formally released 2026-11-07 (owner confirmation); live anonymous Chat and normal SaaS public operations excluded |
 
 The implemented, disabled Demo Chat uses Groq Free Plan / `openai/gpt-oss-120b`, a 30-second generation
 deadline and zero automatic retries. Normal SaaS Chat/embeddings remain Gemini.
@@ -56,16 +70,16 @@ now restores disabled Chat. Neither report establishes Redis
 failover, uncertain remote termination, safe lease recovery, or completion of
 all earlier proposed checks. Those evidence gaps remain explicit.
 
-### Phase 5.0h - read-only release decision and remaining acceptance (2026-11-07 JST)
+<a id="phase-50h---read-only-release-decision-and-remaining-acceptance-2026-11-07-jst"></a>
 
-**Decision recorded; formal release pending owner acceptance.** Defer live Chat
-because authoritative admission and lease safety remain unresolved: Redis
-failure-time consistency/acknowledged-reservation retention and shared admission
-across senders/deployments are not established; local timeout/abort is not proof
-of remote termination, and uncertain leases can exhaust capacity indefinitely.
-The reported happy path does not close these safety gaps. Redesign authoritative
-admission/lease management after v1.0.0 before reconsidering activation, using the
-existing findings and future Chat gates. No redesign or recovery is authorized here.
+### Phase 5.0h - read-only release decision and acceptance record (2026-11-07 JST)
+
+**Historical pre-release review; release subsequently confirmed complete by the
+owner on 2026-11-07.** At this checkpoint, live Chat was deferred because strict
+admission/lease guarantees were unresolved, and the old implementation could
+retain two uncertain leases indefinitely. B-R3a supersedes that retention policy
+with owner-accepted automatic recovery risk. The review below is retained as
+history, not an instruction to repeat acceptance for the released read-only Demo.
 
 Preserve all dated audits, Redis findings, uncertain leases/budgets and future
 Chat activation/recovery requirements. The dedicated Redis verification-runner
@@ -73,9 +87,9 @@ hold remains in force; do not substitute Production Demo Redis. Deployment clean
 and Ready/Coming soon are owner-reported completed work, not pending tasks.
 Neither disabling Chat nor cleanup proves previously submitted work terminated.
 
-**Remaining read-only release acceptance:** No new concrete read-only defect is
-established by this documentation review. Before declaring v1.0.0, the owner
-should record the final deployed artifact/URL and acceptance of:
+**Historical read-only acceptance checklist:** No concrete read-only defect was
+established by that review. The pre-release review asked the owner to record the
+final deployed artifact/URL and acceptance of:
 
 - English/Japanese curated list/detail browsing and language switching on the
   final deployment, reusing the Phase 4.9 owner checks where still applicable;
@@ -90,10 +104,8 @@ should record the final deployed artifact/URL and acceptance of:
   open; a material data exposure, unauthorized write or unusable core browsing
   path would block this release. No such failure was newly confirmed here.
 
-README licensing remains unspecified; the owner should settle the intended public
-source/license statement before formal release. This is an open presentation
-choice, not evidence of an application safety failure. Final owner release sign-off
-remains pending; this task does not declare the release complete.
+README licensing remains unspecified and is separate presentation work; no license
+choice is asserted here. It does not change the owner's completed release report.
 
 Enabled-Chat Redis/provider/cost/recovery verification, Turnstile/Chat browser
 checks, normal-SaaS Production verification and live Inngest integration are not
@@ -1924,7 +1936,8 @@ this policy does not complete the remaining reviews or authorize a deployment.
 - [x] Configure production database
 - [x] Apply production migrations
 - [x] Seed curated Demo data
-- [ ] Configure AI provider
+- [x] Configure dedicated Demo Groq project/key (owner report; B-R3a)
+- [ ] Verify Demo Groq key/project/limits on the new Vercel deployment
 - [x] Configure environment variables
 - [x] Deploy to Vercel
 - [x] Verify production build
@@ -2012,7 +2025,37 @@ The public portfolio deployment is not intended to function as an unrestricted p
 
 The Demo uses curated data with separate public read-only routes implemented in Phase 9.2 and a visitor-facing SaaS write lock in Phase 9.3. Public deployments must set `PUBLIC_DEMO_MODE=true`. The selected deployed Demo pages and visitor-facing route boundaries have been verified as recorded in Phase 9; separate limited Public Demo Chat was reported working on 2026-10-31, but is now disabled with "Coming soon" and excluded from v1.0.0. Further normal-SaaS security, telemetry, and infrastructure hardening remain pending.
 
-### Current conditional Demo Chat release policy (aligned 2026-11-06 JST)
+### Current Demo Chat publication policy after B-R3a (2026-11-07 JST)
+
+Implementation, offline checks, actual Upstash command/expiry checks and Local
+HTTPS question/answer/Source verification are complete as scoped above. Keep
+Production Chat disabled. Remaining work is the reviewed Push, a new deployment,
+bounded Vercel verification and the owner's publication decision; the read-only
+v1.0.0 release and completed checks are not reopened.
+
+The current contract is [B-R3a](demo-chat-br3a-lifecycle.md): preserve normal
+limits/security, fail closed on observed errors, never refund question budgets or
+automatically retry AI, reclaim leases after deadline + 5 minutes, and expire each
+Operation at creation + 24h. Redis reservation loss and overlapping Groq work
+after recovery are accepted risks. Exact failure-time concurrency, indefinite
+quarantine/history and proof of termination before timed reclamation are no
+longer activation prerequisites. Provider limits are layered protection, not
+concurrency or monetary guarantees. PostgreSQL, Cron and a recovery CLI are not
+part of this design.
+
+Verify the new deployment's key/project/limits, bounded behavior and ability to
+disable admission within the owner's approved scope. Keep authentication,
+authorization, public Research and C2 boundaries intact. Preserve the existing
+Redis verification-runner hold; reported Upstash/Local checks do not mean that
+runner was run. Do not enable Production Chat before separate approval.
+
+<a id="current-conditional-demo-chat-release-policy-aligned-2026-11-06-jst"></a>
+
+### Historical conditional Demo Chat release policy (aligned 2026-11-06 JST)
+
+**Superseded by the B-R3a policy above.** The following dated text preserves the
+previous acceptance requirements and findings; its indefinite-retention and
+strict recovery requirements are not the current implementation or next tasks.
 
 The conditional policy below is retained for a future enabled-Chat release,
 following the Phase 5.0h decision. v1.0.0 includes only the bilingual read-only

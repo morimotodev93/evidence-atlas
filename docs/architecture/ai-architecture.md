@@ -11,20 +11,25 @@ automatic recovery: reservation Lua reclaims leases after their existing 60-seco
 deadline plus 5 minutes; Operation HASH fields expire 24 hours after creation.
 Generation revalidates its lease immediately before SDK submission within the
 30-second local deadline. Normal limits, authorization, no refund/retry and C2
-disablement remain. See [B-R3a implementation and migration preparation](../planning/demo-chat-br3a-lifecycle.md).
+disablement remain. See [B-R3a lifecycle and verification record](../planning/demo-chat-br3a-lifecycle.md).
 This supersedes the indefinite lease/history retention, acknowledged-reservation
 non-loss and strict failure-time concurrency prerequisites in earlier dated
 checkpoints below. Neither expiry nor
-Abort proves Groq termination. Chat remains disabled; Upstash command compatibility,
-legacy migration and public approval remain outstanding. Historical findings and
-the existing real-Redis runner hold are retained.
+Abort proves Groq termination. B-R3a is locally committed as `a1b58b1`. The owner
+reports actual Upstash Free field-expiry verification, cleanup of 37 legacy
+Operation records, 1 new record after Local testing, and successful Local HTTPS
+question/answer/Source display. Production Chat remains disabled; Push, a new
+deployment, bounded Vercel checks and separate publication approval remain.
+Historical findings and the existing real-Redis runner hold are retained.
 
-For v1.0.0, publish only the bilingual read-only Public Demo. Live anonymous
-Chat is excluded and remains disabled with "Coming soon". The owner reports
+v1.0.0 was formally released on 2026-11-07 as the bilingual read-only Public Demo
+(owner confirmation). Live anonymous Chat is excluded and remains disabled with
+"Coming soon". The owner reports
 Muse completed Vercel deployment cleanup and Production was redeployed with
 `DEMO_CHAT_ENABLED=false`, then confirmed Ready and "Coming soon". These are
-owner-supplied results, not independently repeated checks. Redesign authoritative
-admission/lease management after v1.0.0 before reconsidering Chat activation.
+owner-supplied results, not independently repeated checks. The current Chat
+rollout follows the B-R3a practical-safety policy; PostgreSQL admission remains
+deferred. Do not repeat the completed read-only release acceptance.
 
 Normal SaaS Chat and embeddings use Gemini; the separate Public Demo Chat uses
 Groq Free Plan / `openai/gpt-oss-120b`. The implemented, disabled Demo generation
@@ -52,59 +57,45 @@ primarily describe authenticated SaaS unless explicitly labelled Demo.
 
 ## Demo Chat operations and outstanding evidence
 
-**Current release policy (Phase 5.0h, 2026-11-07 JST):** v1.0.0 targets the bilingual
-read-only Public Demo with Chat disabled; live anonymous Chat and general hosted
-SaaS operation are excluded. The [roadmap conditional policy](../planning/roadmap.md#current-conditional-demo-chat-release-policy-aligned-2026-11-06-jst)
-is retained for future enabled-Chat acceptance and must be reassessed after the
-authoritative admission/lease redesign. Under that conditional policy, indefinite
-Chat unavailability may be accepted as a documented availability limitation. Automatic recovery tooling and guaranteed
-recovery of every uncertain lease are not universal activation requirements.
-Chat-only gates do not block the disabled-Chat read-only v1.0.0 release.
-The retained conditional policy supersedes only the blanket recovery/availability prerequisites in historical Section 4.1
-checkpoints, including PR #46 and the incident procedure's activation prerequisites.
-It grants no Go decision, changes no flags and passes no acceptance gate.
+**Current B-R3a policy (2026-11-07 JST):** Implementation and Local verification
+are complete; Production `DEMO_CHAT_ENABLED=false` remains in force. Normal limits,
+shared Redis admission, authorization, fail-closed errors, no memory fallback,
+no refunds and no automatic retry remain. The owner accepts reservation loss
+on Redis failure and possible Groq overlap after automatic lease recovery.
+The old indefinite-quarantine and acknowledged-reservation non-loss requirements
+are historical, superseded requirements; remote termination is still unproven.
+No PostgreSQL ledger, Cron, manual recovery CLI or admin UI is introduced.
 
-All Redis consistency, acknowledged-reservation retention/no-eviction, shared
-admission across relevant senders/deployments, provider/account and maximum cost
-exposure, bounded real-service/browser verification, and executable shutdown
-Must-have gates remain mandatory before any future Chat activation. Any recovery
-still requires exact-attempt
-non-submission or terminal proof, prevention of future submission, and a reviewed,
-audited owner/version-bound exact-member operation without refunds. Without that
-evidence, retain uncertain leases; timeout, abort, expiry and key revocation are
-not termination proof.
+Leases become reclaimable after their 60-second deadline plus 5 minutes, in the
+next eligible reservation Lua. Operation records expire individually 24 hours
+after creation without releasing leases or refunding budgets. Two uncertain
+leases can temporarily exhaust capacity; expiry does not itself run a sweep or
+prove the remote work ended. Read-only Research browsing is independent of Chat.
 
-The Demo Chat client is connected for eligible configuration; ineligible
-configuration retains the disabled Coming soon UI. Historical unconnected-UI
-statements describe their checkpoints, not the current implementation. Neither
-client integration nor reported Production happy paths establish release readiness.
+The [lifecycle record](../planning/demo-chat-br3a-lifecycle.md) distinguishes
+prior Codex offline checks (9 Vitest files / 260 tests, targeted ESLint,
+TypeScript and diff checks) from owner-reported Upstash Free command/field-expiry
+checks, history cleanup and Local HTTPS Chat success. Temporary Local settings
+were restored and the Turnstile `localhost` allowance removed (owner report).
+These results do not establish failover durability or new-deployment behavior.
+The prepared TTL-migration helper is not reported executed; the owner instead
+reports deleting 37 old records and observing 1 new record after Local testing.
 
-**Known availability limitation:** Two uncertain leases can block new answers for
-all visitors indefinitely. Operators must stop admission across relevant endpoints
-and old deployments, retain leases/budgets and communicate unavailability without
-promising recovery. Read-only Research browsing remains independent of Chat
-availability. Release review must record acceptance of this impact to preserve
-outstanding-work safety. Reassess after repeated exhaustion, unacceptable loss of
-the intended demo experience, or stronger termination evidence.
+The dedicated Groq project is reported configured for 3 RPM / 50 RPD / 8,000 TPM /
+100,000 TPD with `openai/gpt-oss-120b`; the Vercel API key is reported updated.
+Reflection on a new deployment is unverified. These quotas reduce exposure but
+are neither a remote-concurrency guarantee nor a precise spending ceiling.
 
-Use Section 4.1 for current rate limits, lease transitions, admission shutdown and
-recovery constraints, together with the [lease design](../planning/demo-chat-lease-recovery-design.md).
-The [initial Live preflight](../archive/demo-chat-live-verification-preflight.md)
-and [Redis verification record](../archive/demo-chat-redis-verification.md) are
-historical plans/results, not today's activation status. The maintainer also
-reports Production 503 diagnostic logging checked; this does not prove every
-failure path or expose diagnostic details to visitors.
+Next work is reviewed Push, a new deployment, bounded verification of deployed
+key/project/limits and Demo behavior on an authorized target, then a separate
+publication decision. Check relevant old deployments cannot admit incompatible
+writes. Keep Production Chat disabled until approval; Local success grants no
+activation. See the [current publication policy](../planning/roadmap.md#current-demo-chat-publication-policy-after-b-r3a-2026-11-07-jst).
 
-The dedicated real-Upstash verification runner remains on hold under the recorded
-operator decision not to create a separate paid verification database. Do not
-substitute the Production Demo Redis. Normal session/reservation/release success
-does not complete that runner's isolation, failure or durability checks. Local
-Lua/Fengari evidence does not prove Upstash failover behavior. Preserve fail-closed
-admission, existing budgets, no memory fallback/retry/refund, and uncertain leases:
-local timeout/abort/expiry is not remote termination evidence and never justifies
-force deletion, namespace rotation or extra capacity to forget outstanding work.
-Two uncertain leases can leave Chat unavailable indefinitely. Admission stop does
-not cancel remote work; recovery still requires the existing evidence safeguards.
+The existing real-Redis verification runner remains on hold; do not substitute
+Production Redis. Historical preflight/recovery audits remain evidence of their
+dated checkpoints. They do not require repeating the completed v1.0.0 release,
+Local checks or all historical strict-recovery proposals under the new policy.
 
 ## C2 browser-test runtime boundary
 
@@ -243,6 +234,9 @@ boundaries remain separate. UI presence does not establish generation readiness
 or deployed browser verification.
 
 #### Public Demo Chat client integration foundation (2026-10-29 JST)
+
+> Historical checkpoint. The B-R3a lifecycle above supersedes the older recovery
+> blockers and indefinite quarantine statements; client security behavior remains.
 
 The Research detail server page now uses `isDemoChatEnabled()` to select the
 client panel. Ineligible configuration, SaaS mode and any non-empty C2 marker
@@ -507,8 +501,9 @@ is not evidence that remote computation stopped.
 `chat-store.ts` uses one Redis EVAL to check session/thread ownership, all budgets
 and capacity, then increment every accepted budget and reserve a unique lease.
 Rejected reservations do not increment budgets. All instances must use the same
-dedicated, durable Redis database/namespace with no eviction or counter reset;
-Preview and Production must not accidentally share it. Redis TIME determines
+dedicated Redis database/namespace; do not reset counters or accidentally share
+Preview and Production state. Redis failure-time reservation loss is an accepted
+residual risk, not a durability guarantee supplied by EVAL. Redis TIME determines
 boundaries, independent of application clocks. REST calls use a three-second
 abort signal with retries disabled; failures deny and never fall back to memory.
 An uncertain response can have committed a reservation; it is never blindly
@@ -520,7 +515,7 @@ retried or refunded.
 | Session | 20 total during its non-renewing 86,400-second lifetime |
 | Source | 3 in the interval `(now - 60,000ms, now]` |
 | Global | 50 per UTC calendar day, `[00:00:00Z, next 00:00:00Z)` |
-| Concurrency | 2 outstanding generation leases across all instances |
+| Concurrency | Normally 2 outstanding generation leases across all instances; accepted overlap risk after recovery or Redis loss |
 
 PR #41's provisional rolling-24-hour session description is concretized as a
 non-renewing 24-hour session: all its admissions fit within one rolling 24-hour
@@ -531,19 +526,25 @@ share one source bucket**, a stricter limit than three per IP. Spoofable forward
 headers cannot reset it. A future trusted ingress adapter needs separate review.
 
 Leases have unique random owners and a 60-second deadline. Renewals are atomic
-and succeed only before expiry. **Expiry does not free capacity**: stale leases
-remain counted in quarantine, preventing a slow/partitioned generation from
-overlapping a replacement. Renew failure requires stopping future upstream work;
-release is idempotent ZREM by exact lease ID, only for work never submitted or a
-confirmed terminal provider response. Local cancellation completion alone is not
-remote termination confirmation. A crashed worker leaves its lease
-quarantined. Recovery must confirm upstream termination before removing that
-specific lease; automatic crash recovery and a provider cancellation confirmation
-adapter remain follow-up work. This favors denial of service over oversubscription;
-no claim of automatic crash-time cleanup is made.
+and succeed only before expiry. Expired leases remain counted for another
+5 minutes; the next eligible reservation Lua atomically reclaims members with
+deadlines at or before Redis TIME minus 5 minutes before checking capacity.
+Grace does not permit renewal of an expired lease. No Cron is used. Immediate
+release is idempotent ZREM by exact lease ID for work never submitted or a trusted
+terminal provider response. Reclamation accepts possible remote overlap; it is
+not evidence of termination. Late release cannot remove another lease ID.
+
+The same Operation HASH uses native `HSETEX PXAT` for both `attempted` and
+`reserved`, always with expiry `reservedAt + 24h`. Updates never extend retention;
+unsupported commands or unexpected replies fail closed without TTL-less fallback.
+The 10,000-record guard remains; duplicate rejection lasts while its record exists.
+History expiry does not release leases, refund quota or authorize a retry.
 
 PR #45 uses a 30-second local generation deadline, serial renewals every 15 seconds
-and the request's AbortSignal for disconnects. Timeout, disconnect or failed renewal
+and the request's AbortSignal for disconnects. B-R3a additionally renews the exact
+lease immediately before SDK submission, checking cancellation and elapsed wall
+time within the same 30-second deadline. This cannot fence a pause after the
+check or cancel Groq-side work. Timeout, disconnect or failed renewal
 aborts the local provider fetch and returns generic 503 promptly, even if the
 provider promise never settles. No new renewal is scheduled after cleanup. Only a
 successful non-streaming provider response with terminal `stop` or `length` confirms
@@ -552,14 +553,11 @@ is rejected as an incomplete answer). Context failure/pre-submission abort/evide
 insufficiency release safely because no provider work was submitted.
 
 Provider rejection, unknown finish reason or cancellation/renewal failure retains
-the lease in quarantine, even if a cancelled call later resolves. Neither local
-AbortError nor promise rejection confirms Groq-side termination. A release failure
-also denies the answer and is not retried. Reservations are never refunded. A
-process crash leaves capacity occupied; two uncertain requests can exhaust all
-capacity indefinitely, including across UTC-day rollover. Operators must confirm
-termination before removing a specific lease; automatic timeout deletion and safe
-automatic recovery are deliberately absent. The 30-second deadline bounds local
-waiting, not remote execution or provider charges.
+the lease until reservation-driven reclamation, even if a cancelled call later
+resolves. Neither AbortError nor promise rejection confirms Groq-side termination.
+A release failure denies the answer and is not retried. Reservations are never
+refunded. The 30-second deadline bounds local waiting, not remote execution or
+provider charges; strict failure-time concurrency 2 is not guaranteed.
 
 **Historical PR #46 pre-publication gate (current policy above takes precedence):** Define and review a recovery policy
 for uncertain/quarantined leases, including the case where both slots remain
@@ -570,6 +568,10 @@ tests do not satisfy this gate. No automatic deletion or expiry-based release is
 added by the PR #45 review follow-up.
 
 #### Pre-release lease recovery hardening (2026-10-29 JST)
+
+> Historical checkpoint. B-R3a supersedes indefinite quarantine/history retention
+> and strict recovery prerequisites; see the current lifecycle above. The dated
+> implementation and verification statements below describe the earlier code.
 
 **Recovery remains unresolved; public activation is blocked.** The safe improvement
 separates the built-in adapter's synchronous configuration/model construction and
@@ -640,6 +642,10 @@ members protects the concurrency limit but does not provide availability.
    protection in a separately authorized isolated environment.
 
 #### Operation ID and reservation correlation foundation (2026-10-29 JST)
+
+> Historical checkpoint. B-R3a supersedes indefinite quarantine/history retention
+> and strict recovery prerequisites; see the current lifecycle above. The dated
+> implementation and verification statements below describe the earlier code.
 
 **Public activation remains No-Go.** Each authorized question handler creates a
 256-bit random server Operation ID before calling Redis reserve. The strict input

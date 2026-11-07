@@ -8,10 +8,14 @@
 > and indefinite history retention are relaxed. The dated research below remains
 > historical evidence, including remote-termination limitations. Its blanket
 > no-expiry/no-deletion prerequisites are superseded, not proven satisfied.
-> Chat stays disabled; real Upstash compatibility, migration, deployed checks
-> and separate publication approval remain pending. The Redis runner hold remains.
+> B-R3a implementation and Local verification are complete. The owner reports
+> Upstash Free field-expiry checks, deletion of 37 legacy records and 1 new record
+> after Local testing, plus successful Local HTTPS Chat/Source display. This is
+> not execution of the prepared migration helper. Production Chat stays disabled;
+> Push, a new deployment, bounded Vercel checks and separate publication approval
+> remain pending. The Redis runner hold remains.
 
-> Current use (Phase 5.0h, 2026-11-07 JST): retain the unresolved lease/recovery
+> Historical Phase 5.0h context (superseded by B-R3a above): retain the unresolved lease/recovery
 > design and safety invariants below for future work. v1.0.0 is the bilingual
 > read-only Public Demo with Chat disabled and "Coming soon". See the
 > [current roadmap](roadmap.md) and
@@ -19,7 +23,7 @@
 > Historical Production happy paths do not establish safe recovery, remote
 > termination or Redis failover guarantees.
 
-**Current policy (Phase 5.0h, 2026-11-07 JST):** v1.0.0 includes only the bilingual
+**Historical Phase 5.0h policy (superseded by B-R3a above):** v1.0.0 includes only the bilingual
 read-only Public Demo; live anonymous Chat and general hosted SaaS operation are
 excluded. Keep `DEMO_CHAT_ENABLED=false` and "Coming soon". Redesign authoritative
 admission/lease management after v1.0.0 before reconsidering activation. The
