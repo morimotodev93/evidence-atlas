@@ -75,7 +75,7 @@ export const demoResearches: DemoResearch[] = [
       {
         key: "metr-early-2025",
         content:
-          "METR's July 2025 randomized controlled trial covered 16 experienced open-source developers and 246 real issues in repositories they knew well. Allowing early-2025 AI tools increased issue-completion time by 19% compared with working without AI. This is a measured slowdown in that setting, not evidence that all developers or later AI tools are slower.",
+          "METR's July 2025 randomized controlled trial covered 16 experienced open-source developers and 246 real issues in repositories they knew well. Allowing early-2025 AI tools increased issue-completion time by 19% compared with working without AI. This is a measured slowdown in that setting, not evidence that all developers or later AI tools are slower. Update (February 24, 2026): METR's follow-up (57 developers, 143 repositories, 800+ tasks) estimated −18% time for the original 10 participants (95% CI −38% to +9%) and −4% for 47 new participants (−15% to +9%). Both intervals cross zero, so neither is statistically significant. METR calls the data an unreliable signal: developers unwilling to work without AI avoided participating, so the true speedup is likely underestimated.",
         sourceKeys: ["metr-productivity"],
       },
       {
